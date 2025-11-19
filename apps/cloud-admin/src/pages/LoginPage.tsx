@@ -42,51 +42,215 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950">
-      <div className="w-full max-w-md bg-slate-900/80 border border-slate-800 rounded-xl p-8 shadow-xl">
-        <h1 className="text-2xl font-semibold text-slate-50 mb-6 text-center">
+    <div 
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "linear-gradient(135deg, #0f172a 0%, #020617 100%)",
+        padding: "20px"
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "420px",
+          background: "rgba(15, 23, 42, 0.9)",
+          border: "1px solid rgba(51, 65, 85, 0.5)",
+          borderRadius: "16px",
+          padding: "40px",
+          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)",
+          backdropFilter: "blur(10px)"
+        }}
+      >
+        <h1
+          style={{
+            fontSize: "24px",
+            fontWeight: 600,
+            color: "#f1f5f9",
+            marginBottom: "8px",
+            textAlign: "center"
+          }}
+        >
           Caisty Cloud – Admin Login
         </h1>
+        
+        <p
+          style={{
+            fontSize: "14px",
+            color: "#94a3b8",
+            marginBottom: "32px",
+            textAlign: "center"
+          }}
+        >
+          Melde dich mit deinem Admin-Account an, um Caisty Cloud zu verwalten.
+        </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
           <div>
-            <label className="block text-sm text-slate-300 mb-1">E-Mail</label>
+            <label
+              style={{
+                display: "block",
+                fontSize: "14px",
+                color: "#cbd5e1",
+                marginBottom: "8px",
+                fontWeight: 500
+              }}
+            >
+              E-Mail
+            </label>
             <input
-              className="w-full rounded-md bg-slate-950 border border-slate-700 px-3 py-2 text-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               type="email"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: "#0f172a",
+                border: "1px solid #334155",
+                borderRadius: "8px",
+                color: "#f1f5f9",
+                fontSize: "14px",
+                outline: "none",
+                transition: "all 0.2s",
+                boxSizing: "border-box"
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "#10b981";
+                e.currentTarget.style.boxShadow = "0 0 0 3px rgba(16, 185, 129, 0.1)";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "#334155";
+                e.currentTarget.style.boxShadow = "none";
+              }}
             />
           </div>
 
           <div>
-            <label className="block text-sm text-slate-300 mb-1">Passwort</label>
+            <label
+              style={{
+                display: "block",
+                fontSize: "14px",
+                color: "#cbd5e1",
+                marginBottom: "8px",
+                fontWeight: 500
+              }}
+            >
+              Passwort
+            </label>
             <input
-              className="w-full rounded-md bg-slate-950 border border-slate-700 px-3 py-2 text-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
               type="password"
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                background: "#0f172a",
+                border: "1px solid #334155",
+                borderRadius: "8px",
+                color: "#f1f5f9",
+                fontSize: "14px",
+                outline: "none",
+                transition: "all 0.2s",
+                boxSizing: "border-box"
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "#10b981";
+                e.currentTarget.style.boxShadow = "0 0 0 3px rgba(16, 185, 129, 0.1)";
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "#334155";
+                e.currentTarget.style.boxShadow = "none";
+              }}
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-400">
+            <div
+              style={{
+                padding: "12px",
+                background: "rgba(239, 68, 68, 0.1)",
+                border: "1px solid rgba(239, 68, 68, 0.3)",
+                borderRadius: "8px",
+                color: "#fca5a5",
+                fontSize: "14px"
+              }}
+            >
               {error}
-            </p>
+            </div>
           )}
 
           <button
             type="submit"
-            className="w-full rounded-md bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-medium py-2 transition-colors disabled:opacity-50"
             disabled={loading}
+            style={{
+              width: "100%",
+              padding: "12px 24px",
+              background: loading ? "#059669" : "#10b981",
+              color: "#020617",
+              fontSize: "16px",
+              fontWeight: 600,
+              border: "none",
+              borderRadius: "8px",
+              cursor: loading ? "not-allowed" : "pointer",
+              transition: "all 0.2s",
+              opacity: loading ? 0.7 : 1
+            }}
+            onMouseEnter={(e) => {
+              if (!loading) {
+                e.currentTarget.style.background = "#059669";
+                e.currentTarget.style.transform = "translateY(-1px)";
+                e.currentTarget.style.boxShadow = "0 4px 12px rgba(16, 185, 129, 0.3)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!loading) {
+                e.currentTarget.style.background = "#10b981";
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "none";
+              }
+            }}
           >
             {loading ? "Einloggen..." : "Einloggen"}
           </button>
 
-          <p className="text-xs text-slate-400 mt-3">
-            Demo: <code>admin@caisty.local</code> / <code>admin123</code>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "#64748b",
+              textAlign: "center",
+              marginTop: "8px"
+            }}
+          >
+            Demo:{" "}
+            <code
+              style={{
+                background: "rgba(15, 23, 42, 0.8)",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                fontSize: "11px",
+                color: "#cbd5e1"
+              }}
+            >
+              admin@caisty.local
+            </code>{" "}
+            /{" "}
+            <code
+              style={{
+                background: "rgba(15, 23, 42, 0.8)",
+                padding: "2px 6px",
+                borderRadius: "4px",
+                fontSize: "11px",
+                color: "#cbd5e1"
+              }}
+            >
+              admin123
+            </code>
           </p>
         </form>
       </div>

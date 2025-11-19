@@ -27,6 +27,7 @@ import {
     return children;
   }
   
+  // ✨ Nur Layout – keine Daten-Logik
   function AppShell({ children }: { children: JSX.Element }) {
     const { user, clearAuth } = useAuth();
     const navigate = useNavigate();
@@ -37,48 +38,82 @@ import {
     }
   
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-50">
-        <header className="border-b border-slate-800 px-6 py-3 flex items-center justify-between">
-          <div className="text-lg font-semibold">Caisty Admin</div>
+      <div className="min-h-screen bg-[#020617] text-[#e5e7eb]">
+        {/* Header */}
+        <header
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "12px 32px",
+            borderBottom: "1px solid #1f2937",
+          }}
+        >
+          <div style={{ fontSize: "18px", fontWeight: 600 }}>
+            Caisty <span style={{ color: "#22c55e" }}>Admin</span>
+          </div>
   
-          <nav className="flex gap-4 text-sm">
-            <Link to="/" className="hover:text-emerald-400">
-              Dashboard
-            </Link>
-            <Link to="/customers" className="hover:text-emerald-400">
-              Customers
-            </Link>
-            <Link to="/subscriptions" className="hover:text-emerald-400">
-              Subscriptions
-            </Link>
-            <Link to="/invoices" className="hover:text-emerald-400">
-              Invoices
-            </Link>
-            <Link to="/devices" className="hover:text-emerald-400">
-              Devices
-            </Link>
+          <nav
+            style={{
+              display: "flex",
+              gap: "16px",
+              fontSize: "14px",
+            }}
+          >
+            <Link to="/">Dashboard</Link>
+            <Link to="/customers">Customers</Link>
+            <Link to="/subscriptions">Subscriptions</Link>
+            <Link to="/invoices">Invoices</Link>
+            <Link to="/devices">Devices</Link>
           </nav>
   
-          <div className="flex items-center gap-3 text-xs">
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              fontSize: "12px",
+            }}
+          >
             {user && (
-              <span className="text-slate-300">
+              <span style={{ color: "#9ca3af" }}>
                 {user.email} ({user.role})
               </span>
             )}
             <button
               onClick={handleLogout}
-              className="px-3 py-1 rounded-md bg-slate-800 hover:bg-slate-700"
+              style={{
+                padding: "6px 12px",
+                borderRadius: "6px",
+                border: "1px solid #374151",
+                background: "#111827",
+                color: "#e5e7eb",
+                cursor: "pointer",
+              }}
             >
               Logout
             </button>
           </div>
         </header>
   
-        <main className="p-6">{children}</main>
+        {/* Seiteninhalt */}
+        <main
+          style={{
+            padding: "24px 32px 40px",
+          }}
+        >
+          <div
+            style={{
+              maxWidth: "1100px",
+              margin: "0 auto",
+            }}
+          >
+            {children}
+          </div>
+        </main>
       </div>
     );
   }
-  
   function AppRoutes() {
     return (
       <Routes>
