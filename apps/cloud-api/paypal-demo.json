@@ -1,0 +1,13 @@
+{
+    "id": "WH-TEST-1",
+    "event_type": "PAYMENT.SALE.COMPLETED",
+    "resource": {
+      "id": "PAYPAL-DEMO-1",
+      "amount": {
+        "value": "19.99",
+        "currency_code": "EUR"
+      },
+      "status": "COMPLETED"
+    }
+  }
+  

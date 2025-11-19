@@ -27,9 +27,13 @@ export async function buildServer() {
   // 🔐 Globaler Auth-Hook (läuft für alle Routen)
   app.addHook("onRequest", async (request, reply) => {
     const url = request.raw.url?.split("?")[0] ?? "";
+    const method = request.method.toUpperCase();
 
     // Öffentliche Routen: keine Auth
-    if (url === "/health" || url === "/auth/login") {
+    const isPublicWebhook =
+      url === "/webhooks/paypal" && method === "POST";
+
+    if (url === "/health" || url === "/auth/login" || isPublicWebhook) {
       return;
     }
 
@@ -56,7 +60,7 @@ export async function buildServer() {
 
   // ▶ Routen registrieren
   await registerHealthRoute(app);
-  await registerAuthRoutes(app);          // /auth/login bleibt öffentlich
+  await registerAuthRoutes(app); // /auth/login bleibt öffentlich
   await registerCustomersRoutes(app);
   await registerOrgsRoutes(app);
   await registerSubscriptionsRoutes(app);
