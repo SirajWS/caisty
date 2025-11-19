@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: caisty-postgres
+    environment:
+      POSTGRES_DB: caisty
+      POSTGRES_USER: caisty
+      POSTGRES_PASSWORD: devpassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - caisty_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U caisty -d caisty"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  caisty_pg_data:

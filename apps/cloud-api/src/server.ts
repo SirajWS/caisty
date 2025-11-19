@@ -1,8 +1,12 @@
-// src/server.ts
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { ENV } from "./config/env";
 import { registerHealthRoute } from "./routes/health";
+import { registerCustomersRoutes } from "./routes/customers";
+import { registerOrgsRoutes } from "./routes/orgs";
+import { registerSubscriptionsRoutes } from "./routes/subscriptions";
+import { registerInvoicesRoutes } from "./routes/invoices";
+import { registerDevicesRoutes } from "./routes/devices";
 
 async function buildServer() {
   const app = Fastify({
@@ -14,6 +18,11 @@ async function buildServer() {
   });
 
   await registerHealthRoute(app);
+  await registerCustomersRoutes(app);
+  await registerOrgsRoutes(app);
+  await registerSubscriptionsRoutes(app);
+  await registerInvoicesRoutes(app);
+  await registerDevicesRoutes(app);
 
   return app;
 }

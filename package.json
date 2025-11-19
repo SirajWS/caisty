@@ -2,9 +2,9 @@
   "name": "caisty",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "turbo run dev --parallel",
-    "dev:cloud": "turbo run dev --filter=cloud-api --filter=cloud-admin",
     "build": "turbo run build",
     "lint": "turbo run lint"
   },
