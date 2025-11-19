@@ -12,6 +12,14 @@ function getToken(): string | null {
 
 type ApiErrorShape = { error?: string; message?: string };
 
+// generische Listen-Antwort (z.B. für /customers, /subscriptions, …)
+export type ListResponse<T> = {
+  items: T[];
+  total: number;
+  limit?: number;
+  offset?: number;
+};
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
 
@@ -54,10 +62,7 @@ export function apiGet<T>(path: string): Promise<T> {
   return request<T>(path, { method: "GET" });
 }
 
-export function apiPost<TReq, TRes>(
-  path: string,
-  body: TReq,
-): Promise<TRes> {
+export function apiPost<TReq, TRes>(path: string, body: TReq): Promise<TRes> {
   return request<TRes>(path, {
     method: "POST",
     body: JSON.stringify(body),
