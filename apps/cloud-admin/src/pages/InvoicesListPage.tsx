@@ -1,6 +1,7 @@
-// apps/cloud-admin/src/pages/Invoices/InvoicesListPage.tsx
+// apps-cloud-admin/src/pages/InvoicesListPage.tsx
 import { useEffect, useState } from "react";
 import { apiGet } from "../lib/api";
+import { formatDateTime, formatMoney } from "../lib/format";
 
 type Invoice = {
   id: string;
@@ -8,8 +9,8 @@ type Invoice = {
   status: string;
   amountCents: number;
   currency: string;
-  dueDate: string;
-  createdAt: string;
+  issuedAt: string;
+  dueAt: string;
 };
 
 type InvoicesResponse = {
@@ -39,144 +40,97 @@ export default function InvoicesListPage() {
   }, []);
 
   return (
-    <div
-      style={{
-        padding: "24px 32px",
-        maxWidth: "100%",
-        width: "100%",
-        boxSizing: "border-box",
-      }}
-    >
-      <h1 style={{ fontSize: 28, marginBottom: 24, fontWeight: 600 }}>
-        Invoices
-      </h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-50">Invoices</h1>
+          <p className="text-slate-400 mt-1">
+            {data ? `${data.total} Rechnungen` : "Lade Daten…"}
+          </p>
+        </div>
+      </div>
 
-      {loading && <p style={{ color: "#9ca3af" }}>Lade Invoices…</p>}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 border-b-2 border-emerald-400 rounded-full animate-spin" />
+        </div>
+      )}
+
       {error && (
-        <p
-          style={{
-            color: "#f97316",
-            padding: 12,
-            backgroundColor: "#1f2937",
-            borderRadius: 8,
-          }}
-        >
-          Fehler beim Laden der Invoices: {error}
-        </p>
+        <div className="bg-red-950/40 border border-red-800 rounded-lg p-4">
+          <p className="text-red-300 text-sm">
+            Fehler beim Laden der Rechnungen: {error}
+          </p>
+        </div>
       )}
 
       {data && data.items.length === 0 && !loading && !error && (
-        <p style={{ color: "#9ca3af" }}>Keine Invoices gefunden.</p>
+        <div className="bg-slate-900 border border-slate-800 rounded-lg p-12 text-center">
+          <p className="text-slate-400">Keine Rechnungen gefunden.</p>
+        </div>
       )}
 
       {data && data.items.length > 0 && (
-        <div
-          style={{
-            overflowX: "auto",
-            width: "100%",
-            backgroundColor: "#0f172a",
-            borderRadius: 8,
-            border: "1px solid #1f2937",
-          }}
-        >
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              minWidth: "700px",
-            }}
-          >
-            <thead>
-              <tr style={{ backgroundColor: "#1e293b" }}>
-                <th style={thStyle}>Rechnungsnr.</th>
-                <th style={thStyle}>Status</th>
-                <th style={thStyle}>Betrag</th>
-                <th style={thStyle}>Fällig am</th>
-                <th style={thStyle}>Erstellt am</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((inv, index) => (
-                <tr
-                  key={inv.id}
-                  style={{
-                    backgroundColor:
-                      index % 2 === 0 ? "#0f172a" : "#1e293b",
-                    transition: "background-color 0.2s",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.backgroundColor = "#1f2937")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.backgroundColor =
-                      index % 2 === 0 ? "#0f172a" : "#1e293b")
-                  }
-                >
-                  <td style={tdStyle}>{inv.number}</td>
-                  <td style={tdStyle}>
-                    <span
-                      style={{
-                        padding: "4px 8px",
-                        borderRadius: 4,
-                        fontSize: 12,
-                        fontWeight: 500,
-                        backgroundColor:
-                          inv.status === "paid"
-                            ? "#065f46"
-                            : inv.status === "overdue"
-                            ? "#7f1d1d"
-                            : "#374151",
-                        color:
-                          inv.status === "paid"
-                            ? "#6ee7b7"
-                            : inv.status === "overdue"
-                            ? "#fca5a5"
-                            : "#e5e7eb",
-                      }}
-                    >
-                      {inv.status}
-                    </span>
-                  </td>
-                  <td style={tdStyle}>
-                    {formatMoney(inv.amountCents, inv.currency)}
-                  </td>
-                  <td style={tdStyle}>
-                    {inv.dueDate
-                      ? new Date(inv.dueDate).toLocaleString("de-DE")
-                      : "–"}
-                  </td>
-                  <td style={tdStyle}>
-                    {new Date(inv.createdAt).toLocaleString("de-DE")}
-                  </td>
+        <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-800/60 border-b border-slate-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                    Nummer
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                    Betrag
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                    Ausgestellt
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                    Fällig am
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {data.items.map((inv) => (
+                  <tr
+                    key={inv.id}
+                    className="hover:bg-slate-800/50 transition-colors"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-50">
+                      {inv.number}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          inv.status === "paid"
+                            ? "bg-emerald-900/30 text-emerald-400 border border-emerald-800"
+                            : inv.status === "open"
+                            ? "bg-amber-900/30 text-amber-400 border border-amber-800"
+                            : "bg-slate-800/60 text-slate-300 border border-slate-700"
+                        }`}
+                      >
+                        {inv.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-100">
+                      {formatMoney(inv.amountCents, inv.currency)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
+                      {formatDateTime(inv.issuedAt)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
+                      {formatDateTime(inv.dueAt)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
   );
 }
-
-function formatMoney(cents: number, currency: string) {
-  return new Intl.NumberFormat("de-DE", {
-    style: "currency",
-    currency,
-  }).format(cents / 100);
-}
-
-const thStyle: React.CSSProperties = {
-  textAlign: "left",
-  borderBottom: "1px solid #334155",
-  padding: "12px 16px",
-  fontWeight: 600,
-  fontSize: 14,
-  color: "#e5e7eb",
-};
-
-const tdStyle: React.CSSProperties = {
-  borderBottom: "1px solid #1e293b",
-  padding: "12px 16px",
-  fontSize: 14,
-  color: "#d1d5db",
-};

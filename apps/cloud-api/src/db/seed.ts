@@ -1,3 +1,4 @@
+// apps/cloud-api/src/db/seed.ts
 import { db } from "./client";
 import { orgs } from "./schema/orgs";
 import { users } from "./schema/users";
@@ -5,6 +6,7 @@ import { customers } from "./schema/customers";
 import { subscriptions } from "./schema/subscriptions";
 import { invoices } from "./schema/invoices";
 import { devices } from "./schema/devices";
+import { hashPassword } from "../lib/passwords";
 
 async function main() {
   console.log("Seeding database…");
@@ -17,8 +19,8 @@ async function main() {
   await db.delete(users);
   await db.delete(orgs);
 
-  // 1) Org
-  const [caistyOrg] = await db
+  // 1) Demo-Org erstellen
+  const [demoOrg] = await db
     .insert(orgs)
     .values({
       name: "Caisty Test Org",
@@ -26,45 +28,50 @@ async function main() {
     })
     .returning();
 
-  // 2) Users (für späteres M3-Login)
-  const [bossUser, adminUser] = await db
+  console.log("Created org:", demoOrg.id);
+
+  // 2) Demo-User (Admins) mit Passwort-Hash
+  const ownerPasswordHash = await hashPassword("owner123");
+  const adminPasswordHash = await hashPassword("admin123");
+
+  const [ownerUser, adminUser] = await db
     .insert(users)
     .values([
       {
-        orgId: caistyOrg.id,
-        email: "boss@caisty.local",
-        fullName: "Boss Admin",
+        orgId: demoOrg.id,
+        email: "owner@caisty.local",
+        passwordHash: ownerPasswordHash,
         role: "owner",
       },
       {
-        orgId: caistyOrg.id,
+        orgId: demoOrg.id,
         email: "admin@caisty.local",
-        fullName: "Admin User",
+        passwordHash: adminPasswordHash,
         role: "admin",
       },
     ])
     .returning();
 
-  console.log("Created users:", bossUser.email, adminUser.email);
+  console.log("Created users:", ownerUser.email, adminUser.email);
 
-  // 3) Customers
-  const [alice, bob, charlie] = await db
+  // 3) Demo-Customers
+  const [customer1, customer2, customer3] = await db
     .insert(customers)
     .values([
       {
-        orgId: caistyOrg.id,
+        orgId: demoOrg.id,
         name: "Alice GmbH",
         email: "alice@example.com",
         status: "active",
       },
       {
-        orgId: caistyOrg.id,
+        orgId: demoOrg.id,
         name: "Bob OHG",
         email: "bob@example.com",
         status: "active",
       },
       {
-        orgId: caistyOrg.id,
+        orgId: demoOrg.id,
         name: "Charlie e.K.",
         email: "charlie@example.com",
         status: "inactive",
@@ -72,31 +79,36 @@ async function main() {
     ])
     .returning();
 
-  console.log("Created customers:", alice.email, bob.email, charlie.email);
+  console.log(
+    "Created customers:",
+    customer1.email,
+    customer2.email,
+    customer3.email,
+  );
 
   // 4) Subscriptions
   const now = new Date();
   const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-  const [subAlice, subBob] = await db
+  const [sub1, sub2] = await db
     .insert(subscriptions)
     .values([
       {
-        orgId: caistyOrg.id,
-        customerId: alice.id,
-        plan: "starter",
+        orgId: demoOrg.id,
+        customerId: customer1.id,
+        plan: "pro",
         status: "active",
-        priceCents: 4900,
+        priceCents: 4999,
         currency: "EUR",
         startedAt: now,
         currentPeriodEnd: in30Days,
       },
       {
-        orgId: caistyOrg.id,
-        customerId: bob.id,
-        plan: "pro",
-        status: "trialing",
-        priceCents: 7900,
+        orgId: demoOrg.id,
+        customerId: customer2.id,
+        plan: "starter",
+        status: "active",
+        priceCents: 1999,
         currency: "EUR",
         startedAt: now,
         currentPeriodEnd: in30Days,
@@ -104,25 +116,27 @@ async function main() {
     ])
     .returning();
 
+  console.log("Created subscriptions:", sub1.id, sub2.id);
+
   // 5) Invoices
   await db.insert(invoices).values([
     {
-      orgId: caistyOrg.id,
-      customerId: alice.id,
-      subscriptionId: subAlice.id,
+      orgId: demoOrg.id,
+      customerId: customer1.id,
+      subscriptionId: sub1.id,
       number: "INV-2025-0001",
-      amountCents: 4900,
+      amountCents: 4999,
       currency: "EUR",
       status: "paid",
       issuedAt: now,
       dueAt: now,
     },
     {
-      orgId: caistyOrg.id,
-      customerId: bob.id,
-      subscriptionId: subBob.id,
+      orgId: demoOrg.id,
+      customerId: customer2.id,
+      subscriptionId: sub2.id,
       number: "INV-2025-0002",
-      amountCents: 7900,
+      amountCents: 1999,
       currency: "EUR",
       status: "open",
       issuedAt: now,
@@ -130,32 +144,36 @@ async function main() {
     },
   ]);
 
+  console.log("Created invoices");
+
   // 6) Devices
   await db.insert(devices).values([
     {
-      orgId: caistyOrg.id,
-      customerId: alice.id,
-      name: "Kasse 1",
+      orgId: demoOrg.id,
+      customerId: customer1.id,
+      name: "POS Terminal 001",
       type: "pos",
       status: "active",
     },
     {
-      orgId: caistyOrg.id,
-      customerId: bob.id,
-      name: "Kasse 2",
+      orgId: demoOrg.id,
+      customerId: customer2.id,
+      name: "Tablet 002",
       type: "pos",
       status: "active",
     },
   ]);
 
+  console.log("Created devices");
   console.log("Seeding done.");
 }
 
 main()
   .then(() => {
+    console.log("Seed script finished.");
     process.exit(0);
   })
   .catch((err) => {
-    console.error("Error during seeding:", err);
+    console.error("Seed script failed:", err);
     process.exit(1);
   });

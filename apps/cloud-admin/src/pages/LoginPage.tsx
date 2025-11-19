@@ -1,68 +1,95 @@
-import { FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { FormEvent, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { apiPost } from "../lib/api";
+import { useAuth, AuthUser } from "../auth/AuthContext";
+
+type LoginResponse = {
+  token: string;
+  user: AuthUser;
+};
 
 export default function LoginPage() {
+  const { setAuth } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  function handleSubmit(e: FormEvent) {
+  const [email, setEmail] = useState("admin@caisty.local");
+  const [password, setPassword] = useState("admin123");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const from = (location.state as any)?.from?.pathname || "/";
+
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    // M3: Hier später echten /auth/login Call machen.
-    // Für jetzt: einfach weiter zum Dashboard.
-    navigate("/dashboard");
+    setError(null);
+    setLoading(true);
+
+    try {
+      const res = await apiPost<{ email: string; password: string }, LoginResponse>(
+        "/auth/login",
+        { email, password },
+      );
+
+      setAuth(res.token, res.user);
+      navigate(from, { replace: true });
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Login fehlgeschlagen");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <div
-      style={{
-        maxWidth: 360,
-        margin: "4rem auto",
-        padding: 24,
-        border: "1px solid #333",
-        borderRadius: 8,
-        background: "#020617",
-        color: "#e5e7eb",
-      }}
-    >
-      <h1 style={{ fontSize: 20, marginBottom: 12 }}>Login (Dummy)</h1>
-      <p style={{ fontSize: 14, marginBottom: 16 }}>
-        M2: Noch kein echtes Login – beim Absenden kommst du direkt ins Dashboard.
-      </p>
-      <form
-        onSubmit={handleSubmit}
-        style={{ display: "flex", flexDirection: "column", gap: 8 }}
-      >
-        <label style={{ fontSize: 14 }}>
-          E-Mail
-          <input
-            type="email"
-            placeholder="admin@caisty.local"
-            style={{ width: "100%", padding: 8, marginTop: 4 }}
-          />
-        </label>
-        <label style={{ fontSize: 14 }}>
-          Passwort
-          <input
-            type="password"
-            placeholder="•••••••"
-            style={{ width: "100%", padding: 8, marginTop: 4 }}
-          />
-        </label>
-        <button
-          type="submit"
-          style={{
-            marginTop: 12,
-            padding: "8px 12px",
-            background: "#0ea5e9",
-            border: "none",
-            borderRadius: 4,
-            color: "white",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          Login
-        </button>
-      </form>
+    <div className="min-h-screen flex items-center justify-center bg-slate-950">
+      <div className="w-full max-w-md bg-slate-900/80 border border-slate-800 rounded-xl p-8 shadow-xl">
+        <h1 className="text-2xl font-semibold text-slate-50 mb-6 text-center">
+          Caisty Cloud – Admin Login
+        </h1>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">E-Mail</label>
+            <input
+              className="w-full rounded-md bg-slate-950 border border-slate-700 px-3 py-2 text-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">Passwort</label>
+            <input
+              className="w-full rounded-md bg-slate-950 border border-slate-700 px-3 py-2 text-slate-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-400">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            className="w-full rounded-md bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-medium py-2 transition-colors disabled:opacity-50"
+            disabled={loading}
+          >
+            {loading ? "Einloggen..." : "Einloggen"}
+          </button>
+
+          <p className="text-xs text-slate-400 mt-3">
+            Demo: <code>admin@caisty.local</code> / <code>admin123</code>
+          </p>
+        </form>
+      </div>
     </div>
   );
 }

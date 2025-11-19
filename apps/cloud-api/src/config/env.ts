@@ -1,8 +1,7 @@
-import * as dotenv from "dotenv";
+// apps/cloud-api/src/config/env.ts
+import "dotenv/config";
 
-dotenv.config(); // nimmt .env aus apps/cloud-api
-
-function requireEnv(name: string): string {
+function required(name: string): string {
   const value = process.env[name];
   if (!value) {
     throw new Error(`Missing env var: ${name}`);
@@ -11,6 +10,11 @@ function requireEnv(name: string): string {
 }
 
 export const ENV = {
-  PORT: Number(process.env.PORT ?? 3333),
-  DATABASE_URL: requireEnv("DATABASE_URL")
+  NODE_ENV: process.env.NODE_ENV ?? "development",
+  PORT: Number(process.env.PORT) || 3333,
+  DATABASE_URL: required("DATABASE_URL"),
+  JWT_SECRET: required("JWT_SECRET"),
 };
+
+// Alias – sodass sowohl env als auch ENV funktioniert
+export const env = ENV;
