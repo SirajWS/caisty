@@ -4,3 +4,5 @@ export * from "./customers";
 export * from "./subscriptions";
 export * from "./invoices";
 export * from "./devices";
+export * from "./payments";
+export * from "./webhooks";

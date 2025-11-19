@@ -10,6 +10,9 @@ import { registerSubscriptionsRoutes } from "./routes/subscriptions";
 import { registerInvoicesRoutes } from "./routes/invoices";
 import { registerDevicesRoutes } from "./routes/devices";
 import { registerAuthRoutes } from "./routes/auth";
+import { registerPaymentsRoutes } from "./routes/payments";
+import { registerWebhooksRoutes } from "./routes/webhooks";
+
 import { verifyToken } from "./lib/jwt";
 
 export async function buildServer() {
@@ -59,6 +62,10 @@ export async function buildServer() {
   await registerSubscriptionsRoutes(app);
   await registerInvoicesRoutes(app);
   await registerDevicesRoutes(app);
+
+  // 🟣 M4: neue Routen
+  await registerPaymentsRoutes(app);
+  await registerWebhooksRoutes(app);
 
   return app;
 }
