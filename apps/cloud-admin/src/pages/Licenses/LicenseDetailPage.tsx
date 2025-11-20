@@ -1,3 +1,4 @@
+// apps/cloud-admin/src/pages/Licenses/LicenseDetailPage.tsx
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { apiGet } from "../../lib/api";
@@ -14,8 +15,8 @@ type License = {
   createdAt: string;
 };
 
-type LicensesResponse = {
-  items: License[];
+type LicenseItemResponse = {
+  item: License | null;
 };
 
 type LicenseEvent = {
@@ -58,27 +59,59 @@ export default function LicenseDetailPage() {
   useEffect(() => {
     if (!id) return;
 
-    setLoading(true);
+    let cancelled = false;
 
-    Promise.all([
-      apiGet<LicensesResponse>("/licenses"),
-      apiGet<EventsResponse>(`/licenses/${id}/events`),
-    ])
-      .then(([licensesRes, eventsRes]) => {
-        const found = licensesRes.items.find((l) => l.id === id) ?? null;
-        setLicense(found || null);
-        setEvents(eventsRes.items ?? []);
-        setError(null);
-      })
-      .catch((err) => {
+    async function load() {
+      setLoading(true);
+      setError(null);
+
+      // 1) License selbst holen
+      try {
+        const licenseRes = await apiGet<LicenseItemResponse>(`/licenses/${id}`);
+        if (cancelled) return;
+
+        if (!licenseRes.item) {
+          setError("License wurde nicht gefunden.");
+          setLoading(false);
+          return;
+        }
+
+        setLicense(licenseRes.item);
+      } catch (err) {
         console.error(err);
-        setError("Fehler beim Laden der Lizenz.");
-      })
-      .finally(() => setLoading(false));
+        if (!cancelled) {
+          setError("Fehler beim Laden der Lizenz.");
+          setLoading(false);
+        }
+        return;
+      }
+
+      // 2) Events (optional) holen
+      try {
+        const eventsRes = await apiGet<EventsResponse>(`/licenses/${id}/events`);
+        if (!cancelled) {
+          setEvents(eventsRes.items ?? []);
+        }
+      } catch (err) {
+        console.error("Fehler beim Laden der Events:", err);
+        // License soll trotzdem angezeigt werden → kein globaler Fehler
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   const renderEventDetails = (evt: LicenseEvent) => {
     const meta = evt.metadata as any;
+    if (evt.type === "created") {
+      return "License erstellt";
+    }
     if (evt.type === "activated" && meta?.deviceName) {
       return `Device aktiviert: ${meta.deviceName} (${shortId(meta.deviceId)})`;
     }
