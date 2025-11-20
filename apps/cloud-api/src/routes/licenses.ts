@@ -4,9 +4,10 @@ import { db } from "../db/client";
 import { licenses } from "../db/schema/licenses";
 import { licenseEvents } from "../db/schema/licenseEvents";
 import { and, desc, eq } from "drizzle-orm";
+import { generateLicenseKey } from "../lib/licenseKey";
 
 type CreateLicenseBody = {
-  customerId: string;
+  customerId?: string | null;
   subscriptionId?: string | null;
   plan: string;
   maxDevices?: number | null;
@@ -44,47 +45,62 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
     const user = (request as any).user;
     const orgId = user?.orgId;
 
-    const body = request.body;
-
     if (!orgId) {
       reply.code(400);
       return { error: "Missing orgId on user" };
     }
 
-    if (!body.customerId || !body.plan) {
+    const body = request.body;
+
+    // Nur der Plan ist Pflicht – customerId ist optional
+    if (!body.plan) {
       reply.code(400);
-      return {
-        error: "customerId and plan are required",
-      };
+      return { error: "plan is required" };
     }
 
     const maxDevices = body.maxDevices ?? 1;
 
-    const [created] = await db
-      .insert(licenses)
-      .values({
+    // leere Strings -> null
+    const customerId =
+      body.customerId && body.customerId.trim().length > 0
+        ? body.customerId
+        : null;
+
+    // License-Key generieren
+    const key = generateLicenseKey("CSTY");
+
+    try {
+      const [created] = await db
+        .insert(licenses)
+        .values({
+          orgId,
+          customerId,
+          subscriptionId: body.subscriptionId ?? null,
+          key,
+          plan: body.plan,
+          maxDevices,
+          status: "active",
+          validFrom: new Date(body.validFrom),
+          validUntil: new Date(body.validUntil),
+        })
+        .returning();
+
+      await db.insert(licenseEvents).values({
         orgId,
-        customerId: body.customerId,
-        subscriptionId: body.subscriptionId ?? null,
-        plan: body.plan,
-        maxDevices,
-        status: "active",
-        validFrom: new Date(body.validFrom),
-        validUntil: new Date(body.validUntil),
-      })
-      .returning();
+        licenseId: created.id,
+        type: "created",
+        metadata: {
+          byUserId: user?.userId,
+        },
+      });
 
-    await db.insert(licenseEvents).values({
-      orgId,
-      licenseId: created.id,
-      type: "created",
-      metadata: {
-        byUserId: user?.userId,
-      },
-    });
-
-    reply.code(201);
-    return { item: created };
+      reply.code(201);
+      return { item: created };
+    } catch (err: any) {
+      console.error("Error creating license", err);
+      reply.code(500);
+      return { error: "Failed to create license" };
+    }
   });
 
   // Einzelne License
@@ -141,7 +157,7 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
     },
   );
 
-  // License revoken
+  // License revoken (nutzen wir auch als "Löschen" für generierte Keys)
   app.post<{ Params: { id: string }; Body: RevokeBody }>(
     "/licenses/:id/revoke",
     async (request, reply) => {

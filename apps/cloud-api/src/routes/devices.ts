@@ -3,48 +3,48 @@ import type { FastifyInstance } from "fastify";
 import { db } from "../db/client";
 import { devices } from "../db/schema/devices";
 import { licenses } from "../db/schema/licenses";
-import { eq } from "drizzle-orm";
+import { customers } from "../db/schema/customers";
+import { desc, eq } from "drizzle-orm";
 
 export async function registerDevicesRoutes(app: FastifyInstance) {
-  app.get("/devices", async (request, reply) => {
-    try {
-      const rows = await db
-        .select({
-          id: devices.id,
-          name: devices.name,
-          type: devices.type,
-          status: devices.status,
-          lastHeartbeatAt: devices.lastHeartbeatAt,
-          createdAt: devices.createdAt,
-          // 🔽 neu: Lizenz-Infos
-          licensePlan: licenses.plan,
-          licenseKey: licenses.key,
-        })
-        .from(devices)
-        .leftJoin(licenses, eq(devices.licenseId, licenses.id))
-        .limit(50);
+  // Übersicht aller Devices der aktuellen Organisation
+  app.get("/devices", async (request) => {
+    const user = (request as any).user;
+    const orgId = user?.orgId;
 
-      app.log.info(
-        { count: rows.length },
-        "Loaded devices with license info from DB",
-      );
+    const rows = await db
+      .select({
+        // Device-Basisdaten
+        id: devices.id,
+        name: devices.name,
+        type: devices.type,
+        status: devices.status,
+        customerId: devices.customerId,
+        licenseId: devices.licenseId,
+        lastHeartbeatAt: devices.lastHeartbeatAt,
+        createdAt: devices.createdAt,
 
-      return {
-        items: rows,
-        total: rows.length,
-        limit: 50,
-        offset: 0,
-      };
-    } catch (error) {
-      app.log.error(
-        { err: error instanceof Error ? error.message : String(error) },
-        "DB error in GET /devices",
-      );
+        // Lizenz-Infos (können null sein)
+        licenseKey: licenses.key,
+        licensePlan: licenses.plan,
+        licenseValidFrom: licenses.validFrom,
+        licenseValidUntil: licenses.validUntil,
 
-      reply.code(500);
-      return {
-        error: "Failed to load devices",
-      };
-    }
+        // Customer-Name (optional)
+        customerName: customers.name,
+      })
+      .from(devices)
+      .leftJoin(licenses, eq(devices.licenseId, licenses.id))
+      .leftJoin(customers, eq(devices.customerId, customers.id))
+      .where(orgId ? eq(devices.orgId, orgId) : undefined)
+      .orderBy(desc(devices.createdAt))
+      .limit(200);
+
+    return {
+      items: rows,
+      total: rows.length,
+      limit: 200,
+      offset: 0,
+    };
   });
 }

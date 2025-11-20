@@ -8,7 +8,9 @@ export const licenses = pgTable("licenses", {
     .default(sql`gen_random_uuid()`),
 
   orgId: text("org_id").notNull(),
-  customerId: text("customer_id").notNull(),
+
+  // customerId jetzt OPTIONAL (kein .notNull())
+  customerId: text("customer_id"),
 
   // optional: an Subscription hängen
   subscriptionId: text("subscription_id"),

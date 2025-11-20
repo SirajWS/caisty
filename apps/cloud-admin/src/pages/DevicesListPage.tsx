@@ -3,67 +3,122 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "../lib/api";
 
-type DeviceRow = {
+type Device = {
   id: string;
-  name: string;
-  type: string;
+  name: string | null;
+  type: string | null;
   status: string | null;
-  lastHeartbeatAt: string | null;
-  createdAt: string;
+
+  customerId: string | null;
+  customerName: string | null;
+
   licenseId: string | null;
   licenseKey: string | null;
   licensePlan: string | null;
+  licenseValidFrom: string | null;
+  licenseValidUntil: string | null;
+
+  lastHeartbeatAt: string | null;
+  createdAt: string;
 };
 
-type DevicesResponse = {
-  items: DeviceRow[];
+type DeviceListResponse = {
+  items: Device[];
   total: number;
 };
 
+function formatDate(value: string | null | undefined) {
+  if (!value) return "noch nie";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "–";
+  return d.toLocaleString("de-DE");
+}
+
+// online / stale / offline / never
+function classifySignal(lastHeartbeatAt: string | null): "never" | "online" | "stale" | "offline" {
+  if (!lastHeartbeatAt) return "never";
+  const d = new Date(lastHeartbeatAt);
+  if (Number.isNaN(d.getTime())) return "never";
+
+  const now = Date.now();
+  const diffMs = now - d.getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+
+  if (diffHours <= 24) return "online";
+  if (diffHours <= 24 * 7) return "stale";
+  return "offline";
+}
+
+function signalBadgeClass(kind: "never" | "online" | "stale" | "offline") {
+  switch (kind) {
+    case "online":
+      return "badge badge--green";
+    case "stale":
+      return "badge badge--amber";
+    case "offline":
+      return "badge badge--red";
+    case "never":
+    default:
+      return "badge";
+  }
+}
+
+function signalText(kind: "never" | "online" | "stale" | "offline") {
+  switch (kind) {
+    case "online":
+      return "online";
+    case "stale":
+      return "stale";
+    case "offline":
+      return "offline";
+    case "never":
+    default:
+      return "noch nie";
+  }
+}
+
 export default function DevicesListPage() {
-  const [devices, setDevices] = useState<DeviceRow[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  function formatDate(value: string | null | undefined) {
-    if (!value) return "noch nie";
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return "–";
-    return d.toLocaleString("de-DE");
+  async function loadDevices() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiGet<DeviceListResponse>("/devices");
+      setDevices(res.items);
+      setTotal(res.total);
+    } catch (err: any) {
+      console.error(err);
+      setError("Fehler beim Laden der Devices.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    apiGet<DevicesResponse>("/devices")
-      .then((res) => {
-        setDevices(res.items);
-        setTotal(res.total);
-      })
-      .catch((err) => {
-        console.error(err);
-        setError("Fehler beim Laden der Devices.");
-      })
-      .finally(() => setLoading(false));
+    void loadDevices();
   }, []);
 
   return (
     <div className="admin-page">
       <h1 className="admin-page-title">Devices</h1>
       <p className="admin-page-subtitle">
-        Übersicht über alle registrierten Geräte und deren Lizenzzuordnung.
+        Übersicht aller registrierten Geräte und ihrer Lizenzzuordnung.
       </p>
 
       <div className="admin-table-wrapper">
         <table className="admin-table">
           <thead>
             <tr>
-              <th>Name</th>
+              <th>Name / Device-ID</th>
               <th>Typ</th>
               <th>Status</th>
               <th>Plan</th>
               <th>License</th>
+              <th>Customer</th>
               <th>Letztes Signal</th>
               <th>Erstellt am</th>
             </tr>
@@ -71,46 +126,103 @@ export default function DevicesListPage() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={7}>Lade Devices…</td>
+                <td colSpan={8}>Lade Devices…</td>
               </tr>
             )}
+
             {!loading && error && (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={8}>
                   <div className="admin-error">{error}</div>
                 </td>
               </tr>
             )}
+
             {!loading && !error && devices.length === 0 && (
               <tr>
-                <td colSpan={7}>Noch keine Devices registriert.</td>
+                <td colSpan={8}>Noch keine Devices vorhanden.</td>
               </tr>
             )}
+
             {!loading &&
               !error &&
-              devices.map((dev) => (
-                <tr key={dev.id}>
-                  <td>{dev.name}</td>
-                  <td>{dev.type}</td>
-                  <td>
-                    <span className="badge badge--green">
-                      {dev.status || "active"}
-                    </span>
-                  </td>
-                  <td>{dev.licensePlan ?? "—"}</td>
-                  <td>
-                    {dev.licenseId && dev.licenseKey ? (
-                      <Link to={`/licenses/${dev.licenseId}`}>
-                        {dev.licenseKey}
-                      </Link>
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td>{formatDate(dev.lastHeartbeatAt)}</td>
-                  <td>{formatDate(dev.createdAt)}</td>
-                </tr>
-              ))}
+              devices.map((dev) => {
+                const signalKind = classifySignal(dev.lastHeartbeatAt);
+                return (
+                  <tr key={dev.id}>
+                    {/* Name + Device-ID (Cloud-ID) */}
+                    <td>
+                      <div>{dev.name || "—"}</div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          opacity: 0.6,
+                          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+                        }}
+                      >
+                        {dev.id.slice(0, 8)}…
+                      </div>
+                    </td>
+
+                    {/* Typ */}
+                    <td>{dev.type || "—"}</td>
+
+                    {/* Device-Status */}
+                    <td>
+                      <span
+                        className={
+                          dev.status === "active"
+                            ? "badge badge--green"
+                            : dev.status === "inactive"
+                            ? "badge badge--amber"
+                            : "badge"
+                        }
+                      >
+                        {dev.status || "—"}
+                      </span>
+                    </td>
+
+                    {/* Plan aus License */}
+                    <td>{dev.licensePlan || "—"}</td>
+
+                    {/* License-Key mit Link zur License-Detailseite */}
+                    <td>
+                      {dev.licenseId && dev.licenseKey ? (
+                        <Link to={`/licenses/${dev.licenseId}`}>
+                          {dev.licenseKey}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+
+                    {/* Customer mit Link zur Customer-Detailseite */}
+                    <td>
+                      {dev.customerId ? (
+                        <Link to={`/customers/${dev.customerId}`}>
+                          {dev.customerName ||
+                            `${dev.customerId.slice(0, 8)}…`}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+
+                    {/* Letztes Signal + Ampel */}
+                    <td>
+                      <div>{formatDate(dev.lastHeartbeatAt)}</div>
+                      <div style={{ marginTop: 4 }}>
+                        <span className={signalBadgeClass(signalKind)}>
+                          {signalText(signalKind)}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Erstellt am */}
+                    <td>{formatDate(dev.createdAt)}</td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>
@@ -122,7 +234,7 @@ export default function DevicesListPage() {
           color: "#6b7280",
         }}
       >
-        {total} Devices gesamt
+        {total} Device(s) in dieser Instanz.
       </p>
     </div>
   );

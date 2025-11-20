@@ -41,7 +41,7 @@ export default function LicensesListPage() {
   oneYearLater.setFullYear(today.getFullYear() + 1);
 
   const [form, setForm] = useState({
-    customerId: "",
+    customerId: "", // "" = kein Customer (nur License-Key)
     plan: "starter",
     maxDevices: "1",
     validFrom: today.toISOString().slice(0, 10),
@@ -77,10 +77,6 @@ export default function LicensesListPage() {
     try {
       const res = await apiGet<{ items: Customer[] }>("/customers");
       setCustomers(res.items);
-      // Default-Kunde, falls noch keiner gesetzt
-      if (!form.customerId && res.items.length > 0) {
-        setForm((f) => ({ ...f, customerId: res.items[0].id }));
-      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -89,8 +85,8 @@ export default function LicensesListPage() {
   }
 
   useEffect(() => {
-    loadLicenses();
-    loadCustomers();
+    void loadLicenses();
+    void loadCustomers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -98,24 +94,21 @@ export default function LicensesListPage() {
     e.preventDefault();
     setCreateError(null);
 
-    if (!form.customerId) {
-      setCreateError("Bitte einen Customer auswählen.");
-      return;
-    }
-
     setCreateLoading(true);
     try {
-      const payload = {
-        customerId: form.customerId,
+      const payload: any = {
         plan: form.plan,
         maxDevices: Number(form.maxDevices) || 1,
         validFrom: new Date(form.validFrom).toISOString(),
         validUntil: new Date(form.validUntil).toISOString(),
       };
 
-      await apiPost<typeof payload, { item: License }>("/licenses", payload);
+      // Customer NUR mitsenden, wenn einer gewählt wurde
+      if (form.customerId) {
+        payload.customerId = form.customerId;
+      }
 
-      // Liste neu laden
+      await apiPost("/licenses", payload);
       await loadLicenses();
     } catch (err: any) {
       console.error(err);
@@ -126,6 +119,29 @@ export default function LicensesListPage() {
       setCreateLoading(false);
     }
   }
+
+  // "Löschen" für generierte License = revoke
+  async function handleDeleteGenerated(id: string) {
+    try {
+      await apiPost(`/licenses/${id}/revoke`, {
+        reason: "deleted_from_generated_pool",
+      });
+      await loadLicenses();
+    } catch (err: any) {
+      console.error(err);
+      setCreateError(
+        err?.message || "Fehler beim Löschen der License.",
+      );
+    }
+  }
+
+  // Aufteilung:
+  // - generiert: keine customerId UND status === "active"
+  // - zugewiesen: hat customerId (egal welcher Status)
+  const generatedLicenses = licenses.filter(
+    (lic) => !lic.customerId && lic.status === "active",
+  );
+  const assignedLicenses = licenses.filter((lic) => !!lic.customerId);
 
   return (
     <div className="admin-page">
@@ -140,6 +156,18 @@ export default function LicensesListPage() {
         style={{ marginBottom: 24, maxWidth: 900 }}
       >
         <div className="dashboard-card-title">Neue License anlegen</div>
+        <p
+          style={{
+            fontSize: 13,
+            color: "#9ca3af",
+            marginTop: 4,
+            marginBottom: 4,
+          }}
+        >
+          Customer ist optional. Ohne Auswahl wird nur ein License-Key erzeugt,
+          den du z.&nbsp;B. im POS verwenden kannst.
+        </p>
+
         <form
           onSubmit={handleCreate}
           style={{
@@ -149,9 +177,9 @@ export default function LicensesListPage() {
             marginTop: 12,
           }}
         >
-          {/* Customer */}
+          {/* Customer (optional) */}
           <label style={{ fontSize: 13 }}>
-            Customer
+            Customer (optional)
             <select
               value={form.customerId}
               onChange={(e) =>
@@ -169,8 +197,13 @@ export default function LicensesListPage() {
               }}
               disabled={customersLoading}
             >
+              <option value="">
+                — Ohne Customer (nur License-Key) —
+              </option>
               {customers.length === 0 && (
-                <option value="">(keine Customers)</option>
+                <option value="" disabled>
+                  (keine Customers vorhanden)
+                </option>
               )}
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -297,7 +330,86 @@ export default function LicensesListPage() {
         )}
       </div>
 
-      {/* Tabelle */}
+      {/* Karte: Generierte Licenses (ohne Customer, active) */}
+      {generatedLicenses.length > 0 && (
+        <div
+          className="dashboard-card"
+          style={{ marginBottom: 24, maxWidth: 900 }}
+        >
+          <div className="dashboard-card-title">
+            Generierte License-Keys (ohne Customer)
+          </div>
+          <p
+            style={{
+              fontSize: 13,
+              color: "#9ca3af",
+              marginTop: 4,
+              marginBottom: 8,
+            }}
+          >
+            Diese Keys wurden erzeugt, sind aber noch keinem Customer
+            zugeordnet. Du kannst sie z.&nbsp;B. im POS eintragen. Sobald
+            später ein Customer hinterlegt ist oder die License revoked
+            wird, verschwinden sie aus dieser Liste.
+          </p>
+
+          <div className="admin-table-wrapper" style={{ marginTop: 8 }}>
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Key</th>
+                  <th>Plan</th>
+                  <th>Status</th>
+                  <th>Max Devices</th>
+                  <th>Gültig bis</th>
+                  <th>Erstellt</th>
+                  <th>Aktion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {generatedLicenses.map((lic) => (
+                  <tr key={lic.id}>
+                    <td>{lic.key}</td>
+                    <td>{lic.plan}</td>
+                    <td>
+                      <span
+                        className={
+                          lic.status === "active"
+                            ? "badge badge--green"
+                            : lic.status === "revoked"
+                            ? "badge badge--red"
+                            : "badge badge--amber"
+                        }
+                      >
+                        {lic.status}
+                      </span>
+                    </td>
+                    <td>{lic.maxDevices ?? "–"}</td>
+                    <td>{formatDate(lic.validUntil)}</td>
+                    <td>{formatDate(lic.createdAt)}</td>
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteGenerated(lic.id)}
+                        className="login-button"
+                        style={{
+                          paddingInline: 12,
+                          fontSize: 12,
+                          backgroundColor: "#7f1d1d",
+                        }}
+                      >
+                        Löschen
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tabelle: Licenses mit Customer */}
       <div className="admin-table-wrapper">
         <table className="admin-table">
           <thead>
@@ -324,14 +436,16 @@ export default function LicensesListPage() {
                 </td>
               </tr>
             )}
-            {!loading && !error && licenses.length === 0 && (
+            {!loading && !error && assignedLicenses.length === 0 && (
               <tr>
-                <td colSpan={7}>Noch keine Licenses vorhanden.</td>
+                <td colSpan={7}>
+                  Noch keine Licenses mit Customer vorhanden.
+                </td>
               </tr>
             )}
             {!loading &&
               !error &&
-              licenses.map((lic) => (
+              assignedLicenses.map((lic) => (
                 <tr key={lic.id}>
                   <td>
                     <Link to={`/licenses/${lic.id}`}>{lic.key}</Link>
@@ -351,7 +465,11 @@ export default function LicensesListPage() {
                     </span>
                   </td>
                   <td>{lic.maxDevices ?? "–"}</td>
-                  <td>{lic.customerId ? `${lic.customerId.slice(0, 8)}…` : "–"}</td>
+                  <td>
+                    {lic.customerId
+                      ? `${lic.customerId.slice(0, 8)}…`
+                      : "–"}
+                  </td>
                   <td>{formatDate(lic.validUntil)}</td>
                   <td>{formatDate(lic.createdAt)}</td>
                 </tr>
