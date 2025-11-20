@@ -1,20 +1,16 @@
-// apps/cloud-admin/src/pages/Licenses/LicensesListPage.tsx
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiGet } from "../../lib/api";
 
 type License = {
   id: string;
-  orgId: string;
-  customerId: string;
-  subscriptionId?: string | null;
   key: string;
   plan: string;
-  maxDevices: number;
   status: string;
-  validFrom?: string | null;
-  validUntil?: string | null;
-  createdAt?: string | null;
-  updatedAt?: string | null;
+  maxDevices: number | null;
+  customerId: string | null;
+  validUntil: string | null;
+  createdAt: string;
 };
 
 type LicensesResponse = {
@@ -24,45 +20,35 @@ type LicensesResponse = {
   offset: number;
 };
 
-function formatDate(value?: string | null): string {
+function formatDate(value: string | null) {
   if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString("de-DE");
+  return new Date(value).toLocaleString("de-DE");
 }
 
-function statusBadgeClass(status: string): string {
-  const normalized = status.toLowerCase();
-  if (normalized === "active") return "badge badge--green";
-  if (normalized === "revoked" || normalized === "expired")
-    return "badge badge--red";
+function statusBadgeClass(status: string) {
+  const s = status.toLowerCase();
+  if (s === "active") return "badge badge--green";
+  if (s === "revoked" || s === "expired") return "badge badge--red";
   return "badge badge--amber";
 }
 
 export default function LicensesListPage() {
   const [data, setData] = useState<LicensesResponse | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
     apiGet<LicensesResponse>("/licenses")
       .then((res) => {
         setData(res);
         setError(null);
       })
-      .catch((err: unknown) => {
+      .catch((err) => {
         console.error(err);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Fehler beim Laden der Lizenzen.",
-        );
-      })
-      .finally(() => {
-        setLoading(false);
+        setError("Fehler beim Laden der Licenses.");
       });
   }, []);
+
+  const items = data?.items ?? [];
 
   return (
     <div className="admin-page">
@@ -73,7 +59,11 @@ export default function LicensesListPage() {
 
       {error && <div className="admin-error">{error}</div>}
 
-      <div className="admin-table-wrapper" style={{ marginTop: 16 }}>
+      <p style={{ fontSize: 13, color: "#9ca3af", marginBottom: 12 }}>
+        {items.length} License{items.length === 1 ? "" : "s"} gesamt
+      </p>
+
+      <div className="admin-table-wrapper">
         <table className="admin-table">
           <thead>
             <tr>
@@ -87,39 +77,38 @@ export default function LicensesListPage() {
             </tr>
           </thead>
           <tbody>
-            {loading && (
+            {items.map((lic) => (
+              <tr key={lic.id}>
+                <td>
+                  {/* Link zur Detail-Seite */}
+                  <Link
+                    to={`/licenses/${lic.id}`}
+                    style={{ color: "#a5b4fc", textDecoration: "none" }}
+                  >
+                    {lic.key}
+                  </Link>
+                </td>
+                <td>{lic.plan}</td>
+                <td>
+                  <span className={statusBadgeClass(lic.status)}>
+                    {lic.status}
+                  </span>
+                </td>
+                <td>{lic.maxDevices ?? "—"}</td>
+                <td style={{ fontFamily: "monospace", fontSize: 12 }}>
+                  {lic.customerId ? `${lic.customerId.slice(0, 8)}…` : "—"}
+                </td>
+                <td>{formatDate(lic.validUntil)}</td>
+                <td>{formatDate(lic.createdAt)}</td>
+              </tr>
+            ))}
+            {items.length === 0 && (
               <tr>
-                <td colSpan={7}>Lade Lizenzen…</td>
+                <td colSpan={7} style={{ fontSize: 13, color: "#9ca3af" }}>
+                  Noch keine Licenses angelegt.
+                </td>
               </tr>
             )}
-
-            {!loading && data && data.items.length === 0 && (
-              <tr>
-                <td colSpan={7}>Noch keine Lizenzen vorhanden.</td>
-              </tr>
-            )}
-
-            {!loading &&
-              data &&
-              data.items.map((lic) => (
-                <tr key={lic.id}>
-                  <td>
-                    <code>{lic.key}</code>
-                  </td>
-                  <td>{lic.plan}</td>
-                  <td>
-                    <span className={statusBadgeClass(lic.status)}>
-                      {lic.status}
-                    </span>
-                  </td>
-                  <td>{lic.maxDevices}</td>
-                  <td>
-                    <code>{lic.customerId}</code>
-                  </td>
-                  <td>{formatDate(lic.validUntil ?? null)}</td>
-                  <td>{formatDate(lic.createdAt ?? null)}</td>
-                </tr>
-              ))}
           </tbody>
         </table>
       </div>

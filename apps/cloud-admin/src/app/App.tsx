@@ -1,4 +1,3 @@
-// apps/cloud-admin/src/app/App.tsx
 import React from "react";
 import {
   BrowserRouter,
@@ -19,6 +18,7 @@ import DevicesListPage from "../pages/DevicesListPage";
 import PaymentsListPage from "../pages/Payments/PaymentsListPage";
 import WebhooksListPage from "../pages/Webhooks/WebhooksListPage";
 import LicensesListPage from "../pages/Licenses/LicensesListPage";
+import LicenseDetailPage from "../pages/Licenses/LicenseDetailPage";
 
 import { AuthProvider, useAuth } from "../auth/AuthContext";
 
@@ -74,7 +74,6 @@ function AppShell({ children }: { children: React.ReactElement }) {
           <Link to="/devices">Devices</Link>
           <Link to="/payments">Payments</Link>
           <Link to="/webhooks">Webhooks</Link>
-          {/* 🔽 neu */}
           <Link to="/licenses">Licenses</Link>
         </nav>
 
@@ -211,13 +210,23 @@ function AppRoutes() {
         }
       />
 
-      {/* 🔽 neu: Licenses */}
       <Route
         path="/licenses"
         element={
           <RequireAuth>
             <AppShell>
               <LicensesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/licenses/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <LicenseDetailPage />
             </AppShell>
           </RequireAuth>
         }
