@@ -12,6 +12,8 @@ import { registerDevicesRoutes } from "./routes/devices";
 import { registerAuthRoutes } from "./routes/auth";
 import { registerPaymentsRoutes } from "./routes/payments";
 import { registerWebhooksRoutes } from "./routes/webhooks";
+import { registerLicensesRoutes } from "./routes/licenses";
+import { registerPublicLicenseRoutes } from "./routes/public-license";
 
 import { verifyToken } from "./lib/jwt";
 
@@ -30,10 +32,15 @@ export async function buildServer() {
     const method = request.method.toUpperCase();
 
     // Öffentliche Routen: keine Auth
-    const isPublicWebhook =
-      url === "/webhooks/paypal" && method === "POST";
+    const isPublicRoute =
+      url === "/health" ||
+      url === "/auth/login" ||
+      (url === "/webhooks/paypal" && method === "POST") || // M4: PayPal-Webhook
+      (url === "/licenses/verify" && method === "POST") || // M5: POS License-Check
+      (url === "/devices/bind" && method === "POST") || // M5: POS Device-Bind
+      (url === "/devices/heartbeat" && method === "POST"); // M5: POS Heartbeat
 
-    if (url === "/health" || url === "/auth/login" || isPublicWebhook) {
+    if (isPublicRoute) {
       return;
     }
 
@@ -61,13 +68,20 @@ export async function buildServer() {
   // ▶ Routen registrieren
   await registerHealthRoute(app);
   await registerAuthRoutes(app); // /auth/login bleibt öffentlich
+
   await registerCustomersRoutes(app);
   await registerOrgsRoutes(app);
   await registerSubscriptionsRoutes(app);
   await registerInvoicesRoutes(app);
   await registerDevicesRoutes(app);
 
-  // 🟣 M4: neue Routen
+  // 🟣 M5: Licenses (Admin-API)
+  await registerLicensesRoutes(app);
+
+  // 🟣 M5: Öffentliche License-/Device-Routen für POS
+  await registerPublicLicenseRoutes(app);
+
+  // 🟣 M4: Payments & Webhooks
   await registerPaymentsRoutes(app);
   await registerWebhooksRoutes(app);
 

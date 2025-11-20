@@ -18,6 +18,7 @@ import InvoicesListPage from "../pages/InvoicesListPage";
 import DevicesListPage from "../pages/DevicesListPage";
 import PaymentsListPage from "../pages/Payments/PaymentsListPage";
 import WebhooksListPage from "../pages/Webhooks/WebhooksListPage";
+import LicensesListPage from "../pages/Licenses/LicensesListPage";
 
 import { AuthProvider, useAuth } from "../auth/AuthContext";
 
@@ -73,6 +74,8 @@ function AppShell({ children }: { children: React.ReactElement }) {
           <Link to="/devices">Devices</Link>
           <Link to="/payments">Payments</Link>
           <Link to="/webhooks">Webhooks</Link>
+          {/* 🔽 neu */}
+          <Link to="/licenses">Licenses</Link>
         </nav>
 
         <div
@@ -208,6 +211,18 @@ function AppRoutes() {
         }
       />
 
+      {/* 🔽 neu: Licenses */}
+      <Route
+        path="/licenses"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <LicensesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -223,5 +238,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-
-  

@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, varchar, timestamp } from "drizzle-orm/pg-core";
 import { orgs } from "./orgs";
 import { customers } from "./customers";
 
@@ -15,4 +15,8 @@ export const devices = pgTable("devices", {
   status: varchar("status", { length: 50 }).notNull().default("active"),
   lastSeenAt: timestamp("last_seen_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  // 🔽 neue Spalten für M5
+  licenseId: text("license_id"),
+  fingerprint: text("fingerprint"),
+  lastHeartbeatAt: timestamp("last_heartbeat_at", { withTimezone: true }),
 });

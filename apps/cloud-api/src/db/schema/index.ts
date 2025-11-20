@@ -6,3 +6,5 @@ export * from "./invoices";
 export * from "./devices";
 export * from "./payments";
 export * from "./webhooks";
+export * from "./licenses";
+export * from "./licenseEvents";
