@@ -1,7 +1,7 @@
 // apps/cloud-admin/src/pages/Licenses/LicenseDetailPage.tsx
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
-import { apiGet } from "../../lib/api";
+import { Link, useParams } from "react-router-dom";
+import { apiGet, apiPost } from "../../lib/api";
 
 type License = {
   id: string;
@@ -15,15 +15,10 @@ type License = {
   createdAt: string;
 };
 
-type LicenseItemResponse = {
-  item: License | null;
-};
-
 type LicenseEvent = {
   id: string;
-  licenseId: string;
   type: string;
-  metadata: Record<string, unknown> | null;
+  metadata: any | null;
   createdAt: string;
 };
 
@@ -31,95 +26,69 @@ type EventsResponse = {
   items: LicenseEvent[];
 };
 
-function formatDate(value: string | null) {
-  if (!value) return "—";
-  return new Date(value).toLocaleString("de-DE");
-}
-
-function statusBadgeClass(status: string) {
-  const s = status.toLowerCase();
-  if (s === "active") return "badge badge--green";
-  if (s === "revoked" || s === "expired") return "badge badge--red";
-  return "badge badge--amber";
-}
-
-function shortId(value: string | undefined) {
-  if (!value) return "—";
-  if (value.length <= 8) return value;
-  return `${value.slice(0, 8)}…`;
-}
-
 export default function LicenseDetailPage() {
   const { id } = useParams<{ id: string }>();
+
   const [license, setLicense] = useState<License | null>(null);
   const [events, setEvents] = useState<LicenseEvent[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [revokeLoading, setRevokeLoading] = useState(false);
+  const [revokeError, setRevokeError] = useState<string | null>(null);
+
+  function formatDate(value: string | null | undefined) {
+    if (!value) return "–";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "–";
+    return d.toLocaleString("de-DE");
+  }
+
+  async function loadData() {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await apiGet<{ item: License }>(`/licenses/${id}`);
+      const eventsRes = await apiGet<EventsResponse>(
+        `/licenses/${id}/events`,
+      );
+      setLicense(res.item);
+      setEvents(eventsRes.items);
+    } catch (err: any) {
+      console.error(err);
+      setError("Fehler beim Laden der Lizenz.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    if (!id) return;
-
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      setError(null);
-
-      // 1) License selbst holen
-      try {
-        const licenseRes = await apiGet<LicenseItemResponse>(`/licenses/${id}`);
-        if (cancelled) return;
-
-        if (!licenseRes.item) {
-          setError("License wurde nicht gefunden.");
-          setLoading(false);
-          return;
-        }
-
-        setLicense(licenseRes.item);
-      } catch (err) {
-        console.error(err);
-        if (!cancelled) {
-          setError("Fehler beim Laden der Lizenz.");
-          setLoading(false);
-        }
-        return;
-      }
-
-      // 2) Events (optional) holen
-      try {
-        const eventsRes = await apiGet<EventsResponse>(`/licenses/${id}/events`);
-        if (!cancelled) {
-          setEvents(eventsRes.items ?? []);
-        }
-      } catch (err) {
-        console.error("Fehler beim Laden der Events:", err);
-        // License soll trotzdem angezeigt werden → kein globaler Fehler
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-
-    return () => {
-      cancelled = true;
-    };
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const renderEventDetails = (evt: LicenseEvent) => {
-    const meta = evt.metadata as any;
-    if (evt.type === "created") {
-      return "License erstellt";
+  async function handleRevoke() {
+    if (!license || license.status === "revoked") return;
+    if (!window.confirm("Diese Lizenz wirklich revoken?")) return;
+
+    setRevokeError(null);
+    setRevokeLoading(true);
+    try {
+      await apiPost<{}, { item: License }>(
+        `/licenses/${license.id}/revoke`,
+        {},
+      );
+      await loadData();
+    } catch (err: any) {
+      console.error(err);
+      setRevokeError(
+        err?.message || "Fehler beim Revoken der Lizenz.",
+      );
+    } finally {
+      setRevokeLoading(false);
     }
-    if (evt.type === "activated" && meta?.deviceName) {
-      return `Device aktiviert: ${meta.deviceName} (${shortId(meta.deviceId)})`;
-    }
-    if (evt.type === "heartbeat" && meta?.deviceId) {
-      return `Heartbeat von Device ${shortId(meta.deviceId)}`;
-    }
-    return meta ? JSON.stringify(meta) : "–";
-  };
+  }
 
   return (
     <div className="admin-page">
@@ -129,97 +98,127 @@ export default function LicenseDetailPage() {
       </p>
 
       <p style={{ fontSize: 13, marginBottom: 16 }}>
-        <Link to="/licenses" style={{ color: "#a5b4fc" }}>
+        <Link to="/licenses" style={{ textDecoration: "underline" }}>
           ← zurück zur Übersicht
         </Link>
       </p>
 
+      {loading && <div>Lade…</div>}
       {error && <div className="admin-error">{error}</div>}
 
-      {loading && (
-        <div className="dashboard-card">
-          <div className="dashboard-card-meta">Lade Lizenz…</div>
-        </div>
-      )}
-
-      {!loading && !license && !error && (
-        <div className="admin-error">License wurde nicht gefunden.</div>
-      )}
-
-      {!loading && license && (
+      {license && !loading && !error && (
         <>
-          {/* License-Info */}
-          <div className="dashboard-card" style={{ marginBottom: 24 }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginBottom: 12,
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 600,
-                    marginBottom: 4,
-                  }}
-                >
-                  {license.key}
-                </div>
-                <div style={{ fontSize: 13, color: "#9ca3af" }}>
-                  Plan: <strong>{license.plan}</strong>
-                </div>
+          <div
+            className="dashboard-card"
+            style={{ marginBottom: 24, display: "flex", gap: 24 }}
+          >
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  marginBottom: 8,
+                }}
+              >
+                {license.key}
               </div>
-              <div>
-                <span className={statusBadgeClass(license.status)}>
-                  {license.status}
-                </span>
+              <div style={{ fontSize: 13, color: "#9ca3af" }}>
+                Plan: <strong>{license.plan}</strong>
+              </div>
+              <div style={{ fontSize: 13, color: "#9ca3af" }}>
+                Max Devices:{" "}
+                <strong>{license.maxDevices ?? "–"}</strong>
+              </div>
+              <div style={{ fontSize: 13, color: "#9ca3af" }}>
+                Customer:{" "}
+                {license.customerId ? (
+                  <span>{license.customerId}</span>
+                ) : (
+                  "–"
+                )}
+              </div>
+              <div style={{ fontSize: 13, color: "#9ca3af" }}>
+                Gültig von: {formatDate(license.validFrom)}
+              </div>
+              <div style={{ fontSize: 13, color: "#9ca3af" }}>
+                Gültig bis: {formatDate(license.validUntil)}
+              </div>
+              <div style={{ fontSize: 13, color: "#9ca3af" }}>
+                Erstellt am: {formatDate(license.createdAt)}
               </div>
             </div>
 
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-end",
+                justifyContent: "space-between",
+                minWidth: 160,
                 gap: 12,
-                fontSize: 13,
               }}
             >
-              <div>
-                <div style={{ color: "#9ca3af" }}>Max Devices</div>
-                <div>{license.maxDevices ?? "—"}</div>
-              </div>
-              <div>
-                <div style={{ color: "#9ca3af" }}>Customer</div>
-                <div style={{ fontFamily: "monospace" }}>
-                  {license.customerId ? shortId(license.customerId) : "—"}
+              <span
+                className={
+                  license.status === "active"
+                    ? "badge badge--green"
+                    : license.status === "revoked"
+                    ? "badge badge--red"
+                    : "badge badge--amber"
+                }
+              >
+                {license.status}
+              </span>
+
+              {license.status === "active" && (
+                <button
+                  type="button"
+                  onClick={handleRevoke}
+                  disabled={revokeLoading}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: 6,
+                    border: "1px solid #b91c1c",
+                    background: "#7f1d1d",
+                    color: "#fee2e2",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  {revokeLoading ? "Revokiere…" : "License revoken"}
+                </button>
+              )}
+
+              {revokeError && (
+                <div
+                  className="admin-error"
+                  style={{ marginTop: 8, textAlign: "right" }}
+                >
+                  {revokeError}
                 </div>
-              </div>
-              <div>
-                <div style={{ color: "#9ca3af" }}>Gültig von</div>
-                <div>{formatDate(license.validFrom)}</div>
-              </div>
-              <div>
-                <div style={{ color: "#9ca3af" }}>Gültig bis</div>
-                <div>{formatDate(license.validUntil)}</div>
-              </div>
-              <div>
-                <div style={{ color: "#9ca3af" }}>Erstellt am</div>
-                <div>{formatDate(license.createdAt)}</div>
-              </div>
+              )}
             </div>
           </div>
 
           {/* Events */}
           <h2
-            className="admin-page-title"
-            style={{ fontSize: 18, marginBottom: 8 }}
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              marginBottom: 8,
+            }}
           >
             Events
           </h2>
-          <p className="admin-page-subtitle" style={{ marginBottom: 12 }}>
-            Aktivitäten rund um diese Lizenz (Aktivierung, Heartbeats, etc.).
+          <p
+            style={{
+              fontSize: 13,
+              color: "#9ca3af",
+              marginBottom: 8,
+            }}
+          >
+            Aktivitäten rund um diese License (Aktivierung, Heartbeats,
+            etc.).
           </p>
 
           <div className="admin-table-wrapper">
@@ -232,22 +231,22 @@ export default function LicenseDetailPage() {
                 </tr>
               </thead>
               <tbody>
-                {events.map((evt) => (
-                  <tr key={evt.id}>
-                    <td>{evt.type}</td>
-                    <td style={{ fontSize: 13 }}>
-                      {renderEventDetails(evt)}
-                    </td>
-                    <td>{formatDate(evt.createdAt)}</td>
-                  </tr>
-                ))}
                 {events.length === 0 && (
                   <tr>
-                    <td colSpan={3} style={{ fontSize: 13, color: "#9ca3af" }}>
-                      Noch keine Events für diese Lizenz.
-                    </td>
+                    <td colSpan={3}>Noch keine Events für diese Lizenz.</td>
                   </tr>
                 )}
+                {events.map((event) => (
+                  <tr key={event.id}>
+                    <td>{event.type}</td>
+                    <td>
+                      {event.metadata
+                        ? JSON.stringify(event.metadata)
+                        : "–"}
+                    </td>
+                    <td>{formatDate(event.createdAt)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

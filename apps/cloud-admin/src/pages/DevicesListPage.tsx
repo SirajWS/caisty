@@ -1,59 +1,51 @@
 // apps/cloud-admin/src/pages/DevicesListPage.tsx
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiGet } from "../lib/api";
 
-type Device = {
+type DeviceRow = {
   id: string;
   name: string;
-  type: string | null;
+  type: string;
   status: string | null;
   lastHeartbeatAt: string | null;
   createdAt: string;
-  licensePlan?: string | null;
-  licenseKey?: string | null;
+  licenseId: string | null;
+  licenseKey: string | null;
+  licensePlan: string | null;
 };
 
 type DevicesResponse = {
-  items: Device[];
+  items: DeviceRow[];
   total: number;
-  limit: number;
-  offset: number;
 };
 
-function formatDateTime(value: string | null): string {
-  if (!value) return "noch nie";
-  return new Date(value).toLocaleString("de-DE");
-}
-
-function StatusBadge({ status }: { status: string | null }) {
-  if (!status) return <span className="badge badge--amber">unknown</span>;
-
-  const normalized = status.toLowerCase();
-
-  if (normalized === "active") {
-    return <span className="badge badge--green">active</span>;
-  }
-  if (normalized === "offline") {
-    return <span className="badge badge--amber">offline</span>;
-  }
-
-  return <span className="badge badge--red">{status}</span>;
-}
-
 export default function DevicesListPage() {
-  const [data, setData] = useState<DevicesResponse | null>(null);
+  const [devices, setDevices] = useState<DeviceRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  function formatDate(value: string | null | undefined) {
+    if (!value) return "noch nie";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "–";
+    return d.toLocaleString("de-DE");
+  }
+
   useEffect(() => {
+    setLoading(true);
+    setError(null);
     apiGet<DevicesResponse>("/devices")
       .then((res) => {
-        setData(res);
-        setError(null);
+        setDevices(res.items);
+        setTotal(res.total);
       })
       .catch((err) => {
         console.error(err);
         setError("Fehler beim Laden der Devices.");
-      });
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -63,54 +55,75 @@ export default function DevicesListPage() {
         Übersicht über alle registrierten Geräte und deren Lizenzzuordnung.
       </p>
 
-      {error && <div className="admin-error">{error}</div>}
-
-      <div style={{ marginBottom: 12, fontSize: 13, color: "#9ca3af" }}>
-        {data ? `${data.total} Devices gesamt` : "Lade Devices…"}
-      </div>
-
       <div className="admin-table-wrapper">
         <table className="admin-table">
           <thead>
             <tr>
-              <th>NAME</th>
-              <th>TYP</th>
-              <th>STATUS</th>
-              <th>PLAN</th>       {/* neu */}
-              <th>LICENSE</th>    {/* neu */}
-              <th>LETZTES SIGNAL</th>
-              <th>ERSTELLT AM</th>
+              <th>Name</th>
+              <th>Typ</th>
+              <th>Status</th>
+              <th>Plan</th>
+              <th>License</th>
+              <th>Letztes Signal</th>
+              <th>Erstellt am</th>
             </tr>
           </thead>
           <tbody>
-            {data?.items.map((device) => (
-              <tr key={device.id}>
-                <td>{device.name}</td>
-                <td>{device.type ?? "—"}</td>
-                <td>
-                  <StatusBadge status={device.status} />
+            {loading && (
+              <tr>
+                <td colSpan={7}>Lade Devices…</td>
+              </tr>
+            )}
+            {!loading && error && (
+              <tr>
+                <td colSpan={7}>
+                  <div className="admin-error">{error}</div>
                 </td>
-                <td>{device.licensePlan ?? "—"}</td>
-                <td>{device.licenseKey ?? "—"}</td>
-                <td>{formatDateTime(device.lastHeartbeatAt)}</td>
-                <td>{formatDateTime(device.createdAt)}</td>
-              </tr>
-            ))}
-
-            {!data && (
-              <tr>
-                <td colSpan={7}>Lade Daten…</td>
               </tr>
             )}
-
-            {data && data.items.length === 0 && (
+            {!loading && !error && devices.length === 0 && (
               <tr>
-                <td colSpan={7}>Keine Devices vorhanden.</td>
+                <td colSpan={7}>Noch keine Devices registriert.</td>
               </tr>
             )}
+            {!loading &&
+              !error &&
+              devices.map((dev) => (
+                <tr key={dev.id}>
+                  <td>{dev.name}</td>
+                  <td>{dev.type}</td>
+                  <td>
+                    <span className="badge badge--green">
+                      {dev.status || "active"}
+                    </span>
+                  </td>
+                  <td>{dev.licensePlan ?? "—"}</td>
+                  <td>
+                    {dev.licenseId && dev.licenseKey ? (
+                      <Link to={`/licenses/${dev.licenseId}`}>
+                        {dev.licenseKey}
+                      </Link>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>{formatDate(dev.lastHeartbeatAt)}</td>
+                  <td>{formatDate(dev.createdAt)}</td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>
+
+      <p
+        style={{
+          marginTop: 8,
+          fontSize: 12,
+          color: "#6b7280",
+        }}
+      >
+        {total} Devices gesamt
+      </p>
     </div>
   );
 }

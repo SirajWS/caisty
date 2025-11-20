@@ -3,141 +3,180 @@ import type { FastifyInstance } from "fastify";
 import { db } from "../db/client";
 import { licenses } from "../db/schema/licenses";
 import { licenseEvents } from "../db/schema/licenseEvents";
-import { generateLicenseKey } from "../lib/licenseKey";
-import { eq, and, desc } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 type CreateLicenseBody = {
   customerId: string;
   subscriptionId?: string | null;
-  plan: string;           // z.B. "starter" | "pro"
-  maxDevices: number;
-  validFrom: string;      // ISO-String
-  validUntil: string;     // ISO-String
+  plan: string;
+  maxDevices?: number | null;
+  validFrom: string;
+  validUntil: string;
+};
+
+type RevokeBody = {
+  reason?: string;
 };
 
 export async function registerLicensesRoutes(app: FastifyInstance) {
-  // Hilfsfunktion, um orgId aus dem Token zu holen
-  function getOrgId(request: any): string | null {
-    const user = request.user as { orgId?: string } | undefined;
-    return user?.orgId ?? null;
-  }
-
-  // 🔹 Liste aller Licenses der Organisation
+  // Liste aller Lizenzen der aktuellen Org
   app.get("/licenses", async (request) => {
-    const orgId = getOrgId(request as any);
-    if (!orgId) {
-      return { items: [], total: 0, limit: 0, offset: 0 };
-    }
+    const user = (request as any).user;
+    const orgId = user?.orgId;
 
     const items = await db
       .select()
       .from(licenses)
-      .where(eq(licenses.orgId, orgId));
+      .where(orgId ? eq(licenses.orgId, orgId) : undefined)
+      .orderBy(desc(licenses.createdAt))
+      .limit(200);
 
     return {
       items,
       total: items.length,
-      limit: items.length,
+      limit: 200,
       offset: 0,
     };
   });
 
-  // 🔹 Einzelne License per ID holen
-  app.get<{ Params: { id: string } }>("/licenses/:id", async (request, reply) => {
-    const orgId = getOrgId(request as any);
-    const { id } = request.params;
+  // Neue License anlegen
+  app.post<{ Body: CreateLicenseBody }>("/licenses", async (request, reply) => {
+    const user = (request as any).user;
+    const orgId = user?.orgId;
+
+    const body = request.body;
 
     if (!orgId) {
       reply.code(400);
-      return { item: null, error: "Missing orgId in token" };
+      return { error: "Missing orgId on user" };
     }
+
+    if (!body.customerId || !body.plan) {
+      reply.code(400);
+      return {
+        error: "customerId and plan are required",
+      };
+    }
+
+    const maxDevices = body.maxDevices ?? 1;
+
+    const [created] = await db
+      .insert(licenses)
+      .values({
+        orgId,
+        customerId: body.customerId,
+        subscriptionId: body.subscriptionId ?? null,
+        plan: body.plan,
+        maxDevices,
+        status: "active",
+        validFrom: new Date(body.validFrom),
+        validUntil: new Date(body.validUntil),
+      })
+      .returning();
+
+    await db.insert(licenseEvents).values({
+      orgId,
+      licenseId: created.id,
+      type: "created",
+      metadata: {
+        byUserId: user?.userId,
+      },
+    });
+
+    reply.code(201);
+    return { item: created };
+  });
+
+  // Einzelne License
+  app.get<{ Params: { id: string } }>("/licenses/:id", async (request, reply) => {
+    const { id } = request.params;
+    const user = (request as any).user;
+    const orgId = user?.orgId;
 
     const [item] = await db
       .select()
       .from(licenses)
-      .where(and(eq(licenses.orgId, orgId), eq(licenses.id, id)))
+      .where(
+        and(
+          eq(licenses.id, id),
+          orgId ? eq(licenses.orgId, orgId) : undefined,
+        ),
+      )
       .limit(1);
 
     if (!item) {
       reply.code(404);
-      return { item: null };
+      return { error: "License not found" };
     }
 
     return { item };
   });
 
-  // 🔹 Events zu einer License
+  // Events zu einer License
   app.get<{ Params: { id: string } }>(
     "/licenses/:id/events",
     async (request, reply) => {
-      const orgId = getOrgId(request as any);
       const { id } = request.params;
+      const user = (request as any).user;
+      const orgId = user?.orgId;
 
-      if (!orgId) {
-        reply.code(400);
-        return { items: [], total: 0, limit: 0, offset: 0 };
-      }
-
-      const items = await db
+      const rows = await db
         .select()
         .from(licenseEvents)
-        .where(and(eq(licenseEvents.orgId, orgId), eq(licenseEvents.licenseId, id)))
+        .where(
+          and(
+            eq(licenseEvents.licenseId, id),
+            orgId ? eq(licenseEvents.orgId, orgId) : undefined,
+          ),
+        )
         .orderBy(desc(licenseEvents.createdAt))
         .limit(100);
 
       return {
-        items,
-        total: items.length,
-        limit: items.length,
+        items: rows,
+        total: rows.length,
+        limit: 100,
         offset: 0,
       };
     },
   );
 
-  // 🔹 License anlegen
-  app.post<{ Body: CreateLicenseBody }>("/licenses", async (request, reply) => {
-    const orgId = getOrgId(request as any);
+  // License revoken
+  app.post<{ Params: { id: string }; Body: RevokeBody }>(
+    "/licenses/:id/revoke",
+    async (request, reply) => {
+      const { id } = request.params;
+      const { reason } = request.body ?? {};
+      const user = (request as any).user;
+      const orgId = user?.orgId;
 
-    if (!orgId) {
-      reply.code(400);
-      return { error: "Missing orgId in token" };
-    }
+      const [updated] = await db
+        .update(licenses)
+        .set({
+          status: "revoked",
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(licenses.id, id),
+            orgId ? eq(licenses.orgId, orgId) : undefined,
+          ),
+        )
+        .returning();
 
-    const {
-      customerId,
-      subscriptionId,
-      plan,
-      maxDevices,
-      validFrom,
-      validUntil,
-    } = request.body;
+      if (!updated) {
+        reply.code(404);
+        return { error: "License not found" };
+      }
 
-    const key = generateLicenseKey();
+      await db.insert(licenseEvents).values({
+        orgId: updated.orgId,
+        licenseId: updated.id,
+        type: "revoked",
+        metadata: reason ? { reason } : null,
+      });
 
-    const [license] = await db
-      .insert(licenses)
-      .values({
-        orgId,
-        customerId,
-        subscriptionId: subscriptionId ?? null,
-        key,
-        plan,
-        maxDevices,
-        status: "active",
-        validFrom: new Date(validFrom),
-        validUntil: new Date(validUntil),
-      })
-      .returning();
-
-    // Event "created" loggen
-    await db.insert(licenseEvents).values({
-      orgId,
-      licenseId: license.id,
-      type: "created",
-      metadata: {},
-    });
-
-    reply.code(201);
-    return { item: license };
-  });
+      return { item: updated };
+    },
+  );
 }
