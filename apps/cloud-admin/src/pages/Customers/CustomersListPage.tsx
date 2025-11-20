@@ -17,12 +17,26 @@ type CustomersResponse = {
   offset: number;
 };
 
+// Nur das, was wir für die Zählung brauchen
+type DevicesResponse = {
+  items: {
+    id: string;
+    customerId: string | null;
+  }[];
+  total: number;
+};
+
 export default function CustomersListPage() {
   const [items, setItems] = useState<Customer[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+
+  // Anzahl Devices pro Customer
+  const [deviceCounts, setDeviceCounts] = useState<Record<string, number>>(
+    {},
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -32,13 +46,26 @@ export default function CustomersListPage() {
         setLoading(true);
         setError(null);
 
-        const data = await apiGet<CustomersResponse>("/customers");
+        const [customersRes, devicesRes] = await Promise.all([
+          apiGet<CustomersResponse>("/customers"),
+          apiGet<DevicesResponse>("/devices"),
+        ]);
+
         if (cancelled) return;
 
-        setItems(data.items ?? []);
-        setTotal(data.total ?? data.items?.length ?? 0);
+        const customers = customersRes.items ?? [];
+        setItems(customers);
+        setTotal(customersRes.total ?? customers.length);
+
+        // Device-Zählung bauen
+        const counts: Record<string, number> = {};
+        for (const dev of devicesRes.items ?? []) {
+          if (!dev.customerId) continue;
+          counts[dev.customerId] = (counts[dev.customerId] ?? 0) + 1;
+        }
+        setDeviceCounts(counts);
       } catch (err) {
-        console.error("Error loading customers", err);
+        console.error("Error loading customers/devices", err);
         if (!cancelled) {
           setError("Fehler beim Laden der Kunden.");
         }
@@ -49,7 +76,7 @@ export default function CustomersListPage() {
       }
     }
 
-    load();
+    void load();
 
     return () => {
       cancelled = true;
@@ -113,11 +140,7 @@ export default function CustomersListPage() {
         />
       </div>
 
-      {error && (
-        <div className="admin-error-banner">
-          {error}
-        </div>
-      )}
+      {error && <div className="admin-error-banner">{error}</div>}
 
       <div className="admin-card">
         <table className="admin-table">
@@ -127,19 +150,26 @@ export default function CustomersListPage() {
               <th>Name</th>
               <th>E-Mail</th>
               <th>Status</th>
+              <th>Devices</th>
               <th>Erstellt am</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} style={{ textAlign: "center", padding: 24 }}>
+                <td
+                  colSpan={6}
+                  style={{ textAlign: "center", padding: 24 }}
+                >
                   Lädt Kunden…
                 </td>
               </tr>
             ) : filteredItems.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ textAlign: "center", padding: 24 }}>
+                <td
+                  colSpan={6}
+                  style={{ textAlign: "center", padding: 24 }}
+                >
                   Keine Kunden gefunden.
                 </td>
               </tr>
@@ -148,17 +178,24 @@ export default function CustomersListPage() {
                 <tr key={c.id}>
                   <td>{c.id.slice(0, 8)}…</td>
                   <td>
-  <Link to={`/customers/${c.id}`} style={{ color: "#a855f7" }}>
-    {c.name}
-  </Link>
-</td>
-
+                    <Link
+                      to={`/customers/${c.id}`}
+                      style={{ color: "#a855f7" }}
+                    >
+                      {c.name || c.email}
+                    </Link>
+                  </td>
                   <td>{c.email}</td>
                   <td>
-                    <span className={`status-badge status-${c.status ?? "unknown"}`}>
+                    <span
+                      className={`status-badge status-${
+                        c.status ?? "unknown"
+                      }`}
+                    >
                       {c.status ?? "—"}
                     </span>
                   </td>
+                  <td>{deviceCounts[c.id] ?? 0}</td>
                   <td>
                     {c.createdAt
                       ? new Date(c.createdAt).toLocaleString("de-DE")

@@ -1,4 +1,3 @@
-// apps/cloud-admin/src/pages/Licenses/LicenseDetailPage.tsx
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { apiGet, apiPost } from "../../lib/api";
@@ -26,35 +25,116 @@ type EventsResponse = {
   items: LicenseEvent[];
 };
 
+// Device-Typ wie in DevicesListPage (mit License-/Customer-Infos)
+type Device = {
+  id: string;
+  name: string | null;
+  type: string | null;
+  status: string | null;
+
+  customerId: string | null;
+  customerName: string | null;
+
+  licenseId: string | null;
+  licenseKey: string | null;
+  licensePlan: string | null;
+  licenseValidFrom: string | null;
+  licenseValidUntil: string | null;
+
+  lastHeartbeatAt: string | null;
+  createdAt: string;
+};
+
+type DeviceListResponse = {
+  items: Device[];
+  total: number;
+};
+
+function formatDate(value: string | null | undefined) {
+  if (!value) return "–";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "–";
+  return d.toLocaleString("de-DE");
+}
+
+// online / stale / offline / never
+function classifySignal(
+  lastHeartbeatAt: string | null,
+): "never" | "online" | "stale" | "offline" {
+  if (!lastHeartbeatAt) return "never";
+  const d = new Date(lastHeartbeatAt);
+  if (Number.isNaN(d.getTime())) return "never";
+
+  const now = Date.now();
+  const diffMs = now - d.getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+
+  if (diffHours <= 24) return "online";
+  if (diffHours <= 24 * 7) return "stale";
+  return "offline";
+}
+
+function signalBadgeClass(kind: "never" | "online" | "stale" | "offline") {
+  switch (kind) {
+    case "online":
+      return "badge badge--green";
+    case "stale":
+      return "badge badge--amber";
+    case "offline":
+      return "badge badge--red";
+    case "never":
+    default:
+      return "badge";
+  }
+}
+
+function signalText(kind: "never" | "online" | "stale" | "offline") {
+  switch (kind) {
+    case "online":
+      return "online";
+    case "stale":
+      return "stale";
+    case "offline":
+      return "offline";
+    case "never":
+    default:
+      return "noch nie";
+  }
+}
+
 export default function LicenseDetailPage() {
   const { id } = useParams<{ id: string }>();
 
   const [license, setLicense] = useState<License | null>(null);
   const [events, setEvents] = useState<LicenseEvent[]>([]);
+  const [licenseDevices, setLicenseDevices] = useState<Device[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [revokeLoading, setRevokeLoading] = useState(false);
   const [revokeError, setRevokeError] = useState<string | null>(null);
 
-  function formatDate(value: string | null | undefined) {
-    if (!value) return "–";
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return "–";
-    return d.toLocaleString("de-DE");
-  }
-
   async function loadData() {
     if (!id) return;
+
     setLoading(true);
     setError(null);
     try {
-      const res = await apiGet<{ item: License }>(`/licenses/${id}`);
-      const eventsRes = await apiGet<EventsResponse>(
-        `/licenses/${id}/events`,
-      );
-      setLicense(res.item);
+      // License, Events und Devices parallel laden
+      const [licenseRes, eventsRes, devicesRes] = await Promise.all([
+        apiGet<{ item: License }>(`/licenses/${id}`),
+        apiGet<EventsResponse>(`/licenses/${id}/events`),
+        apiGet<DeviceListResponse>("/devices"),
+      ]);
+
+      setLicense(licenseRes.item);
       setEvents(eventsRes.items);
+
+      const devsForLicense = (devicesRes.items ?? []).filter(
+        (dev) => dev.licenseId === licenseRes.item.id,
+      );
+      setLicenseDevices(devsForLicense);
     } catch (err: any) {
       console.error(err);
       setError("Fehler beim Laden der Lizenz.");
@@ -64,7 +144,7 @@ export default function LicenseDetailPage() {
   }
 
   useEffect(() => {
-    loadData();
+    void loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -132,6 +212,8 @@ export default function LicenseDetailPage() {
               <div style={{ fontSize: 13, color: "#9ca3af" }}>
                 Customer:{" "}
                 {license.customerId ? (
+                  // wir zeigen hier momentan nur die ID – später könnte man
+                  // einen Namen via extra-Request nachladen
                   <span>{license.customerId}</span>
                 ) : (
                   "–"
@@ -200,6 +282,104 @@ export default function LicenseDetailPage() {
             </div>
           </div>
 
+          {/* Devices mit dieser License */}
+          <h2
+            style={{
+              fontSize: 16,
+              fontWeight: 600,
+              marginBottom: 8,
+            }}
+          >
+            Devices mit dieser License
+          </h2>
+          <p
+            style={{
+              fontSize: 13,
+              color: "#9ca3af",
+              marginBottom: 8,
+            }}
+          >
+            Alle POS-Geräte, die diesen License-Key aktuell verwenden.
+          </p>
+
+          <div className="admin-table-wrapper" style={{ marginBottom: 24 }}>
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Name / Device-ID</th>
+                  <th>Customer</th>
+                  <th>Status</th>
+                  <th>Letztes Signal</th>
+                  <th>Erstellt am</th>
+                </tr>
+              </thead>
+              <tbody>
+                {licenseDevices.length === 0 ? (
+                  <tr>
+                    <td colSpan={5}>
+                      Noch keine Devices mit dieser License.
+                    </td>
+                  </tr>
+                ) : (
+                  licenseDevices.map((dev) => {
+                    const signalKind = classifySignal(dev.lastHeartbeatAt);
+                    return (
+                      <tr key={dev.id}>
+                        <td>
+                          <div>{dev.name || "—"}</div>
+                          <div
+                            style={{
+                              fontSize: 11,
+                              opacity: 0.6,
+                              fontFamily:
+                                "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+                            }}
+                          >
+                            {dev.id.slice(0, 8)}…
+                          </div>
+                        </td>
+                        <td>
+                          {dev.customerId ? (
+                            <Link to={`/customers/${dev.customerId}`}>
+                              {dev.customerName ||
+                                `${dev.customerId.slice(0, 8)}…`}
+                            </Link>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td>
+                          <span
+                            className={
+                              dev.status === "active"
+                                ? "badge badge--green"
+                                : dev.status === "inactive"
+                                ? "badge badge--amber"
+                                : "badge"
+                            }
+                          >
+                            {dev.status || "—"}
+                          </span>
+                        </td>
+                        <td>
+                          <div>{formatDate(dev.lastHeartbeatAt)}</div>
+                          <div style={{ marginTop: 4 }}>
+                            <span
+                              className={signalBadgeClass(signalKind)}
+                            >
+                              {signalText(signalKind)}
+                            </span>
+                          </div>
+                        </td>
+                        <td>{formatDate(dev.createdAt)}</td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
           {/* Events */}
           <h2
             style={{
@@ -233,7 +413,9 @@ export default function LicenseDetailPage() {
               <tbody>
                 {events.length === 0 && (
                   <tr>
-                    <td colSpan={3}>Noch keine Events für diese Lizenz.</td>
+                    <td colSpan={3}>
+                      Noch keine Events für diese Lizenz.
+                    </td>
                   </tr>
                 )}
                 {events.map((event) => (
@@ -255,3 +437,4 @@ export default function LicenseDetailPage() {
     </div>
   );
 }
+

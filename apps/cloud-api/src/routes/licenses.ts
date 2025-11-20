@@ -3,7 +3,8 @@ import type { FastifyInstance } from "fastify";
 import { db } from "../db/client";
 import { licenses } from "../db/schema/licenses";
 import { licenseEvents } from "../db/schema/licenseEvents";
-import { and, desc, eq } from "drizzle-orm";
+import { devices } from "../db/schema/devices";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { generateLicenseKey } from "../lib/licenseKey";
 
 type CreateLicenseBody = {
@@ -20,17 +21,41 @@ type RevokeBody = {
 };
 
 export async function registerLicensesRoutes(app: FastifyInstance) {
-  // Liste aller Lizenzen der aktuellen Org
+  // Liste aller Lizenzen der aktuellen Org (mit devicesCount)
   app.get("/licenses", async (request) => {
     const user = (request as any).user;
     const orgId = user?.orgId;
 
-    const items = await db
+    // 1) Basis-Lizenzen laden
+    const baseLicenses = await db
       .select()
       .from(licenses)
       .where(orgId ? eq(licenses.orgId, orgId) : undefined)
       .orderBy(desc(licenses.createdAt))
       .limit(200);
+
+    // 2) Devices pro License zählen
+    const counts = await db
+      .select({
+        licenseId: devices.licenseId,
+        value: sql<number>`count(*)`,
+      })
+      .from(devices)
+      .where(orgId ? eq(devices.orgId, orgId) : undefined)
+      .groupBy(devices.licenseId);
+
+    const countMap = new Map<string, number>();
+    for (const row of counts) {
+      if (row.licenseId) {
+        countMap.set(row.licenseId, row.value ?? 0);
+      }
+    }
+
+    // 3) devicesCount anreichern
+    const items = baseLicenses.map((lic) => ({
+      ...lic,
+      devicesCount: countMap.get(lic.id) ?? 0,
+    }));
 
     return {
       items,

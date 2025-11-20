@@ -1,4 +1,3 @@
-// apps/cloud-admin/src/pages/DevicesListPage.tsx
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "../lib/api";
@@ -28,6 +27,13 @@ type DeviceListResponse = {
 };
 
 function formatDate(value: string | null | undefined) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("de-DE");
+}
+
+function formatLastSignal(value: string | null | undefined) {
   if (!value) return "noch nie";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "–";
@@ -35,7 +41,9 @@ function formatDate(value: string | null | undefined) {
 }
 
 // online / stale / offline / never
-function classifySignal(lastHeartbeatAt: string | null): "never" | "online" | "stale" | "offline" {
+function classifySignal(
+  lastHeartbeatAt: string | null,
+): "never" | "online" | "stale" | "offline" {
   if (!lastHeartbeatAt) return "never";
   const d = new Date(lastHeartbeatAt);
   if (Number.isNaN(d.getTime())) return "never";
@@ -118,6 +126,7 @@ export default function DevicesListPage() {
               <th>Status</th>
               <th>Plan</th>
               <th>License</th>
+              <th>Gültig bis</th>
               <th>Customer</th>
               <th>Letztes Signal</th>
               <th>Erstellt am</th>
@@ -126,13 +135,13 @@ export default function DevicesListPage() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={8}>Lade Devices…</td>
+                <td colSpan={9}>Lade Devices…</td>
               </tr>
             )}
 
             {!loading && error && (
               <tr>
-                <td colSpan={8}>
+                <td colSpan={9}>
                   <div className="admin-error">{error}</div>
                 </td>
               </tr>
@@ -140,7 +149,7 @@ export default function DevicesListPage() {
 
             {!loading && !error && devices.length === 0 && (
               <tr>
-                <td colSpan={8}>Noch keine Devices vorhanden.</td>
+                <td colSpan={9}>Noch keine Devices vorhanden.</td>
               </tr>
             )}
 
@@ -157,7 +166,8 @@ export default function DevicesListPage() {
                         style={{
                           fontSize: 11,
                           opacity: 0.6,
-                          fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+                          fontFamily:
+                            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
                         }}
                       >
                         {dev.id.slice(0, 8)}…
@@ -196,6 +206,13 @@ export default function DevicesListPage() {
                       )}
                     </td>
 
+                    {/* Gültig bis (aus License) */}
+                    <td>
+                      {dev.licenseValidUntil
+                        ? formatDate(dev.licenseValidUntil)
+                        : "—"}
+                    </td>
+
                     {/* Customer mit Link zur Customer-Detailseite */}
                     <td>
                       {dev.customerId ? (
@@ -210,7 +227,7 @@ export default function DevicesListPage() {
 
                     {/* Letztes Signal + Ampel */}
                     <td>
-                      <div>{formatDate(dev.lastHeartbeatAt)}</div>
+                      <div>{formatLastSignal(dev.lastHeartbeatAt)}</div>
                       <div style={{ marginTop: 4 }}>
                         <span className={signalBadgeClass(signalKind)}>
                           {signalText(signalKind)}

@@ -13,6 +13,8 @@ type License = {
   validFrom: string | null;
   validUntil: string | null;
   createdAt: string;
+  // wie viele Devices diese License bereits nutzen
+  devicesCount?: number;
 };
 
 type LicenseListResponse = {
@@ -77,6 +79,7 @@ export default function LicensesListPage() {
     try {
       const res = await apiGet<{ items: Customer[] }>("/customers");
       setCustomers(res.items);
+      // keinen Default-Customer mehr setzen → Customer bleibt optional
     } catch (err) {
       console.error(err);
     } finally {
@@ -120,28 +123,32 @@ export default function LicensesListPage() {
     }
   }
 
-  // "Löschen" für generierte License = revoke
-  async function handleDeleteGenerated(id: string) {
+  async function handleRevoke(id: string) {
+    if (!window.confirm("Diesen License-Key wirklich löschen/revoken?")) return;
     try {
-      await apiPost(`/licenses/${id}/revoke`, {
-        reason: "deleted_from_generated_pool",
-      });
+      await apiPost(`/licenses/${id}/revoke`, {});
       await loadLicenses();
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      setCreateError(
-        err?.message || "Fehler beim Löschen der License.",
-      );
     }
   }
 
   // Aufteilung:
-  // - generiert: keine customerId UND status === "active"
-  // - zugewiesen: hat customerId (egal welcher Status)
+  // - generierte Keys: kein Customer, keine Devices, NICHT revoked
+  // - alle anderen (Customer gesetzt ODER schon verwendet ODER revoked)
   const generatedLicenses = licenses.filter(
-    (lic) => !lic.customerId && lic.status === "active",
+    (lic) =>
+      !lic.customerId &&
+      (lic.devicesCount ?? 0) === 0 &&
+      lic.status !== "revoked",
   );
-  const assignedLicenses = licenses.filter((lic) => !!lic.customerId);
+
+  const assignedLicenses = licenses.filter(
+    (lic) =>
+      lic.customerId ||
+      (lic.devicesCount ?? 0) > 0 ||
+      lic.status === "revoked",
+  );
 
   return (
     <div className="admin-page">
@@ -330,7 +337,7 @@ export default function LicensesListPage() {
         )}
       </div>
 
-      {/* Karte: Generierte Licenses (ohne Customer, active) */}
+      {/* Karte: Generierte Licenses (ohne Customer, noch nicht benutzt) */}
       {generatedLicenses.length > 0 && (
         <div
           className="dashboard-card"
@@ -348,9 +355,11 @@ export default function LicensesListPage() {
             }}
           >
             Diese Keys wurden erzeugt, sind aber noch keinem Customer
-            zugeordnet. Du kannst sie z.&nbsp;B. im POS eintragen. Sobald
-            später ein Customer hinterlegt ist oder die License revoked
-            wird, verschwinden sie aus dieser Liste.
+            zugeordnet und wurden noch auf keinem Device verwendet. Du kannst
+            sie z.&nbsp;B. im POS eintragen. Sobald später ein Customer
+            hinterlegt ist oder die License auf einem Device aktiviert wird,
+            verschwinden sie aus dieser Liste. Über „Löschen“ werden sie
+            revoked und ebenfalls ausgeblendet.
           </p>
 
           <div className="admin-table-wrapper" style={{ marginTop: 8 }}>
@@ -390,13 +399,8 @@ export default function LicensesListPage() {
                     <td>
                       <button
                         type="button"
-                        onClick={() => handleDeleteGenerated(lic.id)}
-                        className="login-button"
-                        style={{
-                          paddingInline: 12,
-                          fontSize: 12,
-                          backgroundColor: "#7f1d1d",
-                        }}
+                        onClick={() => handleRevoke(lic.id)}
+                        className="badge badge--red"
                       >
                         Löschen
                       </button>
@@ -409,7 +413,7 @@ export default function LicensesListPage() {
         </div>
       )}
 
-      {/* Tabelle: Licenses mit Customer */}
+      {/* Tabelle: Licenses mit Customer ODER bereits benutzten Devices ODER revoked */}
       <div className="admin-table-wrapper">
         <table className="admin-table">
           <thead>
@@ -439,7 +443,7 @@ export default function LicensesListPage() {
             {!loading && !error && assignedLicenses.length === 0 && (
               <tr>
                 <td colSpan={7}>
-                  Noch keine Licenses mit Customer vorhanden.
+                  Noch keine Licenses mit Customer oder Device vorhanden.
                 </td>
               </tr>
             )}
