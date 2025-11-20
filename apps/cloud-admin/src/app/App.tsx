@@ -1,3 +1,4 @@
+// apps/cloud-admin/src/app/App.tsx
 import React from "react";
 import {
   BrowserRouter,
@@ -11,12 +12,16 @@ import {
 
 import LoginPage from "../pages/LoginPage";
 import DashboardPage from "../pages/DashboardPage";
+
 import CustomersListPage from "../pages/Customers/CustomersListPage";
+import CustomerDetailPage from "../pages/Customers/CustomerDetailPage";
+
 import SubscriptionsListPage from "../pages/SubscriptionsListPage";
 import InvoicesListPage from "../pages/InvoicesListPage";
 import DevicesListPage from "../pages/DevicesListPage";
 import PaymentsListPage from "../pages/Payments/PaymentsListPage";
 import WebhooksListPage from "../pages/Webhooks/WebhooksListPage";
+
 import LicensesListPage from "../pages/Licenses/LicensesListPage";
 import LicenseDetailPage from "../pages/Licenses/LicenseDetailPage";
 
@@ -33,7 +38,7 @@ function RequireAuth({ children }: { children: React.ReactElement }) {
   return children;
 }
 
-// ✨ Nur Layout – keine Daten-Logik
+// Nur Layout – keine Daten-Logik
 function AppShell({ children }: { children: React.ReactElement }) {
   const { user, clearAuth } = useAuth();
   const navigate = useNavigate();
@@ -143,7 +148,7 @@ function AppRoutes() {
         }
       />
 
-      {/* Listen-Seiten */}
+      {/* Customers */}
       <Route
         path="/customers"
         element={
@@ -154,7 +159,18 @@ function AppRoutes() {
           </RequireAuth>
         }
       />
+      <Route
+        path="/customers/:customerId"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <CustomerDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
 
+      {/* Subscriptions */}
       <Route
         path="/subscriptions"
         element={
@@ -166,6 +182,7 @@ function AppRoutes() {
         }
       />
 
+      {/* Invoices */}
       <Route
         path="/invoices"
         element={
@@ -177,6 +194,7 @@ function AppRoutes() {
         }
       />
 
+      {/* Devices */}
       <Route
         path="/devices"
         element={
@@ -188,6 +206,7 @@ function AppRoutes() {
         }
       />
 
+      {/* Payments */}
       <Route
         path="/payments"
         element={
@@ -199,6 +218,7 @@ function AppRoutes() {
         }
       />
 
+      {/* Webhooks */}
       <Route
         path="/webhooks"
         element={
@@ -210,6 +230,7 @@ function AppRoutes() {
         }
       />
 
+      {/* Licenses */}
       <Route
         path="/licenses"
         element={
@@ -220,7 +241,6 @@ function AppRoutes() {
           </RequireAuth>
         }
       />
-
       <Route
         path="/licenses/:id"
         element={

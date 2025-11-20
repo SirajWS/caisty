@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiGet } from "../../lib/api";
+import { Link } from "react-router-dom";
 
 type Customer = {
   id: string;
@@ -146,7 +147,12 @@ export default function CustomersListPage() {
               filteredItems.map((c) => (
                 <tr key={c.id}>
                   <td>{c.id.slice(0, 8)}…</td>
-                  <td>{c.name}</td>
+                  <td>
+  <Link to={`/customers/${c.id}`} style={{ color: "#a855f7" }}>
+    {c.name}
+  </Link>
+</td>
+
                   <td>{c.email}</td>
                   <td>
                     <span className={`status-badge status-${c.status ?? "unknown"}`}>
