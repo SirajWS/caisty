@@ -1,4 +1,3 @@
-// apps/cloud-api/src/db/schema/licenses.ts
 import { pgTable, text, integer, timestamp } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 

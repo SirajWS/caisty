@@ -4,15 +4,7 @@ import { db } from "../db/client";
 import { licenses } from "../db/schema/licenses";
 import { devices } from "../db/schema/devices";
 import { licenseEvents } from "../db/schema/licenseEvents";
-import {
-  and,
-  eq,
-  gte,
-  lte,
-  or,
-  isNull,
-  sql,
-} from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 type VerifyBody = {
   key: string;
@@ -32,20 +24,11 @@ type HeartbeatBody = {
   deviceId: string;
 };
 
-async function findActiveLicenseByKey(key: string) {
-  const now = new Date();
-
+async function findLicenseByKey(key: string) {
   const [license] = await db
     .select()
     .from(licenses)
-    .where(
-      and(
-        eq(licenses.key, key),
-        eq(licenses.status, "active"),
-        lte(licenses.validFrom, now),
-        or(isNull(licenses.validUntil), gte(licenses.validUntil, now)),
-      ),
-    )
+    .where(eq(licenses.key, key))
     .limit(1);
 
   return license ?? null;
@@ -74,13 +57,55 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
       };
     }
 
-    const license = await findActiveLicenseByKey(body.key);
+    const key = body.key.trim();
+    const license = await findLicenseByKey(key);
 
     if (!license) {
       return {
         ok: false,
+        reason: "license_not_found",
+        message: "License key not found.",
+      };
+    }
+
+    const now = new Date();
+
+    // Revoked → klarer Fehler
+    if (license.status === "revoked") {
+      return {
+        ok: false,
+        reason: "license_revoked",
+        message: "License has been revoked.",
+        license: {
+          id: license.id,
+          key: license.key,
+          plan: license.plan,
+          status: license.status,
+          maxDevices: license.maxDevices,
+          validUntil: license.validUntil,
+        },
+      };
+    }
+
+    // Nicht aktiv oder außerhalb Zeitraum → invalid_or_expired
+    const notYetValid =
+      license.validFrom && license.validFrom.getTime() > now.getTime();
+    const expired =
+      license.validUntil && license.validUntil.getTime() < now.getTime();
+
+    if (license.status !== "active" || notYetValid || expired) {
+      return {
+        ok: false,
         reason: "invalid_or_expired",
-        message: "License is invalid, revoked or expired.",
+        message: "License is invalid or expired.",
+        license: {
+          id: license.id,
+          key: license.key,
+          plan: license.plan,
+          status: license.status,
+          maxDevices: license.maxDevices,
+          validUntil: license.validUntil,
+        },
       };
     }
 
@@ -118,9 +143,9 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
       };
     }
 
-    const license = await findActiveLicenseByKey(body.licenseKey);
+    const license = await findLicenseByKey(body.licenseKey);
 
-    if (!license) {
+    if (!license || license.status !== "active") {
       return {
         ok: false,
         reason: "invalid_or_expired",

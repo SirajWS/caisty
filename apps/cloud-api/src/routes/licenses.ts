@@ -4,7 +4,7 @@ import { db } from "../db/client";
 import { licenses } from "../db/schema/licenses";
 import { licenseEvents } from "../db/schema/licenseEvents";
 import { devices } from "../db/schema/devices";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { generateLicenseKey } from "../lib/licenseKey";
 
 type CreateLicenseBody = {
@@ -21,13 +21,13 @@ type RevokeBody = {
 };
 
 export async function registerLicensesRoutes(app: FastifyInstance) {
-  // Liste aller Lizenzen der aktuellen Org (mit devicesCount)
+  // Liste aller Lizenzen der aktuellen Org
   app.get("/licenses", async (request) => {
     const user = (request as any).user;
     const orgId = user?.orgId;
 
-    // 1) Basis-Lizenzen laden
-    const baseLicenses = await db
+    // 1) Basis-Liste der Lizenzen laden
+    const items = await db
       .select()
       .from(licenses)
       .where(orgId ? eq(licenses.orgId, orgId) : undefined)
@@ -35,31 +35,39 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
       .limit(200);
 
     // 2) Devices pro License zählen
-    const counts = await db
-      .select({
-        licenseId: devices.licenseId,
-        value: sql<number>`count(*)`,
-      })
-      .from(devices)
-      .where(orgId ? eq(devices.orgId, orgId) : undefined)
-      .groupBy(devices.licenseId);
-
-    const countMap = new Map<string, number>();
-    for (const row of counts) {
-      if (row.licenseId) {
-        countMap.set(row.licenseId, row.value ?? 0);
-      }
-    }
-
-    // 3) devicesCount anreichern
-    const items = baseLicenses.map((lic) => ({
+    let itemsWithCounts = items.map((lic) => ({
       ...lic,
-      devicesCount: countMap.get(lic.id) ?? 0,
+      devicesCount: 0 as number,
     }));
 
+    if (items.length > 0) {
+      const licenseIds = items.map((lic) => lic.id);
+
+      const counts = await db
+        .select({
+          licenseId: devices.licenseId,
+          count: sql<number>`count(*)`,
+        })
+        .from(devices)
+        .where(inArray(devices.licenseId, licenseIds))
+        .groupBy(devices.licenseId);
+
+      const countMap = new Map<string, number>();
+      for (const row of counts) {
+        if (row.licenseId) {
+          countMap.set(row.licenseId, row.count);
+        }
+      }
+
+      itemsWithCounts = items.map((lic) => ({
+        ...lic,
+        devicesCount: countMap.get(lic.id) ?? 0,
+      }));
+    }
+
     return {
-      items,
-      total: items.length,
+      items: itemsWithCounts,
+      total: itemsWithCounts.length,
       limit: 200,
       offset: 0,
     };
