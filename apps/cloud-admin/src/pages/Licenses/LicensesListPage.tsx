@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+// apps/cloud-admin/src/pages/Licenses/LicensesListPage.tsx
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet, apiPost } from "../../lib/api";
 
@@ -12,7 +13,7 @@ type License = {
   validFrom: string | null;
   validUntil: string | null;
   createdAt: string;
-  // neu: wie viele Devices diese License bereits nutzen
+  // aus API aggregiert: wie viele Devices nutzen diese License bereits
   devicesCount?: number;
 };
 
@@ -47,6 +48,15 @@ export default function LicensesListPage() {
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customersLoading, setCustomersLoading] = useState(true);
+
+  // Map für schnelle Lookup: customerId → Customer
+  const customersById = React.useMemo(() => {
+    const map: Record<string, Customer> = {};
+    for (const c of customers) {
+      map[c.id] = c;
+    }
+    return map;
+  }, [customers]);
 
   // Formular-State
   const today = new Date();
@@ -196,13 +206,17 @@ export default function LicensesListPage() {
   }
 
   // Aufteilung:
-  // - generierte Keys: noch kein Customer UND devicesCount === 0
+  // - generierte Keys: noch kein Customer UND devicesCount === 0 UND NICHT revoked
   // - alle anderen (Customer gesetzt ODER schon verwendet) → unten in der Hauptliste
   const generatedLicenses = licenses.filter(
-    (lic) => !lic.customerId && (lic.devicesCount ?? 0) === 0,
+    (lic) =>
+      !lic.customerId &&
+      (lic.devicesCount ?? 0) === 0 &&
+      lic.status !== "revoked",
   );
+
   const assignedLicenses = licenses.filter(
-    (lic) => lic.customerId || (lic.devicesCount ?? 0) > 0,
+    (lic) => lic.customerId || (lic.devicesCount ?? 0) > 0 || lic.status === "revoked",
   );
 
   const customerSelectValue =
@@ -486,43 +500,61 @@ export default function LicensesListPage() {
                   <th>Plan</th>
                   <th>Status</th>
                   <th>Max Devices</th>
+                  <th>Seats</th>
                   <th>Gültig bis</th>
                   <th>Erstellt</th>
                   <th>Aktion</th>
                 </tr>
               </thead>
               <tbody>
-                {generatedLicenses.map((lic) => (
-                  <tr key={lic.id}>
-                    <td>{lic.key}</td>
-                    <td>{lic.plan}</td>
-                    <td>
-                      <span
-                        className={
-                          lic.status === "active"
-                            ? "badge badge--green"
-                            : lic.status === "revoked"
-                            ? "badge badge--red"
-                            : "badge badge--amber"
-                        }
-                      >
-                        {lic.status}
-                      </span>
-                    </td>
-                    <td>{lic.maxDevices ?? "–"}</td>
-                    <td>{formatDate(lic.validUntil)}</td>
-                    <td>{formatDate(lic.createdAt)}</td>
-                    <td>
-                      <button
-                        type="button"
-                        onClick={() => handleRevoke(lic.id)}
-                        className="badge badge--red"
-                      >
-                        Löschen
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {generatedLicenses.map((lic) => {
+                  const used = lic.devicesCount ?? 0;
+                  const total = lic.maxDevices ?? used;
+                  const full = total > 0 && used >= total;
+
+                  return (
+                    <tr key={lic.id}>
+                      <td>{lic.key}</td>
+                      <td>{lic.plan}</td>
+                      <td>
+                        <span
+                          className={
+                            lic.status === "active"
+                              ? "badge badge--green"
+                              : lic.status === "revoked"
+                              ? "badge badge--red"
+                              : "badge badge--amber"
+                          }
+                        >
+                          {lic.status}
+                        </span>
+                      </td>
+                      <td>{lic.maxDevices ?? "–"}</td>
+                      <td>
+                        {used} / {total}
+                        {full && (
+                          <span
+                            className="badge badge--red"
+                            style={{ marginLeft: 6 }}
+                          >
+                            voll
+                          </span>
+                        )}
+                      </td>
+                      <td>{formatDate(lic.validUntil)}</td>
+                      <td>{formatDate(lic.createdAt)}</td>
+                      <td>
+                        <button
+                          type="button"
+                          onClick={() => handleRevoke(lic.id)}
+                          className="badge badge--red"
+                        >
+                          Löschen
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -538,6 +570,7 @@ export default function LicensesListPage() {
               <th>Plan</th>
               <th>Status</th>
               <th>Max Devices</th>
+              <th>Seats</th>
               <th>Customer</th>
               <th>Gültig bis</th>
               <th>Erstellt</th>
@@ -546,54 +579,80 @@ export default function LicensesListPage() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={7}>Lade Licenses…</td>
+                <td colSpan={8}>Lade Licenses…</td>
               </tr>
             )}
             {!loading && error && (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={8}>
                   <div className="admin-error">{error}</div>
                 </td>
               </tr>
             )}
             {!loading && !error && assignedLicenses.length === 0 && (
               <tr>
-                <td colSpan={7}>
+                <td colSpan={8}>
                   Noch keine Licenses mit Customer oder Device vorhanden.
                 </td>
               </tr>
             )}
             {!loading &&
               !error &&
-              assignedLicenses.map((lic) => (
-                <tr key={lic.id}>
-                  <td>
-                    <Link to={`/licenses/${lic.id}`}>{lic.key}</Link>
-                  </td>
-                  <td>{lic.plan}</td>
-                  <td>
-                    <span
-                      className={
-                        lic.status === "active"
-                          ? "badge badge--green"
-                          : lic.status === "revoked"
-                          ? "badge badge--red"
-                          : "badge badge--amber"
-                      }
-                    >
-                      {lic.status}
-                    </span>
-                  </td>
-                  <td>{lic.maxDevices ?? "–"}</td>
-                  <td>
-                    {lic.customerId
-                      ? `${lic.customerId.slice(0, 8)}…`
-                      : "–"}
-                  </td>
-                  <td>{formatDate(lic.validUntil)}</td>
-                  <td>{formatDate(lic.createdAt)}</td>
-                </tr>
-              ))}
+              assignedLicenses.map((lic) => {
+                const used = lic.devicesCount ?? 0;
+                const total = lic.maxDevices ?? used;
+                const full = total > 0 && used >= total;
+                const customer = lic.customerId
+                  ? customersById[lic.customerId]
+                  : undefined;
+
+                return (
+                  <tr key={lic.id}>
+                    <td>
+                      <Link to={`/licenses/${lic.id}`}>{lic.key}</Link>
+                    </td>
+                    <td>{lic.plan}</td>
+                    <td>
+                      <span
+                        className={
+                          lic.status === "active"
+                            ? "badge badge--green"
+                            : lic.status === "revoked"
+                            ? "badge badge--red"
+                            : "badge badge--amber"
+                        }
+                      >
+                        {lic.status}
+                      </span>
+                    </td>
+                    <td>{lic.maxDevices ?? "–"}</td>
+                    <td>
+                      {used} / {total}
+                      {full && (
+                        <span
+                          className="badge badge--red"
+                          style={{ marginLeft: 6 }}
+                        >
+                          voll
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {lic.customerId ? (
+                        <Link to={`/customers/${lic.customerId}`}>
+                          {customer?.name ||
+                            customer?.email ||
+                            `${lic.customerId.slice(0, 8)}…`}
+                        </Link>
+                      ) : (
+                        "–"
+                      )}
+                    </td>
+                    <td>{formatDate(lic.validUntil)}</td>
+                    <td>{formatDate(lic.createdAt)}</td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>
