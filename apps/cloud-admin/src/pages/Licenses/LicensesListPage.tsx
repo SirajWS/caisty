@@ -1,4 +1,3 @@
-// apps/cloud-admin/src/pages/Licenses/LicensesListPage.tsx
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet, apiPost } from "../../lib/api";
@@ -13,7 +12,7 @@ type License = {
   validFrom: string | null;
   validUntil: string | null;
   createdAt: string;
-  // wie viele Devices diese License bereits nutzen
+  // neu: wie viele Devices diese License bereits nutzen
   devicesCount?: number;
 };
 
@@ -26,6 +25,18 @@ type Customer = {
   id: string;
   name: string | null;
   email: string;
+};
+
+type CustomerMode = "none" | "existing" | "new";
+
+type LicenseFormState = {
+  customerMode: CustomerMode;
+  customerId: string;
+  newCustomerName: string;
+  plan: string;
+  maxDevices: string;
+  validFrom: string;
+  validUntil: string;
 };
 
 export default function LicensesListPage() {
@@ -42,13 +53,16 @@ export default function LicensesListPage() {
   const oneYearLater = new Date(today);
   oneYearLater.setFullYear(today.getFullYear() + 1);
 
-  const [form, setForm] = useState({
-    customerId: "", // "" = kein Customer (nur License-Key)
+  const [form, setForm] = useState<LicenseFormState>({
+    customerMode: "none",
+    customerId: "",
+    newCustomerName: "",
     plan: "starter",
     maxDevices: "1",
     validFrom: today.toISOString().slice(0, 10),
     validUntil: oneYearLater.toISOString().slice(0, 10),
   });
+
   const [createError, setCreateError] = useState<string | null>(null);
   const [createLoading, setCreateLoading] = useState(false);
 
@@ -79,7 +93,6 @@ export default function LicensesListPage() {
     try {
       const res = await apiGet<{ items: Customer[] }>("/customers");
       setCustomers(res.items);
-      // keinen Default-Customer mehr setzen → Customer bleibt optional
     } catch (err) {
       console.error(err);
     } finally {
@@ -93,12 +106,54 @@ export default function LicensesListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function generatePlaceholderEmail(name: string) {
+    const slug = name
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, ".")
+      .replace(/[^a-z0-9.]/g, "");
+    const localPart = slug || `customer${Date.now()}`;
+    return `${localPart}@example.invalid`;
+  }
+
+  async function createCustomer(nameRaw: string): Promise<string> {
+    const name = nameRaw.trim();
+    const email = generatePlaceholderEmail(name);
+
+    const res: any = await apiPost("/customers", {
+      name,
+      email,
+      status: "active",
+    });
+
+    const newId: string | undefined = res?.item?.id ?? res?.id;
+
+    if (!newId) {
+      throw new Error("Server hat keine Customer-ID zurückgegeben.");
+    }
+
+    return newId;
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     setCreateError(null);
 
+    if (form.customerMode === "new" && !form.newCustomerName.trim()) {
+      setCreateError("Bitte einen Namen für den neuen Customer eingeben.");
+      return;
+    }
+
     setCreateLoading(true);
     try {
+      let customerIdToUse: string | null = null;
+
+      if (form.customerMode === "existing" && form.customerId) {
+        customerIdToUse = form.customerId;
+      } else if (form.customerMode === "new") {
+        customerIdToUse = await createCustomer(form.newCustomerName);
+      }
+
       const payload: any = {
         plan: form.plan,
         maxDevices: Number(form.maxDevices) || 1,
@@ -106,18 +161,25 @@ export default function LicensesListPage() {
         validUntil: new Date(form.validUntil).toISOString(),
       };
 
-      // Customer NUR mitsenden, wenn einer gewählt wurde
-      if (form.customerId) {
-        payload.customerId = form.customerId;
+      if (customerIdToUse) {
+        payload.customerId = customerIdToUse;
       }
 
       await apiPost("/licenses", payload);
-      await loadLicenses();
+
+      // Daten neu laden (Licenses + Customers)
+      await Promise.all([loadLicenses(), loadCustomers()]);
+
+      // Formular: Customer-Auswahl zurücksetzen
+      setForm((f) => ({
+        ...f,
+        customerMode: "none",
+        customerId: "",
+        newCustomerName: "",
+      }));
     } catch (err: any) {
       console.error(err);
-      setCreateError(
-        err?.message || "Fehler beim Anlegen der License.",
-      );
+      setCreateError(err?.message || "Fehler beim Anlegen der License.");
     } finally {
       setCreateLoading(false);
     }
@@ -134,21 +196,21 @@ export default function LicensesListPage() {
   }
 
   // Aufteilung:
-  // - generierte Keys: kein Customer, keine Devices, NICHT revoked
-  // - alle anderen (Customer gesetzt ODER schon verwendet ODER revoked)
+  // - generierte Keys: noch kein Customer UND devicesCount === 0
+  // - alle anderen (Customer gesetzt ODER schon verwendet) → unten in der Hauptliste
   const generatedLicenses = licenses.filter(
-    (lic) =>
-      !lic.customerId &&
-      (lic.devicesCount ?? 0) === 0 &&
-      lic.status !== "revoked",
+    (lic) => !lic.customerId && (lic.devicesCount ?? 0) === 0,
+  );
+  const assignedLicenses = licenses.filter(
+    (lic) => lic.customerId || (lic.devicesCount ?? 0) > 0,
   );
 
-  const assignedLicenses = licenses.filter(
-    (lic) =>
-      lic.customerId ||
-      (lic.devicesCount ?? 0) > 0 ||
-      lic.status === "revoked",
-  );
+  const customerSelectValue =
+    form.customerMode === "existing"
+      ? form.customerId
+      : form.customerMode === "new"
+      ? "__new__"
+      : "";
 
   return (
     <div className="admin-page">
@@ -188,10 +250,29 @@ export default function LicensesListPage() {
           <label style={{ fontSize: 13 }}>
             Customer (optional)
             <select
-              value={form.customerId}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, customerId: e.target.value }))
-              }
+              value={customerSelectValue}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === "__new__") {
+                  setForm((f) => ({
+                    ...f,
+                    customerMode: "new",
+                    customerId: "",
+                  }));
+                } else if (!value) {
+                  setForm((f) => ({
+                    ...f,
+                    customerMode: "none",
+                    customerId: "",
+                  }));
+                } else {
+                  setForm((f) => ({
+                    ...f,
+                    customerMode: "existing",
+                    customerId: value,
+                  }));
+                }
+              }}
               style={{
                 width: "100%",
                 marginTop: 4,
@@ -207,6 +288,7 @@ export default function LicensesListPage() {
               <option value="">
                 — Ohne Customer (nur License-Key) —
               </option>
+              <option value="__new__">➕ Neuen Customer anlegen…</option>
               {customers.length === 0 && (
                 <option value="" disabled>
                   (keine Customers vorhanden)
@@ -218,6 +300,41 @@ export default function LicensesListPage() {
                 </option>
               ))}
             </select>
+
+            {form.customerMode === "new" && (
+              <div style={{ marginTop: 6 }}>
+                <input
+                  type="text"
+                  placeholder="Name des neuen Customers…"
+                  value={form.newCustomerName}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      newCustomerName: e.target.value,
+                    }))
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "6px 8px",
+                    borderRadius: 6,
+                    border: "1px solid #374151",
+                    backgroundColor: "#020617",
+                    color: "#e5e7eb",
+                    fontSize: 13,
+                  }}
+                />
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "#9ca3af",
+                    marginTop: 4,
+                  }}
+                >
+                  Der neue Customer wird automatisch angelegt und bekommt
+                  diese License.
+                </div>
+              </div>
+            )}
           </label>
 
           {/* Plan */}
@@ -358,8 +475,7 @@ export default function LicensesListPage() {
             zugeordnet und wurden noch auf keinem Device verwendet. Du kannst
             sie z.&nbsp;B. im POS eintragen. Sobald später ein Customer
             hinterlegt ist oder die License auf einem Device aktiviert wird,
-            verschwinden sie aus dieser Liste. Über „Löschen“ werden sie
-            revoked und ebenfalls ausgeblendet.
+            verschwinden sie aus dieser Liste.
           </p>
 
           <div className="admin-table-wrapper" style={{ marginTop: 8 }}>
@@ -413,7 +529,7 @@ export default function LicensesListPage() {
         </div>
       )}
 
-      {/* Tabelle: Licenses mit Customer ODER bereits benutzten Devices ODER revoked */}
+      {/* Tabelle: Licenses mit Customer ODER bereits benutzten Devices */}
       <div className="admin-table-wrapper">
         <table className="admin-table">
           <thead>

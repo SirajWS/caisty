@@ -9,6 +9,12 @@ type ListQuery = {
   offset?: number;
 };
 
+// Body für neuen Customer
+type CreateCustomerBody = {
+  name: string;
+  email?: string | null;
+};
+
 export async function registerCustomersRoutes(app: FastifyInstance) {
   // Liste aller Kunden
   app.get<{ Querystring: ListQuery }>("/customers", async (request) => {
@@ -32,6 +38,43 @@ export async function registerCustomersRoutes(app: FastifyInstance) {
       limit,
       offset,
     };
+  });
+
+  // Neuen Customer anlegen (wird vom License-Formular genutzt)
+  app.post<{ Body: CreateCustomerBody }>("/customers", async (request, reply) => {
+    const user = (request as any).user;
+    const orgId = user?.orgId;
+
+    if (!orgId) {
+      reply.code(401);
+      return { error: "Missing orgId on user" };
+    }
+
+    const { name, email } = request.body;
+
+    if (!name || !name.trim()) {
+      reply.code(400);
+      return { error: "name is required" };
+    }
+
+    try {
+      const [created] = await db
+        .insert(customers)
+        .values({
+          orgId,
+          name: name.trim(),
+          email: email?.trim() || null,
+          status: "active",
+        })
+        .returning();
+
+      reply.code(201);
+      return { item: created };
+    } catch (err) {
+      console.error("Error creating customer", err);
+      reply.code(500);
+      return { error: "Failed to create customer" };
+    }
   });
 
   // 🔹 Einzelner Kunde (für Detailseite)
