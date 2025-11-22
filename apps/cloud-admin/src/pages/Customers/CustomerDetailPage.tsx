@@ -3,12 +3,34 @@ import { useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { apiGet } from "../../lib/api";
 
+type CloudCustomerProfile = {
+  accountName?: string;
+  legalName?: string;
+  externalId?: string;
+  contact?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+  };
+  address?: {
+    country?: string;
+    city?: string;
+    street?: string;
+    zip?: string;
+  };
+  language?: string;
+  notes?: string;
+  lastSyncAt?: string;
+};
+
 type Customer = {
   id: string;
   name: string;
   email: string;
   status?: string | null;
   createdAt?: string | null;
+  profile?: CloudCustomerProfile | null;
 };
 
 type Subscription = {
@@ -49,6 +71,32 @@ type ListResponse<T> = {
   limit: number;
   offset: number;
 };
+
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("de-DE");
+}
+
+function hasProfileData(profile?: CloudCustomerProfile | null): boolean {
+  if (!profile) return false;
+  return Boolean(
+    profile.accountName ||
+      profile.legalName ||
+      profile.externalId ||
+      profile.language ||
+      profile.notes ||
+      profile.contact?.firstName ||
+      profile.contact?.lastName ||
+      profile.contact?.email ||
+      profile.contact?.phone ||
+      profile.address?.country ||
+      profile.address?.city ||
+      profile.address?.street ||
+      profile.address?.zip,
+  );
+}
 
 export default function CustomerDetailPage() {
   const { customerId } = useParams<{ customerId: string }>();
@@ -100,7 +148,7 @@ export default function CustomerDetailPage() {
       }
     }
 
-    load();
+    void load();
 
     return () => {
       cancelled = true;
@@ -116,10 +164,11 @@ export default function CustomerDetailPage() {
     [devices],
   );
 
-  function formatDate(value?: string | null) {
-    if (!value) return "—";
-    return new Date(value).toLocaleString("de-DE");
-  }
+  const mainLicense = useMemo(() => {
+    if (licenses.length === 0) return null;
+    const active = licenses.find((l) => l.status === "active");
+    return active ?? licenses[0];
+  }, [licenses]);
 
   if (!customerId) {
     return (
@@ -193,7 +242,9 @@ export default function CustomerDetailPage() {
                     <div style={{ color: "#9ca3af" }}>Status</div>
                     <div>
                       <span
-                        className={`status-badge status-${customer.status ?? "unknown"}`}
+                        className={`status-badge status-${
+                          customer.status ?? "unknown"
+                        }`}
                       >
                         {customer.status ?? "—"}
                       </span>
@@ -216,6 +267,17 @@ export default function CustomerDetailPage() {
                 }}
               >
                 <div>
+                  <div style={{ color: "#9ca3af" }}>Plan</div>
+                  <div style={{ fontWeight: 600 }}>
+                    {mainLicense ? mainLicense.plan.toUpperCase() : "—"}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#9ca3af" }}>
+                    {mainLicense?.validUntil
+                      ? `gültig bis ${formatDate(mainLicense.validUntil)}`
+                      : "ohne Ablaufdatum"}
+                  </div>
+                </div>
+                <div>
                   <div style={{ color: "#9ca3af" }}>Subscriptions</div>
                   <div>{subscriptionsCount}</div>
                 </div>
@@ -231,6 +293,135 @@ export default function CustomerDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* POS-Profil aus CloudCustomer / Account */}
+            {hasProfileData(customer.profile ?? undefined) && (
+              <div
+                style={{
+                  marginTop: 24,
+                  display: "grid",
+                  gridTemplateColumns: "minmax(0, 1.2fr) minmax(0, 1fr)",
+                  gap: 24,
+                  fontSize: 13,
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      marginBottom: 8,
+                    }}
+                  >
+                    Account &amp; Store (POS)
+                  </div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "120px minmax(0, 1fr)",
+                      rowGap: 4,
+                      columnGap: 8,
+                    }}
+                  >
+                    <div style={{ color: "#9ca3af" }}>Account-Name</div>
+                    <div>
+                      {customer.profile?.accountName || customer.name || "—"}
+                    </div>
+                    <div style={{ color: "#9ca3af" }}>Firma</div>
+                    <div>{customer.profile?.legalName || "—"}</div>
+                    <div style={{ color: "#9ca3af" }}>Externe ID</div>
+                    <div>{customer.profile?.externalId || "—"}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      marginBottom: 8,
+                    }}
+                  >
+                    Kontakt &amp; Standort
+                  </div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "120px minmax(0, 1fr)",
+                      rowGap: 4,
+                      columnGap: 8,
+                    }}
+                  >
+                    <div style={{ color: "#9ca3af" }}>Kontakt</div>
+                    <div>
+                      {(customer.profile?.contact?.firstName ||
+                        customer.profile?.contact?.lastName) && (
+                        <>
+                          {customer.profile?.contact?.firstName}{" "}
+                          {customer.profile?.contact?.lastName}
+                          <br />
+                        </>
+                      )}
+                      {customer.profile?.contact?.email || "—"}
+                    </div>
+                    <div style={{ color: "#9ca3af" }}>Telefon</div>
+                    <div>{customer.profile?.contact?.phone || "—"}</div>
+                    <div style={{ color: "#9ca3af" }}>Ort</div>
+                    <div>
+                      {customer.profile?.address?.city || "—"},{" "}
+                      {customer.profile?.address?.country || "—"}
+                    </div>
+                    <div style={{ color: "#9ca3af" }}>Sprache</div>
+                    <div>{customer.profile?.language || "—"}</div>
+                  </div>
+                </div>
+
+                {customer.profile?.notes && (
+                  <div style={{ gridColumn: "1 / span 2", marginTop: 8 }}>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        marginBottom: 4,
+                      }}
+                    >
+                      interne Notizen (POS)
+                    </div>
+                    <div style={{ fontSize: 13 }}>
+                      {customer.profile.notes}
+                    </div>
+                  </div>
+                )}
+
+                {customer.profile?.lastSyncAt && (
+                  <div
+                    style={{
+                      gridColumn: "1 / span 2",
+                      fontSize: 11,
+                      color: "#9ca3af",
+                      marginTop: 4,
+                    }}
+                  >
+                    Letzte Aktualisierung aus dem POS:{" "}
+                    {formatDate(customer.profile.lastSyncAt)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!hasProfileData(customer.profile ?? undefined) && (
+              <div
+                style={{
+                  marginTop: 16,
+                  fontSize: 12,
+                  color: "#9ca3af",
+                }}
+              >
+                Noch keine Details aus dem POS empfangen. Sobald ein Gerät mit
+                dieser Lizenz gebunden wird, erscheinen hier Daten aus{" "}
+                <strong>Cloud Customer / Account</strong>.
+              </div>
+            )}
           </div>
 
           {/* Subscriptions-Table */}

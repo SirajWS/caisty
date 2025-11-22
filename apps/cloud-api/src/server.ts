@@ -26,7 +26,7 @@ export async function buildServer() {
     origin: true,
   });
 
-  // 🔐 Globaler Auth-Hook (läuft für alle Routen)
+  // 🔐 Globaler Auth-Hook (läuft für alle Routen außer "public")
   app.addHook("onRequest", async (request, reply) => {
     const url = request.raw.url?.split("?")[0] ?? "";
     const method = request.method.toUpperCase();
@@ -56,7 +56,7 @@ export async function buildServer() {
 
     try {
       const payload = verifyToken(token);
-      // Nutzer am Request ablegen (für spätere Nutzung)
+      // Nutzer am Request ablegen (für spätere Nutzung in Routen)
       (request as any).user = payload;
     } catch (err) {
       request.log.warn({ err }, "Invalid or expired JWT");
@@ -65,7 +65,7 @@ export async function buildServer() {
     }
   });
 
-  // ▶ Routen registrieren
+  // ▶ Admin- & Backend-Routen
   await registerHealthRoute(app);
   await registerAuthRoutes(app); // /auth/login bleibt öffentlich
 
@@ -79,6 +79,7 @@ export async function buildServer() {
   await registerLicensesRoutes(app);
 
   // 🟣 M5: Öffentliche License-/Device-Routen für POS
+  //      (/licenses/verify, /devices/bind, /devices/heartbeat)
   await registerPublicLicenseRoutes(app);
 
   // 🟣 M4: Payments & Webhooks

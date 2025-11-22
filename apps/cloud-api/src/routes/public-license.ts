@@ -1,10 +1,11 @@
 // apps/cloud-api/src/routes/public-license.ts
 import type { FastifyInstance } from "fastify";
+import { and, eq, sql } from "drizzle-orm";
+
 import { db } from "../db/client";
 import { licenses } from "../db/schema/licenses";
 import { devices } from "../db/schema/devices";
 import { licenseEvents } from "../db/schema/licenseEvents";
-import { and, eq, sql } from "drizzle-orm";
 
 type VerifyBody = {
   key: string;
@@ -168,7 +169,7 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
       };
     }
 
-    // 🔁 Idempotenz: gleiches Gerät mit gleichem Fingerprint
+    // 🔁 Idempotent: gleiches Gerät mit gleichem Fingerprint
     if (body.fingerprint) {
       const [existing] = await db
         .select()

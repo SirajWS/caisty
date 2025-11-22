@@ -3,12 +3,13 @@ import { apiGet } from "../../lib/api";
 import { Link } from "react-router-dom";
 
 type Customer = {
-  id: string;
-  name: string;
-  email: string;
-  status?: string | null;
-  createdAt?: string | null;
-};
+    id: string;
+    name: string;
+    email: string;
+    status?: string | null;
+    createdAt?: string | null;
+    profile?: unknown | null; // <- neu, wird hier aber nicht benutzt
+  };
 
 type CustomersResponse = {
   items: Customer[];
