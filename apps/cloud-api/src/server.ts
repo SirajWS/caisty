@@ -14,7 +14,10 @@ import { registerPaymentsRoutes } from "./routes/payments";
 import { registerWebhooksRoutes } from "./routes/webhooks";
 import { registerLicensesRoutes } from "./routes/licenses";
 import { registerPublicLicenseRoutes } from "./routes/public-license";
+
+// ⬇️ Portal (eigene JWTs)
 import { registerPortalAuthRoutes } from "./routes/portal-auth";
+import { registerPortalDataRoutes } from "./routes/portal-data";
 
 import { verifyToken } from "./lib/jwt";
 
@@ -27,20 +30,19 @@ export async function buildServer() {
     origin: true,
   });
 
-  // 🔐 Globaler Auth-Hook (für Admin-/Backend-Routen)
+  // Globaler Auth-Hook für Admin-API
   app.addHook("onRequest", async (request, reply) => {
     const url = request.raw.url?.split("?")[0] ?? "";
     const method = request.method.toUpperCase();
 
-    // Öffentliche Routen: keine Admin-Auth
     const isPublicRoute =
       url === "/health" ||
       url === "/auth/login" ||
-      url.startsWith("/portal/") || // ➜ Portal-API ist eigenständig
-      (url === "/webhooks/paypal" && method === "POST") || // M4: PayPal-Webhook
-      (url === "/licenses/verify" && method === "POST") || // M5: POS License-Check
-      (url === "/devices/bind" && method === "POST") || // M5: POS Device-Bind
-      (url === "/devices/heartbeat" && method === "POST"); // M5: POS Heartbeat
+      url.startsWith("/portal/") || // Portal-Auth + Portal-API -> eigener JWT
+      (url === "/webhooks/paypal" && method === "POST") ||
+      (url === "/licenses/verify" && method === "POST") ||
+      (url === "/devices/bind" && method === "POST") ||
+      (url === "/devices/heartbeat" && method === "POST");
 
     if (isPublicRoute) {
       return;
@@ -58,7 +60,6 @@ export async function buildServer() {
 
     try {
       const payload = verifyToken(token);
-      // Nutzer am Request ablegen (für spätere Nutzung in Routen)
       (request as any).user = payload;
     } catch (err) {
       request.log.warn({ err }, "Invalid or expired JWT");
@@ -67,28 +68,23 @@ export async function buildServer() {
     }
   });
 
-  // ▶ Admin- & Backend-Routen
+  // Admin / Backend
   await registerHealthRoute(app);
-  await registerAuthRoutes(app); // /auth/login bleibt öffentlich
+  await registerAuthRoutes(app);
+
+  // Portal Auth + Data-API
+  await registerPortalAuthRoutes(app);
+  await registerPortalDataRoutes(app);
 
   await registerCustomersRoutes(app);
   await registerOrgsRoutes(app);
   await registerSubscriptionsRoutes(app);
   await registerInvoicesRoutes(app);
   await registerDevicesRoutes(app);
-
-  // 🟣 M5: Licenses (Admin-API)
   await registerLicensesRoutes(app);
-
-  // 🟣 M5: Öffentliche License-/Device-Routen für POS
   await registerPublicLicenseRoutes(app);
-
-  // 🟣 M4: Payments & Webhooks
   await registerPaymentsRoutes(app);
   await registerWebhooksRoutes(app);
-
-  // 🟢 M7-B: Portal-Auth-Routen
-  await registerPortalAuthRoutes(app);
 
   return app;
 }

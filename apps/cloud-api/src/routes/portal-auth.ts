@@ -1,178 +1,165 @@
 // apps/cloud-api/src/routes/portal-auth.ts
 import type { FastifyInstance } from "fastify";
 import bcrypt from "bcryptjs";
-import sql from "../db/sql";
+import { eq } from "drizzle-orm";
+
+import { db } from "../db/client";
+import { customers } from "../db/schema/customers";
+import { orgs } from "../db/schema/orgs";
 import { signPortalToken, verifyPortalToken } from "../lib/portalJwt";
 
-// Hilfstyp für SELECTs aus customers
-type CustomerRow = {
-  id: string;
-  org_id: string | null;
-  name: string;
-  email: string;
-  password_hash: string | null;
-  portal_status: string;
-};
-
-// einfachen Slug aus dem Namen bauen
 function makeSlug(name: string): string {
-  const base =
-    name
-      .toLowerCase()
-      .normalize("NFKD")
-      .replace(/[\u0300-\u036f]/g, "") // Akzente weg
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "org";
+  const base = name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
 
-  return base;
+  const suffix = Date.now().toString(36).slice(-4);
+  return `${base || "org"}-${suffix}`;
+}
+
+interface RegisterBody {
+  name?: string;
+  email?: string;
+  password?: string;
+}
+
+interface LoginBody {
+  email?: string;
+  password?: string;
 }
 
 export async function registerPortalAuthRoutes(app: FastifyInstance) {
   // POST /portal/register
   app.post("/portal/register", async (request, reply) => {
-    const body = request.body as {
-      name?: string;
-      email?: string;
-      password?: string;
-    };
+    const raw = request.body as any;
 
-    const name = body?.name?.trim();
-    const email = body?.email?.trim().toLowerCase();
-    const password = body?.password ?? "";
+    // erlaubt sowohl {name,email,password} als auch { body: { ... } }
+    const body: RegisterBody =
+      raw && typeof raw === "object" && "body" in raw ? (raw as any).body : raw;
 
-    if (!name || !email || !password) {
+    const name =
+      typeof body?.name === "string" ? body.name.trim() : "";
+    const email =
+      typeof body?.email === "string"
+        ? body.email.trim().toLowerCase()
+        : "";
+    const password =
+      typeof body?.password === "string" ? body.password : "";
+
+    if (!name || !email || password.length < 6) {
       reply.code(400);
-      return reply.send({ ok: false, reason: "missing_fields" });
+      return { ok: false, reason: "invalid_input" as const };
     }
 
-    // Prüfen, ob es die E-Mail schon gibt
-    const existing = await sql<CustomerRow[]>`
-      select id, email
-      from customers
-      where email = ${email}
-      limit 1
-    `;
+    // schon ein Customer mit der Mail?
+    const [existing] = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.email, email));
 
-    if (existing.length > 0) {
-      reply.code(400);
-      return reply.send({ ok: false, reason: "email_exists" });
+    if (existing) {
+      reply.code(409);
+      return { ok: false, reason: "email_taken" as const };
     }
 
+    // Org anlegen
+    const slug = makeSlug(name);
+    const [org] = await db
+      .insert(orgs)
+      .values({ name, slug })
+      .returning();
+
+    // Passwort hashen
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Org mit slug anlegen (bei Kollision neuen Slug probieren)
-    const baseSlug = makeSlug(name);
-    let slug = baseSlug;
-    let orgId: string | null = null;
-
-    for (let attempt = 0; attempt < 5; attempt++) {
-      try {
-        const [org] = await sql<{ id: string }[]>`
-          insert into orgs (name, slug)
-          values (${name}, ${slug})
-          returning id
-        `;
-        orgId = org.id;
-        break;
-      } catch (err: any) {
-        // 23505 = unique_violation (wahrscheinlich slug unique)
-        if (err?.code === "23505") {
-          slug = `${baseSlug}-${attempt + 2}`;
-          continue;
-        }
-
-        request.log.error({ err }, "failed to insert org");
-        reply.code(500);
-        return reply.send({ ok: false, reason: "internal_error" });
-      }
-    }
-
-    if (!orgId) {
-      reply.code(500);
-      return reply.send({ ok: false, reason: "could_not_create_org" });
-    }
-
-    // Customer mit Passwort & portal_status anlegen
-    const [customer] = await sql<CustomerRow[]>`
-      insert into customers (org_id, name, email, password_hash, portal_status)
-      values (${orgId}, ${name}, ${email}, ${passwordHash}, 'active')
-      returning id, org_id, name, email, password_hash, portal_status
-    `;
+    // Customer anlegen
+    const [customer] = await db
+      .insert(customers)
+      .values({
+        orgId: org.id,
+        name,
+        email,
+        passwordHash,
+        portalStatus: "active",
+      })
+      .returning({
+        id: customers.id,
+        orgId: customers.orgId,
+        name: customers.name,
+        email: customers.email,
+        portalStatus: customers.portalStatus,
+      });
 
     const token = signPortalToken({
       customerId: customer.id,
-      orgId: customer.org_id ?? orgId,
+      orgId: customer.orgId!,
     });
 
-    return reply.send({
-      ok: true,
-      token,
-      customer: {
-        id: customer.id,
-        orgId: customer.org_id ?? orgId,
-        name: customer.name,
-        email: customer.email,
-        portalStatus: customer.portal_status,
-      },
-    });
+    return { ok: true, token, customer };
   });
 
   // POST /portal/login
   app.post("/portal/login", async (request, reply) => {
-    const body = request.body as { email?: string; password?: string };
-    const email = body?.email?.trim().toLowerCase();
-    const password = body?.password ?? "";
+    const raw = request.body as any;
+    const body: LoginBody =
+      raw && typeof raw === "object" && "body" in raw ? (raw as any).body : raw;
+
+    const email =
+      typeof body?.email === "string"
+        ? body.email.trim().toLowerCase()
+        : "";
+    const password =
+      typeof body?.password === "string" ? body.password : "";
 
     if (!email || !password) {
       reply.code(400);
-      return reply.send({ ok: false, reason: "missing_fields" });
+      return { ok: false, reason: "invalid_input" as const };
     }
 
-    const rows = await sql<CustomerRow[]>`
-      select id, org_id, name, email, password_hash, portal_status
-      from customers
-      where email = ${email}
-      limit 1
-    `;
+    const [customer] = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.email, email));
 
-    const customer = rows[0];
-
-    if (!customer || !customer.password_hash) {
+    if (!customer?.passwordHash) {
       reply.code(401);
-      return reply.send({ ok: false, reason: "invalid_credentials" });
+      return { ok: false, reason: "invalid_credentials" as const };
     }
 
-    const ok = await bcrypt.compare(password, customer.password_hash);
-    if (!ok) {
+    const valid = await bcrypt.compare(password, customer.passwordHash);
+    if (!valid) {
       reply.code(401);
-      return reply.send({ ok: false, reason: "invalid_credentials" });
+      return { ok: false, reason: "invalid_credentials" as const };
     }
 
     const token = signPortalToken({
       customerId: customer.id,
-      orgId: customer.org_id!,
+      orgId: customer.orgId!,
     });
 
-    return reply.send({
+    return {
       ok: true,
       token,
       customer: {
         id: customer.id,
-        orgId: customer.org_id,
+        orgId: customer.orgId,
         name: customer.name,
         email: customer.email,
-        portalStatus: customer.portal_status,
+        portalStatus: customer.portalStatus,
       },
-    });
+    };
   });
 
   // GET /portal/me
   app.get("/portal/me", async (request, reply) => {
     const auth = request.headers.authorization;
-
-    if (!auth || !auth.startsWith("Bearer ")) {
+    if (!auth?.startsWith("Bearer ")) {
       reply.code(401);
-      return reply.send({ ok: false, reason: "invalid_token" });
+      return { ok: false, reason: "invalid_token" as const };
     }
 
     const token = auth.slice("Bearer ".length);
@@ -180,33 +167,30 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
     try {
       const payload = verifyPortalToken(token);
 
-      const rows = await sql<CustomerRow[]>`
-        select id, org_id, name, email, portal_status
-        from customers
-        where id = ${payload.customerId}
-        limit 1
-      `;
+      const [customer] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.id, payload.customerId));
 
-      const customer = rows[0];
       if (!customer) {
         reply.code(404);
-        return reply.send({ ok: false, reason: "not_found" });
+        return { ok: false, reason: "not_found" as const };
       }
 
-      return reply.send({
+      return {
         ok: true,
         customer: {
           id: customer.id,
-          orgId: customer.org_id,
+          orgId: customer.orgId,
           name: customer.name,
           email: customer.email,
-          portalStatus: customer.portal_status,
+          portalStatus: customer.portalStatus,
         },
-      });
+      };
     } catch (err) {
       request.log.warn({ err }, "invalid portal token");
       reply.code(401);
-      return reply.send({ ok: false, reason: "invalid_token" });
+      return { ok: false, reason: "invalid_token" as const };
     }
   });
 }

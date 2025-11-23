@@ -24,16 +24,17 @@ export const customers = pgTable("customers", {
 
   status: varchar("status", { length: 50 }).notNull().default("active"),
 
+  // 🔐 Portal-Login
+  passwordHash: text("password_hash"),
+
+  // Status im Portal (z.B. active, blocked, cancelled)
+  portalStatus: varchar("portal_status", { length: 50 })
+    .notNull()
+    .default("active"),
+
   // JSON-Profil, das vom POS kommt (Cloud Customer / Account)
   // Struktur ist bewusst flexibel gehalten.
   profile: jsonb("profile").notNull().default({}),
-
-  // 🔽 NEU: Portal-Login
-  // Passwort-Hash (nur gesetzt, wenn Kunde ein Portal-Konto hat)
-  passwordHash: text("password_hash"),
-
-  // Status des Portalzugangs (z.B. active / disabled)
-  portalStatus: text("portal_status").notNull().default("active"),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

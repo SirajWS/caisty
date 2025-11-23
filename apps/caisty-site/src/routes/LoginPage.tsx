@@ -1,45 +1,103 @@
-export default function LoginPage() {
-  return (
-    <section className="min-h-[60vh] flex items-center justify-center">
-      <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900/70 p-6 space-y-6 shadow-xl shadow-slate-950/50">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold">Login</h1>
-          <p className="text-xs text-slate-400">
-            Portal-Login – in M7-B verbinden wir das Formular mit der Cloud-API.
-          </p>
-        </div>
+// apps/caisty-site/src/routes/LoginPage.tsx
+import React from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { portalLogin } from "../lib/portalApi";
 
-        <form className="space-y-3 text-sm">
-          <div className="space-y-1.5">
-            <label className="text-slate-200">E-Mail</label>
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const location = useLocation() as { state?: { from?: string } };
+
+  const [email, setEmail] = React.useState("admin@example.com");
+  const [password, setPassword] = React.useState("admin123");
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+
+    try {
+      await portalLogin({ email, password });
+      const target = location.state?.from || "/portal";
+      navigate(target, { replace: true });
+    } catch (err) {
+      console.error(err);
+      setError(
+        err instanceof Error ? err.message : "Login fehlgeschlagen. Bitte erneut versuchen."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="min-h-[calc(100vh-80px)] flex items-center justify-center py-8">
+      <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900/70 px-6 py-6 shadow-xl shadow-black/40">
+        <h1 className="text-lg font-semibold text-slate-100 mb-1">
+          Im Kundenportal anmelden
+        </h1>
+        <p className="text-xs text-slate-400 mb-5">
+          Verwalte Lizenzen, Geräte, Rechnungen und POS-Downloads in deinem
+          Caisty-Konto.
+        </p>
+
+        <form className="space-y-4" onSubmit={handleSubmit}>
+          <div className="space-y-1">
+            <label className="text-xs text-slate-300" htmlFor="email">
+              E-Mail
+            </label>
             <input
-              className="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-2 outline-none focus:border-emerald-500"
-              placeholder="you@example.com"
+              id="email"
+              type="email"
+              autoComplete="email"
+              required
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-500"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-slate-200">Passwort</label>
+
+          <div className="space-y-1">
+            <label className="text-xs text-slate-300" htmlFor="password">
+              Passwort
+            </label>
             <input
+              id="password"
               type="password"
-              className="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-2 outline-none focus:border-emerald-500"
-              placeholder="••••••••"
+              autoComplete="current-password"
+              required
+              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-500"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
           </div>
+
+          {error && (
+            <div className="rounded-xl border border-red-500/60 bg-red-500/10 px-3 py-2 text-[11px] text-red-200">
+              {error}
+            </div>
+          )}
+
           <button
-            type="button"
-            className="w-full rounded-full bg-emerald-500 py-2 font-medium text-slate-950 hover:bg-emerald-400"
+            type="submit"
+            disabled={submitting}
+            className="w-full inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2.5 text-sm font-medium text-slate-950 hover:bg-emerald-400 disabled:opacity-60"
           >
-            Login (noch ohne Funktion)
+            {submitting ? "Anmelden…" : "Anmelden"}
           </button>
         </form>
 
-        <p className="text-xs text-slate-400 text-center">
-          Noch kein Konto?{" "}
-          <a href="/register" className="text-emerald-400 hover:text-emerald-300">
+        <div className="mt-4 flex justify-between text-[11px] text-slate-400">
+          <span>Noch kein Konto?</span>
+          <Link
+            to="/register"
+            className="text-emerald-400 hover:text-emerald-300"
+          >
             Jetzt registrieren
-          </a>
-        </p>
+          </Link>
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
