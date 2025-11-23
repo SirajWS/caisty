@@ -1,7 +1,8 @@
-// apps/caisty-site/src/routes/LoginPage.tsx
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { portalLogin } from "../lib/portalApi";
+import { Button } from "../components/ui/Button";
+import { Input } from "../components/ui/Input";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -24,7 +25,9 @@ export default function LoginPage() {
     } catch (err) {
       console.error(err);
       setError(
-        err instanceof Error ? err.message : "Login fehlgeschlagen. Bitte erneut versuchen."
+        err instanceof Error
+          ? err.message
+          : "Login fehlgeschlagen. Bitte erneut versuchen."
       );
     } finally {
       setSubmitting(false);
@@ -47,12 +50,11 @@ export default function LoginPage() {
             <label className="text-xs text-slate-300" htmlFor="email">
               E-Mail
             </label>
-            <input
+            <Input
               id="email"
               type="email"
               autoComplete="email"
               required
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-500"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -62,12 +64,11 @@ export default function LoginPage() {
             <label className="text-xs text-slate-300" htmlFor="password">
               Passwort
             </label>
-            <input
+            <Input
               id="password"
               type="password"
               autoComplete="current-password"
               required
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-500"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
@@ -79,13 +80,9 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2.5 text-sm font-medium text-slate-950 hover:bg-emerald-400 disabled:opacity-60"
-          >
+          <Button type="submit" disabled={submitting} fullWidth>
             {submitting ? "Anmelden…" : "Anmelden"}
-          </button>
+          </Button>
         </form>
 
         <div className="mt-4 flex justify-between text-[11px] text-slate-400">

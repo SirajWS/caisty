@@ -1,11 +1,11 @@
-// apps/cloud-api/src/routes/portal-auth.ts
 import type { FastifyInstance } from "fastify";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import { db } from "../db/client";
 import { customers } from "../db/schema/customers";
 import { orgs } from "../db/schema/orgs";
+import { licenses } from "../db/schema/licenses";
 import { signPortalToken, verifyPortalToken } from "../lib/portalJwt";
 
 function makeSlug(name: string): string {
@@ -41,12 +41,9 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
     const body: RegisterBody =
       raw && typeof raw === "object" && "body" in raw ? (raw as any).body : raw;
 
-    const name =
-      typeof body?.name === "string" ? body.name.trim() : "";
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
     const email =
-      typeof body?.email === "string"
-        ? body.email.trim().toLowerCase()
-        : "";
+      typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
     const password =
       typeof body?.password === "string" ? body.password : "";
 
@@ -109,9 +106,7 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
       raw && typeof raw === "object" && "body" in raw ? (raw as any).body : raw;
 
     const email =
-      typeof body?.email === "string"
-        ? body.email.trim().toLowerCase()
-        : "";
+      typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
     const password =
       typeof body?.password === "string" ? body.password : "";
 
@@ -177,6 +172,26 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
         return { ok: false, reason: "not_found" as const };
       }
 
+      // Primäre aktive Lizenz für Konto-Ansicht holen (optional)
+      const [primaryLicense] = await db
+        .select({
+          id: licenses.id,
+          key: licenses.key,
+          plan: licenses.plan,
+          status: licenses.status,
+          validUntil: licenses.validUntil,
+        })
+        .from(licenses)
+        .where(
+          and(
+            eq(licenses.orgId, customer.orgId!),
+            eq(licenses.customerId, customer.id),
+            eq(licenses.status, "active"),
+          ),
+        )
+        .orderBy(desc(licenses.validUntil))
+        .limit(1);
+
       return {
         ok: true,
         customer: {
@@ -185,6 +200,17 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
           name: customer.name,
           email: customer.email,
           portalStatus: customer.portalStatus,
+          primaryLicense: primaryLicense
+            ? {
+                id: primaryLicense.id,
+                key: primaryLicense.key,
+                plan: primaryLicense.plan,
+                status: primaryLicense.status,
+                validUntil: primaryLicense.validUntil
+                  ? primaryLicense.validUntil.toISOString()
+                  : null,
+              }
+            : null,
         },
       };
     } catch (err) {
@@ -193,4 +219,134 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
       return { ok: false, reason: "invalid_token" as const };
     }
   });
+
+  // PATCH /portal/account – Name / E-Mail aktualisieren
+  app.patch("/portal/account", async (request, reply) => {
+    const auth = request.headers.authorization;
+    if (!auth?.startsWith("Bearer ")) {
+      reply.code(401);
+      return { ok: false, reason: "invalid_token" as const };
+    }
+
+    const token = auth.slice("Bearer ".length);
+
+    let payload: { customerId: string; orgId: string };
+    try {
+      payload = verifyPortalToken(token) as any;
+    } catch (err) {
+      request.log.warn({ err }, "invalid portal token");
+      reply.code(401);
+      return { ok: false, reason: "invalid_token" as const };
+    }
+
+    const body = request.body as { name?: string; email?: string };
+
+    const updates: { name?: string; email?: string } = {};
+
+    if (typeof body?.name === "string" && body.name.trim()) {
+      updates.name = body.name.trim();
+    }
+
+    if (typeof body?.email === "string" && body.email.trim()) {
+      updates.email = body.email.trim().toLowerCase();
+    }
+
+    if (Object.keys(updates).length === 0) {
+      reply.code(400);
+      return { ok: false, reason: "no_changes" as const };
+    }
+
+    // Wenn E-Mail geändert wird: prüfen, ob sie bereits vergeben ist
+    if (updates.email) {
+      const [existing] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.email, updates.email));
+
+      if (existing && existing.id !== payload.customerId) {
+        reply.code(409);
+        return { ok: false, reason: "email_taken" as const };
+      }
+    }
+
+    const [updated] = await db
+      .update(customers)
+      .set(updates)
+      .where(eq(customers.id, payload.customerId))
+      .returning({
+        id: customers.id,
+        orgId: customers.orgId,
+        name: customers.name,
+        email: customers.email,
+        portalStatus: customers.portalStatus,
+      });
+
+    if (!updated) {
+      reply.code(404);
+      return { ok: false, reason: "not_found" as const };
+    }
+
+    return { ok: true, customer: updated };
+  });
+
+  // POST /portal/change-password – Passwort ändern
+  app.post("/portal/change-password", async (request, reply) => {
+    const auth = request.headers.authorization;
+    if (!auth?.startsWith("Bearer ")) {
+      reply.code(401);
+      return { ok: false, reason: "invalid_token" as const };
+    }
+
+    const token = auth.slice("Bearer ".length);
+
+    let payload: { customerId: string; orgId: string };
+    try {
+      payload = verifyPortalToken(token) as any;
+    } catch (err) {
+      request.log.warn({ err }, "invalid portal token");
+      reply.code(401);
+      return { ok: false, reason: "invalid_token" as const };
+    }
+
+    const body = request.body as {
+      currentPassword?: string;
+      newPassword?: string;
+    };
+
+    const currentPassword =
+      typeof body?.currentPassword === "string" ? body.currentPassword : "";
+    const newPassword =
+      typeof body?.newPassword === "string" ? body.newPassword : "";
+
+    if (!currentPassword || newPassword.length < 6) {
+      reply.code(400);
+      return { ok: false, reason: "invalid_input" as const };
+    }
+
+    const [customer] = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.id, payload.customerId));
+
+    if (!customer?.passwordHash) {
+      reply.code(401);
+      return { ok: false, reason: "invalid_credentials" as const };
+    }
+
+    const valid = await bcrypt.compare(currentPassword, customer.passwordHash);
+    if (!valid) {
+      reply.code(401);
+      return { ok: false, reason: "invalid_credentials" as const };
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+
+    await db
+      .update(customers)
+      .set({ passwordHash: newHash })
+      .where(eq(customers.id, payload.customerId));
+
+    return { ok: true };
+  });
 }
+

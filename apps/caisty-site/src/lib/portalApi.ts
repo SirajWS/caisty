@@ -1,4 +1,3 @@
-// apps/caisty-site/src/lib/portalApi.ts
 const API_BASE =
   import.meta.env.VITE_CLOUD_API_URL?.replace(/\/+$/, "") ??
   "http://127.0.0.1:3333";
@@ -6,6 +5,16 @@ const API_BASE =
 const PORTAL_TOKEN_KEY = "caisty.portal.token";
 
 export type PortalStatus = "active" | "pending" | "blocked";
+export type LicenseStatus = "active" | "revoked" | "expired";
+
+// kleine Zusammenfassung für Konto-Seite
+export interface PortalPrimaryLicenseSummary {
+  id: string;
+  key: string;
+  plan: string;
+  status: LicenseStatus | string;
+  validUntil: string | null;
+}
 
 export interface PortalCustomer {
   id: string;
@@ -13,6 +22,8 @@ export interface PortalCustomer {
   name: string;
   email: string;
   portalStatus: PortalStatus;
+  // nur bei /portal/me befüllt
+  primaryLicense?: PortalPrimaryLicenseSummary | null;
 }
 
 interface AuthResponse {
@@ -117,9 +128,65 @@ export async function fetchPortalMe(): Promise<PortalCustomer | null> {
   return data.customer;
 }
 
-// ---------- Datentypen für Portal-Listen ----------
+// Konto-Update
+export async function updatePortalAccount(input: {
+  name?: string;
+  email?: string;
+}): Promise<PortalCustomer> {
+  const token = getStoredPortalToken();
+  if (!token) throw new Error("Nicht angemeldet.");
 
-export type LicenseStatus = "active" | "revoked" | "expired";
+  const res = await fetch(`${API_BASE}/portal/account`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  });
+
+  const data = (await res.json()) as {
+    ok: boolean;
+    customer?: PortalCustomer;
+    message?: string;
+  };
+
+  if (!res.ok || !data.ok || !data.customer) {
+    throw new Error(
+      data.message ?? "Konto konnte nicht aktualisiert werden.",
+    );
+  }
+
+  return data.customer;
+}
+
+// Passwort ändern
+export async function changePortalPassword(input: {
+  currentPassword: string;
+  newPassword: string;
+}): Promise<void> {
+  const token = getStoredPortalToken();
+  if (!token) throw new Error("Nicht angemeldet.");
+
+  const res = await fetch(`${API_BASE}/portal/change-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  });
+
+  const data = (await res.json()) as { ok: boolean; message?: string };
+
+  if (!res.ok || !data.ok) {
+    throw new Error(
+      data.message ?? "Passwort konnte nicht geändert werden.",
+    );
+  }
+}
+
+// ---------- Datentypen für Portal-Listen ----------
 
 export interface PortalLicense {
   id: string;
@@ -145,7 +212,7 @@ export interface PortalInvoice {
   number: string;
   amount: number;
   currency: string;
-  status: "open" | "paid" | "overdue" | "failed" | string;
+  status: "open" | "paid" | "failed" | string;
   periodFrom: string | null; // ISO
   periodTo: string | null; // ISO
   createdAt: string; // ISO
@@ -188,3 +255,4 @@ export async function fetchPortalDevices(): Promise<PortalDevice[]> {
 export async function fetchPortalInvoices(): Promise<PortalInvoice[]> {
   return authGet<PortalInvoice[]>("/portal/invoices");
 }
+

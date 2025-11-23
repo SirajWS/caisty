@@ -12,18 +12,26 @@ import {
   clearPortalToken,
   type PortalCustomer,
 } from "../lib/portalApi";
+import { Button } from "../components/ui/Button";
 
 export interface PortalOutletContext {
   customer: PortalCustomer;
 }
 
+// ⬅️ alter Hook-Name, den andere Dateien erwarten
+export function usePortalOutlet() {
+  return useOutletContext<PortalOutletContext>();
+}
+
+// ⬅️ bequemer Hook nur für den Customer
 export function usePortalCustomer() {
-  return useOutletContext<PortalOutletContext>().customer;
+  return usePortalOutlet().customer;
 }
 
 export default function PortalLayout() {
   const [customer, setCustomer] = React.useState<PortalCustomer | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -96,31 +104,85 @@ export default function PortalLayout() {
             </div>
           </div>
 
-          <nav className="flex items-center gap-2 text-xs md:text-sm">
-            <PortalNavLink to="/portal">Dashboard</PortalNavLink>
-            <PortalNavLink to="/portal/licenses">Lizenzen</PortalNavLink>
-            <PortalNavLink to="/portal/devices">Geräte</PortalNavLink>
-            <PortalNavLink to="/portal/invoices">Rechnungen</PortalNavLink>
-            <PortalNavLink to="/portal/account">Konto</PortalNavLink>
-          </nav>
+          {/* Desktop-Navigation */}
+          <div className="hidden md:flex items-center gap-4">
+            <nav className="flex items-center gap-2 text-xs md:text-sm">
+              <PortalNavLink to="/portal">Dashboard</PortalNavLink>
+              <PortalNavLink to="/portal/licenses">Lizenzen</PortalNavLink>
+              <PortalNavLink to="/portal/devices">Geräte</PortalNavLink>
+              <PortalNavLink to="/portal/invoices">Rechnungen</PortalNavLink>
+              <PortalNavLink to="/portal/account">Konto</PortalNavLink>
+            </nav>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex flex-col items-end">
-              <span className="text-xs font-medium truncate max-w-[160px]">
-                {customer.name}
-              </span>
-              <span className="text-[11px] text-slate-400 truncate max-w-[200px]">
-                {customer.email}
-              </span>
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex flex-col items-end">
+                <span className="text-xs font-medium truncate max-w-[160px]">
+                  {customer.name}
+                </span>
+                <span className="text-[11px] text-slate-400 truncate max-w-[200px]">
+                  {customer.email}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
             </div>
-            <button
-              onClick={handleLogout}
-              className="rounded-full border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-900"
-            >
-              Logout
-            </button>
           </div>
+
+          {/* Mobile-Burger */}
+          <button
+            type="button"
+            className="md:hidden inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-200"
+            onClick={() => setMobileNavOpen((open) => !open)}
+            aria-label="Portal-Navigation öffnen oder schließen"
+          >
+            <span className="sr-only">Menü</span>
+            <div className="space-y-1">
+              <span className="block h-0.5 w-4 rounded-full bg-slate-200" />
+              <span className="block h-0.5 w-4 rounded-full bg-slate-200" />
+              <span className="block h-0.5 w-4 rounded-full bg-slate-200" />
+            </div>
+          </button>
         </div>
+
+        {/* Mobile-Navigation */}
+        {mobileNavOpen && (
+          <div className="md:hidden border-t border-slate-800 bg-slate-950/95">
+            <div className="max-w-5xl mx-auto px-4 pb-3 pt-2 space-y-3">
+              <nav className="flex flex-wrap gap-2 text-xs">
+                <PortalNavLink to="/portal">Dashboard</PortalNavLink>
+                <PortalNavLink to="/portal/licenses">Lizenzen</PortalNavLink>
+                <PortalNavLink to="/portal/devices">Geräte</PortalNavLink>
+                <PortalNavLink to="/portal/invoices">Rechnungen</PortalNavLink>
+                <PortalNavLink to="/portal/account">Konto</PortalNavLink>
+              </nav>
+
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium truncate max-w-[160px]">
+                    {customer.name}
+                  </span>
+                  <span className="text-[11px] text-slate-400 truncate max-w-[200px]">
+                    {customer.email}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  type="button"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="flex-1">

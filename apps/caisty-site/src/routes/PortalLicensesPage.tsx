@@ -4,26 +4,55 @@ import {
   type PortalLicense,
   fetchPortalMe,
 } from "../lib/portalApi";
+import { Input } from "../components/ui/Input";
+import { Button } from "../components/ui/Button";
 
 const PortalLicensesPage: React.FC = () => {
   const [licenses, setLicenses] = React.useState<PortalLicense[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [statusFilter, setStatusFilter] = React.useState<
+    "all" | "active" | "revoked" | "expired"
+  >("all");
+  const [search, setSearch] = React.useState("");
 
   React.useEffect(() => {
     let cancelled = false;
 
     (async () => {
       setLoading(true);
-      const items = await fetchPortalLicenses();
-      if (cancelled) return;
-      setLicenses(items);
-      setLoading(false);
+      try {
+        const items = await fetchPortalLicenses();
+        if (cancelled) return;
+        setLicenses(items);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
 
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const filtered = React.useMemo(() => {
+    const term = search.trim().toLowerCase();
+
+    return licenses.filter((lic) => {
+      if (
+        statusFilter !== "all" &&
+        lic.status.toLowerCase() !== statusFilter
+      ) {
+        return false;
+      }
+
+      if (!term) return true;
+
+      const haystack = `${lic.key} ${lic.plan}`.toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [licenses, statusFilter, search]);
+
+  const showReset = statusFilter !== "all" || search.trim().length > 0;
 
   return (
     <div className="space-y-4">
@@ -38,16 +67,59 @@ const PortalLicensesPage: React.FC = () => {
       <LicensesSummary />
 
       <section className="rounded-2xl border border-slate-800 bg-slate-900/60">
-        <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+        {/* Kopf mit Status + Filter */}
+        <div className="px-4 py-3 border-b border-slate-800 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="text-xs text-slate-300">
             {loading
               ? "Lizenzen werden geladen…"
-              : licenses.length === 0
-              ? "Noch keine Lizenzen im Portal sichtbar."
-              : `${licenses.length} Lizenz(en)`}
+              : filtered.length === 0
+              ? "Keine Lizenzen passend zu deinem Filter."
+              : `${filtered.length} Lizenz(en)`}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <div className="flex items-center gap-1">
+              <span className="text-slate-400">Status:</span>
+              <select
+                className="rounded-full border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-100 focus:border-emerald-500 focus:outline-none"
+                value={statusFilter}
+                onChange={(e) =>
+                  setStatusFilter(e.target.value as typeof statusFilter)
+                }
+              >
+                <option value="all">Alle</option>
+                <option value="active">active</option>
+                <option value="revoked">revoked</option>
+                <option value="expired">expired</option>
+              </select>
+            </div>
+
+            <div className="w-40 md:w-52">
+              <Input
+                placeholder="Suche nach Key oder Plan…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-8 px-2 py-1 text-[11px]"
+              />
+            </div>
+
+            {showReset && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setStatusFilter("all");
+                  setSearch("");
+                }}
+              >
+                Filter zurücksetzen
+              </Button>
+            )}
           </div>
         </div>
 
+        {/* Tabelle */}
         <div className="overflow-x-auto">
           <table className="min-w-full text-xs">
             <thead>
@@ -62,27 +134,24 @@ const PortalLicensesPage: React.FC = () => {
             </thead>
             <tbody>
               {loading ? (
+                <>
+                  <SkeletonLicenseRow />
+                  <SkeletonLicenseRow />
+                  <SkeletonLicenseRow />
+                </>
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td
                     colSpan={6}
                     className="px-4 py-6 text-center text-slate-400"
                   >
-                    Lädt…
-                  </td>
-                </tr>
-              ) : licenses.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-6 text-center text-slate-400"
-                  >
-                    Aktuell sind hier noch keine Lizenzen sichtbar. Wenn du
-                    bereits einen Lizenzschlüssel erhalten hast, wird er in
-                    einer späteren Version automatisch angezeigt.
+                    Aktuell sind hier keine Lizenzen sichtbar. Wenn du bereits
+                    einen Lizenzschlüssel erhalten hast, wird er später
+                    automatisch angezeigt.
                   </td>
                 </tr>
               ) : (
-                licenses.map((lic) => (
+                filtered.map((lic) => (
                   <tr
                     key={lic.id}
                     className="border-t border-slate-900/80 hover:bg-slate-900/80"
@@ -158,12 +227,52 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     className +=
       "border-rose-500/60 bg-rose-500/10 text-rose-300 font-medium";
     label = "revoked";
+  } else if (normalized === "expired") {
+    className +=
+      "border-amber-500/60 bg-amber-500/10 text-amber-300 font-medium";
+    label = "expired";
   } else {
     className += "border-slate-600 bg-slate-800 text-slate-300";
   }
 
   return <span className={className}>{label}</span>;
 };
+
+const SkeletonLicenseRow: React.FC = () => {
+  return (
+    <tr className="border-t border-slate-900/80">
+      <td className="px-4 py-3">
+        <SkeletonBar className="w-40" />
+      </td>
+      <td className="px-4 py-3">
+        <SkeletonBar className="w-20" />
+      </td>
+      <td className="px-4 py-3">
+        <SkeletonBar className="w-16" />
+      </td>
+      <td className="px-4 py-3">
+        <SkeletonBar className="w-10" />
+      </td>
+      <td className="px-4 py-3">
+        <SkeletonBar className="w-28" />
+      </td>
+      <td className="px-4 py-3">
+        <SkeletonBar className="w-24" />
+      </td>
+    </tr>
+  );
+};
+
+const SkeletonBar: React.FC<{ className?: string }> = ({ className }) => (
+  <div
+    className={[
+      "h-3 rounded-full bg-slate-800 animate-pulse",
+      className,
+    ]
+      .filter(Boolean)
+      .join(" ")}
+  />
+);
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
