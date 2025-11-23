@@ -1,47 +1,70 @@
 // apps/caisty-site/src/routes/PortalDashboard.tsx
 import React from "react";
-import { usePortalCustomer } from "./PortalLayout";
+import { Link } from "react-router-dom";
 import {
   fetchPortalLicenses,
   fetchPortalDevices,
   fetchPortalInvoices,
   type PortalLicense,
-  type PortalDevice,
   type PortalInvoice,
 } from "../lib/portalApi";
+import { usePortalOutlet } from "./PortalLayout";
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString();
+}
+
+function formatAmount(currency: string, amount: number): string {
+  // amount kommt in deiner API aktuell als "ganzer Betrag" – kein Centsfeld
+  try {
+    return new Intl.NumberFormat("de-DE", {
+      style: "currency",
+      currency: currency || "EUR",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${amount} ${currency}`;
+  }
+}
 
 const PortalDashboard: React.FC = () => {
-  const customer = usePortalCustomer();
+  const { customer } = usePortalOutlet();
 
   const [licenses, setLicenses] = React.useState<PortalLicense[]>([]);
-  const [devices, setDevices] = React.useState<PortalDevice[]>([]);
-  const [invoices, setInvoices] = React.useState<PortalInvoice[]>([]);
+  const [deviceCount, setDeviceCount] = React.useState(0);
+  const [latestInvoice, setLatestInvoice] =
+    React.useState<PortalInvoice | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
 
     (async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-        setError(null);
-
         const [lics, devs, invs] = await Promise.all([
-          fetchPortalLicenses().catch(() => []),
-          fetchPortalDevices().catch(() => []),
-          fetchPortalInvoices().catch(() => []),
+          fetchPortalLicenses(),
+          fetchPortalDevices(),
+          fetchPortalInvoices(),
         ]);
 
         if (cancelled) return;
 
         setLicenses(lics);
-        setDevices(devs);
-        setInvoices(invs);
+        setDeviceCount(devs.length);
+
+        const sorted = [...invs].sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() -
+            new Date(a.createdAt).getTime(),
+        );
+        setLatestInvoice(sorted[0] ?? null);
       } catch (err) {
-        if (cancelled) return;
-        console.error(err);
-        setError("Daten konnten nicht geladen werden.");
+        console.error("Fehler beim Laden des Dashboards:", err);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -52,283 +75,270 @@ const PortalDashboard: React.FC = () => {
     };
   }, []);
 
-  const activeLicense =
-    licenses.find((l) => String(l.status).toLowerCase() === "active") ??
-    licenses[0] ??
-    null;
-
-  const deviceCount = devices.length;
-  const lastInvoice = invoices[0] ?? null;
+  const activeLicense: PortalLicense | null = React.useMemo(() => {
+    if (!licenses.length) return null;
+    return (
+      licenses.find(
+        (lic) => lic.status?.toLowerCase() === "active",
+      ) ?? licenses[0]
+    );
+  }, [licenses]);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <header className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           Willkommen, {customer.name}
         </h1>
         <p className="text-sm text-slate-300">
-          Überblick über dein Caisty Konto – Lizenzen, Geräte und Rechnungen.
+          Überblick über dein Caisty Konto – Lizenzen, Geräte und
+          Rechnungen.
         </p>
       </header>
 
-      {/* Hinweis / Error */}
-      {error && (
-        <div className="rounded-2xl border border-rose-500/50 bg-rose-500/10 px-4 py-3 text-xs text-rose-100">
-          {error}
-        </div>
-      )}
-
       {/* KPI-Row */}
-      <section className="grid gap-4 md:grid-cols-3">
-        <DashboardCard title="Aktive Lizenz">
+      <div className="grid gap-4 md:grid-cols-3">
+        {/* Aktive Lizenz */}
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">
+          <div className="text-xs font-semibold text-slate-300">
+            Aktive Lizenz
+          </div>
+
           {loading ? (
-            <SkeletonLines />
-          ) : activeLicense ? (
-            <div className="space-y-2 text-sm">
-              <div className="font-mono text-[11px] text-slate-200 break-all">
+            <div className="space-y-2">
+              <div className="h-4 w-40 rounded bg-slate-800 animate-pulse" />
+              <div className="h-3 w-24 rounded bg-slate-800 animate-pulse" />
+              <div className="h-3 w-32 rounded bg-slate-800 animate-pulse" />
+            </div>
+          ) : !activeLicense ? (
+            <p className="text-xs text-slate-400">
+              Aktuell ist in deinem Konto noch keine Lizenz hinterlegt.
+              Sobald dir dein Anbieter einen Lizenzschlüssel zuweist,
+              erscheint er hier.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              <div className="font-mono text-[11px] text-slate-100 break-all">
                 {activeLicense.key}
               </div>
-              <div className="flex items-center justify-between text-xs text-slate-300">
-                <span className="capitalize">{activeLicense.plan}</span>
-                <StatusPill status={activeLicense.status} />
+              <div className="text-xs text-slate-300">
+                Plan:{" "}
+                <span className="font-medium capitalize">
+                  {activeLicense.plan}
+                </span>
               </div>
-              <div className="text-[11px] text-slate-400">
-                gültig bis{" "}
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-slate-300">Status:</span>
+                <span className="inline-flex items-center rounded-full border border-emerald-500/60 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] text-emerald-300 font-medium">
+                  {activeLicense.status}
+                </span>
+              </div>
+              <div className="text-xs text-slate-400">
+                Gültig bis:{" "}
                 {activeLicense.validUntil
-                  ? formatDateTime(activeLicense.validUntil)
+                  ? formatDate(activeLicense.validUntil)
                   : "—"}
               </div>
             </div>
-          ) : (
-            <EmptyHint text="Noch keine Lizenz im Portal sichtbar." />
           )}
-        </DashboardCard>
+        </section>
 
-        <DashboardCard title="Verbundene Geräte">
-          {loading ? (
-            <SkeletonLines />
-          ) : (
-            <div className="space-y-2">
+        {/* Verbundene Geräte */}
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col justify-between">
+          <div className="space-y-3">
+            <div className="text-xs font-semibold text-slate-300">
+              Verbundene Geräte
+            </div>
+
+            {loading ? (
+              <div className="h-8 w-12 rounded bg-slate-800 animate-pulse" />
+            ) : (
               <div className="text-3xl font-semibold text-emerald-400">
                 {deviceCount}
               </div>
-              <p className="text-xs text-slate-400">
-                Alle POS-Geräte, die aktuell mit deinen Lizenzen verbunden
-                sind.
-              </p>
-            </div>
-          )}
-        </DashboardCard>
+            )}
 
-        <DashboardCard title="Letzte Rechnung">
-          {loading ? (
-            <SkeletonLines />
-          ) : lastInvoice ? (
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[11px] text-slate-200">
-                  {lastInvoice.number}
-                </span>
-                <InvoiceStatusBadge status={lastInvoice.status} />
-              </div>
-              <div className="text-slate-200">
-                {formatAmount(lastInvoice.amount, lastInvoice.currency)}
-              </div>
-              <div className="text-[11px] text-slate-400">
-                erstellt am {formatDate(lastInvoice.createdAt)}
-              </div>
-            </div>
-          ) : (
-            <EmptyHint text="Noch keine Rechnungen für dieses Konto." />
-          )}
-        </DashboardCard>
-      </section>
+            <p className="text-xs text-slate-400">
+              Alle POS-Geräte, die aktuell mit deinen Lizenzen
+              verbunden sind.
+            </p>
+          </div>
 
-      {/* Detail-Row: Kurzlisten */}
-      <section className="grid gap-4 md:grid-cols-2">
-        {/* Lizenzen-Preview */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-slate-100">
-              Lizenzen (Kurzüberblick)
-            </span>
-            <a
-              href="/portal/licenses"
+          <div className="mt-3 text-xs">
+            <Link
+              to="/portal/devices"
               className="text-emerald-300 hover:text-emerald-200"
             >
-              Alle anzeigen
-            </a>
+              Geräte ansehen →
+            </Link>
           </div>
+        </section>
+
+        {/* Letzte Rechnung */}
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col justify-between">
+          <div className="space-y-3">
+            <div className="text-xs font-semibold text-slate-300">
+              Letzte Rechnung
+            </div>
+
+            {loading ? (
+              <div className="space-y-2">
+                <div className="h-3 w-32 rounded bg-slate-800 animate-pulse" />
+                <div className="h-3 w-24 rounded bg-slate-800 animate-pulse" />
+                <div className="h-3 w-28 rounded bg-slate-800 animate-pulse" />
+              </div>
+            ) : !latestInvoice ? (
+              <p className="text-xs text-slate-400">
+                Noch keine Rechnungen für dieses Konto.
+              </p>
+            ) : (
+              <div className="space-y-1 text-xs text-slate-300">
+                <div className="font-mono text-[11px] text-slate-100">
+                  {latestInvoice.number}
+                </div>
+                <div>
+                  Betrag:{" "}
+                  <span className="font-medium">
+                    {formatAmount(
+                      latestInvoice.currency,
+                      latestInvoice.amount,
+                    )}
+                  </span>
+                </div>
+                <div>
+                  Status:{" "}
+                  <span className="font-medium">
+                    {latestInvoice.status}
+                  </span>
+                </div>
+                <div className="text-slate-400">
+                  Erstellt am: {formatDate(latestInvoice.createdAt)}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-3 text-xs">
+            <Link
+              to="/portal/invoices"
+              className="text-emerald-300 hover:text-emerald-200"
+            >
+              Rechnungen öffnen →
+            </Link>
+          </div>
+        </section>
+      </div>
+
+      {/* Zweite Zeile: Kurzübersicht + Nächste Schritte */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Lizenzen-Kurzübersicht */}
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <h2 className="text-sm font-semibold text-slate-100">
+                Lizenzen (Kurzübersicht)
+              </h2>
+              <p className="text-xs text-slate-400">
+                Schnellüberblick über deine Lizenzschlüssel.
+              </p>
+            </div>
+            {licenses.length > 0 && (
+              <Link
+                to="/portal/licenses"
+                className="text-[11px] text-emerald-300 hover:text-emerald-200"
+              >
+                Alle anzeigen →
+              </Link>
+            )}
+          </div>
+
           {loading ? (
-            <SkeletonTableRows />
+            <div className="space-y-2 pt-2">
+              <div className="h-4 w-full rounded bg-slate-800 animate-pulse" />
+              <div className="h-4 w-4/5 rounded bg-slate-800 animate-pulse" />
+            </div>
           ) : licenses.length === 0 ? (
-            <EmptyHint text="Keine Lizenzen gefunden." />
+            <p className="text-xs text-slate-400">
+              Noch keine Lizenzen im Portal sichtbar. Sobald dir dein
+              Anbieter eine Lizenz zuweist, erscheint sie hier.
+            </p>
           ) : (
-            <ul className="space-y-2 text-xs">
+            <div className="space-y-2 text-xs">
               {licenses.slice(0, 3).map((lic) => (
-                <li
+                <div
                   key={lic.id}
-                  className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2"
+                  className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 flex items-center justify-between gap-2"
                 >
-                  <div className="min-w-0">
-                    <div className="font-mono text-[11px] text-slate-200 truncate max-w-[220px]">
+                  <div>
+                    <div className="font-mono text-[11px] text-slate-100 break-all">
                       {lic.key}
                     </div>
-                    <div className="text-[11px] text-slate-400 capitalize">
-                      {lic.plan}
+                    <div className="text-[11px] text-slate-400">
+                      {lic.plan} • gültig bis{" "}
+                      {lic.validUntil
+                        ? formatDate(lic.validUntil)
+                        : "—"}
                     </div>
                   </div>
-                  <StatusPill status={lic.status} />
-                </li>
+                  <span className="inline-flex items-center rounded-full border border-emerald-500/60 bg-emerald-500/10 px-2 py-0.5 text-[11px] text-emerald-300">
+                    {lic.status}
+                  </span>
+                </div>
               ))}
-            </ul>
+              {licenses.length > 3 && (
+                <div className="text-[11px] text-slate-400">
+                  + {licenses.length - 3} weitere Lizenz(en)
+                </div>
+              )}
+            </div>
           )}
-        </div>
+        </section>
 
-        {/* Geräte/Rechnungen-Hinweis */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-slate-100">
-              Nächste Schritte
-            </span>
-          </div>
+        {/* Nächste Schritte */}
+        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-slate-100">
+            Nächste Schritte
+          </h2>
           <ol className="space-y-2 text-xs text-slate-300 list-decimal list-inside">
             <li>
-              <span className="font-medium text-slate-100">
+              <Link
+                to="/portal/install"
+                className="text-emerald-300 hover:text-emerald-200 font-medium"
+              >
                 Caisty POS installieren
-              </span>{" "}
+              </Link>{" "}
               und mit deinem Lizenzschlüssel verbinden.
             </li>
             <li>
               In der Ansicht{" "}
-              <a
-                href="/portal/devices"
+              <Link
+                to="/portal/devices"
                 className="text-emerald-300 hover:text-emerald-200"
               >
                 Geräte
-              </a>{" "}
+              </Link>{" "}
               prüfen, ob dein Kassen-PC online ist.
             </li>
             <li>
               Sobald Abrechnungen erstellt werden, erscheinen sie unter{" "}
-              <a
-                href="/portal/invoices"
+              <Link
+                to="/portal/invoices"
                 className="text-emerald-300 hover:text-emerald-200"
               >
                 Rechnungen
-              </a>
+              </Link>
               .
             </li>
           </ol>
-        </div>
-      </section>
+          <p className="text-[11px] text-slate-500 mt-2">
+            In späteren Versionen kommen hier Live-KPIs und letzte
+            Aktivitäten dazu.
+          </p>
+        </section>
+      </div>
     </div>
   );
 };
 
 export default PortalDashboard;
-
-// ---------------------------------------------------------------------------
-// Hilfs-Komponenten
-// ---------------------------------------------------------------------------
-
-const DashboardCard: React.FC<{
-  title: string;
-  children: React.ReactNode;
-}> = ({ title, children }) => {
-  return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-2">
-      <div className="text-xs font-semibold text-slate-200">{title}</div>
-      {children}
-    </div>
-  );
-};
-
-const SkeletonLines: React.FC = () => (
-  <div className="space-y-2">
-    <div className="h-3 w-32 rounded-full bg-slate-800 animate-pulse" />
-    <div className="h-3 w-24 rounded-full bg-slate-800 animate-pulse" />
-    <div className="h-3 w-20 rounded-full bg-slate-800 animate-pulse" />
-  </div>
-);
-
-const SkeletonTableRows: React.FC = () => (
-  <div className="space-y-2">
-    <div className="h-9 rounded-lg bg-slate-900 animate-pulse" />
-    <div className="h-9 rounded-lg bg-slate-900 animate-pulse" />
-    <div className="h-9 rounded-lg bg-slate-900 animate-pulse" />
-  </div>
-);
-
-const EmptyHint: React.FC<{ text: string }> = ({ text }) => (
-  <p className="text-xs text-slate-400">{text}</p>
-);
-
-const StatusPill: React.FC<{ status: string }> = ({ status }) => {
-  const normalized = status.toLowerCase();
-  let classes =
-    "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] border ";
-
-  if (normalized === "active") {
-    classes +=
-      "border-emerald-500/60 bg-emerald-500/10 text-emerald-300 font-medium";
-  } else if (normalized === "revoked" || normalized === "expired") {
-    classes +=
-      "border-rose-500/60 bg-rose-500/10 text-rose-300 font-medium";
-  } else {
-    classes += "border-slate-600 bg-slate-800 text-slate-300";
-  }
-
-  return <span className={classes}>{status}</span>;
-};
-
-const InvoiceStatusBadge: React.FC<{ status: string }> = ({ status }) => {
-  const normalized = status.toLowerCase();
-  let classes =
-    "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] border ";
-
-  if (normalized === "paid") {
-    classes +=
-      "border-emerald-500/60 bg-emerald-500/10 text-emerald-300 font-medium";
-  } else if (normalized === "open") {
-    classes +=
-      "border-amber-500/60 bg-amber-500/10 text-amber-300 font-medium";
-  } else if (normalized === "failed") {
-    classes +=
-      "border-rose-500/60 bg-rose-500/10 text-rose-300 font-medium";
-  } else {
-    classes += "border-slate-600 bg-slate-800 text-slate-300";
-  }
-
-  return <span className={classes}>{status}</span>;
-};
-
-// ---------------------------------------------------------------------------
-// Format-Helper
-// ---------------------------------------------------------------------------
-
-function formatDate(value: string): string {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString();
-}
-
-function formatDateTime(value: string): string {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString();
-}
-
-function formatAmount(amount: number, currency: string): string {
-  if (!Number.isFinite(amount)) return "—";
-  try {
-    return new Intl.NumberFormat("de-DE", {
-      style: "currency",
-      currency: currency || "EUR",
-      minimumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${amount.toFixed(2)} ${currency}`;
-  }
-}
