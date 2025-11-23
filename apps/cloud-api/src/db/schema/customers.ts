@@ -1,5 +1,12 @@
-// apps/api/src/db/schema/customers.ts
-import { pgTable, uuid, varchar, timestamp, jsonb } from "drizzle-orm/pg-core";
+// apps/cloud-api/src/db/schema/customers.ts
+import {
+  pgTable,
+  uuid,
+  varchar,
+  timestamp,
+  jsonb,
+  text,
+} from "drizzle-orm/pg-core";
 import { orgs } from "./orgs";
 
 export const customers = pgTable("customers", {
@@ -19,9 +26,14 @@ export const customers = pgTable("customers", {
 
   // JSON-Profil, das vom POS kommt (Cloud Customer / Account)
   // Struktur ist bewusst flexibel gehalten.
-  profile: jsonb("profile")
-    .notNull()
-    .default({}),
+  profile: jsonb("profile").notNull().default({}),
+
+  // 🔽 NEU: Portal-Login
+  // Passwort-Hash (nur gesetzt, wenn Kunde ein Portal-Konto hat)
+  passwordHash: text("password_hash"),
+
+  // Status des Portalzugangs (z.B. active / disabled)
+  portalStatus: text("portal_status").notNull().default("active"),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

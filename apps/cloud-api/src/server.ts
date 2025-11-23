@@ -14,6 +14,7 @@ import { registerPaymentsRoutes } from "./routes/payments";
 import { registerWebhooksRoutes } from "./routes/webhooks";
 import { registerLicensesRoutes } from "./routes/licenses";
 import { registerPublicLicenseRoutes } from "./routes/public-license";
+import { registerPortalAuthRoutes } from "./routes/portal-auth";
 
 import { verifyToken } from "./lib/jwt";
 
@@ -26,15 +27,16 @@ export async function buildServer() {
     origin: true,
   });
 
-  // 🔐 Globaler Auth-Hook (läuft für alle Routen außer "public")
+  // 🔐 Globaler Auth-Hook (für Admin-/Backend-Routen)
   app.addHook("onRequest", async (request, reply) => {
     const url = request.raw.url?.split("?")[0] ?? "";
     const method = request.method.toUpperCase();
 
-    // Öffentliche Routen: keine Auth
+    // Öffentliche Routen: keine Admin-Auth
     const isPublicRoute =
       url === "/health" ||
       url === "/auth/login" ||
+      url.startsWith("/portal/") || // ➜ Portal-API ist eigenständig
       (url === "/webhooks/paypal" && method === "POST") || // M4: PayPal-Webhook
       (url === "/licenses/verify" && method === "POST") || // M5: POS License-Check
       (url === "/devices/bind" && method === "POST") || // M5: POS Device-Bind
@@ -79,12 +81,14 @@ export async function buildServer() {
   await registerLicensesRoutes(app);
 
   // 🟣 M5: Öffentliche License-/Device-Routen für POS
-  //      (/licenses/verify, /devices/bind, /devices/heartbeat)
   await registerPublicLicenseRoutes(app);
 
   // 🟣 M4: Payments & Webhooks
   await registerPaymentsRoutes(app);
   await registerWebhooksRoutes(app);
+
+  // 🟢 M7-B: Portal-Auth-Routen
+  await registerPortalAuthRoutes(app);
 
   return app;
 }
