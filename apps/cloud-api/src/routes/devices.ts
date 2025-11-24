@@ -7,7 +7,7 @@ import { customers } from "../db/schema/customers";
 import { desc, eq } from "drizzle-orm";
 
 export async function registerDevicesRoutes(app: FastifyInstance) {
-  // Übersicht aller Devices der aktuellen Organisation
+  // Übersicht aller Devices der aktuellen Organisation (Admin)
   app.get("/devices", async (request) => {
     const user = (request as any).user;
     const orgId = user?.orgId;
@@ -22,6 +22,7 @@ export async function registerDevicesRoutes(app: FastifyInstance) {
         customerId: devices.customerId,
         licenseId: devices.licenseId,
         lastHeartbeatAt: devices.lastHeartbeatAt,
+        lastSeenAt: devices.lastSeenAt,
         createdAt: devices.createdAt,
 
         // Lizenz-Infos (können null sein)

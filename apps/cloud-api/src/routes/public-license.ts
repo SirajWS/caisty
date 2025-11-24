@@ -83,6 +83,7 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
           plan: license.plan,
           status: license.status,
           maxDevices: license.maxDevices,
+          validFrom: license.validFrom,
           validUntil: license.validUntil,
         },
       };
@@ -105,13 +106,15 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
           plan: license.plan,
           status: license.status,
           maxDevices: license.maxDevices,
+          validFrom: license.validFrom,
           validUntil: license.validUntil,
         },
       };
     }
 
     const used = await countDevicesForLicense(license.id);
-    const remaining = Math.max(0, (license.maxDevices ?? 0) - used);
+    const limit = license.maxDevices ?? 1;
+    const remaining = Math.max(0, limit - used);
 
     return {
       ok: true,
@@ -121,11 +124,12 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
         plan: license.plan,
         status: license.status,
         maxDevices: license.maxDevices,
+        validFrom: license.validFrom,
         validUntil: license.validUntil,
       },
       devices: {
         used,
-        limit: license.maxDevices,
+        limit,
         remaining,
       },
     };
@@ -144,7 +148,8 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
       };
     }
 
-    const license = await findLicenseByKey(body.licenseKey);
+    const licenseKey = body.licenseKey.trim();
+    const license = await findLicenseByKey(licenseKey);
 
     if (!license || license.status !== "active") {
       return {
@@ -154,10 +159,31 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
       };
     }
 
-    const used = await countDevicesForLicense(license.id);
-    const limit = license.maxDevices ?? 0;
+    const now = new Date();
 
-    if (used >= limit) {
+    // Fingerprint-Reuse: vorhandenes Device für diese License mit gleichem Fingerprint suchen
+    let existingDevice = null as (typeof devices.$inferSelect) | null;
+
+    if (body.fingerprint) {
+      const rows = await db
+        .select()
+        .from(devices)
+        .where(
+          and(
+            eq(devices.licenseId, license.id),
+            eq(devices.fingerprint, body.fingerprint),
+          ),
+        )
+        .limit(1);
+
+      existingDevice = rows[0] ?? null;
+    }
+
+    const used = await countDevicesForLicense(license.id);
+    const limit = license.maxDevices ?? 1;
+
+    // Nur wenn wir ein neues Device anlegen wollen, Seats prüfen
+    if (!existingDevice && used >= limit) {
       return {
         ok: false,
         reason: "max_devices_reached",
@@ -169,75 +195,77 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
       };
     }
 
-    // 🔁 Idempotent: gleiches Gerät mit gleichem Fingerprint
-    if (body.fingerprint) {
-      const [existing] = await db
-        .select()
-        .from(devices)
-        .where(
-          and(
-            eq(devices.licenseId, license.id),
-            eq(devices.fingerprint, body.fingerprint),
-          ),
-        )
-        .limit(1);
+    let device: typeof devices.$inferSelect;
 
-      if (existing) {
-        return {
-          ok: true,
-          reused: true,
-          device: {
-            id: existing.id,
-            name: existing.name,
-            type: existing.type,
-          },
-          license: {
-            id: license.id,
-            key: license.key,
-            plan: license.plan,
-          },
-        };
-      }
+    if (!existingDevice) {
+      // Neues Device anlegen
+      const inserted = await db
+        .insert(devices)
+        .values({
+          orgId: license.orgId,
+          customerId: license.customerId,
+          name: body.deviceName,
+          type: body.deviceType ?? "pos",
+          status: "active",
+          licenseId: license.id,
+          fingerprint: body.fingerprint ?? null,
+          lastHeartbeatAt: now,
+          lastSeenAt: now,
+        } as any)
+        .returning();
+
+      device = inserted[0];
+
+      await db.insert(licenseEvents).values({
+        orgId: license.orgId,
+        licenseId: license.id,
+        type: "activated",
+        metadata: {
+          deviceId: device.id,
+          deviceName: device.name,
+        },
+      });
+    } else {
+      // Bestehendes Device updaten (Name, Typ, Status, Heartbeat)
+      const updated = await db
+        .update(devices)
+        .set(
+          {
+            name: body.deviceName,
+            type: body.deviceType ?? existingDevice.type,
+            status: "active",
+            lastHeartbeatAt: now,
+            lastSeenAt: now,
+          } as any,
+        )
+        .where(eq(devices.id, existingDevice.id))
+        .returning();
+
+      device = updated[0] ?? existingDevice;
     }
 
-    const now = new Date();
-
-    const [device] = await db
-      .insert(devices)
-      .values({
-        orgId: license.orgId,
-        customerId: license.customerId,
-        name: body.deviceName,
-        type: body.deviceType ?? "pos",
-        status: "active",
-        licenseId: license.id,
-        fingerprint: body.fingerprint ?? null,
-        lastHeartbeatAt: now,
-      })
-      .returning();
-
-    await db.insert(licenseEvents).values({
-      orgId: license.orgId,
-      licenseId: license.id,
-      type: "activated",
-      metadata: {
-        deviceId: device.id,
-        deviceName: device.name,
-      },
-    });
-
-    reply.code(201);
+    reply.code(existingDevice ? 200 : 201);
     return {
       ok: true,
       device: {
         id: device.id,
         name: device.name,
         type: device.type,
+        status: device.status,
+        licenseId: device.licenseId,
+        customerId: device.customerId,
+        lastHeartbeatAt: device.lastHeartbeatAt,
+        createdAt: device.createdAt,
       },
       license: {
         id: license.id,
         key: license.key,
         plan: license.plan,
+        status: license.status,
+        maxDevices: license.maxDevices,
+        validFrom: license.validFrom,
+        validUntil: license.validUntil,
+        customerId: license.customerId,
       },
     };
   });
@@ -263,8 +291,9 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
         .update(devices)
         .set({
           lastHeartbeatAt: now,
+          lastSeenAt: now,
           status: "active",
-        })
+        } as any)
         .where(eq(devices.id, body.deviceId))
         .returning();
 
@@ -276,14 +305,16 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
         };
       }
 
-      await db.insert(licenseEvents).values({
-        orgId: updated.orgId,
-        licenseId: updated.licenseId!,
-        type: "heartbeat",
-        metadata: {
-          deviceId: updated.id,
-        },
-      });
+      if (updated.licenseId) {
+        await db.insert(licenseEvents).values({
+          orgId: updated.orgId,
+          licenseId: updated.licenseId,
+          type: "heartbeat",
+          metadata: {
+            deviceId: updated.id,
+          },
+        });
+      }
 
       return {
         ok: true,

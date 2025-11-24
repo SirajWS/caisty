@@ -15,7 +15,7 @@ import { registerWebhooksRoutes } from "./routes/webhooks";
 import { registerLicensesRoutes } from "./routes/licenses";
 import { registerPublicLicenseRoutes } from "./routes/public-license";
 
-// ⬇️ Portal (eigene JWTs)
+// Portal (eigenes JWT)
 import { registerPortalAuthRoutes } from "./routes/portal-auth";
 import { registerPortalDataRoutes } from "./routes/portal-data";
 
@@ -35,10 +35,18 @@ export async function buildServer() {
     const url = request.raw.url?.split("?")[0] ?? "";
     const method = request.method.toUpperCase();
 
+    // 🔓 Endpunkte, die KEIN Admin-JWT brauchen:
+    // - /health                → Liveness/Readiness
+    // - /auth/login            → Login für Admin-Cloud
+    // - /portal/*              → Portal-Auth & Portal-API mit eigenem JWT
+    // - /webhooks/paypal (POST)→ PayPal Webhook
+    // - /licenses/verify (POST)→ POS License-Check
+    // - /devices/bind (POST)   → POS Device-Bind
+    // - /devices/heartbeat(PROST) → POS Heartbeat
     const isPublicRoute =
       url === "/health" ||
       url === "/auth/login" ||
-      url.startsWith("/portal/") || // Portal-Auth + Portal-API -> eigener JWT
+      url.startsWith("/portal/") ||
       (url === "/webhooks/paypal" && method === "POST") ||
       (url === "/licenses/verify" && method === "POST") ||
       (url === "/devices/bind" && method === "POST") ||
@@ -76,13 +84,18 @@ export async function buildServer() {
   await registerPortalAuthRoutes(app);
   await registerPortalDataRoutes(app);
 
+  // Admin-APIs (JWT-geschützt durch Hook)
   await registerCustomersRoutes(app);
   await registerOrgsRoutes(app);
   await registerSubscriptionsRoutes(app);
   await registerInvoicesRoutes(app);
   await registerDevicesRoutes(app);
   await registerLicensesRoutes(app);
+
+  // Öffentliche License-/Device-API für POS (verify/bind/heartbeat)
   await registerPublicLicenseRoutes(app);
+
+  // Payments & Webhooks
   await registerPaymentsRoutes(app);
   await registerWebhooksRoutes(app);
 

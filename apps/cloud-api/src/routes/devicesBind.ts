@@ -47,6 +47,12 @@ type BindDeviceResponse = {
     | "LICENSE_NOT_FOUND"
     | "LICENSE_INACTIVE"
     | "MAX_DEVICES_REACHED";
+  message?: string;
+  // optional: Info zu belegten Seats
+  devices?: {
+    used: number;
+    limit: number;
+  };
   device?: {
     id: string;
     name: string;
@@ -55,6 +61,7 @@ type BindDeviceResponse = {
     licenseId: string | null;
     customerId: string | null;
     lastHeartbeatAt: string | null;
+    lastSeenAt: string | null;
     createdAt: string;
   };
   license?: {
@@ -76,7 +83,9 @@ type BindDeviceResponse = {
   } | null;
 };
 
-function hasCloudCustomerPayload(payload?: CloudCustomerPayload | null): boolean {
+function hasCloudCustomerPayload(
+  payload?: CloudCustomerPayload | null,
+): boolean {
   if (!payload) return false;
   return Boolean(
     payload.accountName ||
@@ -99,13 +108,19 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
   app.post<{ Body: BindDeviceBody; Reply: BindDeviceResponse }>(
     "/devices/bind",
     async (request, reply) => {
-      const { licenseKey, deviceName, deviceType = "pos", fingerprint, cloudCustomer } =
-        request.body;
+      const {
+        licenseKey,
+        deviceName,
+        deviceType = "pos",
+        fingerprint,
+        cloudCustomer,
+      } = request.body;
 
       if (!licenseKey || !deviceName) {
         return reply.status(400).send({
           ok: false,
           error: "MISSING_FIELDS",
+          message: "licenseKey and deviceName are required",
         });
       }
 
@@ -118,6 +133,7 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
         return reply.status(404).send({
           ok: false,
           error: "LICENSE_NOT_FOUND",
+          message: "License not found",
         });
       }
 
@@ -125,6 +141,7 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
         return reply.status(409).send({
           ok: false,
           error: "LICENSE_INACTIVE",
+          message: "License is not active",
         });
       }
 
@@ -142,7 +159,9 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
       // Wenn Fingerprint vorhanden -> Gerät wiederverwenden
       if (fingerprint) {
         device = devicesForLicense.find(
-          (d) => (d as any).fingerprint && (d as any).fingerprint === fingerprint,
+          (d) =>
+            (d as any).fingerprint &&
+            (d as any).fingerprint === fingerprint,
         );
       }
 
@@ -153,6 +172,11 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
         return reply.status(409).send({
           ok: false,
           error: "MAX_DEVICES_REACHED",
+          message: "Maximum number of devices for this license reached",
+          devices: {
+            used: usedSeats,
+            limit: maxDevices,
+          },
         });
       }
 
@@ -161,8 +185,7 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
         const inserted = await db
           .insert(devices)
           .values({
-            // casts wegen evtl. zusätzlichen Spalten in deinem Schema
-            orgId: (license as any).orgId ?? null,
+            orgId: (license as any).orgId,
             customerId: license.customerId ?? null,
             licenseId: license.id,
             name: deviceName,
@@ -170,6 +193,7 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
             status: "active",
             fingerprint: fingerprint ?? null,
             lastHeartbeatAt: now,
+            lastSeenAt: now,
           } as any)
           .returning();
 
@@ -183,6 +207,7 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
               type: deviceType,
               status: "active",
               lastHeartbeatAt: now,
+              lastSeenAt: now,
             } as any,
           )
           .where(eq(devices.id, device.id))
@@ -230,6 +255,7 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
         }
       }
 
+      // 5) Antwort aufbauen
       return reply.send({
         ok: true,
         device: {
@@ -241,6 +267,9 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
           customerId: (device as any).customerId ?? null,
           lastHeartbeatAt: device.lastHeartbeatAt
             ? new Date(device.lastHeartbeatAt).toISOString()
+            : null,
+          lastSeenAt: device.lastSeenAt
+            ? new Date(device.lastSeenAt).toISOString()
             : null,
           createdAt: new Date(device.createdAt as any).toISOString(),
         },
