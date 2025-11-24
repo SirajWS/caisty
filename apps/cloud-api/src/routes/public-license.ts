@@ -6,12 +6,35 @@ import { db } from "../db/client";
 import { licenses } from "../db/schema/licenses";
 import { devices } from "../db/schema/devices";
 import { licenseEvents } from "../db/schema/licenseEvents";
+import { customers } from "../db/schema/customers";
+
+type CloudCustomerProfile = {
+  accountName?: string;
+  legalName?: string;
+  externalId?: string;
+  contact?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+  };
+  address?: {
+    country?: string;
+    city?: string;
+    street?: string;
+    zip?: string;
+  };
+  language?: string;
+  notes?: string;
+  lastSyncAt?: string;
+};
 
 type VerifyBody = {
   key: string;
   deviceName?: string;
   deviceType?: string;
   fingerprint?: string;
+  cloudCustomer?: CloudCustomerProfile;
 };
 
 type BindBody = {
@@ -19,6 +42,7 @@ type BindBody = {
   deviceName: string;
   deviceType?: string;
   fingerprint?: string;
+  cloudCustomer?: CloudCustomerProfile;
 };
 
 type HeartbeatBody = {
@@ -42,6 +66,47 @@ async function countDevicesForLicense(licenseId: string) {
     .where(eq(devices.licenseId, licenseId));
 
   return row?.value ?? 0;
+}
+
+// Cloud-Customer-Profil in customers.profile übernehmen / mergen
+async function upsertCustomerProfileFromPos(
+  license: typeof licenses.$inferSelect,
+  cloudProfile?: CloudCustomerProfile,
+) {
+  if (!license.customerId || !cloudProfile) return;
+
+  const nowIso = new Date().toISOString();
+
+  const [existing] = await db
+    .select({ profile: customers.profile })
+    .from(customers)
+    .where(eq(customers.id, license.customerId))
+    .limit(1);
+
+  const prev = (existing?.profile ?? null) as any;
+
+  const mergedContact = {
+    ...(prev?.contact ?? {}),
+    ...(cloudProfile.contact ?? {}),
+  };
+
+  const mergedAddress = {
+    ...(prev?.address ?? {}),
+    ...(cloudProfile.address ?? {}),
+  };
+
+  const merged: CloudCustomerProfile = {
+    ...(prev ?? {}),
+    ...cloudProfile,
+    contact: mergedContact,
+    address: mergedAddress,
+    lastSyncAt: cloudProfile.lastSyncAt ?? nowIso,
+  };
+
+  await db
+    .update(customers as any)
+    .set({ profile: merged } as any)
+    .where(eq((customers as any).id, license.customerId));
 }
 
 export async function registerPublicLicenseRoutes(app: FastifyInstance) {
@@ -116,6 +181,11 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
     const limit = license.maxDevices ?? 1;
     const remaining = Math.max(0, limit - used);
 
+    // Wenn POS-Profil mitgeschickt wurde → in Customer schreiben
+    if (body.cloudCustomer) {
+      await upsertCustomerProfileFromPos(license, body.cloudCustomer);
+    }
+
     return {
       ok: true,
       license: {
@@ -160,6 +230,11 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
     }
 
     const now = new Date();
+
+    // POS-Profil, falls vorhanden, in Customer übernehmen
+    if (body.cloudCustomer) {
+      await upsertCustomerProfileFromPos(license, body.cloudCustomer);
+    }
 
     // Fingerprint-Reuse: vorhandenes Device für diese License mit gleichem Fingerprint suchen
     let existingDevice = null as (typeof devices.$inferSelect) | null;
