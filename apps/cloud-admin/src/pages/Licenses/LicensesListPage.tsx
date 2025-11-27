@@ -40,6 +40,13 @@ type LicenseFormState = {
   validUntil: string;
 };
 
+// einfache Plan→maxDevices-Mapping (synchron zu LICENSE_PLANS im Backend)
+const PLAN_DEFAULT_MAX_DEVICES: Record<string, string> = {
+  trial: "1",
+  starter: "1",
+  pro: "3",
+};
+
 export default function LicensesListPage() {
   const [licenses, setLicenses] = useState<License[]>([]);
   const [total, setTotal] = useState(0);
@@ -68,7 +75,7 @@ export default function LicensesListPage() {
     customerId: "",
     newCustomerName: "",
     plan: "starter",
-    maxDevices: "1",
+    maxDevices: PLAN_DEFAULT_MAX_DEVICES["starter"],
     validFrom: today.toISOString().slice(0, 10),
     validUntil: oneYearLater.toISOString().slice(0, 10),
   });
@@ -164,9 +171,16 @@ export default function LicensesListPage() {
         customerIdToUse = await createCustomer(form.newCustomerName);
       }
 
+      // maxDevices aus Formular oder Standard aus Plan
+      let maxDevicesNum = Number(form.maxDevices);
+      if (!maxDevicesNum || maxDevicesNum <= 0) {
+        const fallback = PLAN_DEFAULT_MAX_DEVICES[form.plan] ?? "1";
+        maxDevicesNum = Number(fallback) || 1;
+      }
+
       const payload: any = {
         plan: form.plan,
-        maxDevices: Number(form.maxDevices) || 1,
+        maxDevices: maxDevicesNum,
         validFrom: new Date(form.validFrom).toISOString(),
         validUntil: new Date(form.validUntil).toISOString(),
       };
@@ -216,7 +230,10 @@ export default function LicensesListPage() {
   );
 
   const assignedLicenses = licenses.filter(
-    (lic) => lic.customerId || (lic.devicesCount ?? 0) > 0 || lic.status === "revoked",
+    (lic) =>
+      lic.customerId ||
+      (lic.devicesCount ?? 0) > 0 ||
+      lic.status === "revoked",
   );
 
   const customerSelectValue =
@@ -356,9 +373,15 @@ export default function LicensesListPage() {
             Plan
             <select
               value={form.plan}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, plan: e.target.value }))
-              }
+              onChange={(e) => {
+                const nextPlan = e.target.value;
+                setForm((f) => ({
+                  ...f,
+                  plan: nextPlan,
+                  maxDevices:
+                    PLAN_DEFAULT_MAX_DEVICES[nextPlan] ?? f.maxDevices,
+                }));
+              }}
               style={{
                 width: "100%",
                 marginTop: 4,
@@ -370,6 +393,7 @@ export default function LicensesListPage() {
                 fontSize: 13,
               }}
             >
+              <option value="trial">trial</option>
               <option value="starter">starter</option>
               <option value="pro">pro</option>
             </select>

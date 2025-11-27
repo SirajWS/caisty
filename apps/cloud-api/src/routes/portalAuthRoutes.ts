@@ -1,104 +1,81 @@
 // apps/cloud-api/src/routes/portalAuthRoutes.ts
-import type { FastifyInstance, FastifyRequest } from "fastify";
-import { db } from "../db"; // ggf. Pfad anpassen
+import type { FastifyInstance } from "fastify";
+import bcrypt from "bcryptjs";
+import { and, desc, eq } from "drizzle-orm";
+
+import { db } from "../db/client";
 import { customers } from "../db/schema/customers";
 import { orgs } from "../db/schema/orgs";
-import { subscriptions } from "../db/schema/subscriptions";
 import { licenses } from "../db/schema/licenses";
-import { devices } from "../db/schema/devices";
-import { eq, and, count } from "drizzle-orm";
-import bcrypt from "bcryptjs";
-import {
-  signPortalToken,
-  verifyPortalToken,
-} from "../lib/portalJwt";
+import { notifications } from "../db/schema/notifications";
+import { signPortalToken, verifyPortalToken } from "../lib/portalJwt";
 
-function makeSlug(name: string) {
-  return name
+function makeSlug(name: string): string {
+  const base = name
     .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 64);
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+
+  const suffix = Date.now().toString(36).slice(-4);
+  return `${base || "org"}-${suffix}`;
 }
 
-type RegisterBody = {
-  name: string;
-  email: string;
-  password: string;
-};
-
-type LoginBody = {
-  email: string;
-  password: string;
-};
-
-async function getPortalUserFromRequest(
-  request: FastifyRequest
-) {
-  const auth = request.headers.authorization;
-  if (!auth || !auth.startsWith("Bearer ")) {
-    throw new Error("Missing token");
-  }
-  const token = auth.slice("Bearer ".length);
-  const payload = verifyPortalToken(token);
-
-  const [customer] = await db
-    .select()
-    .from(customers)
-    .where(eq(customers.id, payload.sub));
-
-  if (!customer) {
-    throw new Error("Customer not found");
-  }
-
-  const [org] = await db
-    .select()
-    .from(orgs)
-    .where(eq(orgs.id, payload.orgId));
-
-  if (!org) {
-    throw new Error("Org not found");
-  }
-
-  return { payload, customer, org };
+interface RegisterBody {
+  name?: string;
+  email?: string;
+  password?: string;
 }
 
-export async function portalAuthRoutes(app: FastifyInstance) {
+interface LoginBody {
+  email?: string;
+  password?: string;
+}
+
+export async function registerPortalAuthRoutes(app: FastifyInstance) {
   // POST /portal/register
-  app.post<{ Body: RegisterBody }>("/portal/register", async (request, reply) => {
-    const { name, email, password } = request.body;
+  app.post("/portal/register", async (request, reply) => {
+    const raw = request.body as any;
 
-    if (!name || !email || !password) {
-      return reply
-        .code(400)
-        .send({ ok: false, reason: "missing_fields" });
+    // erlaubt sowohl {name,email,password} als auch { body: { ... } }
+    const body: RegisterBody =
+      raw && typeof raw === "object" && "body" in raw ? (raw as any).body : raw;
+
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    const email =
+      typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+    const password =
+      typeof body?.password === "string" ? body.password : "";
+
+    if (!name || !email || password.length < 6) {
+      reply.code(400);
+      return { ok: false, reason: "invalid_input" as const };
     }
 
+    // schon ein Customer mit der Mail?
     const [existing] = await db
       .select()
       .from(customers)
       .where(eq(customers.email, email));
 
-    if (existing && existing.passwordHash) {
-      return reply
-        .code(400)
-        .send({ ok: false, reason: "email_taken" });
+    if (existing) {
+      reply.code(409);
+      return { ok: false, reason: "email_taken" as const };
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    // Neue Org + Customer anlegen (füge slug hinzu damit DB NOT NULL erfüllt ist)
-    const slugBase = makeSlug(name || "org");
-    const slug = `${slugBase}-${Date.now().toString(36)}`;
-
+    // Org anlegen
+    const slug = makeSlug(name);
     const [org] = await db
       .insert(orgs)
-      .values({
-        name,
-        slug,
-      })
+      .values({ name, slug })
       .returning();
 
+    // Passwort hashen
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // Customer anlegen
     const [customer] = await db
       .insert(customers)
       .values({
@@ -107,38 +84,48 @@ export async function portalAuthRoutes(app: FastifyInstance) {
         email,
         passwordHash,
         portalStatus: "active",
-        status: "active",
       })
-      .returning();
+      .returning({
+        id: customers.id,
+        orgId: customers.orgId,
+        name: customers.name,
+        email: customers.email,
+        portalStatus: customers.portalStatus,
+      });
 
     const token = signPortalToken({
       customerId: customer.id,
-      orgId: org.id,
+      orgId: customer.orgId!,
     });
 
-    return {
-      ok: true,
-      token,
-      customer: {
-        id: customer.id,
-        name: customer.name,
-        email: customer.email,
-      },
-      org: {
-        id: org.id,
-        name: org.name,
-      },
-    };
+    // Notification für Admin: Neues Portal-Konto
+    await db.insert(notifications).values({
+      orgId: customer.orgId!,
+      type: "portal_signup",
+      title: `Neues Portal-Konto: ${customer.name || customer.email}`,
+      body: `E-Mail: ${customer.email}`,
+      customerId: customer.id,
+      licenseId: null,
+      data: { email: customer.email },
+    });
+
+    return { ok: true, token, customer };
   });
 
   // POST /portal/login
-  app.post<{ Body: LoginBody }>("/portal/login", async (request, reply) => {
-    const { email, password } = request.body;
+  app.post("/portal/login", async (request, reply) => {
+    const raw = request.body as any;
+    const body: LoginBody =
+      raw && typeof raw === "object" && "body" in raw ? (raw as any).body : raw;
+
+    const email =
+      typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+    const password =
+      typeof body?.password === "string" ? body.password : "";
 
     if (!email || !password) {
-      return reply
-        .code(400)
-        .send({ ok: false, reason: "missing_fields" });
+      reply.code(400);
+      return { ok: false, reason: "invalid_input" as const };
     }
 
     const [customer] = await db
@@ -146,42 +133,20 @@ export async function portalAuthRoutes(app: FastifyInstance) {
       .from(customers)
       .where(eq(customers.email, email));
 
-    if (!customer || !customer.passwordHash) {
-      return reply
-        .code(401)
-        .send({ ok: false, reason: "invalid_credentials" });
+    if (!customer?.passwordHash) {
+      reply.code(401);
+      return { ok: false, reason: "invalid_credentials" as const };
     }
 
-    if (customer.portalStatus === "disabled") {
-      return reply
-        .code(403)
-        .send({ ok: false, reason: "portal_disabled" });
-    }
-
-    const ok = await bcrypt.compare(
-      password,
-      customer.passwordHash
-    );
-    if (!ok) {
-      return reply
-        .code(401)
-        .send({ ok: false, reason: "invalid_credentials" });
-    }
-
-    const [org] = await db
-      .select()
-      .from(orgs)
-      .where(eq(orgs.id, customer.orgId));
-
-    if (!org) {
-      return reply
-        .code(500)
-        .send({ ok: false, reason: "org_missing" });
+    const valid = await bcrypt.compare(password, customer.passwordHash);
+    if (!valid) {
+      reply.code(401);
+      return { ok: false, reason: "invalid_credentials" as const };
     }
 
     const token = signPortalToken({
       customerId: customer.id,
-      orgId: org.id,
+      orgId: customer.orgId!,
     });
 
     return {
@@ -189,66 +154,214 @@ export async function portalAuthRoutes(app: FastifyInstance) {
       token,
       customer: {
         id: customer.id,
+        orgId: customer.orgId,
         name: customer.name,
         email: customer.email,
-      },
-      org: {
-        id: org.id,
-        name: org.name,
+        portalStatus: customer.portalStatus,
       },
     };
   });
 
   // GET /portal/me
   app.get("/portal/me", async (request, reply) => {
+    const auth = request.headers.authorization;
+    if (!auth?.startsWith("Bearer ")) {
+      reply.code(401);
+      return { ok: false, reason: "invalid_token" as const };
+    }
+
+    const token = auth.slice("Bearer ".length);
+
     try {
-      const { customer, org } = await getPortalUserFromRequest(
-        request
-      );
+      const payload = verifyPortalToken(token);
 
-      const [{ subscriptionsCount }] = await db
-        .select({
-          subscriptionsCount: count(),
-        })
-        .from(subscriptions)
-        .where(eq(subscriptions.customerId, customer.id));
+      const [customer] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.id, payload.customerId));
 
-      const [{ licensesCount }] = await db
+      if (!customer) {
+        reply.code(404);
+        return { ok: false, reason: "not_found" as const };
+      }
+
+      // Primäre aktive Lizenz für Konto-Ansicht holen (optional)
+      const [primaryLicense] = await db
         .select({
-          licensesCount: count(),
+          id: licenses.id,
+          key: licenses.key,
+          plan: licenses.plan,
+          status: licenses.status,
+          validUntil: licenses.validUntil,
         })
         .from(licenses)
-        .where(eq(licenses.customerId, customer.id));
-
-      const [{ devicesCount }] = await db
-        .select({
-          devicesCount: count(),
-        })
-        .from(devices)
-        .where(eq(devices.orgId, org.id));
+        .where(
+          and(
+            eq(licenses.orgId, customer.orgId!),
+            eq(licenses.customerId, customer.id),
+            eq(licenses.status, "active"),
+          ),
+        )
+        .orderBy(desc(licenses.validUntil))
+        .limit(1);
 
       return {
         ok: true,
         customer: {
           id: customer.id,
+          orgId: customer.orgId,
           name: customer.name,
           email: customer.email,
-        },
-        org: {
-          id: org.id,
-          name: org.name,
-        },
-        stats: {
-          subscriptions: subscriptionsCount,
-          licenses: licensesCount,
-          devices: devicesCount,
+          portalStatus: customer.portalStatus,
+          primaryLicense: primaryLicense
+            ? {
+                id: primaryLicense.id,
+                key: primaryLicense.key,
+                plan: primaryLicense.plan,
+                status: primaryLicense.status,
+                validUntil: primaryLicense.validUntil
+                  ? primaryLicense.validUntil.toISOString()
+                  : null,
+              }
+            : null,
         },
       };
     } catch (err) {
-      request.log.error(err);
-      return reply
-        .code(401)
-        .send({ ok: false, reason: "invalid_token" });
+      request.log.warn({ err }, "invalid portal token");
+      reply.code(401);
+      return { ok: false, reason: "invalid_token" as const };
     }
   });
+
+  // PATCH /portal/account – Name / E-Mail aktualisieren
+  app.patch("/portal/account", async (request, reply) => {
+    const auth = request.headers.authorization;
+    if (!auth?.startsWith("Bearer ")) {
+      reply.code(401);
+      return { ok: false, reason: "invalid_token" as const };
+    }
+
+    const token = auth.slice("Bearer ".length);
+
+    let payload: { customerId: string; orgId: string };
+    try {
+      payload = verifyPortalToken(token) as any;
+    } catch (err) {
+      request.log.warn({ err }, "invalid portal token");
+      reply.code(401);
+      return { ok: false, reason: "invalid_token" as const };
+    }
+
+    const body = request.body as { name?: string; email?: string };
+
+    const updates: { name?: string; email?: string } = {};
+
+    if (typeof body?.name === "string" && body.name.trim()) {
+      updates.name = body.name.trim();
+    }
+
+    if (typeof body?.email === "string" && body.email.trim()) {
+      updates.email = body.email.trim().toLowerCase();
+    }
+
+    if (Object.keys(updates).length === 0) {
+      reply.code(400);
+      return { ok: false, reason: "no_changes" as const };
+    }
+
+    // Wenn E-Mail geändert wird: prüfen, ob sie bereits vergeben ist
+    if (updates.email) {
+      const [existing] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.email, updates.email));
+
+      if (existing && existing.id !== payload.customerId) {
+        reply.code(409);
+        return { ok: false, reason: "email_taken" as const };
+      }
+    }
+
+    const [updated] = await db
+      .update(customers)
+      .set(updates)
+      .where(eq(customers.id, payload.customerId))
+      .returning({
+        id: customers.id,
+        orgId: customers.orgId,
+        name: customers.name,
+        email: customers.email,
+        portalStatus: customers.portalStatus,
+      });
+
+    if (!updated) {
+      reply.code(404);
+      return { ok: false, reason: "not_found" as const };
+    }
+
+    return { ok: true, customer: updated };
+  });
+
+  // POST /portal/change-password – Passwort ändern
+  app.post("/portal/change-password", async (request, reply) => {
+    const auth = request.headers.authorization;
+    if (!auth?.startsWith("Bearer ")) {
+      reply.code(401);
+      return { ok: false, reason: "invalid_token" as const };
+    }
+
+    const token = auth.slice("Bearer ".length);
+
+    let payload: { customerId: string; orgId: string };
+    try {
+      payload = verifyPortalToken(token) as any;
+    } catch (err) {
+      request.log.warn({ err }, "invalid portal token");
+      reply.code(401);
+      return { ok: false, reason: "invalid_token" as const };
+    }
+
+    const body = request.body as {
+      currentPassword?: string;
+      newPassword?: string;
+    };
+
+    const currentPassword =
+      typeof body?.currentPassword === "string" ? body.currentPassword : "";
+    const newPassword =
+      typeof body?.newPassword === "string" ? body.newPassword : "";
+
+    if (!currentPassword || newPassword.length < 6) {
+      reply.code(400);
+      return { ok: false, reason: "invalid_input" as const };
+    }
+
+    const [customer] = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.id, payload.customerId));
+
+    if (!customer?.passwordHash) {
+      reply.code(401);
+      return { ok: false, reason: "invalid_credentials" as const };
+    }
+
+    const valid = await bcrypt.compare(currentPassword, customer.passwordHash);
+    if (!valid) {
+      reply.code(401);
+      return { ok: false, reason: "invalid_credentials" as const };
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+
+    await db
+      .update(customers)
+      .set({ passwordHash: newHash })
+      .where(eq(customers.id, payload.customerId));
+
+    return { ok: true };
+  });
 }
+
+// Fallback: falls irgendwo noch portalAuthRoutes importiert wird
+export const portalAuthRoutes = registerPortalAuthRoutes;

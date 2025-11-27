@@ -92,6 +92,7 @@ export default function PortalLayout() {
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
       <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          {/* Logo / Titel */}
           <div className="flex items-center gap-2">
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-slate-950 font-semibold">
               C
@@ -107,10 +108,13 @@ export default function PortalLayout() {
           {/* Desktop-Navigation */}
           <div className="hidden md:flex items-center gap-4">
             <nav className="flex items-center gap-2 text-xs md:text-sm">
+              {/* Reihenfolge: Dashboard · Lizenzen · Pläne · Geräte · Rechnungen · Support · Konto */}
               <PortalNavLink to="/portal">Dashboard</PortalNavLink>
               <PortalNavLink to="/portal/licenses">Lizenzen</PortalNavLink>
+              <PortalNavLink to="/portal/plan">Pläne</PortalNavLink>
               <PortalNavLink to="/portal/devices">Geräte</PortalNavLink>
               <PortalNavLink to="/portal/invoices">Rechnungen</PortalNavLink>
+              <PortalNavLink to="/portal/support">Support</PortalNavLink> {/* ⬅️ NEU */}
               <PortalNavLink to="/portal/account">Konto</PortalNavLink>
             </nav>
 
@@ -155,10 +159,13 @@ export default function PortalLayout() {
           <div className="md:hidden border-t border-slate-800 bg-slate-950/95">
             <div className="max-w-5xl mx-auto px-4 pb-3 pt-2 space-y-3">
               <nav className="flex flex-wrap gap-2 text-xs">
+                {/* gleiche Reihenfolge wie Desktop */}
                 <PortalNavLink to="/portal">Dashboard</PortalNavLink>
                 <PortalNavLink to="/portal/licenses">Lizenzen</PortalNavLink>
+                <PortalNavLink to="/portal/plan">Pläne</PortalNavLink>
                 <PortalNavLink to="/portal/devices">Geräte</PortalNavLink>
                 <PortalNavLink to="/portal/invoices">Rechnungen</PortalNavLink>
+                <PortalNavLink to="/portal/support">Support</PortalNavLink> {/* ⬅️ NEU */}
                 <PortalNavLink to="/portal/account">Konto</PortalNavLink>
               </nav>
 
@@ -217,3 +224,4 @@ function PortalNavLink({ to, children }: PortalNavLinkProps) {
     </NavLink>
   );
 }
+

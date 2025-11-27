@@ -42,6 +42,12 @@ type BindDeviceBody = {
 
 type BindDeviceResponse = {
   ok: boolean;
+  reason?:
+    | "missing_fields"
+    | "license_not_found"
+    | "license_inactive"
+    | "max_devices_reached";
+  // alter Kompatibilitäts-Fieldname (wird aktuell vom POS nicht verwendet)
   error?:
     | "MISSING_FIELDS"
     | "LICENSE_NOT_FOUND"
@@ -72,6 +78,7 @@ type BindDeviceResponse = {
     maxDevices: number | null;
     validUntil: string | null;
     customerId: string | null;
+    validFrom?: string | null;
   };
   customer?: {
     id: string;
@@ -117,8 +124,9 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
       } = request.body;
 
       if (!licenseKey || !deviceName) {
-        return reply.status(400).send({
+        return reply.send({
           ok: false,
+          reason: "missing_fields",
           error: "MISSING_FIELDS",
           message: "licenseKey and deviceName are required",
         });
@@ -130,16 +138,18 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
       });
 
       if (!license) {
-        return reply.status(404).send({
+        return reply.send({
           ok: false,
+          reason: "license_not_found",
           error: "LICENSE_NOT_FOUND",
           message: "License not found",
         });
       }
 
       if (license.status !== "active") {
-        return reply.status(409).send({
+        return reply.send({
           ok: false,
+          reason: "license_inactive",
           error: "LICENSE_INACTIVE",
           message: "License is not active",
         });
@@ -169,8 +179,9 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
       const maxDevices = license.maxDevices ?? 1;
 
       if (!device && usedSeats >= maxDevices) {
-        return reply.status(409).send({
+        return reply.send({
           ok: false,
+          reason: "max_devices_reached",
           error: "MAX_DEVICES_REACHED",
           message: "Maximum number of devices for this license reached",
           devices: {
@@ -281,6 +292,9 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
           maxDevices: license.maxDevices ?? null,
           validUntil: license.validUntil
             ? new Date(license.validUntil as any).toISOString()
+            : null,
+          validFrom: license.validFrom
+            ? new Date(license.validFrom as any).toISOString()
             : null,
           customerId: (license as any).customerId ?? null,
         },

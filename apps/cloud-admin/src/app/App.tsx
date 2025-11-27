@@ -25,6 +25,9 @@ import WebhooksListPage from "../pages/Webhooks/WebhooksListPage";
 import LicensesListPage from "../pages/Licenses/LicensesListPage";
 import LicenseDetailPage from "../pages/Licenses/LicenseDetailPage";
 
+import NotificationsPage from "../pages/Notifications/NotificationsPage";
+import NotificationBell from "../components/NotificationBell";
+
 import { AuthProvider, useAuth } from "../auth/AuthContext";
 
 function RequireAuth({ children }: { children: React.ReactElement }) {
@@ -80,6 +83,7 @@ function AppShell({ children }: { children: React.ReactElement }) {
           <Link to="/payments">Payments</Link>
           <Link to="/webhooks">Webhooks</Link>
           <Link to="/licenses">Licenses</Link>
+          <Link to="/notifications">Notifications</Link>
         </nav>
 
         <div
@@ -90,6 +94,7 @@ function AppShell({ children }: { children: React.ReactElement }) {
             fontSize: "12px",
           }}
         >
+          <NotificationBell />
           {user && (
             <span style={{ color: "#9ca3af" }}>
               {user.email} ({user.role})
@@ -247,6 +252,18 @@ function AppRoutes() {
           <RequireAuth>
             <AppShell>
               <LicenseDetailPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+
+      {/* Notifications */}
+      <Route
+        path="/notifications"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <NotificationsPage />
             </AppShell>
           </RequireAuth>
         }

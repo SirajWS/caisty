@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
+import { PRICING_PLANS } from "../config/pricingPlans";
 
 export default function LandingPage() {
+  const { trialDays, starter, pro } = PRICING_PLANS || {};
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
       {/* Hero */}
@@ -38,9 +41,13 @@ export default function LandingPage() {
             </div>
 
             <p className="text-[11px] text-slate-500 max-w-md">
-              Erste Version – ideal zum Testen in einer Filiale oder einem
-              Pilotprojekt. Installation von Caisty POS erfolgt später direkt
-              aus dem Kundenportal.
+              Starte mit einer{" "}
+              <span className="font-semibold text-slate-300">
+                {trialDays ?? 3}-Tage-Testlizenz
+              </span>{" "}
+              ohne Zahlungsdaten. Danach kannst du jederzeit auf Starter oder Pro
+              wechseln. Die Installation von Caisty POS erfolgt später direkt aus
+              dem Kundenportal.
             </p>
           </div>
 
@@ -125,6 +132,63 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Pläne & Lizenzen */}
+      <section className="max-w-5xl mx-auto px-4 pb-12 space-y-5">
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold">Pläne &amp; Lizenzen</h2>
+          <p className="text-sm text-slate-300 max-w-2xl">
+            Teste Caisty zuerst kostenlos und entscheide dann, ob du mit Starter
+            oder Pro weitermachst. Du kannst monatlich zahlen oder mit einem
+            Jahresplan sparen.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3 text-sm">
+          <PlanCard
+            name="Trial"
+            badge="Kostenlos testen"
+            price={`0 €`}
+            note={`${trialDays ?? 3} Tage, 1 Gerät`}
+            details={[
+              "Voller Funktionsumfang wie Starter",
+              "Keine Zahlungsdaten nötig",
+              "Ideal zum Ausprobieren im Live-Betrieb",
+            ]}
+          />
+          <PlanCard
+            name="Starter"
+            badge="Für eine Kasse"
+            price={`${starter?.monthly ?? 19} € / Monat`}
+            subPrice={`oder ${starter?.yearly ?? 190} € / Jahr`}
+            note={`${starter?.devices ?? 1} Gerät inklusive`}
+            highlight
+            details={[
+              "Perfekt für einen Standort",
+              "Basis-Reporting & Portalzugang",
+              "Upgrade auf Pro jederzeit möglich",
+            ]}
+          />
+          <PlanCard
+            name="Pro"
+            badge="Mehrere Geräte"
+            price={`${pro?.monthly ?? 35} € / Monat`}
+            subPrice={`oder ${pro?.yearly ?? 350} € / Jahr`}
+            note={`${pro?.devices ?? 3} Geräte inklusive`}
+            details={[
+              "Ideal für 2–3 Kassen oder Filialen",
+              "Alle Starter-Funktionen",
+              "Mehrere Geräte unter einer Lizenz",
+            ]}
+          />
+        </div>
+
+        <p className="text-[11px] text-slate-500">
+          Alle Preise zzgl. MwSt. – die genaue Abrechnung (monatlich oder
+          jährlich) wählst du später direkt im Kundenportal. Dort kannst du
+          auch jederzeit zwischen Starter und Pro wechseln.
+        </p>
+      </section>
+
       {/* Für wen ist Caisty? */}
       <section className="max-w-5xl mx-auto px-4 pb-12 space-y-4">
         <h2 className="text-xl font-semibold">Für wen ist Caisty?</h2>
@@ -144,7 +208,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* NEU: Installations-Vorschau (Bild/Info) */}
+      {/* Installations-Vorschau */}
       <section className="max-w-5xl mx-auto px-4 pb-16">
         <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5 md:p-7 grid gap-6 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] items-center">
           {/* Textseite */}
@@ -169,21 +233,19 @@ export default function LandingPage() {
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10 text-[11px] font-semibold text-emerald-300 mr-2">
                   2
                 </span>
-                Installer für dein Betriebssystem aus dem Portal
-                herunterladen.
+                Installer für dein Betriebssystem aus dem Portal herunterladen.
               </li>
               <li>
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10 text-[11px] font-semibold text-emerald-300 mr-2">
                   3
                 </span>
-                Auf dem Kassen-PC installieren und Lizenzschlüssel
-                eingeben – fertig.
+                Auf dem Kassen-PC installieren und Lizenzschlüssel eingeben –
+                fertig.
               </li>
             </ol>
 
             <p className="text-[11px] text-slate-500">
-              Die detaillierte Installationsseite siehst du nach dem Login
-              unter{" "}
+              Die detaillierte Installationsseite siehst du nach dem Login unter{" "}
               <span className="font-semibold text-slate-300">
                 „Caisty POS installieren“
               </span>{" "}
@@ -237,6 +299,54 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Fiscal info / international use */}
+      <section className="max-w-5xl mx-auto px-4 pb-20">
+        <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5 space-y-3 text-xs sm:text-sm text-slate-300">
+          <h2 className="text-sm sm:text-base font-semibold text-slate-100">
+            Fiscal info &amp; international use
+          </h2>
+          <p>
+            Caisty currently offers a{" "}
+            <span className="font-semibold">
+              “No fiscal engine / generic receipts”
+            </span>{" "}
+            mode and shows several fiscal packs as{" "}
+            <span className="font-semibold">“coming soon”</span> (TSE, RKSV,
+            NF525, SAF-T, TicketBAI, myDATA …). You can already use the POS in
+            many <span className="font-semibold">non-fiscal countries</span>,
+            for example:
+          </p>
+          <ul className="list-disc list-inside space-y-1">
+            <li>Netherlands (EUR)</li>
+            <li>Ireland (EUR)</li>
+            <li>Switzerland (CHF)</li>
+            <li>United Kingdom (GBP)</li>
+            <li>Czech Republic (CZK)</li>
+            <li>Tunisia (TND)</li>
+            <li>Morocco (MAD)</li>
+            <li>Algeria (DZD)</li>
+            <li>Libya (LYD)</li>
+          </ul>
+          <p>
+            In countries with a{" "}
+            <span className="font-semibold">strict fiscalization requirement</span>{" "}
+            – for example Germany, Austria, Italy, France, Spain, Portugal and
+            others – a certified fiscal device or certified software is often
+            mandatory. As long as the matching Caisty fiscal pack is only shown
+            as <span className="font-semibold">“coming soon”</span>, you are
+            using the generic mode{" "}
+            <span className="font-semibold">at your own responsibility</span>.
+            Always confirm with your local tax advisor or authority whether this
+            mode is allowed for your business.
+          </p>
+          <p>
+            Caisty helps you technically (receipts, journals, exports), but it
+            does not replace legal advice or official registration with tax
+            authorities.
+          </p>
+        </div>
+      </section>
     </div>
   );
 }
@@ -244,10 +354,55 @@ export default function LandingPage() {
 function FeatureCard(props: { title: string; text: string }) {
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 space-y-2">
-      <div className="text-sm font-medium text-slate-100">
-        {props.title}
-      </div>
+      <div className="text-sm font-medium text-slate-100">{props.title}</div>
       <p className="text-xs text-slate-300">{props.text}</p>
+    </div>
+  );
+}
+
+function PlanCard(props: {
+  name: string;
+  badge: string;
+  price: string;
+  subPrice?: string;
+  note?: string;
+  highlight?: boolean;
+  details?: string[];
+}) {
+  const base =
+    "rounded-2xl border p-4 space-y-3 bg-slate-900/70 text-xs sm:text-sm";
+  const style = props.highlight
+    ? "border-emerald-500/70 shadow-lg shadow-emerald-900/40"
+    : "border-slate-800";
+
+  return (
+    <div className={`${base} ${style}`}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-sm font-semibold text-slate-100">
+          {props.name}
+        </div>
+        <span className="inline-flex items-center rounded-full border border-slate-700 bg-slate-900 px-2 py-0.5 text-[10px] text-slate-300">
+          {props.badge}
+        </span>
+      </div>
+      <div className="space-y-1">
+        <div className="text-lg font-semibold text-emerald-400">
+          {props.price}
+        </div>
+        {props.subPrice && (
+          <div className="text-[11px] text-slate-400">{props.subPrice}</div>
+        )}
+        {props.note && (
+          <div className="text-[11px] text-slate-300">{props.note}</div>
+        )}
+      </div>
+      {props.details && props.details.length > 0 && (
+        <ul className="mt-2 space-y-1 text-[11px] text-slate-300">
+          {props.details.map((d, i) => (
+            <li key={i}>• {d}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -273,9 +428,7 @@ function SmallStep({ title, number }: { title: string; number: number }) {
       <div className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-[11px] font-semibold text-emerald-300">
         {number}
       </div>
-      <div className="text-[11px] font-semibold text-slate-100">
-        {title}
-      </div>
+      <div className="text-[11px] font-semibold text-slate-100">{title}</div>
       <div className="h-2 rounded bg-slate-800" />
     </div>
   );

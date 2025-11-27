@@ -1,4 +1,6 @@
+// src/pages/PortalLicensesPage.tsx
 import React from "react";
+import { Link } from "react-router-dom";
 import {
   fetchPortalLicenses,
   type PortalLicense,
@@ -65,6 +67,26 @@ const PortalLicensesPage: React.FC = () => {
       </header>
 
       <LicensesSummary />
+
+      {/* Hinweis auf Plan & Abrechnung */}
+      <section className="rounded-2xl border border-slate-800 bg-slate-950/70 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-[11px] text-slate-300">
+        <div>
+          <span className="font-semibold text-slate-100">
+            Plan &amp; Abrechnung:
+          </span>{" "}
+          Deinen aktuellen Tarif (Trial, Starter, Pro) und eine Übersicht der
+          geplanten Pakete findest du auf der Seite{" "}
+          <span className="font-semibold">„Plan &amp; Abrechnung“</span>.
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/portal/plan"
+            className="inline-flex items-center rounded-full border border-emerald-500/60 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-200 hover:bg-emerald-500/20"
+          >
+            Plan &amp; Abrechnung öffnen
+          </Link>
+        </div>
+      </section>
 
       <section className="rounded-2xl border border-slate-800 bg-slate-900/60">
         {/* Kopf mit Status + Filter */}
@@ -185,7 +207,14 @@ const PortalLicensesPage: React.FC = () => {
       <p className="text-[11px] text-slate-500">
         Wenn du Fragen zu deinem Lizenzschlüssel hast oder ein Upgrade von
         Starter auf Pro wünschst, wende dich bitte an deinen Anbieter oder
-        Caisty-Support.
+        Caisty-Support. Später kannst du Upgrades direkt unter{" "}
+        <Link
+          to="/portal/plan"
+          className="text-emerald-300 hover:text-emerald-200 underline underline-offset-2"
+        >
+          „Plan &amp; Abrechnung“
+        </Link>{" "}
+        anstoßen.
       </p>
     </div>
   );

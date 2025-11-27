@@ -1,5 +1,4 @@
-// apps/cloud-api/src/lib/licenseKey.ts
-
+// apps/api/src/lib/licenseKey.ts
 const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // ohne 0/O/1/I
 
 function randomChunk(length: number): string {
@@ -20,9 +19,18 @@ export function generateLicenseKey(
   groups = 3,
   groupLength = 4,
 ): string {
-  const parts = [];
+  const parts: string[] = [];
   for (let i = 0; i < groups; i++) {
     parts.push(randomChunk(groupLength));
   }
   return `${prefix}-${parts.join("-")}`;
+}
+
+// Alias für bestehenden Code
+export function createLicenseKey(
+  prefix = "CSTY",
+  groups = 3,
+  groupLength = 4,
+): string {
+  return generateLicenseKey(prefix, groups, groupLength);
 }

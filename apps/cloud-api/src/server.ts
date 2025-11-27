@@ -15,11 +15,17 @@ import { registerWebhooksRoutes } from "./routes/webhooks";
 import { registerLicensesRoutes } from "./routes/licenses";
 import { registerPublicLicenseRoutes } from "./routes/public-license";
 
-// Portal (eigenes JWT)
-import { registerPortalAuthRoutes } from "./routes/portal-auth";
+// 🔹 Portal (eigenes JWT)
+// WICHTIG: Datei heißt portalAuthRoutes.ts, nicht portal-auth.ts
+import { registerPortalAuthRoutes } from "./routes/portalAuthRoutes";
 import { registerPortalDataRoutes } from "./routes/portal-data";
+// (später: import { registerPortalSupportRoutes } from "./routes/portalSupport";
+//          import { registerNotificationsRoutes } from "./routes/notifications"; )
 
 import { verifyToken } from "./lib/jwt";
+import { registerAdminNotificationsRoutes } from "./routes/admin-notifications";
+
+import { registerPortalSupportRoutes } from "./routes/portal-support"; // ggf. mit .js wie bei den anderen Imports
 
 export async function buildServer() {
   const app = Fastify({
@@ -30,19 +36,14 @@ export async function buildServer() {
     origin: true,
   });
 
-  // Globaler Auth-Hook für Admin-API
+  // ---------------------------------------------------------------------------
+  // Globaler Auth-Hook für die Admin-API (nicht für /portal/*)
+  // ---------------------------------------------------------------------------
   app.addHook("onRequest", async (request, reply) => {
     const url = request.raw.url?.split("?")[0] ?? "";
     const method = request.method.toUpperCase();
 
     // 🔓 Endpunkte, die KEIN Admin-JWT brauchen:
-    // - /health                → Liveness/Readiness
-    // - /auth/login            → Login für Admin-Cloud
-    // - /portal/*              → Portal-Auth & Portal-API mit eigenem JWT
-    // - /webhooks/paypal (POST)→ PayPal Webhook
-    // - /licenses/verify (POST)→ POS License-Check
-    // - /devices/bind (POST)   → POS Device-Bind
-    // - /devices/heartbeat(PROST) → POS Heartbeat
     const isPublicRoute =
       url === "/health" ||
       url === "/auth/login" ||
@@ -76,15 +77,25 @@ export async function buildServer() {
     }
   });
 
-  // Admin / Backend
+  // ---------------------------------------------------------------------------
+  // Öffentliche / Basis-Routen
+  // ---------------------------------------------------------------------------
   await registerHealthRoute(app);
   await registerAuthRoutes(app);
 
-  // Portal Auth + Data-API
-  await registerPortalAuthRoutes(app);
-  await registerPortalDataRoutes(app);
+  // ---------------------------------------------------------------------------
+  // Portal-Routen (eigener JWT via portalJwt)
+  // ---------------------------------------------------------------------------
+  await registerPortalAuthRoutes(app);   // /portal/register, /portal/login, /portal/me, ...
+  await registerPortalDataRoutes(app);   // /portal/licenses, /portal/devices, /portal/invoices
+  // später:
+  // await registerPortalSupportRoutes(app);      // /portal/support...
+  // await registerNotificationsRoutes(app);      // falls du Portal-spezifische Notifications brauchst
+  await registerAdminNotificationsRoutes(app);
 
-  // Admin-APIs (JWT-geschützt durch Hook)
+  // ---------------------------------------------------------------------------
+  // Admin-APIs (durch Hook oben JWT-geschützt)
+  // ---------------------------------------------------------------------------
   await registerCustomersRoutes(app);
   await registerOrgsRoutes(app);
   await registerSubscriptionsRoutes(app);
@@ -92,12 +103,18 @@ export async function buildServer() {
   await registerDevicesRoutes(app);
   await registerLicensesRoutes(app);
 
+  // ---------------------------------------------------------------------------
   // Öffentliche License-/Device-API für POS (verify/bind/heartbeat)
+  // ---------------------------------------------------------------------------
   await registerPublicLicenseRoutes(app);
-
+ 
+  // ---------------------------------------------------------------------------
   // Payments & Webhooks
+  // ---------------------------------------------------------------------------
   await registerPaymentsRoutes(app);
   await registerWebhooksRoutes(app);
+  
+  await registerPortalSupportRoutes(app);
 
   return app;
 }

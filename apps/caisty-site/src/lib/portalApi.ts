@@ -1,3 +1,5 @@
+// apps/caisty-site/src/lib/portalApi.ts
+
 const API_BASE =
   import.meta.env.VITE_CLOUD_API_URL?.replace(/\/+$/, "") ??
   "http://127.0.0.1:3333";
@@ -191,7 +193,7 @@ export async function changePortalPassword(input: {
 export interface PortalLicense {
   id: string;
   key: string;
-  plan: string; // "starter" | "pro"
+  plan: string; // "trial" | "starter" | "pro"
   status: LicenseStatus | string;
   maxDevices: number;
   validUntil: string | null; // ISO
@@ -256,3 +258,149 @@ export async function fetchPortalInvoices(): Promise<PortalInvoice[]> {
   return authGet<PortalInvoice[]>("/portal/invoices");
 }
 
+// ---------- Trial-Lizenz einmalig anlegen ----------
+
+export async function createTrialLicense(): Promise<PortalLicense> {
+  const token = getStoredPortalToken();
+  if (!token) {
+    throw new Error("Nicht angemeldet.");
+  }
+
+  const res = await fetch(`${API_BASE}/portal/trial-license`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    // Wichtig: JSON-Body mitsenden, auch wenn leer
+    body: JSON.stringify({}),
+  });
+
+  if (res.status === 401) {
+    clearPortalToken();
+    throw new Error("Nicht angemeldet.");
+  }
+
+  const data = (await res.json()) as {
+    ok: boolean;
+    license?: PortalLicense;
+    message?: string;
+    reason?: string;
+  };
+
+  if (!res.ok || !data.ok || !data.license) {
+    if (
+      data.reason === "already_had_trial" ||
+      data.reason === "trial_already_used"
+    ) {
+      throw new Error(
+        data.message ??
+          "Für dieses Konto wurde bereits eine Testlizenz angelegt.",
+      );
+    }
+
+    if (data.reason === "active_plan_exists") {
+      throw new Error(
+        data.message ??
+          "Für dieses Konto existiert bereits ein aktiver, bezahlter Plan.",
+      );
+    }
+
+    throw new Error(
+      data.message ?? "Testlizenz konnte nicht erstellt werden.",
+    );
+  }
+
+  return data.license;
+}
+
+// ---------- Support / Kontakt aus Portal ----------
+
+export interface PortalSupportMessage {
+  id: string;
+  subject: string;
+  message: string;
+  status: "open" | "in_progress" | "closed" | string;
+  createdAt: string; // ISO
+  replyText?: string | null;
+  repliedAt?: string | null;
+}
+
+export async function createPortalSupportMessage(input: {
+  subject: string;
+  message: string;
+}): Promise<PortalSupportMessage> {
+  const token = getStoredPortalToken();
+  if (!token) throw new Error("Nicht angemeldet.");
+
+  const res = await fetch(`${API_BASE}/portal/support-messages`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (res.status === 401) {
+    clearPortalToken();
+    throw new Error("Nicht angemeldet.");
+  }
+
+  const ct = res.headers.get("content-type") ?? "";
+  let data: any = {};
+  if (ct.includes("application/json")) {
+    data = await res.json();
+  }
+
+  if (!res.ok || (!data.ok && !data.message && !data.item)) {
+    throw new Error(
+      data.message ||
+        data.error ||
+        "Nachricht konnte nicht gesendet werden.",
+    );
+  }
+
+  const msg: PortalSupportMessage = data.message || data.item;
+  return msg;
+}
+
+export async function fetchPortalSupportMessages(): Promise<
+  PortalSupportMessage[]
+> {
+  const token = getStoredPortalToken();
+  if (!token) throw new Error("Nicht angemeldet.");
+
+  const res = await fetch(`${API_BASE}/portal/support-messages`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (res.status === 401) {
+    clearPortalToken();
+    throw new Error("Nicht angemeldet.");
+  }
+
+  const ct = res.headers.get("content-type") ?? "";
+  let data: any = {};
+  if (ct.includes("application/json")) {
+    data = await res.json();
+  }
+
+  if (!res.ok) {
+    throw new Error(
+      data.message ||
+        data.error ||
+        "Support-Anfragen konnten nicht geladen werden.",
+    );
+  }
+
+  // Backend kann entweder direkt ein Array senden
+  if (Array.isArray(data)) {
+    return data as PortalSupportMessage[];
+  }
+
+  // oder Wrapper { ok, items: [...] } / { ok, messages: [...] }
+  return (data.items || data.messages || []) as PortalSupportMessage[];
+}
