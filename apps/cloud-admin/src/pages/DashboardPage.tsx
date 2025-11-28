@@ -1,3 +1,4 @@
+// apps/cloud-admin/src/pages/DashboardPage.tsx
 import { useEffect, useState } from "react";
 import { apiGet, type ListResponse } from "../lib/api";
 
@@ -7,13 +8,14 @@ type HealthResponse = {
 };
 
 // Mini-Typen – wir brauchen nur wenig Infos fürs Zählen
-type Customer = { id: string };
+type Customer = { id: string; status?: string | null };
 type Subscription = { id: string; status?: string };
 type Invoice = { id: string };
 type Device = { id: string };
 
 type DashboardStats = {
   customersTotal: number;
+  customersActive: number;
   subscriptionsTotal: number;
   subscriptionsActive: number;
   invoicesTotal: number;
@@ -54,17 +56,44 @@ export default function DashboardPage() {
 
         setHealth(healthRes);
 
-        const subscriptionsActive = subscriptionsRes.items.filter(
-          (s) => s.status === "active",
+        const customerItems = customersRes.items ?? [];
+        const customersTotal =
+          typeof customersRes.total === "number"
+            ? customersRes.total
+            : customerItems.length;
+
+        const customersActive = customerItems.filter((c) => {
+          const status = (c.status ?? "").toLowerCase();
+          return status === "active";
+        }).length;
+
+        const subscriptionsItems = subscriptionsRes.items ?? [];
+        const subscriptionsTotal =
+          typeof subscriptionsRes.total === "number"
+            ? subscriptionsRes.total
+            : subscriptionsItems.length;
+
+        const subscriptionsActive = subscriptionsItems.filter(
+          (s) => (s.status ?? "").toLowerCase() === "active",
         ).length;
 
+        const invoicesTotal =
+          typeof invoicesRes.total === "number"
+            ? invoicesRes.total
+            : (invoicesRes.items ?? []).length;
+
+        const devicesTotal =
+          typeof devicesRes.total === "number"
+            ? devicesRes.total
+            : (devicesRes.items ?? []).length;
+
         setStats({
-          customersTotal: customersRes.total ?? customersRes.items.length,
-          subscriptionsTotal:
-            subscriptionsRes.total ?? subscriptionsRes.items.length,
+          customersTotal,
+          customersActive,
+          subscriptionsTotal,
           subscriptionsActive,
-          invoicesTotal: invoicesRes.total ?? invoicesRes.items.length,
-          devicesTotal: devicesRes.total ?? devicesRes.items.length,
+          invoicesTotal,
+          devicesTotal,
         });
       } catch (err) {
         console.error(err);
@@ -121,14 +150,16 @@ export default function DashboardPage() {
           {error && <div className="admin-error">{error}</div>}
         </div>
 
-        {/* Kunden */}
+        {/* Kunden – nur aktive anzeigen */}
         <div className="dashboard-card">
           <div className="dashboard-card-title">Kunden</div>
           <div className="dashboard-card-value">
-            {loadingStats && !stats ? "…" : stats?.customersTotal ?? "–"}
+            {loadingStats && !stats ? "…" : stats?.customersActive ?? "–"}
           </div>
           <div className="dashboard-card-meta">
-            Gesamtzahl der Kunden in dieser Instanz.
+            {stats
+              ? `${stats.customersActive} aktive Kunden (gesamt: ${stats.customersTotal}).`
+              : "Anzahl aktiver Kunden in dieser Instanz."}
           </div>
         </div>
 

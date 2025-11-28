@@ -57,8 +57,7 @@ const BILLING_PLANS: BillingPlan[] = [
     label: "Pro",
     priceLabel: "35 €",
     intervalLabel: "pro Monat",
-    tagline:
-      "Für Betriebe mit mehreren Kassen oder kleinen Filialketten.",
+    tagline: "Für Betriebe mit mehreren Kassen oder kleinen Filialketten.",
     devicesLabel: "bis zu 3 aktive POS-Geräte",
     bulletPoints: [
       "Alle Starter-Funktionen",
@@ -93,6 +92,7 @@ const PortalPlanBillingPage: React.FC = () => {
 
   const [trialBusy, setTrialBusy] = React.useState(false);
   const [trialError, setTrialError] = React.useState<string | null>(null);
+  const [trialInfo, setTrialInfo] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -135,7 +135,6 @@ const PortalPlanBillingPage: React.FC = () => {
     return null;
   }, [activeLicense]);
 
-  // ➜ Trial-Erkennung: bevorzugt kind === "trial", Fallback plan === "trial"
   const hasTrialLicense = React.useMemo(
     () =>
       licenses.some(
@@ -147,22 +146,35 @@ const PortalPlanBillingPage: React.FC = () => {
   );
 
   async function handleStartTrial() {
-    try {
-      setTrialError(null);
-      setTrialBusy(true);
+    setTrialError(null);
+    setTrialInfo(null);
+    setTrialBusy(true);
 
+    try {
       const lic = await createTrialLicense();
-      // Neue Trial vorne anhängen (falls /portal/licenses noch nicht aktualisiert ist)
+      // Neue Trial vorne anhängen
       setLicenses((prev) => [lic, ...prev]);
+
+      setTrialInfo(
+        "Deine kostenlose Testlizenz wurde angelegt. Du findest sie jetzt unter „Lizenzen“.",
+      );
     } catch (err: any) {
-      // Wenn das Backend reason-Felder liefert, hübschere Meldungen anzeigen
-      if (err?.reason === "trial_already_used") {
-        setTrialError(
-          "Für dieses Konto wurde bereits eine kostenlose Testlizenz angelegt.",
+      const reason = err?.reason as string | undefined;
+
+      if (
+        reason === "already_had_trial" ||
+        reason === "trial_already_used"
+      ) {
+        setTrialInfo(
+          "Für dieses Konto wurde bereits eine Testlizenz angelegt. Du findest sie unter „Lizenzen“.",
         );
-      } else if (err?.reason === "active_plan_exists") {
+      } else if (reason === "active_plan_exists") {
         setTrialError(
           "Für dieses Konto existiert bereits ein aktiver, bezahlter Plan. Eine zusätzliche Testlizenz ist nicht möglich.",
+        );
+      } else if (reason === "unauthenticated") {
+        setTrialError(
+          "Bitte melde dich im Portal erneut an, um eine Testlizenz anzulegen.",
         );
       } else {
         setTrialError(
@@ -194,6 +206,18 @@ const PortalPlanBillingPage: React.FC = () => {
       {trialError && (
         <section className="rounded-2xl border border-rose-500/60 bg-rose-500/10 px-4 py-3 text-[11px] text-rose-100">
           {trialError}
+        </section>
+      )}
+
+      {trialInfo && (
+        <section className="rounded-2xl border border-emerald-500/60 bg-emerald-500/10 px-4 py-3 text-[11px] text-emerald-50 flex flex-wrap items-center gap-2">
+          <span>{trialInfo}</span>
+          <Link
+            to="/portal/licenses"
+            className="underline underline-offset-2 text-emerald-200 hover:text-emerald-100"
+          >
+            Zur Lizenzübersicht
+          </Link>
         </section>
       )}
 

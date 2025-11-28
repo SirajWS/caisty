@@ -13,7 +13,6 @@ function getToken(): string | null {
 
 type ApiErrorShape = { error?: string; message?: string };
 
-// generische Listen-Antwort (z.B. für /customers, /subscriptions, …)
 export type ListResponse<T> = {
   items: T[];
   total: number;
@@ -21,13 +20,20 @@ export type ListResponse<T> = {
   offset?: number;
 };
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
   const token = getToken();
 
   const headers: HeadersInit = {
-    "Content-Type": "application/json",
     ...(options.headers || {}),
   };
+
+  // Nur Content-Type setzen, wenn es wirklich einen Body gibt
+  if (options.body !== undefined && !("Content-Type" in headers)) {
+    (headers as any)["Content-Type"] = "application/json";
+  }
 
   if (token) {
     (headers as any)["Authorization"] = `Bearer ${token}`;
@@ -45,9 +51,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!res.ok) {
     let message = `Request to ${path} failed with status ${res.status}`;
     try {
-      const data = (await res.json()) as ApiErrorShape;
-      if (data.error || data.message) {
-        message = data.error || data.message || message;
+      const ct = res.headers.get("content-type") ?? "";
+      if (ct.includes("application/json")) {
+        const data = (await res.json()) as ApiErrorShape;
+        if (data.error || data.message) {
+          message = data.error || data.message || message;
+        }
       }
     } catch {
       // ignore JSON parse errors
@@ -55,29 +64,50 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new Error(message);
   }
 
-  return res.json() as Promise<T>;
+  const ct = res.headers.get("content-type") ?? "";
+  if (!ct.includes("application/json")) {
+    return undefined as T;
+  }
+
+  return (await res.json()) as T;
 }
 
 export function apiGet<T>(path: string): Promise<T> {
   return request<T>(path, { method: "GET" });
 }
 
-export function apiPost<TReq, TRes>(path: string, body: TReq): Promise<TRes> {
+export function apiPost<TReq, TRes>(
+  path: string,
+  body: TReq,
+): Promise<TRes> {
   return request<TRes>(path, {
     method: "POST",
     body: JSON.stringify(body),
   });
 }
 
+export function apiPatch<TReq, TRes>(
+  path: string,
+  body: TReq,
+): Promise<TRes> {
+  return request<TRes>(path, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export function apiDelete<T = any>(path: string): Promise<T> {
+  return request<T>(path, { method: "DELETE" });
+}
+
 // ---------------------------------------------------------------------------
-// Notifications (Admin)
+// Notifications (Admin) – unverändert
 // ---------------------------------------------------------------------------
 
-// Shape passend zu unserem Backend-Store für Admin-Notifications
 export interface AdminNotification {
   id: string;
-  kind?: string;          // z.B. "portal_support_message"
-  source?: string;        // z.B. "portal"
+  kind?: string;
+  source?: string;
   subject?: string;
   title: string;
   message?: string;
@@ -86,11 +116,10 @@ export interface AdminNotification {
   customerName?: string;
   customerEmail?: string;
   createdAt: string;
-  isRead?: boolean;       // aktuell nur Client-seitig
-  data?: any;             // z.B. { supportMessageId: "..." }
+  isRead?: boolean;
+  data?: any;
 }
 
-// Support-Message-Shape für Admin
 export interface AdminSupportMessage {
   id: string;
   subject: string;
@@ -104,7 +133,6 @@ export interface AdminSupportMessage {
   customerEmail?: string;
 }
 
-// Liste Notifications (für Glocke & Seite)
 export function fetchNotifications(params?: {
   limit?: number;
   onlyUnread?: boolean;
@@ -114,7 +142,6 @@ export function fetchNotifications(params?: {
   if (params?.onlyUnread) search.set("onlyUnread", "1");
   const qs = search.toString();
 
-  // Backend-Route: /admin/notifications
   return apiGet<any>(`/admin/notifications${qs ? `?${qs}` : ""}`).then(
     (data) => {
       const items: AdminNotification[] = Array.isArray(data)
@@ -134,12 +161,12 @@ export function fetchNotifications(params?: {
   );
 }
 
-// Support-Message Details laden
-export function fetchSupportMessage(id: string): Promise<AdminSupportMessage> {
+export function fetchSupportMessage(
+  id: string,
+): Promise<AdminSupportMessage> {
   return apiGet<AdminSupportMessage>(`/admin/support-messages/${id}`);
 }
 
-// Support-Message beantworten
 export function replySupportMessage(
   id: string,
   body: { replyText: string; status?: string },
@@ -150,12 +177,11 @@ export function replySupportMessage(
   );
 }
 
-// "als gelesen" ist aktuell nur Client-seitig
-export function markNotificationRead(id: string): Promise<{ ok: boolean }> {
+export function markNotificationRead(
+  id: string,
+): Promise<{ ok: boolean }> {
   return Promise.resolve({ ok: true });
 }
-
-// alte Helper bleiben erhalten (falls irgendwo verwendet)
 
 export function apiGetNotifications(): Promise<
   ListResponse<AdminNotification>

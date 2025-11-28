@@ -2,14 +2,11 @@
 import type { FastifyInstance } from "fastify";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 
-import { db } from "../db/client";
-import { licenses } from "../db/schema/licenses";
-import { licenseEvents } from "../db/schema/licenseEvents";
-import { devices } from "../db/schema/devices";
-import { notifications } from "../db/schema/notifications";
-import { generateLicenseKey } from "../lib/licenseKey";
-
-const TRIAL_DAYS = Number(process.env.TRIAL_DAYS || "3");
+import { db } from "../db/client.js";
+import { licenses } from "../db/schema/licenses.js";
+import { licenseEvents } from "../db/schema/licenseEvents.js";
+import { devices } from "../db/schema/devices.js";
+import { generateLicenseKey } from "../lib/licenseKey.js";
 
 type CreateLicenseBody = {
   customerId?: string | null;
@@ -277,107 +274,4 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
       }
     },
   );
-
-  // ---------------------------------------------------------------------------
-  // Einmalige Trial-Lizenz aus dem Kundenportal anlegen
-  // POST /portal/trial-license
-  // ---------------------------------------------------------------------------
-  app.post("/portal/trial-license", async (request, reply) => {
-    const user = (request as any).user;
-    const orgId = user?.orgId as string | undefined;
-    const customerId = user?.customerId as string | undefined;
-
-    if (!orgId || !customerId) {
-      reply.code(400);
-      return {
-        ok: false,
-        reason: "missing_customer",
-        message:
-          "Für die Testlizenz werden Konto-Informationen (orgId, customerId) benötigt.",
-      };
-    }
-
-    try {
-      // Prüfen, ob es bereits eine Trial-Lizenz für dieses Konto gibt
-      const [existingTrial] = await db
-        .select()
-        .from(licenses)
-        .where(
-          and(
-            eq(licenses.orgId, orgId),
-            eq(licenses.customerId, customerId),
-            eq(licenses.plan, "trial"),
-          ),
-        )
-        .limit(1);
-
-      if (existingTrial) {
-        reply.code(400);
-        return {
-          ok: false,
-          reason: "already_had_trial",
-          message:
-            "Für dieses Konto wurde bereits eine Testlizenz angelegt.",
-          license: existingTrial,
-        };
-      }
-
-      const now = new Date();
-      const validFrom = now;
-      const validUntil = new Date(
-        now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000,
-      );
-
-      const key = generateLicenseKey("CSTY");
-
-      const [created] = await db
-        .insert(licenses)
-        .values({
-          orgId,
-          customerId,
-          subscriptionId: null,
-          key,
-          plan: "trial",
-          maxDevices: 1,
-          status: "active",
-          validFrom,
-          validUntil,
-        })
-        .returning();
-
-      await db.insert(licenseEvents).values({
-        orgId,
-        licenseId: created.id,
-        type: "created",
-        metadata: {
-          byUserId: user?.userId ?? null,
-          source: "portal_trial",
-        },
-      });
-
-      // Notification für Admin
-      await db.insert(notifications).values({
-        orgId,
-        type: "portal_trial_created",
-        title: "Trial-Lizenz aus Portal angelegt",
-        body: `Kunde ${customerId}, gültig bis ${validUntil.toISOString()}`,
-        customerId,
-        licenseId: created.id,
-        data: { key: created.key, validUntil: created.validUntil },
-      });
-
-      reply.code(201);
-      return {
-        ok: true,
-        license: created,
-      };
-    } catch (err) {
-      console.error("Error creating trial license", err);
-      reply.code(500);
-      return {
-        ok: false,
-        message: "Testlizenz konnte nicht erstellt werden.",
-      };
-    }
-  });
 }

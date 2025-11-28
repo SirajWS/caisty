@@ -1,15 +1,16 @@
+// apps/cloud-admin/src/pages/Customers/CustomersListPage.tsx
 import { useEffect, useMemo, useState } from "react";
-import { apiGet } from "../../lib/api";
+import { apiGet, apiPatch, apiDelete } from "../../lib/api";
 import { Link } from "react-router-dom";
 
 type Customer = {
-    id: string;
-    name: string;
-    email: string;
-    status?: string | null;
-    createdAt?: string | null;
-    profile?: unknown | null; // <- neu, wird hier aber nicht benutzt
-  };
+  id: string;
+  name: string;
+  email: string;
+  status?: string | null;
+  createdAt?: string | null;
+  profile?: unknown | null;
+};
 
 type CustomersResponse = {
   items: Customer[];
@@ -18,7 +19,6 @@ type CustomersResponse = {
   offset: number;
 };
 
-// Nur das, was wir für die Zählung brauchen
 type DevicesResponse = {
   items: {
     id: string;
@@ -34,10 +34,9 @@ export default function CustomersListPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  // Anzahl Devices pro Customer
-  const [deviceCounts, setDeviceCounts] = useState<Record<string, number>>(
-    {},
-  );
+  const [deviceCounts, setDeviceCounts] = useState<Record<string, number>>({});
+  const [statusBusyId, setStatusBusyId] = useState<string | null>(null);
+  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,7 +57,6 @@ export default function CustomersListPage() {
         setItems(customers);
         setTotal(customersRes.total ?? customers.length);
 
-        // Device-Zählung bauen
         const counts: Record<string, number> = {};
         for (const dev of devicesRes.items ?? []) {
           if (!dev.customerId) continue;
@@ -84,22 +82,98 @@ export default function CustomersListPage() {
     };
   }, []);
 
-  const filteredItems = useMemo(() => {
+  // aktive vs. inaktive Kunden aufteilen (mit Suche)
+  const { activeItems, inactiveItems } = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return items;
 
-    return items.filter((c) => {
+    const matchesSearch = (c: Customer) => {
+      if (!term) return true;
       const id = c.id?.toLowerCase() ?? "";
       const name = c.name?.toLowerCase() ?? "";
       const email = c.email?.toLowerCase() ?? "";
+      return id.includes(term) || name.includes(term) || email.includes(term);
+    };
 
-      return (
-        id.includes(term) ||
-        name.includes(term) ||
-        email.includes(term)
-      );
-    });
+    const actives: Customer[] = [];
+    const inactives: Customer[] = [];
+
+    for (const c of items) {
+      if (!matchesSearch(c)) continue;
+      const status = (c.status ?? "").toLowerCase();
+      if (status === "inactive") {
+        inactives.push(c);
+      } else {
+        actives.push(c);
+      }
+    }
+
+    return { activeItems: actives, inactiveItems: inactives };
   }, [items, search]);
+
+  async function handleArchiveCustomer(c: Customer) {
+    const devicesForCustomer = deviceCounts[c.id] ?? 0;
+
+    const confirmed = window.confirm(
+      `Kunde "${c.name || c.email}" inaktiv setzen?\n\n` +
+        `Der Kunde erscheint dann nicht mehr in der normalen Übersicht und im Dashboard.\n` +
+        (devicesForCustomer > 0
+          ? `Hinweis: Es sind noch ${devicesForCustomer} Gerät(e) diesem Kunden zugeordnet.`
+          : ""),
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setStatusBusyId(c.id);
+      setError(null);
+
+      const res = await apiPatch<{ status: string }, { item: Customer }>(
+        `/customers/${c.id}/status`,
+        { status: "inactive" },
+      );
+
+      const updated = res.item;
+
+      setItems((prev) =>
+        prev.map((x) => (x.id === c.id ? { ...x, ...updated } : x)),
+      );
+    } catch (err) {
+      console.error("Error updating customer status", err);
+      setError("Status des Kunden konnte nicht geändert werden.");
+    } finally {
+      setStatusBusyId(null);
+    }
+  }
+
+  async function handleDeleteCustomer(c: Customer) {
+    const devicesForCustomer = deviceCounts[c.id] ?? 0;
+
+    const confirmed = window.confirm(
+      `Kunde "${c.name || c.email}" endgültig löschen?\n\n` +
+        `Dieser Vorgang kann nicht rückgängig gemacht werden.` +
+        (devicesForCustomer > 0
+          ? `\nHinweis: Es sind noch ${devicesForCustomer} Gerät(e) diesem Kunden zugeordnet. Die Zuordnung wird beim Löschen entfernt.`
+          : ""),
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeleteBusyId(c.id);
+      setError(null);
+
+      await apiDelete<{ ok: boolean }>(`/customers/${c.id}`);
+
+      // komplett aus der Liste entfernen
+      setItems((prev) => prev.filter((x) => x.id !== c.id));
+      setTotal((prev) => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error("Error deleting customer", err);
+      setError("Kunde konnte nicht gelöscht werden.");
+    } finally {
+      setDeleteBusyId(null);
+    }
+  }
 
   return (
     <div className="admin-page">
@@ -121,7 +195,7 @@ export default function CustomersListPage() {
         }}
       >
         <div style={{ fontSize: 13, color: "#9ca3af" }}>
-          {filteredItems.length} von {total} Kunden angezeigt
+          {activeItems.length} aktive von {total} Kunden angezeigt
         </div>
 
         <input
@@ -143,7 +217,8 @@ export default function CustomersListPage() {
 
       {error && <div className="admin-error-banner">{error}</div>}
 
-      <div className="admin-card">
+      {/* Aktive Kunden */}
+      <div className="admin-card" style={{ marginBottom: 24 }}>
         <table className="admin-table">
           <thead>
             <tr>
@@ -153,57 +228,165 @@ export default function CustomersListPage() {
               <th>Status</th>
               <th>Devices</th>
               <th>Erstellt am</th>
+              <th>Aktionen</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td
-                  colSpan={6}
-                  style={{ textAlign: "center", padding: 24 }}
-                >
+                <td colSpan={7} style={{ textAlign: "center", padding: 24 }}>
                   Lädt Kunden…
                 </td>
               </tr>
-            ) : filteredItems.length === 0 ? (
+            ) : activeItems.length === 0 ? (
               <tr>
-                <td
-                  colSpan={6}
-                  style={{ textAlign: "center", padding: 24 }}
-                >
-                  Keine Kunden gefunden.
+                <td colSpan={7} style={{ textAlign: "center", padding: 24 }}>
+                  Keine aktiven Kunden gefunden.
                 </td>
               </tr>
             ) : (
-              filteredItems.map((c) => (
-                <tr key={c.id}>
-                  <td>{c.id.slice(0, 8)}…</td>
-                  <td>
-                    <Link
-                      to={`/customers/${c.id}`}
-                      style={{ color: "#a855f7" }}
-                    >
-                      {c.name || c.email}
-                    </Link>
-                  </td>
-                  <td>{c.email}</td>
-                  <td>
-                    <span
-                      className={`status-badge status-${
-                        c.status ?? "unknown"
-                      }`}
-                    >
-                      {c.status ?? "—"}
-                    </span>
-                  </td>
-                  <td>{deviceCounts[c.id] ?? 0}</td>
-                  <td>
-                    {c.createdAt
-                      ? new Date(c.createdAt).toLocaleString("de-DE")
-                      : "—"}
-                  </td>
-                </tr>
-              ))
+              activeItems.map((c) => {
+                const devicesForCustomer = deviceCounts[c.id] ?? 0;
+
+                return (
+                  <tr key={c.id}>
+                    <td>{c.id.slice(0, 8)}…</td>
+                    <td>
+                      <Link
+                        to={`/customers/${c.id}`}
+                        style={{ color: "#a855f7" }}
+                      >
+                        {c.name || c.email}
+                      </Link>
+                    </td>
+                    <td>{c.email}</td>
+                    <td>
+                      <span
+                        className={`status-badge status-${
+                          c.status ?? "unknown"
+                        }`}
+                      >
+                        {c.status ?? "—"}
+                      </span>
+                    </td>
+                    <td>{devicesForCustomer}</td>
+                    <td>
+                      {c.createdAt
+                        ? new Date(c.createdAt).toLocaleString("de-DE")
+                        : "—"}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => handleArchiveCustomer(c)}
+                        disabled={statusBusyId === c.id}
+                        style={{
+                          fontSize: 11,
+                          padding: "4px 10px",
+                          borderRadius: 6,
+                          border: "1px solid #6b7280",
+                          background:
+                            statusBusyId === c.id ? "#4b5563" : "#374151",
+                          color: "#e5e7eb",
+                          cursor:
+                            statusBusyId === c.id ? "default" : "pointer",
+                        }}
+                      >
+                        {statusBusyId === c.id
+                          ? "Aktualisiere…"
+                          : "Inaktiv setzen"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Inaktive Kunden / Trash */}
+      <div className="admin-card">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: 12,
+          }}
+        >
+          <h2 className="admin-section-title">Inaktive Kunden (Trash)</h2>
+          <span style={{ fontSize: 11, color: "#9ca3af" }}>
+            Diese Kunden erscheinen nicht mehr in der normalen Übersicht oder im
+            Dashboard.
+          </span>
+        </div>
+
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>E-Mail</th>
+              <th>Status</th>
+              <th>Devices</th>
+              <th>Erstellt am</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            {inactiveItems.length === 0 ? (
+              <tr>
+                <td colSpan={7} style={{ textAlign: "center", padding: 24 }}>
+                  Keine inaktiven Kunden.
+                </td>
+              </tr>
+            ) : (
+              inactiveItems.map((c) => {
+                const devicesForCustomer = deviceCounts[c.id] ?? 0;
+
+                return (
+                  <tr key={c.id}>
+                    <td>{c.id.slice(0, 8)}…</td>
+                    <td>{c.name || c.email}</td>
+                    <td>{c.email}</td>
+                    <td>
+                      <span
+                        className={`status-badge status-${
+                          c.status ?? "unknown"
+                        }`}
+                      >
+                        {c.status ?? "—"}
+                      </span>
+                    </td>
+                    <td>{devicesForCustomer}</td>
+                    <td>
+                      {c.createdAt
+                        ? new Date(c.createdAt).toLocaleString("de-DE")
+                        : "—"}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCustomer(c)}
+                        disabled={deleteBusyId === c.id}
+                        style={{
+                          fontSize: 11,
+                          padding: "4px 10px",
+                          borderRadius: 6,
+                          border: "1px solid #b91c1c",
+                          background:
+                            deleteBusyId === c.id ? "#7f1d1d" : "#b91c1c",
+                          color: "#fee2e2",
+                          cursor:
+                            deleteBusyId === c.id ? "default" : "pointer",
+                        }}
+                      >
+                        {deleteBusyId === c.id ? "Löschen…" : "Löschen"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

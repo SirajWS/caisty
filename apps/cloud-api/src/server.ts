@@ -1,31 +1,28 @@
 // apps/cloud-api/src/server.ts
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import { env } from "./config/env";
+import { env } from "./config/env.js";
 
-import { registerHealthRoute } from "./routes/health";
-import { registerCustomersRoutes } from "./routes/customers";
-import { registerOrgsRoutes } from "./routes/orgs";
-import { registerSubscriptionsRoutes } from "./routes/subscriptions";
-import { registerInvoicesRoutes } from "./routes/invoices";
-import { registerDevicesRoutes } from "./routes/devices";
-import { registerAuthRoutes } from "./routes/auth";
-import { registerPaymentsRoutes } from "./routes/payments";
-import { registerWebhooksRoutes } from "./routes/webhooks";
-import { registerLicensesRoutes } from "./routes/licenses";
-import { registerPublicLicenseRoutes } from "./routes/public-license";
+import { registerHealthRoute } from "./routes/health.js";
+import { registerCustomersRoutes } from "./routes/customers.js";
+import { registerOrgsRoutes } from "./routes/orgs.js";
+import { registerSubscriptionsRoutes } from "./routes/subscriptions.js";
+import { registerInvoicesRoutes } from "./routes/invoices.js";
+import { registerDevicesRoutes } from "./routes/devices.js";
+import { registerAuthRoutes } from "./routes/auth.js";
+import { registerPaymentsRoutes } from "./routes/payments.js";
+import { registerWebhooksRoutes } from "./routes/webhooks.js";
+import { registerLicensesRoutes } from "./routes/licenses.js";
+import { registerPublicLicenseRoutes } from "./routes/public-license.js";
 
 // 🔹 Portal (eigenes JWT)
-// WICHTIG: Datei heißt portalAuthRoutes.ts, nicht portal-auth.ts
-import { registerPortalAuthRoutes } from "./routes/portalAuthRoutes";
-import { registerPortalDataRoutes } from "./routes/portal-data";
-// (später: import { registerPortalSupportRoutes } from "./routes/portalSupport";
-//          import { registerNotificationsRoutes } from "./routes/notifications"; )
+import { registerPortalAuthRoutes } from "./routes/portalAuthRoutes.js";
+import { registerPortalDataRoutes } from "./routes/portal-data.js";
+import { registerPortalSupportRoutes } from "./routes/portal-support.js";
+import { registerPortalTrialLicenseRoutes } from "./routes/portal-trial-license.js";
 
-import { verifyToken } from "./lib/jwt";
-import { registerAdminNotificationsRoutes } from "./routes/admin-notifications";
-
-import { registerPortalSupportRoutes } from "./routes/portal-support"; // ggf. mit .js wie bei den anderen Imports
+import { verifyToken } from "./lib/jwt.js";
+import { registerAdminNotificationsRoutes } from "./routes/admin-notifications.js";
 
 export async function buildServer() {
   const app = Fastify({
@@ -86,11 +83,12 @@ export async function buildServer() {
   // ---------------------------------------------------------------------------
   // Portal-Routen (eigener JWT via portalJwt)
   // ---------------------------------------------------------------------------
-  await registerPortalAuthRoutes(app);   // /portal/register, /portal/login, /portal/me, ...
-  await registerPortalDataRoutes(app);   // /portal/licenses, /portal/devices, /portal/invoices
-  // später:
-  // await registerPortalSupportRoutes(app);      // /portal/support...
-  // await registerNotificationsRoutes(app);      // falls du Portal-spezifische Notifications brauchst
+  await registerPortalAuthRoutes(app);          // /portal/register, /portal/login, /portal/me, ...
+  await registerPortalDataRoutes(app);          // /portal/licenses, /portal/devices, /portal/invoices
+  await registerPortalTrialLicenseRoutes(app);  // /portal/trial-license
+  await registerPortalSupportRoutes(app);       // /portal/support-...
+
+  // Admin-Notifications laufen über Admin-JWT (kein /portal/)
   await registerAdminNotificationsRoutes(app);
 
   // ---------------------------------------------------------------------------
@@ -107,14 +105,12 @@ export async function buildServer() {
   // Öffentliche License-/Device-API für POS (verify/bind/heartbeat)
   // ---------------------------------------------------------------------------
   await registerPublicLicenseRoutes(app);
- 
+
   // ---------------------------------------------------------------------------
   // Payments & Webhooks
   // ---------------------------------------------------------------------------
   await registerPaymentsRoutes(app);
   await registerWebhooksRoutes(app);
-  
-  await registerPortalSupportRoutes(app);
 
   return app;
 }
