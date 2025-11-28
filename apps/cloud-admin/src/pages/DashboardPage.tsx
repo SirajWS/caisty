@@ -11,7 +11,7 @@ type HealthResponse = {
 type Customer = { id: string; status?: string | null };
 type Subscription = { id: string; status?: string };
 type Invoice = { id: string };
-type Device = { id: string };
+type Device = { id: string; fingerprint?: string | null };
 
 type DashboardStats = {
   customersTotal: number;
@@ -19,7 +19,7 @@ type DashboardStats = {
   subscriptionsTotal: number;
   subscriptionsActive: number;
   invoicesTotal: number;
-  devicesTotal: number;
+  devicesTotal: number; // nach Hardware-ID
 };
 
 export default function DashboardPage() {
@@ -82,10 +82,14 @@ export default function DashboardPage() {
             ? invoicesRes.total
             : (invoicesRes.items ?? []).length;
 
-        const devicesTotal =
-          typeof devicesRes.total === "number"
-            ? devicesRes.total
-            : (devicesRes.items ?? []).length;
+        // Devices nach Hardware-ID (Fingerprint / id) zählen
+        const deviceItems = devicesRes.items ?? [];
+        const hardwareIds = new Set<string>();
+        for (const dev of deviceItems) {
+          const key = dev.fingerprint || dev.id;
+          hardwareIds.add(key);
+        }
+        const devicesTotal = hardwareIds.size;
 
         setStats({
           customersTotal,
@@ -107,7 +111,7 @@ export default function DashboardPage() {
       }
     }
 
-    load();
+    void load();
 
     return () => {
       cancelled = true;
@@ -176,15 +180,16 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Rechnungen & Devices */}
+        {/* Rechnungen & Devices (nach Hardware-ID) */}
         <div className="dashboard-card">
-          <div className="dashboard-card-title">Rechnungen & Devices</div>
+          <div className="dashboard-card-title">Rechnungen &amp; Devices</div>
           <div className="dashboard-card-value">
             {loadingStats && !stats ? "…" : stats?.invoicesTotal ?? "–"}
           </div>
           <div className="dashboard-card-meta">
-            Rechnungen gesamt
-            {stats ? ` · ${stats.devicesTotal} Devices` : ""}.
+            {stats
+              ? `Rechnungen gesamt: ${stats.invoicesTotal} · Devices (nach Hardware-ID): ${stats.devicesTotal}.`
+              : "Rechnungen und Anzahl Geräte (Fingerprint / Device-ID)."}
           </div>
         </div>
       </div>

@@ -19,10 +19,12 @@ type CustomersResponse = {
   offset: number;
 };
 
+// Minimale Device-Infos, um pro Kunde nach Hardware-ID zu zählen
 type DevicesResponse = {
   items: {
     id: string;
     customerId: string | null;
+    fingerprint: string | null;
   }[];
   total: number;
 };
@@ -34,7 +36,10 @@ export default function CustomersListPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  const [deviceCounts, setDeviceCounts] = useState<Record<string, number>>({});
+  // Geräte-Anzahl pro Kunde (nach Hardware-ID gruppiert)
+  const [deviceCounts, setDeviceCounts] = useState<Record<string, number>>(
+    {},
+  );
   const [statusBusyId, setStatusBusyId] = useState<string | null>(null);
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
 
@@ -57,11 +62,20 @@ export default function CustomersListPage() {
         setItems(customers);
         setTotal(customersRes.total ?? customers.length);
 
+        // pro Kunde nach Hardware-ID (Fingerprint / id) zählen
         const counts: Record<string, number> = {};
+        const seen = new Set<string>();
+
         for (const dev of devicesRes.items ?? []) {
           if (!dev.customerId) continue;
+          const deviceKey = dev.fingerprint || dev.id;
+          const compositeKey = `${dev.customerId}::${deviceKey}`;
+          if (seen.has(compositeKey)) continue;
+          seen.add(compositeKey);
+
           counts[dev.customerId] = (counts[dev.customerId] ?? 0) + 1;
         }
+
         setDeviceCounts(counts);
       } catch (err) {
         console.error("Error loading customers/devices", err);

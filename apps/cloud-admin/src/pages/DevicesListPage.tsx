@@ -1,258 +1,194 @@
-import { useEffect, useState } from "react";
+// apps/cloud-admin/src/pages/DevicesListPage.tsx
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "../lib/api";
 
-type Device = {
+type LicenseInfo = {
   id: string;
-  name: string | null;
-  type: string | null;
-  status: string | null;
+  key: string;
+  plan: string;
+  validFrom: string | null;
+  validUntil: string | null;
+};
 
+type DeviceRow = {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  fingerprint: string | null;
   customerId: string | null;
   customerName: string | null;
-
-  licenseId: string | null;
-  licenseKey: string | null;
-  licensePlan: string | null;
-  licenseValidFrom: string | null;
-  licenseValidUntil: string | null;
-
+  lastSeenAt: string | null;
   lastHeartbeatAt: string | null;
   createdAt: string;
+  licenses?: LicenseInfo[];
 };
 
-type DeviceListResponse = {
-  items: Device[];
+type DevicesResponse = {
+  items: DeviceRow[];
   total: number;
+  limit: number;
+  offset: number;
 };
 
-function formatDate(value: string | null | undefined) {
+function formatDateTime(value: string | null) {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString("de-DE");
 }
 
-function formatLastSignal(value: string | null | undefined) {
-  if (!value) return "noch nie";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "–";
-  return d.toLocaleString("de-DE");
-}
-
-// online / stale / offline / never
-function classifySignal(
-  lastHeartbeatAt: string | null,
-): "never" | "online" | "stale" | "offline" {
-  if (!lastHeartbeatAt) return "never";
-  const d = new Date(lastHeartbeatAt);
-  if (Number.isNaN(d.getTime())) return "never";
-
-  const now = Date.now();
-  const diffMs = now - d.getTime();
-  const diffHours = diffMs / (1000 * 60 * 60);
-
-  if (diffHours <= 24) return "online";
-  if (diffHours <= 24 * 7) return "stale";
-  return "offline";
-}
-
-function signalBadgeClass(kind: "never" | "online" | "stale" | "offline") {
-  switch (kind) {
-    case "online":
-      return "badge badge--green";
-    case "stale":
-      return "badge badge--amber";
-    case "offline":
-      return "badge badge--red";
-    case "never":
-    default:
-      return "badge";
-  }
-}
-
-function signalText(kind: "never" | "online" | "stale" | "offline") {
-  switch (kind) {
-    case "online":
-      return "online";
-    case "stale":
-      return "stale";
-    case "offline":
-      return "offline";
-    case "never":
-    default:
-      return "noch nie";
-  }
-}
+const MAX_LICENSES_INLINE = 4;
 
 export default function DevicesListPage() {
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [total, setTotal] = useState(0);
+  const [rows, setRows] = useState<DeviceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadDevices() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await apiGet<DeviceListResponse>("/devices");
-      setDevices(res.items);
-      setTotal(res.total);
-    } catch (err: any) {
-      console.error(err);
-      setError("Fehler beim Laden der Devices.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
-    void loadDevices();
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await apiGet<DevicesResponse>("/devices");
+        if (cancelled) return;
+        setRows(res.items ?? []);
+      } catch (err) {
+        console.error("Error loading devices", err);
+        if (!cancelled) {
+          setError("Fehler beim Laden der Devices.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  // etwas hübsch sortieren: zuerst Kunde, dann Name
+  const sortedRows = [...rows].sort((a, b) => {
+    const ca = (a.customerName ?? "").toLowerCase();
+    const cb = (b.customerName ?? "").toLowerCase();
+    if (ca !== cb) return ca.localeCompare(cb);
+    return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+  });
 
   return (
     <div className="admin-page">
       <h1 className="admin-page-title">Devices</h1>
       <p className="admin-page-subtitle">
-        Übersicht aller registrierten Geräte und ihrer Lizenzzuordnung.
+        Alle registrierten POS-Geräte – nach Hardware-ID (Fingerprint / Device-ID)
+        gruppiert.
       </p>
 
-      <div className="admin-table-wrapper">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Name / Device-ID</th>
-              <th>Typ</th>
-              <th>Status</th>
-              <th>Plan</th>
-              <th>License</th>
-              <th>Gültig bis</th>
-              <th>Customer</th>
-              <th>Letztes Signal</th>
-              <th>Erstellt am</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={9}>Lade Devices…</td>
-              </tr>
-            )}
+      {error && <div className="admin-error-banner">{error}</div>}
 
-            {!loading && error && (
+      <div className="admin-card">
+        {loading ? (
+          <div style={{ padding: 24, fontSize: 13 }}>Lädt Devices…</div>
+        ) : sortedRows.length === 0 ? (
+          <div style={{ padding: 24, fontSize: 13, color: "#9ca3af" }}>
+            Keine Devices vorhanden.
+          </div>
+        ) : (
+          <table className="admin-table">
+            <thead>
               <tr>
-                <td colSpan={9}>
-                  <div className="admin-error">{error}</div>
-                </td>
+                <th>Name</th>
+                <th>Fingerprint</th>
+                <th>Licenses</th>
+                <th>Kunde</th>
+                <th>Status</th>
+                <th>Letzter Kontakt</th>
               </tr>
-            )}
+            </thead>
+            <tbody>
+              {sortedRows.map((d) => {
+                const lastContact = d.lastHeartbeatAt || d.lastSeenAt || null;
+                const licenses = d.licenses ?? [];
 
-            {!loading && !error && devices.length === 0 && (
-              <tr>
-                <td colSpan={9}>Noch keine Devices vorhanden.</td>
-              </tr>
-            )}
-
-            {!loading &&
-              !error &&
-              devices.map((dev) => {
-                const signalKind = classifySignal(dev.lastHeartbeatAt);
                 return (
-                  <tr key={dev.id}>
-                    {/* Name + Device-ID (Cloud-ID) */}
+                  <tr key={d.id}>
                     <td>
-                      <div>{dev.name || "—"}</div>
+                      <div style={{ whiteSpace: "nowrap" }}>{d.name}</div>
                       <div
                         style={{
                           fontSize: 11,
-                          opacity: 0.6,
-                          fontFamily:
-                            "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+                          color: "#9ca3af",
+                          marginTop: 2,
+                          textTransform: "uppercase",
                         }}
                       >
-                        {dev.id.slice(0, 8)}…
+                        {d.type}
                       </div>
                     </td>
-
-                    {/* Typ */}
-                    <td>{dev.type || "—"}</td>
-
-                    {/* Device-Status */}
+                    <td className="font-mono text-xs text-slate-300">
+                      {d.fingerprint ?? d.id}
+                    </td>
                     <td>
-                      <span
-                        className={
-                          dev.status === "active"
-                            ? "badge badge--green"
-                            : dev.status === "inactive"
-                            ? "badge badge--amber"
-                            : "badge"
-                        }
-                      >
-                        {dev.status || "—"}
+                      {licenses.length === 0 ? (
+                        <span className="opacity-60">—</span>
+                      ) : (
+                        <>
+                          {licenses.slice(0, MAX_LICENSES_INLINE).map((lic) => (
+                            <div
+                              key={lic.id}
+                              className="font-mono text-[11px] leading-snug"
+                            >
+                              {/* wenn du später License-Detail-Routen hast,
+                                  kannst du das hier in einen Link wrappen */}
+                              {lic.key}{" "}
+                              <span className="text-slate-400">
+                                ({lic.plan})
+                              </span>
+                            </div>
+                          ))}
+                          {licenses.length > MAX_LICENSES_INLINE && (
+                            <div className="font-mono text-[11px] text-slate-500 mt-1">
+                              + {licenses.length - MAX_LICENSES_INLINE} weitere
+                              Lizenz(en)
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ whiteSpace: "nowrap" }}>
+                        {d.customerId ? (
+                          <Link
+                            to={`/customers/${d.customerId}`}
+                            style={{ color: "#a855f7" }}
+                          >
+                            {d.customerName ?? d.customerId}
+                          </Link>
+                        ) : (
+                          <span className="opacity-60">—</span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`status-badge status-${d.status}`}>
+                        {d.status}
                       </span>
                     </td>
-
-                    {/* Plan aus License */}
-                    <td>{dev.licensePlan || "—"}</td>
-
-                    {/* License-Key mit Link zur License-Detailseite */}
-                    <td>
-                      {dev.licenseId && dev.licenseKey ? (
-                        <Link to={`/licenses/${dev.licenseId}`}>
-                          {dev.licenseKey}
-                        </Link>
-                      ) : (
-                        "—"
-                      )}
+                    <td className="text-xs text-slate-300 whitespace-nowrap">
+                      {formatDateTime(lastContact)}
                     </td>
-
-                    {/* Gültig bis (aus License) */}
-                    <td>
-                      {dev.licenseValidUntil
-                        ? formatDate(dev.licenseValidUntil)
-                        : "—"}
-                    </td>
-
-                    {/* Customer mit Link zur Customer-Detailseite */}
-                    <td>
-                      {dev.customerId ? (
-                        <Link to={`/customers/${dev.customerId}`}>
-                          {dev.customerName ||
-                            `${dev.customerId.slice(0, 8)}…`}
-                        </Link>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-
-                    {/* Letztes Signal + Ampel */}
-                    <td>
-                      <div>{formatLastSignal(dev.lastHeartbeatAt)}</div>
-                      <div style={{ marginTop: 4 }}>
-                        <span className={signalBadgeClass(signalKind)}>
-                          {signalText(signalKind)}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Erstellt am */}
-                    <td>{formatDate(dev.createdAt)}</td>
                   </tr>
                 );
               })}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        )}
       </div>
-
-      <p
-        style={{
-          marginTop: 8,
-          fontSize: 12,
-          color: "#6b7280",
-        }}
-      >
-        {total} Device(s) in dieser Instanz.
-      </p>
     </div>
   );
 }

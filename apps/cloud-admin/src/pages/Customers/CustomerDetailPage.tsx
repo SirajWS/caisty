@@ -52,13 +52,27 @@ type License = {
   createdAt?: string | null;
 };
 
-type Device = {
+// Rohdaten aus /devices (aggregiert oder nicht – wir gruppieren nach Fingerprint)
+type DeviceRow = {
   id: string;
-  customerId: string;
+  customerId: string | null;
   name: string;
   type: string;
   status: string;
   licenseId?: string | null;
+  fingerprint?: string | null;
+  lastHeartbeatAt?: string | null;
+  createdAt?: string | null;
+};
+
+// Aggregierte Device-Ansicht pro Hardware-Gerät
+type Device = {
+  id: string; // Gruppenschlüssel (fingerprint oder Fallback id)
+  fingerprint?: string | null;
+  name: string;
+  type: string;
+  status: string;
+  licenseIds: string[];
   lastHeartbeatAt?: string | null;
   createdAt?: string | null;
 };
@@ -123,7 +137,7 @@ export default function CustomerDetailPage() {
           apiGet<CustomerResponse>(`/customers/${customerId}`),
           apiGet<ListResponse<Subscription>>("/subscriptions"),
           apiGet<ListResponse<License>>("/licenses"),
-          apiGet<ListResponse<Device>>("/devices"),
+          apiGet<ListResponse<DeviceRow>>("/devices"),
         ]);
 
         if (cancelled) return;
@@ -135,9 +149,70 @@ export default function CustomerDetailPage() {
         setLicenses(
           (licRes.items ?? []).filter((l) => l.customerId === customerId),
         );
-        setDevices(
-          (devRes.items ?? []).filter((d) => d.customerId === customerId),
+
+        // Devices nur für diesen Kunden, dann nach fingerprint gruppieren
+        const rowsForCustomer = (devRes.items ?? []).filter(
+          (d) => d.customerId === customerId,
         );
+
+        const grouped: Record<string, Device> = {};
+
+        for (const row of rowsForCustomer) {
+          const groupKey = row.fingerprint || row.id;
+          const existing = grouped[groupKey];
+
+          if (!existing) {
+            grouped[groupKey] = {
+              id: groupKey,
+              fingerprint: row.fingerprint,
+              name: row.name,
+              type: row.type,
+              status: row.status,
+              licenseIds: row.licenseId ? [row.licenseId] : [],
+              lastHeartbeatAt: row.lastHeartbeatAt,
+              createdAt: row.createdAt,
+            };
+          } else {
+            // Status: "active" gewinnt
+            if (row.status === "active") {
+              existing.status = row.status;
+            }
+
+            // Letztes Signal: neuestes Datum
+            if (row.lastHeartbeatAt) {
+              const newTs = new Date(row.lastHeartbeatAt).getTime();
+              const oldTs = existing.lastHeartbeatAt
+                ? new Date(existing.lastHeartbeatAt).getTime()
+                : 0;
+              if (!Number.isNaN(newTs) && newTs > oldTs) {
+                existing.lastHeartbeatAt = row.lastHeartbeatAt;
+              }
+            }
+
+            // createdAt: frühestes Datum
+            if (row.createdAt) {
+              const newTs = new Date(row.createdAt).getTime();
+              const oldTs = existing.createdAt
+                ? new Date(existing.createdAt).getTime()
+                : Number.POSITIVE_INFINITY;
+              if (!Number.isNaN(newTs) && newTs < oldTs) {
+                existing.createdAt = row.createdAt;
+              }
+            }
+
+            if (row.licenseId && !existing.licenseIds.includes(row.licenseId)) {
+              existing.licenseIds.push(row.licenseId);
+            }
+          }
+        }
+
+        const aggregatedDevices = Object.values(grouped).sort((a, b) => {
+          const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return tb - ta;
+        });
+
+        setDevices(aggregatedDevices);
       } catch (err) {
         console.error("Error loading customer detail", err);
         if (!cancelled) {
@@ -545,7 +620,7 @@ export default function CustomerDetailPage() {
                   <th>Name</th>
                   <th>Typ</th>
                   <th>Status</th>
-                  <th>License</th>
+                  <th>License(s)</th>
                   <th>Letztes Signal</th>
                   <th>Erstellt am</th>
                 </tr>
@@ -568,17 +643,39 @@ export default function CustomerDetailPage() {
                         </span>
                       </td>
                       <td>
-                        {d.licenseId ? (
-                          <Link
-                            to={`/licenses/${d.licenseId}`}
-                            style={{ color: "#a855f7" }}
-                          >
-                            {licenses.find((l) => l.id === d.licenseId)?.key ??
-                              "License"}
-                          </Link>
-                        ) : (
-                          "—"
-                        )}
+                        {d.licenseIds.length === 0
+                          ? "—"
+                          : d.licenseIds.map((licenseId) => {
+                              const lic = licenses.find(
+                                (l) => l.id === licenseId,
+                              );
+                              if (!lic) {
+                                return (
+                                  <div key={licenseId ?? "unknown"}>
+                                    License
+                                  </div>
+                                );
+                              }
+                              return (
+                                <div key={lic.id}>
+                                  <Link
+                                    to={`/licenses/${lic.id}`}
+                                    style={{ color: "#a855f7" }}
+                                  >
+                                    {lic.key}
+                                  </Link>
+                                  <span
+                                    style={{
+                                      marginLeft: 4,
+                                      fontSize: 11,
+                                      color: "#9ca3af",
+                                    }}
+                                  >
+                                    ({lic.plan})
+                                  </span>
+                                </div>
+                              );
+                            })}
                       </td>
                       <td>{formatDate(d.lastHeartbeatAt)}</td>
                       <td>{formatDate(d.createdAt)}</td>

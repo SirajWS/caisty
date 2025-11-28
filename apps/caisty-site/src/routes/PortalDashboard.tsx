@@ -7,6 +7,7 @@ import {
   fetchPortalInvoices,
   type PortalLicense,
   type PortalInvoice,
+  type PortalDevice,
 } from "../lib/portalApi";
 import { usePortalOutlet } from "./PortalLayout";
 
@@ -14,11 +15,10 @@ function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString();
+  return d.toLocaleString("de-DE");
 }
 
-function formatAmount(currency: string, amount: number): string {
-  // amount kommt in deiner API aktuell als "ganzer Betrag" – kein Centsfeld
+function formatAmount(currency: string | null | undefined, amount: number): string {
   try {
     return new Intl.NumberFormat("de-DE", {
       style: "currency",
@@ -27,7 +27,7 @@ function formatAmount(currency: string, amount: number): string {
       maximumFractionDigits: 2,
     }).format(amount);
   } catch {
-    return `${amount} ${currency}`;
+    return `${amount} ${currency ?? ""}`.trim();
   }
 }
 
@@ -55,7 +55,17 @@ const PortalDashboard: React.FC = () => {
         if (cancelled) return;
 
         setLicenses(lics);
-        setDeviceCount(devs.length);
+
+        // Geräte nach Hardware-ID (deviceId / fingerprint / id) gruppieren
+        const uniqueDeviceIds = new Set<string>();
+        (devs as PortalDevice[]).forEach((d) => {
+          const key =
+            (d as any).deviceId || // neues Feld aus /portal/devices
+            (d as any).fingerprint ||
+            d.id;
+          if (key) uniqueDeviceIds.add(key);
+        });
+        setDeviceCount(uniqueDeviceIds.size);
 
         const sorted = [...invs].sort(
           (a, b) =>
@@ -64,7 +74,7 @@ const PortalDashboard: React.FC = () => {
         );
         setLatestInvoice(sorted[0] ?? null);
       } catch (err) {
-        console.error("Fehler beim Laden des Dashboards:", err);
+        console.error("Fehler beim Laden des Portal-Dashboards:", err);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -75,13 +85,22 @@ const PortalDashboard: React.FC = () => {
     };
   }, []);
 
+  // aktivste / wichtigste Lizenz (zuerst "active", dann mit spätestem validUntil)
   const activeLicense: PortalLicense | null = React.useMemo(() => {
     if (!licenses.length) return null;
-    return (
-      licenses.find(
-        (lic) => lic.status?.toLowerCase() === "active",
-      ) ?? licenses[0]
+
+    const actives = licenses.filter(
+      (l) => (l.status ?? "").toLowerCase() === "active",
     );
+
+    const pool = actives.length ? actives : licenses;
+    const sorted = [...pool].sort((a, b) => {
+      const ta = a.validUntil ? new Date(a.validUntil).getTime() : 0;
+      const tb = b.validUntil ? new Date(b.validUntil).getTime() : 0;
+      return tb - ta;
+    });
+
+    return sorted[0] ?? null;
   }, [licenses]);
 
   return (
@@ -92,8 +111,7 @@ const PortalDashboard: React.FC = () => {
           Willkommen, {customer.name}
         </h1>
         <p className="text-sm text-slate-300">
-          Überblick über dein Caisty Konto – Lizenzen, Geräte und
-          Rechnungen.
+          Überblick über dein Caisty Konto – Lizenzen, Geräte und Rechnungen.
         </p>
       </header>
 
@@ -160,8 +178,8 @@ const PortalDashboard: React.FC = () => {
             )}
 
             <p className="text-xs text-slate-400">
-              Alle POS-Geräte, die aktuell mit deinen Lizenzen
-              verbunden sind.
+              Alle POS-Geräte, die aktuell mit deinen Lizenzen verbunden
+              sind (nach Hardware-ID gruppiert).
             </p>
           </div>
 

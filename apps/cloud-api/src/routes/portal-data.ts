@@ -1,11 +1,9 @@
-// apps/cloud-api/src/routes/portal-data.ts
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { db } from "../db/client";
 import { licenses, devices, invoices } from "../db/schema";
 import { desc, eq } from "drizzle-orm";
 import { verifyPortalToken } from "../lib/portalJwt";
 
-// Payload-Struktur deines Portal-JWT
 interface PortalJwtPayload {
   customerId: string;
   orgId: string;
@@ -13,36 +11,84 @@ interface PortalJwtPayload {
   exp: number;
 }
 
-// Helper: Portal-Token aus dem Header lesen + verifizieren
 function getPortalAuth(request: FastifyRequest): PortalJwtPayload {
   const auth = request.headers.authorization;
-
-  if (!auth || !auth.startsWith("Bearer ")) {
-    throw new Error("Missing portal token");
-  }
-
+  if (!auth || !auth.startsWith("Bearer ")) throw new Error("Missing portal token");
   const token = auth.slice("Bearer ".length);
   return verifyPortalToken(token) as PortalJwtPayload;
 }
 
 export async function registerPortalDataRoutes(app: FastifyInstance) {
-  // ---------------------------------------------------------------------------
-  // 1) LIZENZEN DES PORTAL-KUNDEN
-  //    -> Frontend: fetchPortalLicenses()
-  // ---------------------------------------------------------------------------
-  app.get("/portal/licenses", async (request, reply) => {
+  // -------------------------------------------------------------------------
+  // 1) PORTAL DEVICES – gruppiert nach Fingerprint
+  // -------------------------------------------------------------------------
+  app.get("/portal/devices", async (request, reply) => {
     let payload: PortalJwtPayload;
-
     try {
       payload = getPortalAuth(request);
-    } catch (err) {
-      app.log.warn({ err }, "portal/licenses: invalid portal token");
+    } catch {
       reply.code(401);
       return { message: "Invalid or missing portal token" };
     }
 
-    // Wichtig: nur nach customerId filtern – orgId kann im aktuellen Setup
-    // von License und Customer abweichen (Admin-Org vs. Portal-Org).
+    const rows = await db
+      .select({
+        id: devices.id,
+        name: devices.name,
+        type: devices.type,
+        status: devices.status,
+        fingerprint: devices.fingerprint,
+        createdAt: devices.createdAt,
+        lastSeenAt: devices.lastSeenAt,
+        lastHeartbeatAt: devices.lastHeartbeatAt,
+        licenseKey: licenses.key,
+        licensePlan: licenses.plan,
+      })
+      .from(devices)
+      .leftJoin(licenses, eq(devices.licenseId, licenses.id))
+      .where(eq(devices.customerId, payload.customerId))
+      .orderBy(desc(devices.createdAt));
+
+    const grouped = Object.values(
+      rows.reduce((acc, row) => {
+        const key = row.fingerprint || row.id;
+        if (!acc[key]) {
+          acc[key] = {
+            fingerprint: row.fingerprint,
+            name: row.name,
+            type: row.type,
+            status: row.status,
+            createdAt: row.createdAt,
+            lastSeenAt: row.lastSeenAt,
+            lastHeartbeatAt: row.lastHeartbeatAt,
+            licenseKeys: [],
+          };
+        }
+        if (row.licenseKey) {
+          acc[key].licenseKeys.push({
+            key: row.licenseKey,
+            plan: row.licensePlan,
+          });
+        }
+        return acc;
+      }, {} as Record<string, any>)
+    );
+
+    return grouped;
+  });
+
+  // -------------------------------------------------------------------------
+  // 2) PORTAL LICENSES (unverändert)
+  // -------------------------------------------------------------------------
+  app.get("/portal/licenses", async (request, reply) => {
+    let payload: PortalJwtPayload;
+    try {
+      payload = getPortalAuth(request);
+    } catch {
+      reply.code(401);
+      return { message: "Invalid or missing portal token" };
+    }
+
     const rows = await db
       .select({
         id: licenses.id,
@@ -52,136 +98,47 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
         maxDevices: licenses.maxDevices,
         validUntil: licenses.validUntil,
         createdAt: licenses.createdAt,
-        // optional: validFrom, falls vorhanden
-        validFrom: licenses.validFrom,
       })
       .from(licenses)
       .where(eq(licenses.customerId, payload.customerId))
       .orderBy(desc(licenses.createdAt));
 
-    return rows.map((row) => ({
-      id: row.id,
-      key: row.key,
-      plan: row.plan,
-      status: row.status,
-      maxDevices: row.maxDevices,
-      validUntil: row.validUntil
-        ? row.validUntil.toISOString()
-        : null,
-      createdAt: row.createdAt.toISOString(),
-      // falls validFrom existiert, mappen – Frontend ignoriert das aktuell
-      validFrom: row.validFrom ? row.validFrom.toISOString() : null,
+    return rows.map((l) => ({
+      ...l,
+      validUntil: l.validUntil ? l.validUntil.toISOString() : null,
+      createdAt: l.createdAt.toISOString(),
     }));
   });
 
-  // ---------------------------------------------------------------------------
-  // 2) DEVICES DES PORTAL-KUNDEN
-  //    -> Frontend: fetchPortalDevices()
-  // ---------------------------------------------------------------------------
-  app.get("/portal/devices", async (request, reply) => {
-    let payload: PortalJwtPayload;
-
-    try {
-      payload = getPortalAuth(request);
-    } catch (err) {
-      app.log.warn({ err }, "portal/devices: invalid portal token");
-      reply.code(401);
-      return { message: "Invalid or missing portal token" };
-    }
-
-    // Wir holen das komplette Device-Objekt und mappen danach in ein
-    // Portal-kompatibles Format. So sind wir tolerant gegenüber
-    // kleineren Schema-Unterschieden (deviceId / fingerprint, lastSeenAt / lastHeartbeatAt).
-    const rows = await db
-      .select({
-        device: devices,
-        licenseKey: licenses.key,
-      })
-      .from(devices)
-      .leftJoin(licenses, eq(devices.licenseId, licenses.id))
-      .where(eq(devices.customerId, payload.customerId))
-      .orderBy(desc(devices.createdAt));
-
-    return rows.map((row) => {
-      const dev: any = row.device;
-
-      const lastSeen =
-        dev.lastSeenAt ??
-        dev.lastHeartbeatAt ??
-        null;
-
-      const deviceId =
-        dev.deviceId ??
-        dev.fingerprint ??
-        dev.id;
-
-      const status: string =
-        dev.status ??
-        (lastSeen ? "online" : "never_seen");
-
-      return {
-        id: dev.id,
-        name: dev.name,
-        deviceId,
-        lastSeenAt: lastSeen
-          ? new Date(lastSeen).toISOString()
-          : null,
-        status,
-        licenseKey: row.licenseKey ?? null,
-      };
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // 3) INVOICES DES PORTAL-KUNDEN
-  //    -> Frontend: fetchPortalInvoices()
-  // ---------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  // 3) PORTAL INVOICES (unverändert)
+  // -------------------------------------------------------------------------
   app.get("/portal/invoices", async (request, reply) => {
     let payload: PortalJwtPayload;
-
     try {
       payload = getPortalAuth(request);
-    } catch (err) {
-      app.log.warn({ err }, "portal/invoices: invalid portal token");
+    } catch {
       reply.code(401);
       return { message: "Invalid or missing portal token" };
     }
 
     const rows = await db
-      .select({
-        inv: invoices,
-      })
+      .select({ inv: invoices })
       .from(invoices)
       .where(eq(invoices.customerId, payload.customerId))
       .orderBy(desc(invoices.createdAt));
 
-    return rows.map((row) => {
-      const inv: any = row.inv;
-
-      // amountCents → Betrag (z. B. TND/EUR) – 100 durch 100 teilen, falls vorhanden
-      const amountCents: number | undefined = inv.amountCents;
-      const amount =
-        typeof amountCents === "number"
-          ? amountCents / 100
-          : inv.amount ?? 0;
-
-      const issued =
-        inv.issuedAt ??
-        inv.periodFrom ??
-        null;
-      const due =
-        inv.dueAt ??
-        inv.periodTo ??
-        null;
-
+    return rows.map((r) => {
+      const inv = r.inv as any;
+      const amount = inv.amountCents ? inv.amountCents / 100 : inv.amount ?? 0;
       return {
         id: inv.id,
         number: inv.number,
         amount,
         currency: inv.currency ?? "TND",
-        status: inv.status as string,
-        periodFrom: issued ? new Date(issued).toISOString() : null,
-        periodTo: due ? new Date(due).toISOString() : null,
+        status: inv.status,
+        periodFrom: inv.periodFrom ? new Date(inv.periodFrom).toISOString() : null,
+        periodTo: inv.periodTo ? new Date(inv.periodTo).toISOString() : null,
         createdAt: new Date(inv.createdAt).toISOString(),
         downloadUrl: inv.pdfUrl ?? null,
       };
