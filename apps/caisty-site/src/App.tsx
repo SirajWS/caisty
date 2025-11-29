@@ -15,6 +15,7 @@ import PortalAccountPage from "./routes/PortalAccountPage";
 import PortalInstallPage from "./routes/PortalInstallPage"; // Install-Seite
 import PortalPlanBillingPage from "./routes/PortalPlanBillingPage"; // Plan & Abrechnung
 import PortalSupportPage from "./routes/PortalSupportPage"; // Support / Kontakt
+import PortalUpgradeResultPage from "./routes/PortalUpgradeResultPage"; // ⬅️ NEU
 
 export default function App() {
   return (
@@ -35,9 +36,13 @@ export default function App() {
           <Route path="plan" element={<PortalPlanBillingPage />} />
           <Route path="devices" element={<PortalDevicesPage />} />
           <Route path="invoices" element={<PortalInvoicesPage />} />
-          <Route path="support" element={<PortalSupportPage />} /> {/* ⬅️ NEU */}
+          <Route path="support" element={<PortalSupportPage />} />
           <Route path="account" element={<PortalAccountPage />} />
           <Route path="install" element={<PortalInstallPage />} />
+          <Route
+            path="upgrade/result"
+            element={<PortalUpgradeResultPage />}
+          />
         </Route>
       </Routes>
     </BrowserRouter>

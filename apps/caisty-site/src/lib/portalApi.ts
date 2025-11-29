@@ -272,7 +272,6 @@ export async function createTrialLicense(): Promise<PortalLicense> {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    // Wichtig: JSON-Body mitsenden, auch wenn leer
     body: JSON.stringify({}),
   });
 
@@ -312,6 +311,61 @@ export async function createTrialLicense(): Promise<PortalLicense> {
   }
 
   return data.license;
+}
+
+// ---------- Upgrade (Starter/Pro) ----------
+
+export type PortalUpgradeStartResponse = {
+  ok: boolean;
+  message?: string;
+  reason?: string;
+  subscription?: {
+    id: string;
+    plan: string;
+    status: string;
+  };
+  invoice?: {
+    id: string;
+    number: string;
+    amount: number;
+    currency: string;
+    status: string;
+    issuedAt: string;
+    dueAt: string;
+  };
+  redirectUrl?: string;
+  paypalOrderId?: string;
+};
+
+export async function startPortalUpgrade(
+  plan: "starter" | "pro",
+): Promise<PortalUpgradeStartResponse> {
+  const token = getStoredPortalToken();
+  if (!token) throw new Error("Nicht angemeldet.");
+
+  const res = await fetch(`${API_BASE}/portal/upgrade/start`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ plan }),
+  });
+
+  if (res.status === 401) {
+    clearPortalToken();
+    throw new Error("Nicht angemeldet.");
+  }
+
+  const data = (await res.json()) as PortalUpgradeStartResponse;
+
+  if (!res.ok || !data.ok) {
+    throw new Error(
+      data.message ?? "Upgrade konnte nicht gestartet werden.",
+    );
+  }
+
+  return data;
 }
 
 // ---------- Support / Kontakt aus Portal ----------
@@ -396,11 +450,9 @@ export async function fetchPortalSupportMessages(): Promise<
     );
   }
 
-  // Backend kann entweder direkt ein Array senden
   if (Array.isArray(data)) {
     return data as PortalSupportMessage[];
   }
 
-  // oder Wrapper { ok, items: [...] } / { ok, messages: [...] }
   return (data.items || data.messages || []) as PortalSupportMessage[];
 }

@@ -41,7 +41,7 @@ export default async function routes(app: FastifyInstance) {
 
   // Self-Service (Portal-Trial etc.)
   await app.register(selfServiceTrialRoutes);
-  
+
   await app.register(notificationsRoutes);
 
   // Payments & Webhooks

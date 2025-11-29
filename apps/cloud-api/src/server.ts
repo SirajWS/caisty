@@ -20,6 +20,7 @@ import { registerPortalAuthRoutes } from "./routes/portalAuthRoutes.js";
 import { registerPortalDataRoutes } from "./routes/portal-data.js";
 import { registerPortalSupportRoutes } from "./routes/portal-support.js";
 import { registerPortalTrialLicenseRoutes } from "./routes/portal-trial-license.js";
+import { registerPortalUpgradeRoutes } from "./routes/portal-upgrade.js";
 
 import { verifyToken } from "./lib/jwt.js";
 import { registerAdminNotificationsRoutes } from "./routes/admin-notifications.js";
@@ -40,7 +41,6 @@ export async function buildServer() {
     const url = request.raw.url?.split("?")[0] ?? "";
     const method = request.method.toUpperCase();
 
-    // 🔓 Endpunkte, die KEIN Admin-JWT brauchen:
     const isPublicRoute =
       url === "/health" ||
       url === "/auth/login" ||
@@ -83,16 +83,17 @@ export async function buildServer() {
   // ---------------------------------------------------------------------------
   // Portal-Routen (eigener JWT via portalJwt)
   // ---------------------------------------------------------------------------
-  await registerPortalAuthRoutes(app);          // /portal/register, /portal/login, /portal/me, ...
-  await registerPortalDataRoutes(app);          // /portal/licenses, /portal/devices, /portal/invoices
-  await registerPortalTrialLicenseRoutes(app);  // /portal/trial-license
-  await registerPortalSupportRoutes(app);       // /portal/support-...
+  await registerPortalAuthRoutes(app);
+  await registerPortalDataRoutes(app);
+  await registerPortalTrialLicenseRoutes(app);
+  await registerPortalSupportRoutes(app);
+  await registerPortalUpgradeRoutes(app); // ⬅️ Upgrade + PayPal
 
-  // Admin-Notifications laufen über Admin-JWT (kein /portal/)
+  // Admin-Notifications (Admin-JWT)
   await registerAdminNotificationsRoutes(app);
 
   // ---------------------------------------------------------------------------
-  // Admin-APIs (durch Hook oben JWT-geschützt)
+  // Admin-APIs
   // ---------------------------------------------------------------------------
   await registerCustomersRoutes(app);
   await registerOrgsRoutes(app);
@@ -102,7 +103,7 @@ export async function buildServer() {
   await registerLicensesRoutes(app);
 
   // ---------------------------------------------------------------------------
-  // Öffentliche License-/Device-API für POS (verify/bind/heartbeat)
+  // Öffentliche License-/Device-API für POS
   // ---------------------------------------------------------------------------
   await registerPublicLicenseRoutes(app);
 

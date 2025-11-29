@@ -93,6 +93,11 @@ export async function registerCustomersRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params;
 
+      request.log.info(
+        { id, idLength: id?.length ?? 0 },
+        "GET /customers/:id called",
+      );
+
       const [item] = await db
         .select()
         .from(customers)
@@ -100,6 +105,7 @@ export async function registerCustomersRoutes(app: FastifyInstance) {
         .limit(1);
 
       if (!item) {
+        request.log.warn({ id }, "Customer not found in GET /customers/:id");
         reply.code(404);
         return { error: "Customer not found" };
       }
@@ -115,28 +121,98 @@ export async function registerCustomersRoutes(app: FastifyInstance) {
     "/customers/:id/status",
     async (request, reply) => {
       const { id } = request.params;
-      const { status } = request.body;
+      const rawStatus = request.body?.status;
 
-      if (!status || !["active", "inactive"].includes(status)) {
+      const normalizedStatus =
+        typeof rawStatus === "string"
+          ? rawStatus.trim().toLowerCase()
+          : "";
+
+      request.log.info(
+        {
+          id,
+          idLength: id?.length ?? 0,
+          rawStatus,
+          normalizedStatus,
+          route: "PATCH /customers/:id/status",
+        },
+        "Status update requested",
+      );
+
+      if (!normalizedStatus) {
+        request.log.warn(
+          { id, rawStatus },
+          "Missing or empty status in body",
+        );
         reply.code(400);
-        return { error: "Invalid status" };
+        return { error: "Status is required and must be a non-empty string" };
+      }
+
+      if (!["active", "inactive"].includes(normalizedStatus)) {
+        request.log.warn(
+          { id, normalizedStatus },
+          "Invalid status value",
+        );
+        reply.code(400);
+        return {
+          error: "Invalid status",
+          allowed: ["active", "inactive"],
+        };
       }
 
       try {
-        const [updated] = await db
-          .update(customers)
-          .set({ status })
+        // 1) Existenz prüfen
+        const [existing] = await db
+          .select({ id: customers.id, status: customers.status })
+          .from(customers)
           .where(eq(customers.id, id))
-          .returning();
+          .limit(1);
 
-        if (!updated) {
+        if (!existing) {
+          request.log.warn(
+            { id },
+            "Customer not found in database for status update",
+          );
           reply.code(404);
           return { error: "Customer not found" };
         }
 
+        request.log.info(
+          {
+            id,
+            oldStatus: existing.status,
+            newStatus: normalizedStatus,
+          },
+          "Updating customer status",
+        );
+
+        // 2) Update
+        const [updated] = await db
+          .update(customers)
+          .set({ status: normalizedStatus })
+          .where(eq(customers.id, id))
+          .returning();
+
+        if (!updated) {
+          request.log.error(
+            { id },
+            "Update returned no rows (unexpected)",
+          );
+          reply.code(500);
+          return { error: "Failed to update customer status" };
+        }
+
+        request.log.info(
+          { id, newStatus: updated.status },
+          "Customer status updated successfully",
+        );
+
         return { item: updated };
       } catch (err) {
-        console.error("Error updating customer status", err);
+        request.log.error(
+          { err, id, rawStatus, normalizedStatus },
+          "Error updating customer status",
+        );
         reply.code(500);
         return { error: "Failed to update customer status" };
       }
@@ -151,27 +227,33 @@ export async function registerCustomersRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params;
 
+      request.log.info(
+        { id, idLength: id?.length ?? 0 },
+        "DELETE /customers/:id called",
+      );
+
       try {
-        // Devices von diesem Kunden lösen
+        // Devices entkoppeln
         await db
           .update(devices)
           .set({ customerId: null })
           .where(eq(devices.customerId, id));
 
-        // Kunden löschen
-        const [deleted] = await db
+        const deleted = await db
           .delete(customers)
           .where(eq(customers.id, id))
           .returning();
 
-        if (!deleted) {
+        if (deleted.length === 0) {
+          request.log.warn({ id }, "Customer not found in DELETE /customers/:id");
           reply.code(404);
           return { error: "Customer not found" };
         }
 
+        request.log.info({ id }, "Customer deleted successfully");
         return { ok: true };
       } catch (err) {
-        console.error("Error deleting customer", err);
+        request.log.error({ err, id }, "Error deleting customer");
         reply.code(500);
         return { error: "Failed to delete customer" };
       }
