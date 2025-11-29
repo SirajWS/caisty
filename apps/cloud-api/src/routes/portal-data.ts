@@ -1,8 +1,8 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import { db } from "../db/client";
-import { licenses, devices, invoices } from "../db/schema";
+import { db } from "../db/client.js";
+import { licenses, devices, invoices } from "../db/schema/index.js";
 import { desc, eq } from "drizzle-orm";
-import { verifyPortalToken } from "../lib/portalJwt";
+import { verifyPortalToken } from "../lib/portalJwt.js";
 
 interface PortalJwtPayload {
   customerId: string;
@@ -50,7 +50,7 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
       .orderBy(desc(devices.createdAt));
 
     const grouped = Object.values(
-      rows.reduce((acc, row) => {
+      rows.reduce((acc: Record<string, any>, row: any) => {
         const key = row.fingerprint || row.id;
         if (!acc[key]) {
           acc[key] = {
@@ -71,44 +71,16 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
           });
         }
         return acc;
-      }, {} as Record<string, any>)
+      }, {} as Record<string, any>) as any[]
     );
 
     return grouped;
   });
 
   // -------------------------------------------------------------------------
-  // 2) PORTAL LICENSES (unverändert)
+  // 2) PORTAL LICENSES - entfernt, da jetzt in portal-licenses.ts
+  // Die Route wurde nach portal-licenses.ts verschoben
   // -------------------------------------------------------------------------
-  app.get("/portal/licenses", async (request, reply) => {
-    let payload: PortalJwtPayload;
-    try {
-      payload = getPortalAuth(request);
-    } catch {
-      reply.code(401);
-      return { message: "Invalid or missing portal token" };
-    }
-
-    const rows = await db
-      .select({
-        id: licenses.id,
-        key: licenses.key,
-        plan: licenses.plan,
-        status: licenses.status,
-        maxDevices: licenses.maxDevices,
-        validUntil: licenses.validUntil,
-        createdAt: licenses.createdAt,
-      })
-      .from(licenses)
-      .where(eq(licenses.customerId, payload.customerId))
-      .orderBy(desc(licenses.createdAt));
-
-    return rows.map((l) => ({
-      ...l,
-      validUntil: l.validUntil ? l.validUntil.toISOString() : null,
-      createdAt: l.createdAt.toISOString(),
-    }));
-  });
 
   // -------------------------------------------------------------------------
   // 3) PORTAL INVOICES (unverändert)
@@ -128,7 +100,7 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
       .where(eq(invoices.customerId, payload.customerId))
       .orderBy(desc(invoices.createdAt));
 
-    return rows.map((r) => {
+    return rows.map((r: any) => {
       const inv = r.inv as any;
       const amount = inv.amountCents ? inv.amountCents / 100 : inv.amount ?? 0;
       return {

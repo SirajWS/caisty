@@ -4,32 +4,39 @@ import cors from "@fastify/cors";
 import { env } from "./config/env.js";
 
 import { registerHealthRoute } from "./routes/health.js";
+import { registerAuthRoutes } from "./routes/auth.js";
+
 import { registerCustomersRoutes } from "./routes/customers.js";
 import { registerOrgsRoutes } from "./routes/orgs.js";
 import { registerSubscriptionsRoutes } from "./routes/subscriptions.js";
 import { registerInvoicesRoutes } from "./routes/invoices.js";
 import { registerDevicesRoutes } from "./routes/devices.js";
-import { registerAuthRoutes } from "./routes/auth.js";
-import { registerPaymentsRoutes } from "./routes/payments.js";
-import { registerWebhooksRoutes } from "./routes/webhooks.js";
 import { registerLicensesRoutes } from "./routes/licenses.js";
 import { registerPublicLicenseRoutes } from "./routes/public-license.js";
 
-// 🔹 Portal (eigenes JWT)
+import { registerPaymentsRoutes } from "./routes/payments.js";
+import { registerWebhooksRoutes } from "./routes/webhooks.js";
+
+// 🔹 Portal (eigenes JWT, separate Auth)
 import { registerPortalAuthRoutes } from "./routes/portalAuthRoutes.js";
 import { registerPortalDataRoutes } from "./routes/portal-data.js";
 import { registerPortalSupportRoutes } from "./routes/portal-support.js";
 import { registerPortalTrialLicenseRoutes } from "./routes/portal-trial-license.js";
 import { registerPortalUpgradeRoutes } from "./routes/portal-upgrade.js";
+import { registerPortalLicensesRoutes } from "./routes/portal-licenses.js";
+
+import { registerAdminNotificationsRoutes } from "./routes/admin-notifications.js";
 
 import { verifyToken } from "./lib/jwt.js";
-import { registerAdminNotificationsRoutes } from "./routes/admin-notifications.js";
 
 export async function buildServer() {
   const app = Fastify({
     logger: true,
   });
 
+  // ---------------------------------------------------------------------------
+  // CORS
+  // ---------------------------------------------------------------------------
   await app.register(cors, {
     origin: true,
   });
@@ -44,7 +51,7 @@ export async function buildServer() {
     const isPublicRoute =
       url === "/health" ||
       url === "/auth/login" ||
-      url.startsWith("/portal/") ||
+      url.startsWith("/portal/") || // Portal-API (Portal-JWT)
       (url === "/webhooks/paypal" && method === "POST") ||
       (url === "/licenses/verify" && method === "POST") ||
       (url === "/devices/bind" && method === "POST") ||
@@ -81,19 +88,22 @@ export async function buildServer() {
   await registerAuthRoutes(app);
 
   // ---------------------------------------------------------------------------
-  // Portal-Routen (eigener JWT via portalJwt)
+  // Portal-Routen (nutzen eigenes JWT via portalJwt)
   // ---------------------------------------------------------------------------
   await registerPortalAuthRoutes(app);
   await registerPortalDataRoutes(app);
   await registerPortalTrialLicenseRoutes(app);
   await registerPortalSupportRoutes(app);
-  await registerPortalUpgradeRoutes(app); // ⬅️ Upgrade + PayPal
+  await registerPortalUpgradeRoutes(app);    // Upgrade + PayPal
+  await registerPortalLicensesRoutes(app);   // "Meine Lizenzen" (Portal-Liste)
 
+  // ---------------------------------------------------------------------------
   // Admin-Notifications (Admin-JWT)
+  // ---------------------------------------------------------------------------
   await registerAdminNotificationsRoutes(app);
 
   // ---------------------------------------------------------------------------
-  // Admin-APIs
+  // Admin-APIs (interne Cloud-Admin-Oberfläche)
   // ---------------------------------------------------------------------------
   await registerCustomersRoutes(app);
   await registerOrgsRoutes(app);

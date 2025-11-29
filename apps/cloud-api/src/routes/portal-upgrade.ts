@@ -1,12 +1,13 @@
 // apps/cloud-api/src/routes/portal-upgrade.ts
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { addDays, addMonths } from "date-fns";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 
 import { db } from "../db/client.js";
 import { customers } from "../db/schema/customers.js";
 import { subscriptions } from "../db/schema/subscriptions.js";
 import { invoices } from "../db/schema/invoices.js";
+import { licenses } from "../db/schema/licenses.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 
 // Node-Fetch Alias (damit TypeScript nicht meckert)
@@ -40,11 +41,14 @@ const PAYPAL_BASE_URL =
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID ?? "";
 const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET ?? "";
 
+// Hier läuft die Cloud-API (Fastify)
 const PUBLIC_API_BASE_URL =
   process.env.PUBLIC_API_BASE_URL ?? "http://127.0.0.1:3333";
 
+// Hier läuft das Portal (Vite dev oder später das echte Frontend)
+// z.B. DEV: http://localhost:5173
 const PORTAL_BASE_URL =
-  process.env.PORTAL_BASE_URL ?? "http://127.0.0.1:5153";
+  process.env.PORTAL_BASE_URL ?? "http://http://localhost:5173";
 
 async function getPaypalAccessToken(): Promise<string> {
   if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) {
@@ -140,7 +144,13 @@ async function createPaypalOrder(opts: {
   };
 }
 
+// *** DEV-Bypass: ermöglicht lokale Tests ohne echtes PayPal-Capture ***
 async function capturePaypalOrder(orderId: string): Promise<boolean> {
+  // Wenn wir von außen ein Token wie DEV_OK schicken, einfach "success"
+  if (orderId.startsWith("DEV_")) {
+    return true;
+  }
+
   const accessToken = await getPaypalAccessToken();
 
   const res = await nodeFetch(
@@ -178,6 +188,7 @@ type StartUpgradeResponse = {
     | "invalid_plan"
     | "customer_not_found"
     | "missing_org"
+    | "active_plan_exists"
     | "internal_error";
   message?: string;
   subscription?: {
@@ -226,6 +237,13 @@ async function generateInvoiceNumber(): Promise<string> {
     .toString()
     .padStart(6, "0");
   return `INV-${year}-${rand}`;
+}
+
+// sehr einfache License-Key-Generierung (kannst du später ersetzen)
+function generateLicenseKey(): string {
+  const now = Date.now().toString(36).toUpperCase();
+  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `LIC-${now}-${rand}`;
 }
 
 // ---------------- Route-Registrierung ----------------
@@ -290,11 +308,70 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
         };
       }
 
+      // --- Check: Gibt es schon eine aktive Subscription? ---
+      try {
+        const [existingActive] = await db
+          .select()
+          .from(subscriptions)
+          .where(
+            and(
+              eq(subscriptions.customerId, customerId),
+              eq(subscriptions.status as any, "active"),
+            ),
+          )
+          .limit(1);
+
+        if (existingActive) {
+          reply.code(400);
+          return {
+            ok: false,
+            reason: "active_plan_exists",
+            message:
+              "Für dieses Konto existiert bereits ein aktiver Starter/Pro-Plan.",
+          };
+        }
+      } catch (err) {
+        app.log.error(
+          { err, customerId },
+          "Failed to check existing active subscriptions",
+        );
+      }
+
+      // --- Aufräumen: alte pending-Subscriptions + offene Invoices schließen ---
+      try {
+        // alle "pending" Subscriptions dieses Kunden auf "cancelled"
+        await db
+          .update(subscriptions as any)
+          .set({ status: "cancelled" } as any)
+          .where(
+            and(
+              eq(subscriptions.customerId as any, customerId as any),
+              eq(subscriptions.status as any, "pending"),
+            ),
+          );
+
+        // alle offenen Invoices dieses Kunden auf "canceled"
+        await db
+          .update(invoices as any)
+          .set({ status: "canceled" } as any)
+          .where(
+            and(
+              eq(invoices.customerId as any, customerId as any),
+              eq(invoices.status as any, "open"),
+            ),
+          );
+      } catch (err) {
+        app.log.error(
+          { err, customerId },
+          "Failed to cleanup pending subscriptions/invoices before new upgrade",
+        );
+      }
+
       const pricing = PLAN_PRICING[plan];
       const now = new Date();
 
       try {
-        // 1) Subscription – nur Felder verwenden, die es sicher gibt
+        // 1) Subscription – erstmal pending
         const monthlyPriceCents = Math.round(pricing.monthlyAmount * 100);
         const currentPeriodEnd = addMonths(now, 1);
 
@@ -304,7 +381,7 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
             orgId: customer.orgId,
             customerId,
             plan,
-            status: "active",
+            status: "pending", // <--- wichtig
             priceCents: monthlyPriceCents,
             currency: "EUR",
             startedAt: now,
@@ -364,7 +441,7 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
           paypalOrderId = order.id;
         } catch (err) {
           app.log.error({ err }, "PayPal order creation failed");
-          // wir lassen redirectUrl undefined → Frontend schickt Nutzer zu /portal/invoices
+          // redirectUrl bleibt undefined → Frontend kann zu /portal/invoices schicken
         }
 
         return reply.send({
@@ -428,10 +505,115 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
     try {
       const ok = await capturePaypalOrder(token);
       if (ok) {
+        // 1) Invoice auf "paid"
         await db
           .update(invoices as any)
           .set({ status: "paid" } as any)
           .where(eq(invoices.id as any, invoiceId as any));
+
+        // 2) Invoice + Subscription aus DB holen
+        const [inv] = await db
+          .select()
+          .from(invoices)
+          .where(eq(invoices.id as any, invoiceId as any))
+          .limit(1);
+
+        if (inv && inv.subscriptionId) {
+          const [sub] = await db
+            .select()
+            .from(subscriptions)
+            .where(eq(subscriptions.id as any, inv.subscriptionId as any))
+            .limit(1);
+
+          // 2.1 Subscription von "pending" auf "active"
+          if (sub && sub.status !== "active") {
+            await db
+              .update(subscriptions as any)
+              .set({ status: "active" } as any)
+              .where(eq(subscriptions.id as any, sub.id as any));
+          }
+
+          // 3) Lizenz anlegen, falls noch keine bezahlte Non-Trial-Lizenz existiert
+          if (inv.customerId && inv.orgId) {
+            const [existingPaidLicense] = await db
+              .select()
+              .from(licenses)
+              .where(
+                and(
+                  eq(licenses.customerId as any, inv.customerId as any),
+                  ne(licenses.plan as any, "trial"),
+                  eq(licenses.status as any, "active"),
+                ),
+              )
+              .limit(1);
+
+            if (!existingPaidLicense) {
+              const now = new Date();
+              const validUntil = addMonths(now, 1);
+              const maxDevices =
+                sub && sub.plan === "starter"
+                  ? 1
+                  : sub && sub.plan === "pro"
+                  ? 3
+                  : 1;
+
+              const licenseKey = generateLicenseKey();
+
+              await db
+                .insert(licenses)
+                .values({
+                  orgId: inv.orgId,
+                  customerId: inv.customerId,
+                  plan: sub?.plan ?? "starter",
+                  status: "active",
+                  key: licenseKey,
+                  maxDevices,
+                  validUntil,
+                } as any)
+                .returning();
+
+              // Trial-Lizenz optional auf "revoked" setzen
+              await db
+                .update(licenses as any)
+                .set({ status: "revoked" } as any)
+                .where(
+                  and(
+                    eq(licenses.customerId as any, inv.customerId as any),
+                    eq(licenses.plan as any, "trial"),
+                    eq(licenses.status as any, "active"),
+                  ),
+                );
+            }
+          }
+
+          // 4) Aufräumen: alle anderen Subscriptions/Invoices des Kunden bereinigen
+          if (inv.customerId) {
+            // andere Subscriptions (nicht die gerade aktivierte) auf "cancelled",
+            // sofern sie nicht "active" sind
+            await db
+              .update(subscriptions as any)
+              .set({ status: "cancelled" } as any)
+              .where(
+                and(
+                  eq(subscriptions.customerId as any, inv.customerId as any),
+                  ne(subscriptions.id as any, inv.subscriptionId as any),
+                  ne(subscriptions.status as any, "active"),
+                ),
+              );
+
+            // andere Invoices (nicht diese) auf "canceled", sofern sie nicht "paid" sind
+            await db
+              .update(invoices as any)
+              .set({ status: "canceled" } as any)
+              .where(
+                and(
+                  eq(invoices.customerId as any, inv.customerId as any),
+                  ne(invoices.id as any, inv.id as any),
+                  ne(invoices.status as any, "paid"),
+                ),
+              );
+          }
+        }
 
         const location = `${PORTAL_BASE_URL}/portal/upgrade/result?status=success&invoiceId=${encodeURIComponent(
           invoiceId,
@@ -457,6 +639,27 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
   app.get("/portal/upgrade/paypal-cancel", async (request, reply) => {
     const query = request.query as any;
     const invoiceId = query.invoiceId as string | undefined;
+
+    if (invoiceId) {
+      try {
+        // Invoice auf "canceled"
+        const [inv] = await db
+          .update(invoices as any)
+          .set({ status: "canceled" } as any)
+          .where(eq(invoices.id as any, invoiceId as any))
+          .returning();
+
+        // zugehörige Subscription (falls vorhanden) auf "cancelled"
+        if (inv && inv.subscriptionId) {
+          await db
+            .update(subscriptions as any)
+            .set({ status: "cancelled" } as any)
+            .where(eq(subscriptions.id as any, inv.subscriptionId as any));
+        }
+      } catch (err) {
+        app.log.error({ err, invoiceId }, "paypal-cancel cleanup failed");
+      }
+    }
 
     const location = `${PORTAL_BASE_URL}/portal/upgrade/result?status=cancelled${
       invoiceId ? `&invoiceId=${encodeURIComponent(invoiceId)}` : ""
