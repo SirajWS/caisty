@@ -1,14 +1,14 @@
 // apps/api/src/services/licensingService.ts
 
 import { eq } from "drizzle-orm";
-import { db } from "../db/client";
-import { licenses } from "../db/schema/licenses";
-import { devices } from "../db/schema/devices";
+import { db } from "../db/client.js";
+import { licenses } from "../db/schema/licenses.js";
+import { devices } from "../db/schema/devices.js";
 import {
   LICENSE_PLANS,
   type LicensePlanId,
-} from "../config/licensePlans";
-import { OFFLINE_GRACE_DAYS } from "../config/license";
+} from "../config/licensePlans.js";
+import { OFFLINE_GRACE_DAYS } from "../config/license.js";
 
 export type LicenseErrorCode =
   | "NOT_FOUND"
@@ -60,7 +60,6 @@ export interface VerifyLicenseResult {
 
 /**
  * Zentrale Business-Logik zur Lizenzprüfung für den POS.
- * Wird von /licenses/verify (und später ggf. anderen Routen) verwendet.
  */
 export async function verifyLicenseForPos(
   input: VerifyLicenseInput,
@@ -106,7 +105,6 @@ export async function verifyLicenseForPos(
     lic.validUntil && lic.validUntil.getTime() < now.getTime();
 
   if (expired) {
-    // Status in DB nachziehen, falls noch nicht gesetzt
     if (lic.status !== "expired") {
       await db
         .update(licenses)
@@ -138,19 +136,18 @@ export async function verifyLicenseForPos(
     };
   }
 
-  // 4) Devices für diese Lizenz laden (Seats)
-  const devicesForLicense = await db.query.devices.findMany({
-    where: eq(devices.licenseId, lic.id),
-  });
+  // 4) Devices (Seats) holen
+  const devicesForLicense = await db
+    .select()
+    .from(devices)
+    .where(eq(devices.licenseId, lic.id));
 
   const usedSeats = devicesForLicense.length;
 
   const planId = (lic.plan || "starter") as LicensePlanId;
   const planConfig = LICENSE_PLANS[planId];
-  const maxDevices =
-    lic.maxDevices ?? planConfig?.maxDevices ?? 1;
+  const maxDevices = lic.maxDevices ?? planConfig?.maxDevices ?? 1;
 
-  // Optional: Device-Check (z.B. Device-Mismatch)
   let currentDeviceRow: (typeof devices.$inferSelect) | undefined;
 
   if (deviceId) {
@@ -158,13 +155,11 @@ export async function verifyLicenseForPos(
       (d) => String(d.id) === String(deviceId),
     );
 
-    // wenn ein deviceId angegeben ist, aber unter dieser Lizenz nicht existiert
     if (!currentDeviceRow) {
       return {
         ok: false,
         errorCode: "DEVICE_MISMATCH",
-        message:
-          "Device is not bound to this license (device mismatch).",
+        message: "Device is not bound to this license (device mismatch).",
         checkedAt: now,
         offlineGraceDays: OFFLINE_GRACE_DAYS,
         license: mapLicenseCore({ ...lic, maxDevices }),
@@ -185,15 +180,13 @@ export async function verifyLicenseForPos(
       used: usedSeats,
       limit: maxDevices,
     },
-    device: currentDeviceRow
-      ? mapDeviceCore(currentDeviceRow)
-      : null,
+    device: currentDeviceRow ? mapDeviceCore(currentDeviceRow) : null,
   };
 }
 
-function mapLicenseCore(row: typeof licenses.$inferSelect & {
-  maxDevices?: number | null;
-}): LicenseCore {
+function mapLicenseCore(
+  row: typeof licenses.$inferSelect & { maxDevices?: number | null },
+): LicenseCore {
   return {
     id: String(row.id),
     key: String(row.key),
@@ -206,9 +199,7 @@ function mapLicenseCore(row: typeof licenses.$inferSelect & {
   };
 }
 
-function mapDeviceCore(
-  row: typeof devices.$inferSelect,
-): DeviceCore {
+function mapDeviceCore(row: typeof devices.$inferSelect): DeviceCore {
   return {
     id: String(row.id),
     name: String(row.name),

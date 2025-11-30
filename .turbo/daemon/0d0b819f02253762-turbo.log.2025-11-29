@@ -24,3 +24,5 @@
 2025-11-29T18:10:15.906881Z  WARN daemon_server: turborepo_lib::commands::daemon: daemon already running
 2025-11-29T18:33:53.732379Z  WARN daemon_server: turborepo_lib::commands::daemon: daemon already running
 2025-11-29T18:48:06.715386Z  WARN daemon_server: turborepo_lib::commands::daemon: daemon already running
+2025-11-29T21:08:53.792135Z  WARN daemon_server: turborepo_lib::commands::daemon: daemon already running
+2025-11-29T21:21:29.852795Z  WARN daemon_server: turborepo_lib::commands::daemon: daemon already running

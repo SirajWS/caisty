@@ -1,5 +1,6 @@
 // apps/api/src/config/licensePlans.ts
-// Zentrale Definition der License-Pläne – wird vom API-Verify-Endpoint benutzt.
+// Zentrale Definition der License-Pläne – wird u.a. vom Verify-Endpoint benutzt.
+
 export type LicensePlanId = "trial" | "starter" | "pro";
 
 export interface LicensePlanConfig {

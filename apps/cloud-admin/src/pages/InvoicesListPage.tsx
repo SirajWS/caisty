@@ -1,3 +1,4 @@
+// apps/cloud-admin/src/pages/InvoicesListPage.tsx
 import { useEffect, useState } from "react";
 import { apiGet } from "../lib/api";
 import { formatDateTime, formatMoney } from "../lib/format";
@@ -8,8 +9,11 @@ type Invoice = {
   status: string;
   amountCents: number;
   currency: string;
-  issuedAt: string;
-  dueAt: string;
+  createdAt: string;
+  dueAt: string | null;
+  customerId?: string;
+  customerName?: string;
+  customerEmail?: string;
 };
 
 type InvoicesResponse = {
@@ -26,7 +30,7 @@ export default function InvoicesListPage() {
 
   useEffect(() => {
     setLoading(true);
-    apiGet<InvoicesResponse>("/invoices?limit=20&offset=0")
+    apiGet<InvoicesResponse>("/invoices?limit=50&offset=0")
       .then((res) => {
         setData(res);
         setError(null);
@@ -54,16 +58,23 @@ export default function InvoicesListPage() {
             <thead>
               <tr>
                 <th>Nummer</th>
+                <th>Kunde</th>
                 <th>Status</th>
                 <th>Betrag</th>
                 <th>Ausgestellt</th>
                 <th>Fällig am</th>
+                <th>Aktionen</th>
               </tr>
             </thead>
             <tbody>
               {data.items.map((inv) => (
                 <tr key={inv.id}>
                   <td>{inv.number}</td>
+                  <td>
+                    {inv.customerName
+                      ? `${inv.customerName} (${inv.customerEmail ?? ""})`
+                      : "—"}
+                  </td>
                   <td>
                     <span
                       className={
@@ -76,8 +87,94 @@ export default function InvoicesListPage() {
                     </span>
                   </td>
                   <td>{formatMoney(inv.amountCents, inv.currency)}</td>
-                  <td>{formatDateTime(inv.issuedAt)}</td>
+                  <td>{formatDateTime(inv.createdAt)}</td>
                   <td>{formatDateTime(inv.dueAt)}</td>
+                  <td>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <button
+                        onClick={async () => {
+                          const token = localStorage.getItem("caisty.admin.token");
+                          if (!token) {
+                            alert("Nicht angemeldet");
+                            return;
+                          }
+                          const url = `/api/invoices/${inv.id}/html`;
+                          const res = await fetch(url, {
+                            headers: {
+                              Authorization: `Bearer ${token}`,
+                            },
+                          });
+                          if (!res.ok) {
+                            alert(`Fehler: ${res.status}`);
+                            return;
+                          }
+                          const html = await res.text();
+                          const win = window.open();
+                          if (win) {
+                            win.document.write(html);
+                            win.document.close();
+                          }
+                        }}
+                        title="Rechnung anzeigen"
+                        style={{
+                          color: "#a855f7",
+                          fontSize: 14,
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "4px 8px",
+                        }}
+                      >
+                        📄 Anzeigen
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const token = localStorage.getItem("caisty.admin.token");
+                          if (!token) {
+                            alert("Nicht angemeldet");
+                            return;
+                          }
+                          const url = `/api/invoices/${inv.id}/html`;
+                          const res = await fetch(url, {
+                            headers: {
+                              Authorization: `Bearer ${token}`,
+                            },
+                          });
+                          if (!res.ok) {
+                            alert(`Fehler: ${res.status}`);
+                            return;
+                          }
+                          const html = await res.text();
+                          const win = window.open();
+                          if (win) {
+                            win.document.write(html);
+                            win.document.close();
+                            // Print-Dialog nach kurzer Verzögerung öffnen
+                            setTimeout(() => {
+                              win?.print();
+                            }, 500);
+                          }
+                        }}
+                        title="Als PDF drucken"
+                        style={{
+                          color: "#10b981",
+                          fontSize: 14,
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "4px 8px",
+                        }}
+                      >
+                        📥 PDF
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

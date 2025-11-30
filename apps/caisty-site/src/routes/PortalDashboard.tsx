@@ -220,7 +220,7 @@ const PortalDashboard: React.FC = () => {
                   <span className="font-medium">
                     {formatAmount(
                       latestInvoice.currency,
-                      latestInvoice.amount,
+                      latestInvoice.amountCents ? latestInvoice.amountCents / 100 : 0,
                     )}
                   </span>
                 </div>

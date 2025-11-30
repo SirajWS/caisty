@@ -1,11 +1,14 @@
 // apps/cloud-admin/src/pages/SubscriptionsListPage.tsx
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiGet } from "../lib/api";
+import { apiGet, apiDelete } from "../lib/api";
 
 type Subscription = {
   id: string;
   customerId: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerStatus?: string | null;
   plan: string;
   status: string;
   priceCents: number;
@@ -13,6 +16,7 @@ type Subscription = {
   interval?: string | null;
   startedAt?: string | null;
   validUntil?: string | null;
+  invoices?: Array<{ id: string; number: string }>;
 };
 
 type SubscriptionsResponse = {
@@ -22,7 +26,10 @@ type SubscriptionsResponse = {
   offset: number;
 };
 
-function formatPrice(amountCents: number | null | undefined, currency: string | null | undefined) {
+function formatPrice(
+  amountCents: number | null | undefined,
+  currency: string | null | undefined,
+) {
   if (amountCents == null || !currency) return "—";
 
   const amount = amountCents / 100;
@@ -50,6 +57,7 @@ export default function SubscriptionsListPage() {
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,18 +128,20 @@ export default function SubscriptionsListPage() {
               <th>Intervall</th>
               <th>Gestartet</th>
               <th>Läuft bis</th>
+              <th>Rechnungen</th>
+              <th>Aktionen</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: "center", padding: 24 }}>
+                <td colSpan={10} style={{ textAlign: "center", padding: 24 }}>
                   Lädt Subscriptions…
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={8} style={{ textAlign: "center", padding: 24 }}>
+                <td colSpan={10} style={{ textAlign: "center", padding: 24 }}>
                   Keine Subscriptions vorhanden.
                 </td>
               </tr>
@@ -145,10 +155,23 @@ export default function SubscriptionsListPage() {
                         to={`/customers/${s.customerId}`}
                         style={{ color: "#a855f7" }}
                       >
-                        {s.customerId.slice(0, 8)}…
+                        {s.customerName
+                          ? s.customerName
+                          : s.customerId.slice(0, 8) + "…"}
                       </Link>
                     ) : (
                       "—"
+                    )}
+                    {s.customerEmail && (
+                      <span
+                        style={{
+                          marginLeft: 4,
+                          fontSize: 11,
+                          color: "#9ca3af",
+                        }}
+                      >
+                        ({s.customerEmail})
+                      </span>
                     )}
                   </td>
                   <td>{s.plan || "—"}</td>
@@ -163,6 +186,145 @@ export default function SubscriptionsListPage() {
                   <td>{s.interval || "—"}</td>
                   <td>{formatDate(s.startedAt)}</td>
                   <td>{formatDate(s.validUntil)}</td>
+                  <td>
+                    {s.invoices && s.invoices.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {s.invoices.map((inv) => (
+                          <div
+                            key={inv.id}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <button
+                              onClick={async () => {
+                                const token = localStorage.getItem("caisty.admin.token");
+                                if (!token) {
+                                  alert("Nicht angemeldet");
+                                  return;
+                                }
+                                const url = `/api/invoices/${inv.id}/html`;
+                                const res = await fetch(url, {
+                                  headers: {
+                                    Authorization: `Bearer ${token}`,
+                                  },
+                                });
+                                if (!res.ok) {
+                                  alert(`Fehler: ${res.status}`);
+                                  return;
+                                }
+                                const html = await res.text();
+                                const win = window.open();
+                                if (win) {
+                                  win.document.write(html);
+                                  win.document.close();
+                                }
+                              }}
+                              style={{
+                                color: "#a855f7",
+                                fontSize: 11,
+                                textDecoration: "none",
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                textAlign: "left",
+                                padding: 0,
+                              }}
+                            >
+                              {inv.number} 📄
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const token = localStorage.getItem("caisty.admin.token");
+                                if (!token) {
+                                  alert("Nicht angemeldet");
+                                  return;
+                                }
+                                const url = `/api/invoices/${inv.id}/html`;
+                                const res = await fetch(url, {
+                                  headers: {
+                                    Authorization: `Bearer ${token}`,
+                                  },
+                                });
+                                if (!res.ok) {
+                                  alert(`Fehler: ${res.status}`);
+                                  return;
+                                }
+                                const html = await res.text();
+                                const win = window.open();
+                                if (win) {
+                                  win.document.write(html);
+                                  win.document.close();
+                                  // Print-Dialog nach kurzer Verzögerung öffnen
+                                  setTimeout(() => {
+                                    win?.print();
+                                  }, 500);
+                                }
+                              }}
+                              title="Als PDF drucken"
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                fontSize: 12,
+                                padding: 0,
+                                color: "#10b981",
+                              }}
+                            >
+                              📥
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>
+                    {s.customerStatus === "inactive" && s.customerId ? (
+                      <button
+                        onClick={async () => {
+                          if (
+                            !confirm(
+                              `Möchten Sie den Kunden "${s.customerName || s.customerId}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
+                            )
+                          ) {
+                            return;
+                          }
+                          setDeleteBusyId(s.customerId);
+                          try {
+                            await apiDelete<{ ok: boolean }>(`/customers/${s.customerId}`);
+                            // Liste neu laden
+                            const data = await apiGet<SubscriptionsResponse>("/subscriptions");
+                            setItems(data.items ?? []);
+                            setTotal(data.total ?? data.items?.length ?? 0);
+                          } catch (err) {
+                            console.error("Error deleting customer", err);
+                            alert("Fehler beim Löschen des Kunden.");
+                          } finally {
+                            setDeleteBusyId(null);
+                          }
+                        }}
+                        disabled={deleteBusyId === s.customerId}
+                        style={{
+                          background: "#ef4444",
+                          color: "white",
+                          border: "none",
+                          borderRadius: 4,
+                          padding: "4px 8px",
+                          fontSize: 11,
+                          cursor: deleteBusyId === s.customerId ? "wait" : "pointer",
+                          opacity: deleteBusyId === s.customerId ? 0.6 : 1,
+                        }}
+                      >
+                        {deleteBusyId === s.customerId ? "..." : "Löschen"}
+                      </button>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                 </tr>
               ))
             )}

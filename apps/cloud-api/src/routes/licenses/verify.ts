@@ -4,6 +4,11 @@ import {
   verifyLicenseForPos,
   type VerifyLicenseInput,
 } from "../../services/licensingService";
+import { OFFLINE_GRACE_DAYS } from "../../config/license";
+import {
+  LICENSE_PLANS,
+  type LicensePlanId,
+} from "../../config/licensePlans";
 
 type VerifyBody = {
   licenseKey: string;
@@ -30,8 +35,7 @@ export async function registerLicenseVerifyRoute(app: FastifyInstance) {
       },
     },
     async (request: FastifyRequest<{ Body: VerifyBody }>, reply) => {
-      const { licenseKey, deviceId, deviceName, deviceType } =
-        request.body;
+      const { licenseKey, deviceId, deviceName, deviceType } = request.body;
 
       const result = await verifyLicenseForPos({
         licenseKey,
@@ -40,52 +44,82 @@ export async function registerLicenseVerifyRoute(app: FastifyInstance) {
         deviceType,
       } as VerifyLicenseInput);
 
+      const effectiveOfflineGraceDays =
+        typeof result.offlineGraceDays === "number"
+          ? result.offlineGraceDays
+          : OFFLINE_GRACE_DAYS;
+
       if (!result.ok) {
         const { errorCode, message } = result;
-
         const reason = mapErrorCodeToReason(errorCode);
 
-        // Business-Fehler weiterhin als HTTP 200 mit ok:false
+        let licensePayload:
+          | {
+              id: string;
+              key: string;
+              plan: string;
+              planLabel: string;
+              status: string;
+              period: { start: string | null; end: string | null };
+              maxDevices: number | null;
+              createdAt?: string | Date;
+            }
+          | undefined;
+
+        if (result.license) {
+          const lic = result.license;
+          const planConfig =
+            LICENSE_PLANS[lic.plan as LicensePlanId] ?? null;
+
+          licensePayload = {
+            id: lic.id,
+            key: lic.key,
+            plan: lic.plan,
+            planLabel: planConfig?.label ?? String(lic.plan),
+            status: lic.status,
+            period: {
+              start: lic.validFrom,
+              end: lic.validUntil,
+            },
+            maxDevices:
+              planConfig?.maxDevices ??
+              (typeof lic.maxDevices === "number" ? lic.maxDevices : null),
+            createdAt: lic.createdAt,
+          };
+        }
+
         return reply.send({
           ok: false,
           code: errorCode,
           reason,
           message,
-          offlineGraceDays: result.offlineGraceDays,
-          license: result.license
-            ? {
-                id: result.license.id,
-                key: result.license.key,
-                plan: result.license.plan,
-                status: result.license.status,
-                period: {
-                  start: result.license.validFrom,
-                  end: result.license.validUntil,
-                },
-                maxDevices: result.license.maxDevices,
-              }
-            : undefined,
+          offlineGraceDays: effectiveOfflineGraceDays,
+          license: licensePayload,
           devices: result.devices,
         });
       }
 
-      // Erfolgsfall – Response-Shape festgezogen
       const lic = result.license!;
+      const planConfig = LICENSE_PLANS[lic.plan as LicensePlanId] ?? null;
+
       return reply.send({
         ok: true,
-        offlineGraceDays: result.offlineGraceDays,
+        offlineGraceDays: effectiveOfflineGraceDays,
         lastVerified: result.checkedAt.toISOString(),
         deviceId: result.device?.id ?? null,
         license: {
           id: lic.id,
           key: lic.key,
           plan: lic.plan,
+          planLabel: planConfig?.label ?? String(lic.plan),
           status: lic.status,
           period: {
             start: lic.validFrom,
             end: lic.validUntil,
           },
-          maxDevices: lic.maxDevices,
+          maxDevices:
+            planConfig?.maxDevices ??
+            (typeof lic.maxDevices === "number" ? lic.maxDevices : null),
           createdAt: lic.createdAt,
         },
         devices: result.devices,

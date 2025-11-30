@@ -1,38 +1,17 @@
-// apps/caisty-site/src/routes/PortalInvoicesPage.tsx
+// apps/caisty-site/src/portal/PortalInvoicesPage.tsx
 
 import React from "react";
 import { Link } from "react-router-dom";
-import {
-  fetchPortalInvoices,
-  type PortalInvoice,
-} from "../lib/portalApi";
+import { fetchPortalInvoices, type PortalInvoice } from "../../lib/portalApi";
 
-function formatDate(value: string | null): string {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString("de-DE");
-}
+const formatMoney = (cents: number, currency: string) =>
+  new Intl.NumberFormat("de-DE", {
+    style: "currency",
+    currency,
+  }).format(cents / 100);
 
-function formatAmount(inv: PortalInvoice): string {
-  if (!inv.amountCents || Number.isNaN(inv.amountCents)) {
-    return "0,00 €";
-  }
-  const amount = inv.amountCents / 100;
-  if (Number.isNaN(amount)) {
-    return "0,00 €";
-  }
-  try {
-    return new Intl.NumberFormat("de-DE", {
-      style: "currency",
-      currency: inv.currency || "EUR",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${amount.toFixed(2)} ${inv.currency ?? ""}`.trim();
-  }
-}
+const formatDate = (iso: string | null) =>
+  iso ? new Date(iso).toLocaleString("de-DE") : "—";
 
 const PortalInvoicesPage: React.FC = () => {
   const [items, setItems] = React.useState<PortalInvoice[]>([]);
@@ -41,22 +20,18 @@ const PortalInvoicesPage: React.FC = () => {
 
   React.useEffect(() => {
     let cancelled = false;
-
     (async () => {
       try {
         setLoading(true);
         setError(null);
         const data = await fetchPortalInvoices();
-        if (!cancelled) setItems(data ?? []);
+        if (!cancelled) setItems(data);
       } catch (err: any) {
-        if (!cancelled) {
-          setError(err.message ?? "Fehler beim Laden der Rechnungen.");
-        }
+        if (!cancelled) setError(err.message || "Fehler beim Laden");
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
-
     return () => {
       cancelled = true;
     };
@@ -64,32 +39,22 @@ const PortalInvoicesPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold">Rechnungen</h1>
-          <p className="text-sm text-slate-300">
-            Übersicht über deine Abrechnungen und Zahlungsstatus.
-          </p>
-        </div>
-        <Link
-          to="/portal"
-          className="text-sm text-slate-300 hover:text-white"
-        >
-          ← Zurück zum Dashboard
-        </Link>
-      </div>
+      <h1 className="text-2xl font-semibold">Rechnungen</h1>
+      <p className="text-sm text-slate-300">
+        Übersicht über deine Abrechnungen und Zahlungsstatus.
+      </p>
 
       {loading && <div>Lade…</div>}
-      {error && <div className="text-sm text-red-400">{error}</div>}
+      {error && <div className="text-red-400 text-sm">{error}</div>}
 
-      {!loading && !error && items.length === 0 && (
+      {!loading && items.length === 0 && (
         <div className="text-sm text-slate-400">
           Noch keine Rechnungen vorhanden.
         </div>
       )}
 
       {items.length > 0 && (
-        <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60">
+        <div className="overflow-x-auto rounded-2xl bg-slate-900/60 border border-slate-700">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b border-slate-700 text-slate-300">
@@ -107,8 +72,13 @@ const PortalInvoicesPage: React.FC = () => {
                   key={inv.id}
                   className="border-b border-slate-800 last:border-0"
                 >
-                  <td className="px-4 py-2 font-mono text-[11px] text-slate-100">
-                    {inv.number}
+                  <td className="px-4 py-2">
+                    <Link
+                      to={`/portal/invoices/${inv.id}`}
+                      className="text-emerald-300 hover:underline"
+                    >
+                      {inv.number}
+                    </Link>
                   </td>
                   <td className="px-4 py-2 text-slate-300">
                     {inv.periodStart || inv.periodEnd
@@ -118,10 +88,10 @@ const PortalInvoicesPage: React.FC = () => {
                       : "—"}
                   </td>
                   <td className="px-4 py-2 text-right text-slate-100">
-                    {formatAmount(inv)}
+                    {formatMoney(inv.amountCents, inv.currency)}
                   </td>
                   <td className="px-4 py-2">
-                    <span className="inline-flex rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-300">
+                    <span className="inline-flex px-2 py-0.5 rounded-full text-xs bg-emerald-900/60 text-emerald-300">
                       {inv.status}
                     </span>
                   </td>
@@ -131,9 +101,9 @@ const PortalInvoicesPage: React.FC = () => {
                   <td className="px-4 py-2 text-right">
                     <Link
                       to={`/portal/invoices/${inv.id}`}
-                      className="text-xs text-emerald-300 hover:text-emerald-200"
+                      className="text-xs text-emerald-300 hover:underline"
                     >
-                      Details →
+                      Details
                     </Link>
                   </td>
                 </tr>

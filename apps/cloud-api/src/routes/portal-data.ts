@@ -102,17 +102,19 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
 
     return rows.map((r: any) => {
       const inv = r.inv as any;
-      const amount = inv.amountCents ? inv.amountCents / 100 : inv.amount ?? 0;
+      // amountCents zurückgeben, damit Frontend durch 100 teilen kann
+      const amountCents = inv.amountCents ?? 0;
       return {
         id: inv.id,
         number: inv.number,
-        amount,
-        currency: inv.currency ?? "TND",
+        amountCents,
+        currency: inv.currency ?? "EUR",
         status: inv.status,
-        periodFrom: inv.periodFrom ? new Date(inv.periodFrom).toISOString() : null,
-        periodTo: inv.periodTo ? new Date(inv.periodTo).toISOString() : null,
+        periodStart: inv.periodFrom ? new Date(inv.periodFrom).toISOString() : null,
+        periodEnd: inv.periodTo ? new Date(inv.periodTo).toISOString() : null,
         createdAt: new Date(inv.createdAt).toISOString(),
-        downloadUrl: inv.pdfUrl ?? null,
+        dueAt: inv.dueAt ? new Date(inv.dueAt).toISOString() : null,
+        plan: null, // wird später aus Subscription geholt
       };
     });
   });

@@ -24,6 +24,7 @@ import { registerPortalSupportRoutes } from "./routes/portal-support.js";
 import { registerPortalTrialLicenseRoutes } from "./routes/portal-trial-license.js";
 import { registerPortalUpgradeRoutes } from "./routes/portal-upgrade.js";
 import { registerPortalLicensesRoutes } from "./routes/portal-licenses.js";
+import { registerPortalInvoiceRoutes } from "./routes/portal-invoices.js";
 
 import { registerAdminNotificationsRoutes } from "./routes/admin-notifications.js";
 
@@ -55,7 +56,8 @@ export async function buildServer() {
       (url === "/webhooks/paypal" && method === "POST") ||
       (url === "/licenses/verify" && method === "POST") ||
       (url === "/devices/bind" && method === "POST") ||
-      (url === "/devices/heartbeat" && method === "POST");
+      (url === "/devices/heartbeat" && method === "POST") ||
+      (url.startsWith("/invoices/") && url.endsWith("/html")); // Invoice HTML-Export (mit Auth im Handler)
 
     if (isPublicRoute) {
       return;
@@ -96,6 +98,7 @@ export async function buildServer() {
   await registerPortalSupportRoutes(app);
   await registerPortalUpgradeRoutes(app);    // Upgrade + PayPal
   await registerPortalLicensesRoutes(app);   // "Meine Lizenzen" (Portal-Liste)
+  await registerPortalInvoiceRoutes(app);    // Invoice-Details
 
   // ---------------------------------------------------------------------------
   // Admin-Notifications (Admin-JWT)

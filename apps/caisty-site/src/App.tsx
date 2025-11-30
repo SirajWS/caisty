@@ -10,7 +10,8 @@ import PortalLayout from "./routes/PortalLayout";
 import PortalDashboard from "./routes/PortalDashboard";
 import PortalLicensesPage from "./routes/PortalLicensesPage";
 import PortalDevicesPage from "./routes/PortalDevicesPage";
-import PortalInvoicesPage from "./routes/PortalInvoicesPage";
+import PortalInvoicesPage from "./routes/portal/PortalInvoicesPage";
+import PortalInvoiceDetailPage from "./routes/PortalInvoiceDetailPage";
 import PortalAccountPage from "./routes/PortalAccountPage";
 import PortalInstallPage from "./routes/PortalInstallPage"; // Install-Seite
 import PortalPlanBillingPage from "./routes/PortalPlanBillingPage"; // Plan & Abrechnung
@@ -36,6 +37,7 @@ export default function App() {
           <Route path="plan" element={<PortalPlanBillingPage />} />
           <Route path="devices" element={<PortalDevicesPage />} />
           <Route path="invoices" element={<PortalInvoicesPage />} />
+          <Route path="invoices/:id" element={<PortalInvoiceDetailPage />} />
           <Route path="support" element={<PortalSupportPage />} />
           <Route path="account" element={<PortalAccountPage />} />
           <Route path="install" element={<PortalInstallPage />} />

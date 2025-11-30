@@ -133,10 +133,12 @@ export default function CustomerDetailPage() {
         setLoading(true);
         setError(null);
 
+        const customerIdParam = customerId as string; // customerId ist bereits geprüft
+
         const [customerRes, subsRes, licRes, devRes] = await Promise.all([
-          apiGet<CustomerResponse>(`/customers/${customerId}`),
+          apiGet<CustomerResponse>(`/customers/${customerIdParam}`),
           apiGet<ListResponse<Subscription>>("/subscriptions"),
-          apiGet<ListResponse<License>>("/licenses"),
+          apiGet<ListResponse<License>>(`/licenses?customerId=${encodeURIComponent(customerIdParam)}`),
           apiGet<ListResponse<DeviceRow>>("/devices"),
         ]);
 
@@ -146,9 +148,8 @@ export default function CustomerDetailPage() {
         setSubscriptions(
           (subsRes.items ?? []).filter((s) => s.customerId === customerId),
         );
-        setLicenses(
-          (licRes.items ?? []).filter((l) => l.customerId === customerId),
-        );
+        // Licenses sind bereits nach customerId gefiltert
+        setLicenses(licRes.items ?? []);
 
         // Devices nur für diesen Kunden, dann nach fingerprint gruppieren
         const rowsForCustomer = (devRes.items ?? []).filter(

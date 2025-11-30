@@ -27,27 +27,38 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
   // ---------------------------------------------------------------------------
   // Liste aller Lizenzen der aktuellen Org
   // ---------------------------------------------------------------------------
-  app.get("/licenses", async (request, reply) => {
-    const user = (request as any).user;
-    const orgId = user?.orgId as string | undefined;
+  app.get<{ Querystring: { customerId?: string } }>(
+    "/licenses",
+    async (request, reply) => {
+      const user = (request as any).user;
+      const orgId = user?.orgId as string | undefined;
+      const customerId = request.query.customerId as string | undefined;
 
-    try {
-      let items: DbLicense[];
+      try {
+        let items: DbLicense[];
 
-      if (orgId) {
-        items = await db
-          .select()
-          .from(licenses)
-          .where(eq(licenses.orgId, orgId))
-          .orderBy(desc(licenses.createdAt))
-          .limit(200);
-      } else {
-        items = await db
-          .select()
-          .from(licenses)
-          .orderBy(desc(licenses.createdAt))
-          .limit(200);
-      }
+        // Wenn customerId als Query-Parameter übergeben wird, filtere danach
+        if (customerId) {
+          items = await db
+            .select()
+            .from(licenses)
+            .where(eq(licenses.customerId as any, customerId))
+            .orderBy(desc(licenses.createdAt))
+            .limit(200);
+        } else if (orgId) {
+          items = await db
+            .select()
+            .from(licenses)
+            .where(eq(licenses.orgId, orgId))
+            .orderBy(desc(licenses.createdAt))
+            .limit(200);
+        } else {
+          items = await db
+            .select()
+            .from(licenses)
+            .orderBy(desc(licenses.createdAt))
+            .limit(200);
+        }
 
       // Devices pro License zählen
       let itemsWithCounts = items.map((lic: DbLicense) => ({

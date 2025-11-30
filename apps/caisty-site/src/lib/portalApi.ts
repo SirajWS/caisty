@@ -45,20 +45,25 @@ export function getStoredPortalToken(): string | null {
   }
 }
 
-export function storePortalToken(token: string) {
+export function setStoredPortalToken(token: string | null) {
   try {
-    localStorage.setItem(PORTAL_TOKEN_KEY, token);
+    if (!token) {
+      localStorage.removeItem(PORTAL_TOKEN_KEY);
+    } else {
+      localStorage.setItem(PORTAL_TOKEN_KEY, token);
+    }
   } catch {
     // ignore
   }
 }
 
+// kompatibel zu altem Code
+export function storePortalToken(token: string) {
+  setStoredPortalToken(token);
+}
+
 export function clearPortalToken() {
-  try {
-    localStorage.removeItem(PORTAL_TOKEN_KEY);
-  } catch {
-    // ignore
-  }
+  setStoredPortalToken(null);
 }
 
 // ---------- Auth ----------
@@ -212,12 +217,30 @@ export interface PortalDevice {
 export interface PortalInvoice {
   id: string;
   number: string;
-  amount: number;
+  status: string;
+  amountCents: number;
   currency: string;
-  status: "open" | "paid" | "failed" | string;
-  periodFrom: string | null; // ISO
-  periodTo: string | null; // ISO
-  createdAt: string; // ISO
+  createdAt: string;
+  dueAt: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  plan?: string | null;
+}
+
+// Detail-Typ für einzelne Rechnung
+export interface PortalInvoiceDetail {
+  invoice: PortalInvoice;
+  customer: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  org: {
+    id: string;
+    name: string;
+    address?: string;
+    vatId?: string;
+  } | null;
 }
 
 // ---------- generischer GET-Helper ----------
@@ -255,10 +278,42 @@ export async function fetchPortalDevices(): Promise<PortalDevice[]> {
 }
 
 export async function fetchPortalInvoices(): Promise<PortalInvoice[]> {
+  // Bestehender /portal/invoices-Endpunkt (Liste als Array)
   return authGet<PortalInvoice[]>("/portal/invoices");
 }
 
+// ---------- Invoice-Detail & HTML ----------
+
+export async function fetchPortalInvoice(
+  id: string,
+): Promise<PortalInvoiceDetail> {
+  // Erwartet Shape { ok, invoice, customer, org } aus der API
+  const data = await authGet<any>(`/portal/invoices/${id}`);
+  if (!data.ok) {
+    throw new Error(data.message ?? "Rechnung konnte nicht geladen werden.");
+  }
+  return {
+    invoice: data.invoice as PortalInvoice,
+    customer: data.customer,
+    org: data.org ?? null,
+  };
+}
+
+export function getPortalInvoiceHtmlUrl(id: string): string {
+  const base =
+    import.meta.env.VITE_CLOUD_API_URL?.replace(/\/+$/, "") ??
+    "http://127.0.0.1:3333";
+  return `${base}/portal/invoices/${id}/html`;
+}
+
 // ---------- Trial-Lizenz einmalig anlegen ----------
+
+export interface PortalLicenseCreateResponse {
+  ok: boolean;
+  license?: PortalLicense;
+  message?: string;
+  reason?: string;
+}
 
 export async function createTrialLicense(): Promise<PortalLicense> {
   const token = getStoredPortalToken();
@@ -280,12 +335,7 @@ export async function createTrialLicense(): Promise<PortalLicense> {
     throw new Error("Nicht angemeldet.");
   }
 
-  const data = (await res.json()) as {
-    ok: boolean;
-    license?: PortalLicense;
-    message?: string;
-    reason?: string;
-  };
+  const data = (await res.json()) as PortalLicenseCreateResponse;
 
   if (!res.ok || !data.ok || !data.license) {
     if (
@@ -327,7 +377,7 @@ export type PortalUpgradeStartResponse = {
   invoice?: {
     id: string;
     number: string;
-    amount: number;
+    amountCents: number;
     currency: string;
     status: string;
     issuedAt: string;
@@ -378,6 +428,9 @@ export interface PortalSupportMessage {
   createdAt: string; // ISO
   replyText?: string | null;
   repliedAt?: string | null;
+  customerId?: string;
+  customerName?: string;
+  customerEmail?: string;
 }
 
 export async function createPortalSupportMessage(input: {

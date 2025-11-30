@@ -9,6 +9,7 @@ import { subscriptions } from "../db/schema/subscriptions.js";
 import { invoices } from "../db/schema/invoices.js";
 import { licenses } from "../db/schema/licenses.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
+import { generateLicenseKey } from "../lib/licenseKey.js";
 
 // Node-Fetch Alias (damit TypeScript nicht meckert)
 const nodeFetch: any = (globalThis as any).fetch;
@@ -237,13 +238,6 @@ async function generateInvoiceNumber(): Promise<string> {
     .toString()
     .padStart(6, "0");
   return `INV-${year}-${rand}`;
-}
-
-// sehr einfache License-Key-Generierung (kannst du später ersetzen)
-function generateLicenseKey(): string {
-  const now = Date.now().toString(36).toUpperCase();
-  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
-  return `LIC-${now}-${rand}`;
 }
 
 // ---------------- Route-Registrierung ----------------
@@ -557,7 +551,7 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
                   ? 3
                   : 1;
 
-              const licenseKey = generateLicenseKey();
+              const licenseKey = generateLicenseKey("CSTY");
 
               await db
                 .insert(licenses)
