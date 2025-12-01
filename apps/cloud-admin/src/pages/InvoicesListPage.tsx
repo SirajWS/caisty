@@ -1,5 +1,6 @@
 // apps/cloud-admin/src/pages/InvoicesListPage.tsx
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiGet } from "../lib/api";
 import { formatDateTime, formatMoney } from "../lib/format";
 
@@ -69,7 +70,14 @@ export default function InvoicesListPage() {
             <tbody>
               {data.items.map((inv) => (
                 <tr key={inv.id}>
-                  <td>{inv.number}</td>
+                  <td>
+                    <Link
+                      to={`/invoices/${inv.id}`}
+                      style={{ color: "#a855f7", textDecoration: "none" }}
+                    >
+                      {inv.number}
+                    </Link>
+                  </td>
                   <td>
                     {inv.customerName
                       ? `${inv.customerName} (${inv.customerEmail ?? ""})`

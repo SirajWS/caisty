@@ -1,28 +1,30 @@
 import { Link } from "react-router-dom";
 import { PRICING_PLANS } from "../config/pricingPlans";
+import { useLanguage } from "../lib/LanguageContext";
+import { translations } from "../lib/translations";
 
 export default function LandingPage() {
   const { trialDays, starter, pro } = PRICING_PLANS || {};
+  const { language } = useLanguage();
+  const t = translations[language];
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
       {/* Hero */}
       <section className="max-w-5xl mx-auto px-4 pt-20 pb-16">
         <div className="inline-flex items-center rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-medium text-emerald-300 mb-6">
-          POS &amp; Cloud-Konto für moderne Gastro &amp; Shops
+          {t.hero.badge}
         </div>
 
         <div className="grid gap-10 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] items-center">
           {/* Text-Spalte */}
           <div className="space-y-6">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold leading-tight">
-              Eine Kasse, ein Portal –{" "}
-              <span className="text-emerald-400">alles im Blick.</span>
+              {t.hero.title}{" "}
+              <span className="text-emerald-400">{t.hero.titleHighlight}</span>
             </h1>
             <p className="text-sm sm:text-base text-slate-300 max-w-xl">
-              Caisty verbindet schnelles Kassieren am POS mit einem klaren
-              Cloud-Portal: Lizenzen verwalten, Geräte im Blick behalten und
-              Rechnungen zentral abrufen.
+              {t.hero.description}
             </p>
 
             <div className="flex flex-wrap gap-3 text-sm">
@@ -30,24 +32,22 @@ export default function LandingPage() {
                 to="/pricing"
                 className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors"
               >
-                Preise ansehen
+                {t.hero.ctaPricing}
               </Link>
               <Link
                 to="/register"
                 className="inline-flex items-center justify-center rounded-full border border-slate-700 px-5 py-2 text-sm font-medium text-slate-100 hover:bg-slate-800 transition-colors"
               >
-                Kostenlos starten
+                {t.hero.ctaStart}
               </Link>
             </div>
 
             <p className="text-[11px] text-slate-500 max-w-md">
-              Starte mit einer{" "}
+              {t.hero.trialNote}{" "}
               <span className="font-semibold text-slate-300">
-                {trialDays ?? 3}-Tage-Testlizenz
+                {trialDays ?? 3}-{t.hero.trialDays}
               </span>{" "}
-              ohne Zahlungsdaten. Danach kannst du jederzeit auf Starter oder Pro
-              wechseln. Die Installation von Caisty POS erfolgt später direkt aus
-              dem Kundenportal.
+              {t.hero.trialNote2}
             </p>
           </div>
 
@@ -108,26 +108,24 @@ export default function LandingPage() {
       {/* Warum Caisty? */}
       <section className="max-w-5xl mx-auto px-4 pb-10 space-y-6">
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold">Warum Caisty?</h2>
+          <h2 className="text-xl font-semibold">{t.why.title}</h2>
           <p className="text-sm text-slate-300 max-w-2xl">
-            Caisty ist für Betreiber, die keine Lust auf komplizierte
-            Backoffice-Systeme haben, sondern schnell starten wollen – mit
-            klarer Struktur für Lizenzen, Geräte und Abrechnung.
+            {t.why.description}
           </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3 text-sm">
           <FeatureCard
-            title="Schnell startklar"
-            text="Installer laden, Lizenz verbinden, loskassieren – ohne wochenlange Einrichtung."
+            title={t.why.feature1Title}
+            text={t.why.feature1Text}
           />
           <FeatureCard
-            title="Volle Übersicht"
-            text="Im Portal siehst du jederzeit, welche Lizenzen aktiv sind und welche Geräte verbunden sind."
+            title={t.why.feature2Title}
+            text={t.why.feature2Text}
           />
           <FeatureCard
-            title="Fair & transparent"
-            text="Klare Pläne ohne versteckte Gebühren. Ideal, um klein zu starten und später zu wachsen."
+            title={t.why.feature3Title}
+            text={t.why.feature3Text}
           />
         </div>
       </section>
@@ -135,75 +133,71 @@ export default function LandingPage() {
       {/* Pläne & Lizenzen */}
       <section className="max-w-5xl mx-auto px-4 pb-12 space-y-5">
         <div className="space-y-2">
-          <h2 className="text-xl font-semibold">Pläne &amp; Lizenzen</h2>
+          <h2 className="text-xl font-semibold">{t.plans.title}</h2>
           <p className="text-sm text-slate-300 max-w-2xl">
-            Teste Caisty zuerst kostenlos und entscheide dann, ob du mit Starter
-            oder Pro weitermachst. Du kannst monatlich zahlen oder mit einem
-            Jahresplan sparen.
+            {t.plans.description}
           </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3 text-sm">
           <PlanCard
-            name="Trial"
-            badge="Kostenlos testen"
+            name={t.plans.trial.name}
+            badge={t.plans.trial.badge}
             price={`0 €`}
-            note={`${trialDays ?? 3} Tage, 1 Gerät`}
+            note={`${trialDays ?? 3} ${t.plans.trial.note}`}
             details={[
-              "Voller Funktionsumfang wie Starter",
-              "Keine Zahlungsdaten nötig",
-              "Ideal zum Ausprobieren im Live-Betrieb",
+              t.plans.trial.detail1,
+              t.plans.trial.detail2,
+              t.plans.trial.detail3,
             ]}
           />
           <PlanCard
-            name="Starter"
-            badge="Für eine Kasse"
-            price={`${starter?.monthly ?? 19} € / Monat`}
-            subPrice={`oder ${starter?.yearly ?? 190} € / Jahr`}
-            note={`${starter?.devices ?? 1} Gerät inklusive`}
+            name={t.plans.starter.name}
+            badge={t.plans.starter.badge}
+            price={`${starter?.monthly ?? 19} ${t.plans.starter.price}`}
+            subPrice={`${t.plans.starter.subPrice.replace("€", `${starter?.yearly ?? 190} €`)}`}
+            note={`${starter?.devices ?? 1} ${t.plans.starter.note}`}
             highlight
             details={[
-              "Perfekt für einen Standort",
-              "Basis-Reporting & Portalzugang",
-              "Upgrade auf Pro jederzeit möglich",
+              t.plans.starter.detail1,
+              t.plans.starter.detail2,
+              t.plans.starter.detail3,
             ]}
           />
           <PlanCard
-            name="Pro"
-            badge="Mehrere Geräte"
-            price={`${pro?.monthly ?? 35} € / Monat`}
-            subPrice={`oder ${pro?.yearly ?? 350} € / Jahr`}
-            note={`${pro?.devices ?? 3} Geräte inklusive`}
+            name={t.plans.pro.name}
+            badge={t.plans.pro.badge}
+            price={`${pro?.monthly ?? 35} ${t.plans.pro.price}`}
+            subPrice={`${t.plans.pro.subPrice.replace("€", `${pro?.yearly ?? 350} €`)}`}
+            note={`${pro?.devices ?? 3} ${t.plans.pro.note}`}
             details={[
-              "Ideal für 2–3 Kassen oder Filialen",
-              "Alle Starter-Funktionen",
-              "Mehrere Geräte unter einer Lizenz",
+              t.plans.pro.detail1,
+              t.plans.pro.detail2,
+              t.plans.pro.detail3,
             ]}
           />
         </div>
 
         <p className="text-[11px] text-slate-500">
-          Alle Preise zzgl. MwSt. – die genaue Abrechnung (monatlich oder
-          jährlich) wählst du später direkt im Kundenportal. Dort kannst du
-          auch jederzeit zwischen Starter und Pro wechseln.
+          {t.plans.note}
         </p>
       </section>
 
       {/* Für wen ist Caisty? */}
       <section className="max-w-5xl mx-auto px-4 pb-12 space-y-4">
-        <h2 className="text-xl font-semibold">Für wen ist Caisty?</h2>
+        <h2 className="text-xl font-semibold">{t.forWhom.title}</h2>
         <div className="grid gap-4 md:grid-cols-3 text-sm">
           <FeatureCard
-            title="Take-Away & Street-Food"
-            text="Schnelle Bestellungen, wenige Knöpfe, fokussiert auf Tempo."
+            title={t.forWhom.target1Title}
+            text={t.forWhom.target1Text}
           />
           <FeatureCard
-            title="Bars & Cafés"
-            text="Einfache Artikelstrukturen, flexible Preisupdates und Tagesabrechnungen."
+            title={t.forWhom.target2Title}
+            text={t.forWhom.target2Text}
           />
           <FeatureCard
-            title="Kleine Shops"
-            text="Kasse, Belege und Basis-Reporting in einem System – ohne Overkill."
+            title={t.forWhom.target3Title}
+            text={t.forWhom.target3Text}
           />
         </div>
       </section>
@@ -214,12 +208,10 @@ export default function LandingPage() {
           {/* Textseite */}
           <div className="space-y-3">
             <h2 className="text-lg font-semibold">
-              In wenigen Minuten vom Download zur einsatzbereiten Kasse.
+              {t.install.title}
             </h2>
             <p className="text-sm text-slate-300">
-              Die eigentliche Installation von Caisty POS läuft komplett über
-              dein Kundenportal. Dort bekommst du den Installer, deinen
-              Lizenzschlüssel und eine Schritt-für-Schritt-Anleitung.
+              {t.install.description}
             </p>
 
             <ol className="space-y-2 text-sm text-slate-200">
@@ -227,29 +219,28 @@ export default function LandingPage() {
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10 text-[11px] font-semibold text-emerald-300 mr-2">
                   1
                 </span>
-                Portalzugang anlegen und Lizenz erhalten.
+                {t.install.step1}
               </li>
               <li>
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10 text-[11px] font-semibold text-emerald-300 mr-2">
                   2
                 </span>
-                Installer für dein Betriebssystem aus dem Portal herunterladen.
+                {t.install.step2}
               </li>
               <li>
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/10 text-[11px] font-semibold text-emerald-300 mr-2">
                   3
                 </span>
-                Auf dem Kassen-PC installieren und Lizenzschlüssel eingeben –
-                fertig.
+                {t.install.step3}
               </li>
             </ol>
 
             <p className="text-[11px] text-slate-500">
-              Die detaillierte Installationsseite siehst du nach dem Login unter{" "}
+              {t.install.note}{" "}
               <span className="font-semibold text-slate-300">
-                „Caisty POS installieren“
+                {t.install.noteHighlight}
               </span>{" "}
-              im Kundenportal.
+              {t.install.noteEnd}
             </p>
           </div>
 

@@ -18,6 +18,7 @@ import CustomerDetailPage from "../pages/Customers/CustomerDetailPage";
 
 import SubscriptionsListPage from "../pages/SubscriptionsListPage";
 import InvoicesListPage from "../pages/InvoicesListPage";
+import InvoiceDetailPage from "../pages/Invoices/InvoiceDetailPage";
 import DevicesListPage from "../pages/DevicesListPage";
 import PaymentsListPage from "../pages/Payments/PaymentsListPage";
 import WebhooksListPage from "../pages/Webhooks/WebhooksListPage";
@@ -194,6 +195,16 @@ function AppRoutes() {
           <RequireAuth>
             <AppShell>
               <InvoicesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/invoices/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <InvoiceDetailPage />
             </AppShell>
           </RequireAuth>
         }

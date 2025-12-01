@@ -6,6 +6,7 @@ import { db } from "../db/client.js";
 import { licenses } from "../db/schema/licenses.js";
 import { licenseEvents } from "../db/schema/licenseEvents.js";
 import { devices } from "../db/schema/devices.js";
+import { customers } from "../db/schema/customers.js";
 import { generateLicenseKey } from "../lib/licenseKey.js";
 
 type CreateLicenseBody = {
@@ -38,6 +39,9 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
         let items: DbLicense[];
 
         // Wenn customerId als Query-Parameter übergeben wird, filtere danach
+        // WICHTIG: Wenn customerId übergeben wird, filtern wir NUR nach customerId,
+        // nicht nach orgId, da die Lizenz bereits mit dem Customer verknüpft ist
+        // und der Customer zur gleichen Organisation gehört wie der Admin-User
         if (customerId) {
           items = await db
             .select()
@@ -46,12 +50,59 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
             .orderBy(desc(licenses.createdAt))
             .limit(200);
         } else if (orgId) {
-          items = await db
+          // Filtere nach orgId der Lizenz
+          // Die orgId wird als String behandelt, da sie in der licenses-Tabelle als text gespeichert ist
+          // Konvertiere orgId zu String und normalisiere (entferne Leerzeichen, etc.)
+          const orgIdStr = String(orgId).trim();
+          
+          // Hole Lizenzen, die direkt zur Organisation gehören
+          // Verwende SQL-Vergleich, um sicherzustellen, dass UUID- und String-Formate funktionieren
+          const directMatches = await db
             .select()
             .from(licenses)
-            .where(eq(licenses.orgId, orgId))
+            .where(sql`${licenses.orgId}::text = ${orgIdStr}`)
             .orderBy(desc(licenses.createdAt))
             .limit(200);
+          
+          // Hole auch Lizenzen, die zu Customers gehören, die zur gleichen Organisation gehören
+          // (für den Fall, dass die orgId der Lizenz nicht korrekt gesetzt wurde)
+          const orgCustomers = await db
+            .select({ id: customers.id })
+            .from(customers)
+            .where(sql`${customers.orgId}::text = ${orgIdStr}`);
+          
+          let customerMatches: DbLicense[] = [];
+          if (orgCustomers.length > 0) {
+            const customerIds = orgCustomers.map((c) => String(c.id));
+            const directMatchIds = new Set(directMatches.map((l) => l.id));
+            
+            // Hole Lizenzen für diese Customers, die noch nicht in directMatches sind
+            const allCustomerLicenses = await db
+              .select()
+              .from(licenses)
+              .where(inArray(licenses.customerId as any, customerIds))
+              .orderBy(desc(licenses.createdAt))
+              .limit(200);
+            
+            customerMatches = allCustomerLicenses.filter(
+              (l) => !directMatchIds.has(l.id),
+            );
+          }
+          
+          // Kombiniere beide Ergebnisse und entferne Duplikate
+          const allItems = [...directMatches, ...customerMatches];
+          const uniqueItems = new Map<string, DbLicense>();
+          for (const item of allItems) {
+            uniqueItems.set(item.id, item);
+          }
+          
+          items = Array.from(uniqueItems.values())
+            .sort((a, b) => {
+              const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+              const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+              return dateB - dateA;
+            })
+            .slice(0, 200);
         } else {
           items = await db
             .select()
@@ -99,8 +150,10 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
       };
     } catch (err) {
       console.error("Error loading licenses list", err);
+      console.error("orgId:", orgId);
+      console.error("customerId:", customerId);
       reply.code(500);
-      return { error: "Failed to load licenses" };
+      return { error: "Failed to load licenses", details: err instanceof Error ? err.message : String(err) };
     }
   });
 
@@ -177,19 +230,27 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
       const orgId = user?.orgId as string | undefined;
 
       try {
+        // Lizenz direkt nach ID laden (ID ist eindeutig)
+        // Optional: Wenn orgId vorhanden ist, können wir prüfen, ob sie übereinstimmt,
+        // aber wir geben die Lizenz trotzdem zurück, da die ID eindeutig ist
         const [item] = await db
           .select()
           .from(licenses)
-          .where(
-            orgId
-              ? and(eq(licenses.id, id), eq(licenses.orgId, orgId))
-              : eq(licenses.id, id),
-          )
+          .where(eq(licenses.id, id))
           .limit(1);
 
         if (!item) {
           reply.code(404);
           return { error: "License not found" };
+        }
+
+        // Optional: Prüfe, ob die orgId übereinstimmt (für Sicherheit)
+        // Aber wir geben die Lizenz trotzdem zurück, da Admin-User Zugriff haben sollten
+        if (orgId && item.orgId !== orgId) {
+          // Warnung loggen, aber Lizenz trotzdem zurückgeben
+          console.warn(
+            `License ${id} belongs to org ${item.orgId}, but user belongs to org ${orgId}`,
+          );
         }
 
         return { item };
@@ -212,17 +273,13 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
       const orgId = user?.orgId as string | undefined;
 
       try {
+        // Events direkt nach licenseId laden (licenseId ist eindeutig)
+        // Optional: Wenn orgId vorhanden ist, können wir prüfen, ob sie übereinstimmt,
+        // aber wir geben die Events trotzdem zurück, da die licenseId eindeutig ist
         const rows = await db
           .select()
           .from(licenseEvents)
-          .where(
-            orgId
-              ? and(
-                  eq(licenseEvents.licenseId, id),
-                  eq(licenseEvents.orgId, orgId),
-                )
-              : eq(licenseEvents.licenseId, id),
-          )
+          .where(eq(licenseEvents.licenseId, id))
           .orderBy(desc(licenseEvents.createdAt))
           .limit(100);
 

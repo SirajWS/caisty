@@ -8,6 +8,7 @@ import { customers } from "../db/schema/customers.js";
 import { subscriptions } from "../db/schema/subscriptions.js";
 import { invoices } from "../db/schema/invoices.js";
 import { licenses } from "../db/schema/licenses.js";
+import { licenseEvents } from "../db/schema/licenseEvents.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 import { generateLicenseKey } from "../lib/licenseKey.js";
 
@@ -543,6 +544,7 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
 
             if (!existingPaidLicense) {
               const now = new Date();
+              const validFrom = now;
               const validUntil = addMonths(now, 1);
               const maxDevices =
                 sub && sub.plan === "starter"
@@ -553,18 +555,34 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
 
               const licenseKey = generateLicenseKey("CSTY");
 
-              await db
+              const [createdLicense] = await db
                 .insert(licenses)
                 .values({
-                  orgId: inv.orgId,
-                  customerId: inv.customerId,
+                  orgId: String(inv.orgId), // Konvertiere zu String, da licenses.orgId als text gespeichert ist
+                  customerId: inv.customerId ? String(inv.customerId) : null,
+                  subscriptionId: inv.subscriptionId ? String(inv.subscriptionId) : null,
                   plan: sub?.plan ?? "starter",
                   status: "active",
                   key: licenseKey,
                   maxDevices,
+                  validFrom,
                   validUntil,
                 } as any)
                 .returning();
+
+              // License Event protokollieren
+              if (createdLicense) {
+                await db.insert(licenseEvents).values({
+                  orgId: String(inv.orgId), // Konvertiere zu String für Konsistenz
+                  licenseId: createdLicense.id,
+                  type: "created",
+                  metadata: {
+                    source: "portal_payment",
+                    invoiceId: String(inv.id),
+                    subscriptionId: inv.subscriptionId ? String(inv.subscriptionId) : null,
+                  },
+                });
+              }
 
               // Trial-Lizenz optional auf "revoked" setzen
               await db

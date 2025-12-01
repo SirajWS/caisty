@@ -1,7 +1,9 @@
 // apps/api/src/services/invoiceService.ts
 
-import { db } from "../db"; // ggf. an dein Setup anpassen
-import { invoices, customers, orgs } from "../db/schema"; // Tabellen-Namen ggf. anpassen
+import { db } from "../db/client.js";
+import { invoices } from "../db/schema/invoices.js";
+import { customers } from "../db/schema/customers.js";
+import { orgs } from "../db/schema/orgs.js";
 import { eq } from "drizzle-orm";
 
 export type InvoiceRecord = typeof invoices.$inferSelect;

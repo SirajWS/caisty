@@ -180,7 +180,38 @@ const PortalInvoiceDetailPage: React.FC = () => {
                 }}
                 className="inline-flex items-center justify-center rounded-full border border-emerald-400 px-4 py-1.5 text-sm font-medium text-emerald-200 hover:bg-emerald-500/10 cursor-pointer"
               >
-                Rechnung anzeigen / drucken
+                📄 Rechnung anzeigen
+              </button>
+              <button
+                onClick={async () => {
+                  const token = localStorage.getItem("caisty.portal.token");
+                  if (!token) {
+                    alert("Nicht angemeldet");
+                    return;
+                  }
+                  const url = getPortalInvoiceHtmlUrl(inv.id);
+                  const res = await fetch(url, {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                    },
+                  });
+                  if (!res.ok) {
+                    alert(`Fehler: ${res.status}`);
+                    return;
+                  }
+                  const html = await res.text();
+                  const win = window.open();
+                  if (win) {
+                    win.document.write(html);
+                    win.document.close();
+                    setTimeout(() => {
+                      win?.print();
+                    }, 500);
+                  }
+                }}
+                className="inline-flex items-center justify-center rounded-full border border-blue-400 px-4 py-1.5 text-sm font-medium text-blue-200 hover:bg-blue-500/10 cursor-pointer"
+              >
+                📥 Als PDF drucken
               </button>
             </div>
           </div>

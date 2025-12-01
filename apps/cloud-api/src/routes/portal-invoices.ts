@@ -145,42 +145,23 @@ export async function registerPortalInvoiceRoutes(app: FastifyInstance) {
         return;
       }
 
-      // Einfaches HTML (später kann renderInvoiceHtml verwendet werden)
-      const amount = Number(inv.amountCents) / 100;
-      const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Rechnung ${inv.number}</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; }
-    h1 { color: #333; }
-    .invoice-header { display: flex; justify-content: space-between; margin-bottom: 30px; }
-    .invoice-details { margin: 20px 0; }
-    .invoice-details table { width: 100%; border-collapse: collapse; }
-    .invoice-details td { padding: 8px; border-bottom: 1px solid #ddd; }
-    .amount { font-size: 24px; font-weight: bold; color: #2563eb; }
-  </style>
-</head>
-<body>
-  <div class="invoice-header">
-    <div>
-      <h1>Rechnung ${inv.number}</h1>
-      <p>Status: ${inv.status}</p>
-    </div>
-    <div>
-      <p>Ausgestellt: ${inv.createdAt ? new Date(inv.createdAt).toLocaleDateString("de-DE") : "—"}</p>
-      <p>Fällig: ${inv.dueAt ? new Date(inv.dueAt).toLocaleDateString("de-DE") : "—"}</p>
-    </div>
-  </div>
-  <div class="invoice-details">
-    <table>
-      <tr><td>Betrag:</td><td class="amount">${amount.toFixed(2)} ${inv.currency ?? "EUR"}</td></tr>
-    </table>
-  </div>
-</body>
-</html>`;
+      // Verwende renderInvoiceHtml für professionelles Template
+      const { getInvoiceWithCustomerAndOrg } = await import("../services/invoiceService.js");
+      const invoiceData = await getInvoiceWithCustomerAndOrg(id);
+      
+      if (!invoiceData) {
+        reply.code(404).type("text/plain").send("Invoice not found");
+        return;
+      }
+
+      // Prüfe nochmal, dass Invoice zum eingeloggten Customer gehört
+      if (invoiceData.customer.id !== payload.customerId) {
+        reply.code(403).type("text/plain").send("Forbidden");
+        return;
+      }
+
+      const { renderInvoiceHtml } = await import("../invoices/renderInvoiceHtml.js");
+      const html = renderInvoiceHtml(invoiceData);
 
       reply.type("text/html").send(html);
     },
