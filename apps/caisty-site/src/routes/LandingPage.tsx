@@ -1,12 +1,17 @@
 import { Link } from "react-router-dom";
-import { PRICING_PLANS } from "../config/pricingPlans";
+import { PRICING, TRIAL_DAYS, MAX_DEVICES, formatPrice } from "../config/pricing";
+import { useCurrency } from "../lib/useCurrency";
 import { useLanguage } from "../lib/LanguageContext";
-import { translations } from "../lib/translations";
+import { translations } from "../lib/translations/index";
 
 export default function LandingPage() {
-  const { trialDays, starter, pro } = PRICING_PLANS || {};
+  const { currency } = useCurrency();
   const { language } = useLanguage();
-  const t = translations[language];
+  const t = translations[language].landing;
+  
+  const starter = PRICING[currency].starter;
+  const pro = PRICING[currency].pro;
+  const currencySymbol = currency === "EUR" ? "€" : "TND";
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
@@ -45,7 +50,7 @@ export default function LandingPage() {
             <p className="text-[11px] text-slate-500 max-w-md">
               {t.hero.trialNote}{" "}
               <span className="font-semibold text-slate-300">
-                {trialDays ?? 3}-{t.hero.trialDays}
+                {TRIAL_DAYS}-{t.hero.trialDays}
               </span>{" "}
               {t.hero.trialNote2}
             </p>
@@ -143,8 +148,8 @@ export default function LandingPage() {
           <PlanCard
             name={t.plans.trial.name}
             badge={t.plans.trial.badge}
-            price={`0 €`}
-            note={`${trialDays ?? 3} ${t.plans.trial.note}`}
+            price={`0 ${currencySymbol}`}
+            note={`${TRIAL_DAYS} ${t.plans.trial.note}`}
             details={[
               t.plans.trial.detail1,
               t.plans.trial.detail2,
@@ -154,9 +159,9 @@ export default function LandingPage() {
           <PlanCard
             name={t.plans.starter.name}
             badge={t.plans.starter.badge}
-            price={`${starter?.monthly ?? 19} ${t.plans.starter.price}`}
-            subPrice={`${t.plans.starter.subPrice.replace("€", `${starter?.yearly ?? 190} €`)}`}
-            note={`${starter?.devices ?? 1} ${t.plans.starter.note}`}
+            price={`${formatPrice(starter.monthly, currency)}`}
+            subPrice={`${t.plans.starter.subPrice.replace("€", formatPrice(starter.yearly, currency))}`}
+            note={`${MAX_DEVICES.starter} ${t.plans.starter.note}`}
             highlight
             details={[
               t.plans.starter.detail1,
@@ -167,9 +172,9 @@ export default function LandingPage() {
           <PlanCard
             name={t.plans.pro.name}
             badge={t.plans.pro.badge}
-            price={`${pro?.monthly ?? 35} ${t.plans.pro.price}`}
-            subPrice={`${t.plans.pro.subPrice.replace("€", `${pro?.yearly ?? 350} €`)}`}
-            note={`${pro?.devices ?? 3} ${t.plans.pro.note}`}
+            price={`${formatPrice(pro.monthly, currency)}`}
+            subPrice={`${t.plans.pro.subPrice.replace("€", formatPrice(pro.yearly, currency))}`}
+            note={`${MAX_DEVICES.pro} ${t.plans.pro.note}`}
             details={[
               t.plans.pro.detail1,
               t.plans.pro.detail2,
@@ -295,46 +300,29 @@ export default function LandingPage() {
       <section className="max-w-5xl mx-auto px-4 pb-20">
         <div className="rounded-3xl border border-slate-800 bg-slate-900/70 p-5 space-y-3 text-xs sm:text-sm text-slate-300">
           <h2 className="text-sm sm:text-base font-semibold text-slate-100">
-            Fiscal info &amp; international use
+            {t.fiscal.title}
           </h2>
           <p>
-            Caisty currently offers a{" "}
+            {t.fiscal.paragraph1}{" "}
             <span className="font-semibold">
-              “No fiscal engine / generic receipts”
+              {t.fiscal.modeName}
             </span>{" "}
-            mode and shows several fiscal packs as{" "}
-            <span className="font-semibold">“coming soon”</span> (TSE, RKSV,
-            NF525, SAF-T, TicketBAI, myDATA …). You can already use the POS in
-            many <span className="font-semibold">non-fiscal countries</span>,
-            for example:
+            {t.fiscal.paragraph2.split("(TSE")[0]}
+            <span className="font-semibold">{t.fiscal.comingSoon}</span> (TSE, RKSV,
+            NF525, SAF-T, TicketBAI, myDATA …). {t.fiscal.paragraph2.includes("(TSE") ? t.fiscal.paragraph2.split("(TSE")[1] : ""}
           </p>
           <ul className="list-disc list-inside space-y-1">
-            <li>Netherlands (EUR)</li>
-            <li>Ireland (EUR)</li>
-            <li>Switzerland (CHF)</li>
-            <li>United Kingdom (GBP)</li>
-            <li>Czech Republic (CZK)</li>
-            <li>Tunisia (TND)</li>
-            <li>Morocco (MAD)</li>
-            <li>Algeria (DZD)</li>
-            <li>Libya (LYD)</li>
+            {t.fiscal.countries.map((country, idx) => (
+              <li key={idx}>{country}</li>
+            ))}
           </ul>
           <p>
-            In countries with a{" "}
-            <span className="font-semibold">strict fiscalization requirement</span>{" "}
-            – for example Germany, Austria, Italy, France, Spain, Portugal and
-            others – a certified fiscal device or certified software is often
-            mandatory. As long as the matching Caisty fiscal pack is only shown
-            as <span className="font-semibold">“coming soon”</span>, you are
-            using the generic mode{" "}
-            <span className="font-semibold">at your own responsibility</span>.
-            Always confirm with your local tax advisor or authority whether this
-            mode is allowed for your business.
+            {t.fiscal.paragraph3}{" "}
+            <span className="font-semibold">{t.fiscal.strictRequirement}</span>{" "}
+            {t.fiscal.paragraph4}
           </p>
           <p>
-            Caisty helps you technically (receipts, journals, exports), but it
-            does not replace legal advice or official registration with tax
-            authorities.
+            {t.fiscal.paragraph5}
           </p>
         </div>
       </section>

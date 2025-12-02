@@ -1,32 +1,35 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { PRICING_PLANS } from "../config/pricingPlans";
+import { PRICING, TRIAL_DAYS, MAX_DEVICES } from "../config/pricing";
+import { useCurrency } from "../lib/useCurrency";
+import { useLanguage } from "../lib/LanguageContext";
+import { translations } from "../lib/translations/index";
 
 type BillingPeriod = "monthly" | "yearly";
 
 export default function PricingPage() {
   const [billing, setBilling] = useState<BillingPeriod>("monthly");
-  const { trialDays, starter, pro } = PRICING_PLANS || {};
+  const { currency } = useCurrency();
+  const { language } = useLanguage();
+  const t = translations[language].pricing;
 
-  const starterMonthly = starter?.monthly ?? 19;
-  const starterYearly = starter?.yearly ?? 190;
-  const starterDevices = starter?.devices ?? 1;
+  const starterMonthly = PRICING[currency].starter.monthly;
+  const starterYearly = PRICING[currency].starter.yearly;
+  const starterDevices = MAX_DEVICES.starter;
 
-  const proMonthly = pro?.monthly ?? 35;
-  const proYearly = pro?.yearly ?? 350;
-  const proDevices = pro?.devices ?? 3;
+  const proMonthly = PRICING[currency].pro.monthly;
+  const proYearly = PRICING[currency].pro.yearly;
+  const proDevices = MAX_DEVICES.pro;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
       <section className="max-w-5xl mx-auto px-4 pt-20 pb-16 space-y-8">
         <header className="text-center space-y-3">
           <h1 className="text-3xl sm:text-4xl font-semibold">
-            Einfache Pläne für deinen Start mit Caisty.
+            {t.title}
           </h1>
           <p className="text-sm text-slate-300 max-w-2xl mx-auto">
-            Starte zuerst mit einer kurzen Testphase und entscheide dann, ob du mit
-            Starter oder Pro weitermachen möchtest. Du zahlst pro Lizenz – und kannst
-            monatlich beginnen oder mit einem Jahresplan sparen.
+            {t.description}
           </p>
         </header>
 
@@ -37,24 +40,22 @@ export default function PricingPage() {
               <div className="inline-flex items-center gap-2 text-emerald-200">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 <span className="font-semibold uppercase tracking-wide text-[11px]">
-                  Testlizenz
+                  {t.trial.badge}
                 </span>
               </div>
               <p className="text-slate-100">
-                Du startest immer mit einer{" "}
+                {t.trial.title}{" "}
                 <span className="font-semibold">
-                  {trialDays ?? 3}-Tage-Testlizenz
-                </span>{" "}
-                (Funktionsumfang wie Starter, 1 Gerät). Keine Zahlungsdaten
-                erforderlich – wenn dir Caisty gefällt, wählst du danach einfach
-                Starter oder Pro.
+                  {TRIAL_DAYS}-{language === "de" ? "Tage-Testlizenz" : language === "en" ? "day trial license" : language === "fr" ? "licence d'essai" : "ترخيص تجريبي"}
+                </span>
+                {t.trial.description}
               </p>
             </div>
             <Link
               to="/register"
               className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-2 text-xs sm:text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors whitespace-nowrap"
             >
-              Kostenlos starten
+              {t.trial.cta}
             </Link>
           </div>
         </section>
@@ -72,7 +73,7 @@ export default function PricingPage() {
                   : "text-slate-400",
               ].join(" ")}
             >
-              Monatlich
+              {t.billing.monthly}
             </button>
             <button
               type="button"
@@ -84,9 +85,9 @@ export default function PricingPage() {
                   : "text-slate-400",
               ].join(" ")}
             >
-              Jährlich
+              {t.billing.yearly}
               <span className="hidden sm:inline text-[10px] text-emerald-300">
-                (Rabatt)
+                {t.billing.discount}
               </span>
             </button>
           </div>
@@ -95,37 +96,29 @@ export default function PricingPage() {
         <div className="grid gap-6 md:grid-cols-2">
           {/* Starter */}
           <PlanCard
-            title="Starter"
-            badge="Beliebt für einen Standort"
+            title={t.plans.starter.title}
+            badge={t.plans.starter.badge}
             billing={billing}
             priceMonthly={starterMonthly}
             priceYearly={starterYearly}
-            description="Ideal für eine Filiale oder ein einzelnes Geschäft."
-            devicesLabel={`${starterDevices} aktives POS-Gerät`}
-            features={[
-              "Lizenzverwaltung im Kundenportal",
-              "Geräte-Übersicht & Basis-Statistiken",
-              "Tagesabschlüsse & Export-Grundfunktionen",
-              "E-Mail-Support zu Geschäftszeiten",
-            ]}
+            description={t.plans.starter.description}
+            devicesLabel={`${starterDevices} ${t.plans.starter.devicesLabel}`}
+            features={t.plans.starter.features}
+            planNote={t.planNote}
             highlight
           />
 
           {/* Pro */}
           <PlanCard
-            title="Pro"
-            badge="Für mehrere Geräte"
+            title={t.plans.pro.title}
+            badge={t.plans.pro.badge}
             billing={billing}
             priceMonthly={proMonthly}
             priceYearly={proYearly}
-            description="Für Betriebe mit mehreren Kassen oder kleinen Filialnetzen."
-            devicesLabel={`Bis zu ${proDevices} aktive POS-Geräte`}
-            features={[
-              "Alle Starter-Funktionen",
-              "Mehrere Geräte unter einer Lizenz",
-              "Erweiterte Auswertungen (geplant)",
-              "Priorisierter Support",
-            ]}
+            description={t.plans.pro.description}
+            devicesLabel={`${proDevices} ${t.plans.pro.devicesLabel}`}
+            features={t.plans.pro.features}
+            planNote={t.planNote}
           />
         </div>
 
@@ -133,27 +126,25 @@ export default function PricingPage() {
         <section className="mt-6 space-y-4">
           <div className="grid gap-4 md:grid-cols-3 text-sm">
             <InfoCard
-              title="Vertrag & Laufzeit"
-              text="Du kannst mit einem monatlichen Plan beginnen und später jederzeit auf einen Jahresplan wechseln. Die Abrechnung läuft pro Lizenz, die du im Portal verwaltest."
+              title={t.info.contract.title}
+              text={t.info.contract.text}
             />
             <InfoCard
-              title="Hardware"
-              text="Caisty läuft auf Standard-Hardware: Windows-PC oder Mini-PC, Thermodrucker, optional Kassenschublade und Scanner. Keine Spezialkasse nötig."
+              title={t.info.hardware.title}
+              text={t.info.hardware.text}
             />
             <InfoCard
-              title="Nächste Schritte"
-              text="Portalzugang anlegen, Testlizenz erhalten und Caisty POS über die Installationsseite im Kundenportal installieren. Alles weitere steuerst du später zentral über dein Caisty-Konto."
+              title={t.info.nextSteps.title}
+              text={t.info.nextSteps.text}
             />
           </div>
 
           <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-4">
             <div className="text-xs sm:text-sm text-slate-300 max-w-xl">
               <span className="font-semibold text-slate-100">
-                Bereit zum Testen?
+                {t.cta.title}
               </span>{" "}
-              Lege deinen Portalzugang an, erhalte automatisch deine Testlizenz
-              und installiere Caisty POS anschließend über die Installationsseite
-              im Kundenportal.
+              {t.cta.description}
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -161,15 +152,13 @@ export default function PricingPage() {
                 to="/register"
                 className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-2 text-xs sm:text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors"
               >
-                Portalzugang anlegen
+                {t.cta.button}
               </Link>
             </div>
           </div>
 
           <p className="text-[11px] text-slate-500">
-            Alle Beträge in Euro, zzgl. MwSt. – finale Konditionen können je nach
-            Land und Steuerregeln variieren und werden im Kundenportal pro Markt
-            hinterlegt.
+            {t.footer}
           </p>
         </section>
       </section>
@@ -186,6 +175,7 @@ interface PlanCardProps {
   description: string;
   devicesLabel: string;
   features: string[];
+  planNote: string;
   highlight?: boolean;
 }
 
@@ -198,11 +188,14 @@ function PlanCard({
   description,
   devicesLabel,
   features,
+  planNote,
   highlight,
 }: PlanCardProps) {
+  const { currency } = useCurrency();
   const isMonthly = billing === "monthly";
   const price = isMonthly ? priceMonthly : priceYearly;
-  const suffix = isMonthly ? "€/Monat" : "€/Jahr";
+  const currencySymbol = currency === "EUR" ? "€" : "TND";
+  const suffix = isMonthly ? `${currencySymbol}/Monat` : `${currencySymbol}/Jahr`;
 
   return (
     <div
@@ -246,8 +239,7 @@ function PlanCard({
         </ul>
       </div>
     <p className="mt-4 text-[11px] text-slate-500">
-        Du kannst deinen Plan später im Portal wechseln – ein Upgrade ist in der
-        Regel sofort möglich, ein Downgrade zur nächsten Abrechnungsperiode.
+        {planNote}
       </p>
     </div>
   );

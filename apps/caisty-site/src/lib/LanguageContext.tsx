@@ -1,6 +1,6 @@
 // apps/caisty-site/src/lib/LanguageContext.tsx
 import React, { createContext, useContext, useState, useEffect } from "react";
-import type { Language } from "./translations";
+import type { Language } from "./translations/types";
 
 const LanguageContext = createContext<{
   language: Language;

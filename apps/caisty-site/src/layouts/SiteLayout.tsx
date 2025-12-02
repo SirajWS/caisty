@@ -1,5 +1,6 @@
 import { Outlet, Link, NavLink } from "react-router-dom";
 import LanguageSelector from "../components/LanguageSelector";
+import CurrencySelector from "../components/CurrencySelector";
 
 function NavItem(props: { to: string; children: React.ReactNode }) {
   return (
@@ -44,6 +45,7 @@ export default function SiteLayout() {
           </nav>
 
           <div className="flex items-center gap-3">
+            <CurrencySelector />
             <LanguageSelector />
             <Link
               to="/login"
