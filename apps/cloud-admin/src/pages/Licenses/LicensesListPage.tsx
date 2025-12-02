@@ -1,7 +1,7 @@
 // apps/cloud-admin/src/pages/Licenses/LicensesListPage.tsx
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiGet, apiPost } from "../../lib/api";
+import { apiGet, apiPost, apiDelete } from "../../lib/api";
 
 type License = {
   id: string;
@@ -82,6 +82,10 @@ export default function LicensesListPage() {
 
   const [createError, setCreateError] = useState<string | null>(null);
   const [createLoading, setCreateLoading] = useState(false);
+
+  // Filter-State
+  const [filterPlan, setFilterPlan] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   function formatDate(value: string | null | undefined) {
     if (!value) return "–";
@@ -219,6 +223,22 @@ export default function LicensesListPage() {
     }
   }
 
+  async function handleDelete(id: string) {
+    if (
+      !window.confirm(
+        "Diese License wirklich endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+      )
+    )
+      return;
+    try {
+      await apiDelete(`/licenses/${id}`);
+      await loadLicenses();
+    } catch (err) {
+      console.error(err);
+      alert("Fehler beim Löschen der License.");
+    }
+  }
+
   // Aufteilung:
   // - generierte Keys: noch kein Customer UND devicesCount === 0 UND NICHT revoked
   // - alle anderen (Customer gesetzt ODER schon verwendet) → unten in der Hauptliste
@@ -235,6 +255,13 @@ export default function LicensesListPage() {
       (lic.devicesCount ?? 0) > 0 ||
       lic.status === "revoked",
   );
+
+  // Filter anwenden
+  const filteredAssignedLicenses = assignedLicenses.filter((lic) => {
+    if (filterPlan !== "all" && lic.plan !== filterPlan) return false;
+    if (filterStatus !== "all" && lic.status !== filterStatus) return false;
+    return true;
+  });
 
   const customerSelectValue =
     form.customerMode === "existing"
@@ -585,6 +612,107 @@ export default function LicensesListPage() {
         </div>
       )}
 
+      {/* Filter-Karte */}
+      <div
+        className="dashboard-card"
+        style={{ marginBottom: 24, maxWidth: 900 }}
+      >
+        <div className="dashboard-card-title">Filter</div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 12,
+            marginTop: 12,
+          }}
+        >
+          <label style={{ fontSize: 13 }}>
+            Plan
+            <select
+              value={filterPlan}
+              onChange={(e) => setFilterPlan(e.target.value)}
+              style={{
+                width: "100%",
+                marginTop: 4,
+                padding: "6px 8px",
+                borderRadius: 6,
+                border: "1px solid #374151",
+                backgroundColor: "#020617",
+                color: "#e5e7eb",
+                fontSize: 13,
+              }}
+            >
+              <option value="all">Alle Pläne</option>
+              <option value="trial">trial</option>
+              <option value="starter">starter</option>
+              <option value="pro">pro</option>
+            </select>
+          </label>
+
+          <label style={{ fontSize: 13 }}>
+            Status
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              style={{
+                width: "100%",
+                marginTop: 4,
+                padding: "6px 8px",
+                borderRadius: 6,
+                border: "1px solid #374151",
+                backgroundColor: "#020617",
+                color: "#e5e7eb",
+                fontSize: 13,
+              }}
+            >
+              <option value="all">Alle Status</option>
+              <option value="active">active</option>
+              <option value="revoked">revoked</option>
+              <option value="expired">expired</option>
+            </select>
+          </label>
+
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-end",
+              justifyContent: "flex-start",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setFilterPlan("all");
+                setFilterStatus("all");
+              }}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: "1px solid #374151",
+                backgroundColor: "#1f2937",
+                color: "#e5e7eb",
+                fontSize: 13,
+                cursor: "pointer",
+              }}
+            >
+              Filter zurücksetzen
+            </button>
+          </div>
+        </div>
+        {(filterPlan !== "all" || filterStatus !== "all") && (
+          <div
+            style={{
+              marginTop: 12,
+              fontSize: 12,
+              color: "#9ca3af",
+            }}
+          >
+            {filteredAssignedLicenses.length} von {assignedLicenses.length}{" "}
+            Lizenzen angezeigt
+          </div>
+        )}
+      </div>
+
       {/* Tabelle: Licenses mit Customer ODER bereits benutzten Devices */}
       <div className="admin-table-wrapper">
         <table className="admin-table">
@@ -598,31 +726,34 @@ export default function LicensesListPage() {
               <th>Customer</th>
               <th>Gültig bis</th>
               <th>Erstellt</th>
+              <th>Aktion</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={8}>Lade Licenses…</td>
+                <td colSpan={9}>Lade Licenses…</td>
               </tr>
             )}
             {!loading && error && (
               <tr>
-                <td colSpan={8}>
+                <td colSpan={9}>
                   <div className="admin-error">{error}</div>
                 </td>
               </tr>
             )}
-            {!loading && !error && assignedLicenses.length === 0 && (
+            {!loading && !error && filteredAssignedLicenses.length === 0 && (
               <tr>
-                <td colSpan={8}>
-                  Noch keine Licenses mit Customer oder Device vorhanden.
+                <td colSpan={9}>
+                  {assignedLicenses.length === 0
+                    ? "Noch keine Licenses mit Customer oder Device vorhanden."
+                    : "Keine Lizenzen entsprechen den ausgewählten Filtern."}
                 </td>
               </tr>
             )}
             {!loading &&
               !error &&
-              assignedLicenses.map((lic) => {
+              filteredAssignedLicenses.map((lic) => {
                 const used = lic.devicesCount ?? 0;
                 const total = lic.maxDevices ?? used;
                 const full = total > 0 && used >= total;
@@ -674,6 +805,16 @@ export default function LicensesListPage() {
                     </td>
                     <td>{formatDate(lic.validUntil)}</td>
                     <td>{formatDate(lic.createdAt)}</td>
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(lic.id)}
+                        className="badge badge--red"
+                        style={{ cursor: "pointer" }}
+                      >
+                        Löschen
+                      </button>
+                    </td>
                   </tr>
                 );
               })}

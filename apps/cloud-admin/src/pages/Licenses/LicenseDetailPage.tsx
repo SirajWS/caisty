@@ -43,6 +43,15 @@ type Device = {
 
   lastHeartbeatAt: string | null;
   createdAt: string;
+  
+  // Für gruppierte Devices (nach fingerprint)
+  licenses?: Array<{
+    id: string;
+    key: string | null;
+    plan: string | null;
+    validFrom: string | null;
+    validUntil: string | null;
+  }>;
 };
 
 type DeviceListResponse = {
@@ -131,9 +140,36 @@ export default function LicenseDetailPage() {
       setLicense(licenseRes.item);
       setEvents(eventsRes.items);
 
-      const devsForLicense = (devicesRes.items ?? []).filter(
-        (dev) => dev.licenseId === licenseRes.item.id,
-      );
+      // Devices können entweder direkt eine licenseId haben oder ein licenses Array
+      // (wenn Devices nach fingerprint gruppiert sind)
+      const devsForLicense = (devicesRes.items ?? []).filter((dev: any) => {
+        // Prüfe direktes licenseId Feld
+        if (dev.licenseId === licenseRes.item.id) {
+          return true;
+        }
+        // Prüfe licenses Array (wenn Devices nach fingerprint gruppiert sind)
+        if (dev.licenses && Array.isArray(dev.licenses)) {
+          return dev.licenses.some((lic: any) => lic.id === licenseRes.item.id);
+        }
+        return false;
+      }).map((dev: any) => {
+        // Wenn das Device ein licenses Array hat, aber wir nach einer spezifischen Lizenz filtern,
+        // müssen wir das Device-Format anpassen, damit es mit dem erwarteten Format übereinstimmt
+        if (dev.licenses && Array.isArray(dev.licenses)) {
+          const matchingLicense = dev.licenses.find((lic: any) => lic.id === licenseRes.item.id);
+          if (matchingLicense) {
+            return {
+              ...dev,
+              licenseId: matchingLicense.id,
+              licenseKey: matchingLicense.key,
+              licensePlan: matchingLicense.plan,
+              licenseValidFrom: matchingLicense.validFrom,
+              licenseValidUntil: matchingLicense.validUntil,
+            };
+          }
+        }
+        return dev;
+      });
       setLicenseDevices(devsForLicense);
     } catch (err: any) {
       console.error(err);

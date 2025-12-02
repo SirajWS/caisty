@@ -7,9 +7,10 @@ import { desc, eq } from "drizzle-orm";
 
 export async function registerDevicesRoutes(app: FastifyInstance) {
   // Übersicht aller Devices (Admin)
-  app.get("/devices", async (request) => {
-    const user = (request as any).user;
-    const orgId = user?.orgId;
+  app.get("/devices", async (request, reply) => {
+    try {
+      const user = (request as any).user;
+      const orgId = user?.orgId;
 
     // Rohdaten abrufen
     const rows = await db
@@ -71,11 +72,19 @@ export async function registerDevicesRoutes(app: FastifyInstance) {
       }, {} as Record<string, any>)
     );
 
-    return {
-      items: grouped,
-      total: grouped.length,
-      limit: 500,
-      offset: 0,
-    };
+      return {
+        items: grouped,
+        total: grouped.length,
+        limit: 500,
+        offset: 0,
+      };
+    } catch (err) {
+      console.error("Error loading devices", err);
+      reply.code(500);
+      return {
+        error: "Failed to load devices",
+        details: err instanceof Error ? err.message : String(err),
+      };
+    }
   });
 }

@@ -25,6 +25,7 @@ import WebhooksListPage from "../pages/Webhooks/WebhooksListPage";
 
 import LicensesListPage from "../pages/Licenses/LicensesListPage";
 import LicenseDetailPage from "../pages/Licenses/LicenseDetailPage";
+import PortalLicensesPage from "../pages/Licenses/PortalLicensesPage";
 
 import NotificationsPage from "../pages/Notifications/NotificationsPage";
 import NotificationBell from "../components/NotificationBell";
@@ -84,6 +85,7 @@ function AppShell({ children }: { children: React.ReactElement }) {
           <Link to="/payments">Payments</Link>
           <Link to="/webhooks">Webhooks</Link>
           <Link to="/licenses">Licenses</Link>
+          <Link to="/licenses/portal">Portal-Lizenzen</Link>
           <Link to="/notifications">Notifications</Link>
         </nav>
 
@@ -253,6 +255,16 @@ function AppRoutes() {
           <RequireAuth>
             <AppShell>
               <LicensesListPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/licenses/portal"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <PortalLicensesPage />
             </AppShell>
           </RequireAuth>
         }

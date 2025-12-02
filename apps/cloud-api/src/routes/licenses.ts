@@ -24,6 +24,46 @@ type RevokeBody = {
 
 type DbLicense = typeof licenses.$inferSelect;
 
+/**
+ * Berechnet den aktuellen Status einer Lizenz basierend auf validUntil.
+ * Aktualisiert die Datenbank, wenn die Lizenz abgelaufen ist.
+ */
+async function calculateLicenseStatus(license: DbLicense): Promise<string> {
+  const now = new Date();
+  
+  // Wenn bereits revoked oder blocked, Status beibehalten
+  if (license.status === "revoked" || license.status === "blocked") {
+    return license.status;
+  }
+  
+  // Prüfe, ob die Lizenz abgelaufen ist
+  if (license.validUntil && license.validUntil.getTime() < now.getTime()) {
+    // Status in Datenbank aktualisieren, wenn noch nicht expired
+    if (license.status !== "expired") {
+      try {
+        await db
+          .update(licenses)
+          .set({
+            status: "expired",
+            updatedAt: now,
+          } as any)
+          .where(eq(licenses.id, license.id));
+      } catch (err) {
+        console.error(`Error updating license ${license.id} to expired:`, err);
+      }
+    }
+    return "expired";
+  }
+  
+  // Prüfe, ob die Lizenz noch nicht gültig ist
+  if (license.validFrom && license.validFrom.getTime() > now.getTime()) {
+    return "inactive";
+  }
+  
+  // Standard: Status aus Datenbank verwenden
+  return license.status;
+}
+
 export async function registerLicensesRoutes(app: FastifyInstance) {
   // ---------------------------------------------------------------------------
   // Liste aller Lizenzen der aktuellen Org
@@ -50,59 +90,65 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
             .orderBy(desc(licenses.createdAt))
             .limit(200);
         } else if (orgId) {
-          // Filtere nach orgId der Lizenz
-          // Die orgId wird als String behandelt, da sie in der licenses-Tabelle als text gespeichert ist
-          // Konvertiere orgId zu String und normalisiere (entferne Leerzeichen, etc.)
+          // Vereinfachte Strategie: Hole ALLE Lizenzen von Customers dieser Organisation
+          // Dies stellt sicher, dass PayPal-Lizenzen erscheinen, unabhängig von der orgId der Lizenz
           const orgIdStr = String(orgId).trim();
           
-          // Hole Lizenzen, die direkt zur Organisation gehören
-          // Verwende SQL-Vergleich, um sicherzustellen, dass UUID- und String-Formate funktionieren
-          const directMatches = await db
-            .select()
-            .from(licenses)
-            .where(sql`${licenses.orgId}::text = ${orgIdStr}`)
-            .orderBy(desc(licenses.createdAt))
-            .limit(200);
-          
-          // Hole auch Lizenzen, die zu Customers gehören, die zur gleichen Organisation gehören
-          // (für den Fall, dass die orgId der Lizenz nicht korrekt gesetzt wurde)
-          const orgCustomers = await db
-            .select({ id: customers.id })
-            .from(customers)
-            .where(sql`${customers.orgId}::text = ${orgIdStr}`);
-          
-          let customerMatches: DbLicense[] = [];
-          if (orgCustomers.length > 0) {
-            const customerIds = orgCustomers.map((c) => String(c.id));
-            const directMatchIds = new Set(directMatches.map((l) => l.id));
+          try {
+            // 1. Hole alle Customers dieser Organisation
+            const orgCustomers = await db
+              .select({ id: customers.id })
+              .from(customers)
+              .where(sql`${customers.orgId}::text = ${orgIdStr}`);
             
-            // Hole Lizenzen für diese Customers, die noch nicht in directMatches sind
-            const allCustomerLicenses = await db
+            const customerIds = orgCustomers.map((c) => String(c.id));
+            
+            console.log(`[licenses] orgId: ${orgIdStr}, found ${orgCustomers.length} customers`);
+            
+            // 2. Hole ALLE Lizenzen dieser Customers (unabhängig von der orgId der Lizenz)
+            // Dies ist wichtig für PayPal-Lizenzen, die möglicherweise eine andere orgId haben
+            let customerLicenses: DbLicense[] = [];
+            if (customerIds.length > 0) {
+              customerLicenses = await db
+                .select()
+                .from(licenses)
+                .where(inArray(licenses.customerId as any, customerIds))
+                .orderBy(desc(licenses.createdAt))
+                .limit(200);
+              
+              console.log(`[licenses] customerLicenses: ${customerLicenses.length}`);
+            }
+            
+            // 3. Hole auch Lizenzen, die direkt zur Organisation gehören (ohne Customer)
+            const directLicenses = await db
               .select()
               .from(licenses)
-              .where(inArray(licenses.customerId as any, customerIds))
+              .where(sql`${licenses.orgId}::text = ${orgIdStr}`)
               .orderBy(desc(licenses.createdAt))
               .limit(200);
             
-            customerMatches = allCustomerLicenses.filter(
-              (l) => !directMatchIds.has(l.id),
-            );
+            console.log(`[licenses] directLicenses: ${directLicenses.length}`);
+            
+            // 4. Kombiniere beide Ergebnisse und entferne Duplikate
+            const allItems = [...customerLicenses, ...directLicenses];
+            const uniqueItems = new Map<string, DbLicense>();
+            for (const item of allItems) {
+              uniqueItems.set(item.id, item);
+            }
+            
+            items = Array.from(uniqueItems.values())
+              .sort((a, b) => {
+                const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                return dateB - dateA;
+              })
+              .slice(0, 200);
+            
+            console.log(`[licenses] final items count: ${items.length}`);
+          } catch (queryErr) {
+            console.error("[licenses] Error in query:", queryErr);
+            throw queryErr;
           }
-          
-          // Kombiniere beide Ergebnisse und entferne Duplikate
-          const allItems = [...directMatches, ...customerMatches];
-          const uniqueItems = new Map<string, DbLicense>();
-          for (const item of allItems) {
-            uniqueItems.set(item.id, item);
-          }
-          
-          items = Array.from(uniqueItems.values())
-            .sort((a, b) => {
-              const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-              const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-              return dateB - dateA;
-            })
-            .slice(0, 200);
         } else {
           items = await db
             .select()
@@ -142,9 +188,20 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
         }));
       }
 
+      // Status für alle Lizenzen berechnen (prüft auf Ablauf)
+      const itemsWithCorrectStatus = await Promise.all(
+        itemsWithCounts.map(async (lic) => {
+          const calculatedStatus = await calculateLicenseStatus(lic);
+          return {
+            ...lic,
+            status: calculatedStatus,
+          };
+        })
+      );
+
       return {
-        items: itemsWithCounts,
-        total: itemsWithCounts.length,
+        items: itemsWithCorrectStatus,
+        total: itemsWithCorrectStatus.length,
         limit: 200,
         offset: 0,
       };
@@ -154,6 +211,177 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
       console.error("customerId:", customerId);
       reply.code(500);
       return { error: "Failed to load licenses", details: err instanceof Error ? err.message : String(err) };
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // Portal-Lizenzen (automatisch generiert durch Kundenportal)
+  // ---------------------------------------------------------------------------
+  app.get("/licenses/portal", async (request, reply) => {
+    const user = (request as any).user;
+    const orgId = user?.orgId as string | undefined;
+
+    try {
+      if (!orgId) {
+        reply.code(400);
+        return { error: "Missing orgId on user" };
+      }
+
+      const orgIdStr = String(orgId).trim();
+
+      // Hole alle Customers dieser Organisation
+      const orgCustomers = await db
+        .select({ id: customers.id })
+        .from(customers)
+        .where(sql`${customers.orgId}::text = ${orgIdStr}`);
+
+      const customerIds = orgCustomers.map((c) => String(c.id));
+
+      if (customerIds.length === 0) {
+        return {
+          items: [],
+          total: 0,
+          limit: 200,
+          offset: 0,
+        };
+      }
+
+      // Strategie: Finde alle Portal-Events (unabhängig von orgId, da Events unterschiedliche orgIds haben können)
+      // Dann hole die zugehörigen Lizenzen, die zu Customers dieser Organisation gehören
+      
+      console.log(`[licenses/portal] Searching for portal licenses. orgId: ${orgIdStr}, customers: ${customerIds.length}`);
+      
+      // 1. Suche nach ALLEN Portal-Events (ohne orgId-Filter, da Events unterschiedliche orgIds haben können)
+      const allPortalEvents = await db
+        .select({ 
+          licenseId: licenseEvents.licenseId,
+          orgId: licenseEvents.orgId,
+          metadata: licenseEvents.metadata
+        })
+        .from(licenseEvents)
+        .where(
+          and(
+            eq(licenseEvents.type, "created"),
+            sql`(${licenseEvents.metadata}->>'source' = 'portal_payment' OR ${licenseEvents.metadata}->>'source' = 'portal_trial' OR ${licenseEvents.metadata}->>'source' = 'portal_upgrade')`
+          )
+        );
+
+      console.log(`[licenses/portal] Found ${allPortalEvents.length} total portal events`);
+      for (const evt of allPortalEvents) {
+        console.log(`[licenses/portal] Event: licenseId=${evt.licenseId}, orgId=${evt.orgId}, source=${(evt.metadata as any)?.source}`);
+      }
+
+      const portalLicenseIds = new Set(allPortalEvents.map((e) => e.licenseId));
+      
+      let portalLicenses: DbLicense[] = [];
+      
+      if (portalLicenseIds.size > 0) {
+        // 2. Hole die Lizenzen, die:
+        //    - Ein Portal-Event haben (aus Schritt 1)
+        //    - Zu einem Customer dieser Organisation gehören
+        portalLicenses = await db
+          .select()
+          .from(licenses)
+          .where(
+            and(
+              inArray(licenses.id, Array.from(portalLicenseIds)),
+              inArray(licenses.customerId as any, customerIds)
+            )
+          )
+          .orderBy(desc(licenses.createdAt))
+          .limit(200);
+        
+        console.log(`[licenses/portal] Found ${portalLicenses.length} portal licenses with events for org customers`);
+      }
+      
+      // Fallback: Wenn keine Lizenzen mit Events gefunden wurden, aber wir wissen,
+      // dass Portal-Lizenzen oft ein subscriptionId haben, suche nach Lizenzen mit subscriptionId
+      if (portalLicenses.length === 0) {
+        console.log(`[licenses/portal] No licenses found with events, trying fallback: licenses with subscriptionId`);
+        const licensesWithSubscription = await db
+          .select()
+          .from(licenses)
+          .where(
+            and(
+              inArray(licenses.customerId as any, customerIds),
+              sql`${licenses.subscriptionId} IS NOT NULL`
+            )
+          )
+          .orderBy(desc(licenses.createdAt))
+          .limit(200);
+        
+        console.log(`[licenses/portal] Found ${licensesWithSubscription.length} licenses with subscriptionId`);
+        portalLicenses = licensesWithSubscription;
+      }
+      
+      if (portalLicenses.length === 0) {
+        return {
+          items: [],
+          total: 0,
+          limit: 200,
+          offset: 0,
+        };
+      }
+      
+      for (const lic of portalLicenses) {
+        console.log(`[licenses/portal] License: ${lic.key}, customerId=${lic.customerId}, orgId=${lic.orgId}, subscriptionId=${lic.subscriptionId}`);
+      }
+
+      // Devices pro License zählen
+      let itemsWithCounts = portalLicenses.map((lic: DbLicense) => ({
+        ...lic,
+        devicesCount: 0 as number,
+      }));
+
+      if (portalLicenses.length > 0) {
+        const licenseIdList = portalLicenses.map((lic: DbLicense) => lic.id);
+
+        const counts = await db
+          .select({
+            licenseId: devices.licenseId,
+            count: sql<number>`count(*)`,
+          })
+          .from(devices)
+          .where(inArray(devices.licenseId, licenseIdList))
+          .groupBy(devices.licenseId);
+
+        const countMap = new Map<string, number>();
+        for (const row of counts) {
+          if (row.licenseId) {
+            countMap.set(row.licenseId, row.count);
+          }
+        }
+
+        itemsWithCounts = portalLicenses.map((lic: DbLicense) => ({
+          ...lic,
+          devicesCount: countMap.get(lic.id) ?? 0,
+        }));
+      }
+
+      // Status für alle Portal-Lizenzen berechnen (prüft auf Ablauf)
+      const itemsWithCorrectStatus = await Promise.all(
+        itemsWithCounts.map(async (lic) => {
+          const calculatedStatus = await calculateLicenseStatus(lic);
+          return {
+            ...lic,
+            status: calculatedStatus,
+          };
+        })
+      );
+
+      return {
+        items: itemsWithCorrectStatus,
+        total: itemsWithCorrectStatus.length,
+        limit: 200,
+        offset: 0,
+      };
+    } catch (err) {
+      console.error("Error loading portal licenses", err);
+      reply.code(500);
+      return {
+        error: "Failed to load portal licenses",
+        details: err instanceof Error ? err.message : String(err),
+      };
     }
   });
 
@@ -339,6 +567,67 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
         console.error("Error revoking license", err);
         reply.code(500);
         return { error: "Failed to revoke license" };
+      }
+    },
+  );
+
+  // ---------------------------------------------------------------------------
+  // License endgültig löschen
+  // ---------------------------------------------------------------------------
+  app.delete<{ Params: { id: string } }>(
+    "/licenses/:id",
+    async (request, reply) => {
+      const { id } = request.params;
+      const user = (request as any).user;
+      const orgId = user?.orgId as string | undefined;
+
+      try {
+        // Prüfe zuerst, ob die Lizenz existiert und zur Organisation gehört
+        const [existing] = await db
+          .select()
+          .from(licenses)
+          .where(eq(licenses.id, id))
+          .limit(1);
+
+        if (!existing) {
+          reply.code(404);
+          return { error: "License not found" };
+        }
+
+        // Optional: Prüfe orgId (aber erlaube Löschen auch wenn orgId nicht übereinstimmt für Admin)
+        if (orgId && existing.orgId !== orgId) {
+          console.warn(
+            `License ${id} belongs to org ${existing.orgId}, but user belongs to org ${orgId}`,
+          );
+        }
+
+        // Entferne die Verknüpfung von Devices zu dieser Lizenz
+        await db
+          .update(devices)
+          .set({ licenseId: null })
+          .where(eq(devices.licenseId, id));
+
+        // Lösche alle Events dieser Lizenz
+        await db
+          .delete(licenseEvents)
+          .where(eq(licenseEvents.licenseId, id));
+
+        // Lösche die Lizenz
+        const deleted = await db
+          .delete(licenses)
+          .where(eq(licenses.id, id))
+          .returning();
+
+        if (deleted.length === 0) {
+          reply.code(404);
+          return { error: "License not found" };
+        }
+
+        return { ok: true };
+      } catch (err) {
+        console.error("Error deleting license", err);
+        reply.code(500);
+        return { error: "Failed to delete license" };
       }
     },
   );

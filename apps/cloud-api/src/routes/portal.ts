@@ -46,6 +46,8 @@ export async function registerPortalRoutes(app: FastifyInstance) {
     const payload = await requirePortalUser(request, reply);
     if (!payload) return;
 
+    // Hole ALLE Lizenzen dieses Customers, unabhängig von der orgId der Lizenz
+    // Dies ist wichtig für Upgrade-Lizenzen, die möglicherweise eine andere orgId haben
     const rows = await db
       .select({
         id: licenses.id,
@@ -58,12 +60,7 @@ export async function registerPortalRoutes(app: FastifyInstance) {
         createdAt: licenses.createdAt,
       })
       .from(licenses)
-      .where(
-        and(
-          eq(licenses.orgId, payload.orgId),
-          eq(licenses.customerId, payload.customerId)
-        )
-      )
+      .where(eq(licenses.customerId, payload.customerId))
       .orderBy(desc(licenses.createdAt));
 
     // Geräte-Anzahl pro License (für usedDevices)
@@ -89,17 +86,46 @@ export async function registerPortalRoutes(app: FastifyInstance) {
       }
     }
 
-    const result = rows.map((lic) => ({
-      id: lic.id,
-      key: lic.key,
-      plan: lic.plan, // "starter" | "pro"
-      status: lic.status, // "active" | "revoked" | ...
-      maxDevices: lic.maxDevices,
-      usedDevices: countMap.get(lic.id) ?? 0,
-      validFrom: lic.validFrom.toISOString(),
-      validUntil: lic.validUntil.toISOString(),
-      createdAt: lic.createdAt.toISOString(),
-    }));
+    // Status für alle Lizenzen berechnen (prüft auf Ablauf)
+    const now = new Date();
+    const result = await Promise.all(
+      rows.map(async (lic: any) => {
+        let calculatedStatus = lic.status;
+        
+        // Prüfe, ob die Lizenz abgelaufen ist
+        if (lic.validUntil && lic.validUntil.getTime() < now.getTime()) {
+          // Status in Datenbank aktualisieren, wenn noch nicht expired
+          if (lic.status !== "expired") {
+            try {
+              await db
+                .update(licenses)
+                .set({
+                  status: "expired",
+                  updatedAt: now,
+                } as any)
+                .where(eq(licenses.id, lic.id));
+            } catch (err) {
+              console.error(`Error updating license ${lic.id} to expired:`, err);
+            }
+          }
+          calculatedStatus = "expired";
+        } else if (lic.validFrom && lic.validFrom.getTime() > now.getTime()) {
+          calculatedStatus = "inactive";
+        }
+        
+        return {
+          id: lic.id,
+          key: lic.key,
+          plan: lic.plan, // "starter" | "pro"
+          status: calculatedStatus, // "active" | "revoked" | "expired" | ...
+          maxDevices: lic.maxDevices,
+          usedDevices: countMap.get(lic.id) ?? 0,
+          validFrom: lic.validFrom.toISOString(),
+          validUntil: lic.validUntil.toISOString(),
+          createdAt: lic.createdAt.toISOString(),
+        };
+      })
+    );
 
     return result;
   });
