@@ -59,11 +59,14 @@ const PortalAccountPage: React.FC = () => {
       });
 
       // Kontext aktualisieren, Lizenzinfo beibehalten
-      setCustomer((prev) => ({
-        ...prev,
-        ...updated,
-        primaryLicense: prev.primaryLicense,
-      }));
+      setCustomer((prev) => {
+        if (!prev) return updated;
+        return {
+          ...prev,
+          ...updated,
+          primaryLicense: prev.primaryLicense,
+        };
+      });
 
       setProfileSuccess("Konto wurde aktualisiert.");
     } catch (err) {

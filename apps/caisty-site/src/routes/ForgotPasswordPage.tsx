@@ -1,12 +1,11 @@
 // apps/caisty-site/src/routes/ForgotPasswordPage.tsx
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { requestPasswordReset } from "../lib/portalApi";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 
 export default function ForgotPasswordPage() {
-  const navigate = useNavigate();
   const [email, setEmail] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
