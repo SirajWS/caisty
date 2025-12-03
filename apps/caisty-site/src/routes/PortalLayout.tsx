@@ -16,6 +16,7 @@ import { Button } from "../components/ui/Button";
 
 export interface PortalOutletContext {
   customer: PortalCustomer;
+  setCustomer: React.Dispatch<React.SetStateAction<PortalCustomer | null>>;
 }
 
 // ⬅️ alter Hook-Name, den andere Dateien erwarten
@@ -194,7 +195,7 @@ export default function PortalLayout() {
 
       <main className="flex-1">
         <div className="max-w-5xl mx-auto px-4 py-8">
-          <Outlet context={{ customer }} />
+          <Outlet context={{ customer, setCustomer }} />
         </div>
       </main>
     </div>

@@ -5,6 +5,8 @@ import LandingPage from "./routes/LandingPage";
 import PricingPage from "./routes/PricingPage";
 import LoginPage from "./routes/LoginPage";
 import RegisterPage from "./routes/RegisterPage";
+import ForgotPasswordPage from "./routes/ForgotPasswordPage";
+import ResetPasswordPage from "./routes/ResetPasswordPage";
 import TermsPage from "./routes/TermsPage";
 import PrivacyPage from "./routes/PrivacyPage";
 import ImprintPage from "./routes/ImprintPage";
@@ -19,6 +21,7 @@ import PortalAccountPage from "./routes/PortalAccountPage";
 import PortalInstallPage from "./routes/PortalInstallPage"; // Install-Seite
 import PortalPlanBillingPage from "./routes/PortalPlanBillingPage"; // Plan & Abrechnung
 import PortalCheckoutPage from "./routes/PortalCheckoutPage"; // Checkout & Zahlung
+import PortalLoginSuccessPage from "./routes/PortalLoginSuccessPage"; // Google OAuth Success
 import PortalSupportPage from "./routes/PortalSupportPage"; // Support / Kontakt
 import PortalUpgradeResultPage from "./routes/PortalUpgradeResultPage"; // ⬅️ NEU
 
@@ -32,10 +35,15 @@ export default function App() {
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/imprint" element={<ImprintPage />} />
         </Route>
+
+        {/* Google OAuth Success - AUSSERHALB PortalLayout (keine Auth-Prüfung) */}
+        <Route path="/portal/login/success" element={<PortalLoginSuccessPage />} />
 
         {/* Kundenportal (geschützt) */}
         <Route path="/portal" element={<PortalLayout />}>

@@ -4,7 +4,6 @@ import { Link } from "react-router-dom";
 import {
   createTrialLicense,
   fetchPortalLicenses,
-  startPortalUpgrade,
   type PortalLicense,
 } from "../lib/portalApi";
 import { usePortalOutlet } from "./PortalLayout";

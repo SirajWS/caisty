@@ -93,10 +93,7 @@ const PortalInstallPage: React.FC = () => {
               <li>Optimiert für Maus &amp; Touchscreen</li>
             </ul>
             <div className="mt-3">
-              <Button
-                asChild
-                className="w-full justify-center text-xs font-medium"
-              >
+              <Button className="w-full justify-center text-xs font-medium">
                 {/* TODO: echten Download-Link hinterlegen */}
                 <a href="#download-windows">
                   Caisty POS für Windows herunterladen
@@ -120,7 +117,6 @@ const PortalInstallPage: React.FC = () => {
             </ul>
             <div className="mt-3">
               <Button
-                asChild
                 variant="outline"
                 className="w-full justify-center text-xs font-medium"
               >
@@ -145,7 +141,6 @@ const PortalInstallPage: React.FC = () => {
             </ul>
             <div className="mt-3">
               <Button
-                asChild
                 variant="outline"
                 className="w-full justify-center text-xs font-medium"
               >

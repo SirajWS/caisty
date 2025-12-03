@@ -1,5 +1,4 @@
 // apps/caisty-site/src/routes/TermsPage.tsx
-import { Link } from "react-router-dom";
 
 export default function TermsPage() {
   return (

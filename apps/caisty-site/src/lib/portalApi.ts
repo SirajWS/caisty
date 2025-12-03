@@ -99,14 +99,79 @@ export async function portalLogin(input: {
     body: JSON.stringify(input),
   });
 
-  const data = (await res.json()) as AuthResponse;
+  const data = (await res.json()) as AuthResponse & { reason?: string; message?: string };
 
   if (!res.ok || !data.ok) {
-    throw new Error(data.message ?? "Login fehlgeschlagen.");
+    const errorMessage = data.message || 
+      (data.reason === "google_auth_required" 
+        ? "Dieses Konto wurde mit Google erstellt. Bitte melde dich mit Google an."
+        : "Login fehlgeschlagen.");
+    throw new Error(errorMessage);
   }
 
   storePortalToken(data.token);
   return data.customer;
+}
+
+// Google OAuth Login
+export function getGoogleAuthUrl(): string {
+  return `${API_BASE}/portal/auth/google`;
+}
+
+// ---------- Password Reset ----------
+
+interface ForgotPasswordResponse {
+  ok: boolean;
+  message?: string;
+  error?: string;
+  resetLink?: string; // Nur in Development
+}
+
+export async function requestPasswordReset(email: string): Promise<ForgotPasswordResponse> {
+  const res = await fetch(`${API_BASE}/portal/auth/forgot-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  const data = (await res.json()) as ForgotPasswordResponse;
+
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || "Fehler beim Anfordern des Reset-Links");
+  }
+
+  // Debug: Log die Response (nur in Development)
+  if (import.meta.env.DEV) {
+    console.log("Password reset response:", data);
+  }
+
+  return data;
+}
+
+interface ResetPasswordResponse {
+  ok: boolean;
+  token?: string;
+  message?: string;
+  error?: string;
+}
+
+export async function resetPassword(
+  token: string,
+  newPassword: string
+): Promise<ResetPasswordResponse> {
+  const res = await fetch(`${API_BASE}/portal/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, newPassword }),
+  });
+
+  const data = (await res.json()) as ResetPasswordResponse;
+
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || "Fehler beim Zurücksetzen des Passworts");
+  }
+
+  return data;
 }
 
 export async function fetchPortalMe(): Promise<PortalCustomer | null> {

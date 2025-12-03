@@ -1,5 +1,5 @@
 // apps/caisty-site/src/components/LanguageSelector.tsx
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useLanguage } from "../lib/LanguageContext";
 import { languages } from "../lib/translations/index";
 

@@ -1,5 +1,5 @@
 // apps/caisty-site/src/components/CurrencySelector.tsx
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useCurrency } from "../lib/useCurrency";
 import type { Currency } from "../config/pricing";
 

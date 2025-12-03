@@ -1,17 +1,9 @@
 import React from "react";
-import { fetchPortalDevices } from "../lib/portalApi";
+import { fetchPortalDevices, type PortalDevice } from "../lib/portalApi";
 import { usePortalCustomer } from "./PortalLayout";
 
-type Device = {
-  fingerprint: string | null;
-  name: string | null;
-  status: string;
-  lastSeenAt: string | null;
-  licenseKeys: { key: string; plan: string }[];
-};
-
 const PortalDevicesPage: React.FC = () => {
-  const [devices, setDevices] = React.useState<Device[]>([]);
+  const [devices, setDevices] = React.useState<PortalDevice[]>([]);
   const [loading, setLoading] = React.useState(true);
   const customer = usePortalCustomer();
 
@@ -44,25 +36,27 @@ const PortalDevicesPage: React.FC = () => {
           <thead className="bg-slate-900/40 text-left">
             <tr>
               <th className="px-3 py-2">Name</th>
-              <th className="px-3 py-2">Fingerprint</th>
-              <th className="px-3 py-2">Lizenzen</th>
+              <th className="px-3 py-2">Device ID</th>
+              <th className="px-3 py-2">Lizenz</th>
               <th className="px-3 py-2">Letzter Kontakt</th>
               <th className="px-3 py-2">Status</th>
             </tr>
           </thead>
           <tbody>
-            {devices.map((d) => (
-              <tr key={d.fingerprint ?? Math.random()} className="border-t border-slate-800">
+            {devices.map((d, idx) => (
+              <tr key={d.id ?? idx} className="border-t border-slate-800">
                 <td className="px-3 py-2">{d.name ?? "—"}</td>
                 <td className="px-3 py-2 font-mono text-xs text-slate-400">
-                  {d.fingerprint ?? "—"}
+                  {d.deviceId ?? "—"}
                 </td>
                 <td className="px-3 py-2 font-mono text-xs">
-                  {d.licenseKeys.map((l) => (
-                    <div key={l.key}>
-                      {l.key} <span className="text-slate-400">({l.plan})</span>
+                  {d.licenseKey ? (
+                    <div>
+                      {d.licenseKey}
                     </div>
-                  ))}
+                  ) : (
+                    "—"
+                  )}
                 </td>
                 <td className="px-3 py-2 text-xs text-slate-400">
                   {d.lastSeenAt

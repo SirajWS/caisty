@@ -1,4 +1,4 @@
-// apps/caisty-site/src/portal/PortalInvoiceDetailPage.tsx
+// apps/caisty-site/src/routes/portal/PortalInvoiceDetailPage.tsx
 
 import React from "react";
 import { useParams, Link } from "react-router-dom";
@@ -6,7 +6,7 @@ import {
   fetchPortalInvoice,
   getPortalInvoiceHtmlUrl,
   type PortalInvoiceDetail,
-} from "../lib/portalApi";
+} from "../../lib/portalApi";
 
 const formatMoney = (cents: number, currency: string) =>
   new Intl.NumberFormat("de-DE", {
