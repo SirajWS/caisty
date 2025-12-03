@@ -8,6 +8,8 @@ import {
   type PortalLicense,
 } from "../lib/portalApi";
 import { usePortalOutlet } from "./PortalLayout";
+import { PRICING, TRIAL_DAYS, formatPrice } from "../config/pricing";
+import { useCurrency } from "../lib/useCurrency";
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
@@ -18,6 +20,7 @@ function formatDate(value: string | null | undefined): string {
 
 const PortalPlanBillingPage: React.FC = () => {
   const { customer } = usePortalOutlet();
+  const { currency } = useCurrency();
 
   const [licenses, setLicenses] = React.useState<PortalLicense[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -26,6 +29,10 @@ const PortalPlanBillingPage: React.FC = () => {
     null,
   );
   const [error, setError] = React.useState<string | null>(null);
+
+  const starterPrice = PRICING[currency].starter.monthly;
+  const proPrice = PRICING[currency].pro.monthly;
+  const currencySymbol = currency === "EUR" ? "€" : "TND";
 
   React.useEffect(() => {
     let cancelled = false;
@@ -83,17 +90,9 @@ const PortalPlanBillingPage: React.FC = () => {
     try {
       setError(null);
       setBusyPlan(plan);
-
-      const res = await startPortalUpgrade(plan);
-
-      // falls PayPal-Redirect vorhanden → direkt weiter
-      if (res.redirectUrl) {
-        window.location.href = res.redirectUrl;
-        return;
-      }
-
-      // Fallback: kein redirectUrl → Nutzer zu Rechnungen schicken
-      window.location.href = "/portal/invoices";
+      
+      // Weiterleitung zur Checkout-Seite mit Plan-Parameter
+      window.location.href = `/portal/checkout?plan=${plan}`;
     } catch (err: any) {
       console.error("upgrade failed", err);
       setError(err?.message ?? "Upgrade konnte nicht gestartet werden.");
@@ -199,9 +198,9 @@ const PortalPlanBillingPage: React.FC = () => {
                 mit Starter (1 Gerät), aber zeitlich begrenzt.
               </p>
               <div className="mt-2 text-2xl font-semibold text-emerald-400">
-                0&nbsp;€
+                0&nbsp;{currencySymbol}
                 <span className="text-xs font-normal text-slate-400">
-                  &nbsp;für 3 Tage
+                  &nbsp;für {TRIAL_DAYS} Tage
                 </span>
               </div>
               <div className="mt-1 text-xs text-slate-400">
@@ -239,9 +238,9 @@ const PortalPlanBillingPage: React.FC = () => {
                 Kundenportal, Basis-Statistiken &amp; Export-Grundfunktionen.
               </p>
               <div className="mt-2 text-2xl font-semibold text-emerald-400">
-                0,01&nbsp;€
+                {formatPrice(starterPrice, currency)}
                 <span className="text-xs font-normal text-slate-400">
-                  &nbsp;pro Monat (Test)
+                  &nbsp;pro Monat
                 </span>
               </div>
             </div>
@@ -276,9 +275,9 @@ const PortalPlanBillingPage: React.FC = () => {
                 (geplant), priorisierter Support.
               </p>
               <div className="mt-2 text-2xl font-semibold text-emerald-400">
-                0,01&nbsp;€
+                {formatPrice(proPrice, currency)}
                 <span className="text-xs font-normal text-slate-400">
-                  &nbsp;pro Monat (Test)
+                  &nbsp;pro Monat
                 </span>
               </div>
             </div>
@@ -304,8 +303,7 @@ const PortalPlanBillingPage: React.FC = () => {
 
         <p className="text-[11px] text-slate-500">
           Die folgenden Informationen orientieren sich an der aktuellen
-          Preisliste. Für diese Testversion sind die Beträge auf 0,01&nbsp;€
-          reduziert.
+          Preisliste. Alle Preise verstehen sich zzgl. MwSt.
         </p>
       </section>
 

@@ -227,104 +227,33 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
         return { error: "Missing orgId on user" };
       }
 
-      const orgIdStr = String(orgId).trim();
-
-      // Hole alle Customers dieser Organisation
-      const orgCustomers = await db
-        .select({ id: customers.id })
-        .from(customers)
-        .where(sql`${customers.orgId}::text = ${orgIdStr}`);
-
-      const customerIds = orgCustomers.map((c) => String(c.id));
-
-      if (customerIds.length === 0) {
-        return {
-          items: [],
-          total: 0,
-          limit: 200,
-          offset: 0,
-        };
-      }
-
-      // Strategie: Finde alle Portal-Events (unabhängig von orgId, da Events unterschiedliche orgIds haben können)
-      // Dann hole die zugehörigen Lizenzen, die zu Customers dieser Organisation gehören
+      // Portal-Lizenzen: Zeige ALLE Lizenzen, die zu einem Customer gehören (unabhängig von orgId)
+      // Das sind automatisch generierte Portal-Lizenzen (Trial, PayPal-Upgrades, etc.)
+      // Jeder Customer hat eine eigene Organisation, daher müssen wir ALLE Lizenzen mit customerId zeigen
       
-      console.log(`[licenses/portal] Searching for portal licenses. orgId: ${orgIdStr}, customers: ${customerIds.length}`);
+      console.log(`[licenses/portal] Searching for ALL portal licenses (with customerId)`);
       
-      // 1. Suche nach ALLEN Portal-Events (ohne orgId-Filter, da Events unterschiedliche orgIds haben können)
-      const allPortalEvents = await db
-        .select({ 
-          licenseId: licenseEvents.licenseId,
-          orgId: licenseEvents.orgId,
-          metadata: licenseEvents.metadata
-        })
-        .from(licenseEvents)
-        .where(
-          and(
-            eq(licenseEvents.type, "created"),
-            sql`(${licenseEvents.metadata}->>'source' = 'portal_payment' OR ${licenseEvents.metadata}->>'source' = 'portal_trial' OR ${licenseEvents.metadata}->>'source' = 'portal_upgrade')`
-          )
-        );
-
-      console.log(`[licenses/portal] Found ${allPortalEvents.length} total portal events`);
-      for (const evt of allPortalEvents) {
-        console.log(`[licenses/portal] Event: licenseId=${evt.licenseId}, orgId=${evt.orgId}, source=${(evt.metadata as any)?.source}`);
-      }
-
-      const portalLicenseIds = new Set(allPortalEvents.map((e) => e.licenseId));
+      // Hole ALLE Lizenzen, die zu einem Customer gehören (das sind Portal-Lizenzen)
+      // Unabhängig von der orgId, da jeder Customer seine eigene Organisation hat
+      const portalLicenses = await db
+        .select()
+        .from(licenses)
+        .where(sql`${licenses.customerId} IS NOT NULL`)
+        .orderBy(desc(licenses.createdAt))
+        .limit(200);
       
-      let portalLicenses: DbLicense[] = [];
-      
-      if (portalLicenseIds.size > 0) {
-        // 2. Hole die Lizenzen, die:
-        //    - Ein Portal-Event haben (aus Schritt 1)
-        //    - Zu einem Customer dieser Organisation gehören
-        portalLicenses = await db
-          .select()
-          .from(licenses)
-          .where(
-            and(
-              inArray(licenses.id, Array.from(portalLicenseIds)),
-              inArray(licenses.customerId as any, customerIds)
-            )
-          )
-          .orderBy(desc(licenses.createdAt))
-          .limit(200);
-        
-        console.log(`[licenses/portal] Found ${portalLicenses.length} portal licenses with events for org customers`);
-      }
-      
-      // Fallback: Wenn keine Lizenzen mit Events gefunden wurden, aber wir wissen,
-      // dass Portal-Lizenzen oft ein subscriptionId haben, suche nach Lizenzen mit subscriptionId
-      if (portalLicenses.length === 0) {
-        console.log(`[licenses/portal] No licenses found with events, trying fallback: licenses with subscriptionId`);
-        const licensesWithSubscription = await db
-          .select()
-          .from(licenses)
-          .where(
-            and(
-              inArray(licenses.customerId as any, customerIds),
-              sql`${licenses.subscriptionId} IS NOT NULL`
-            )
-          )
-          .orderBy(desc(licenses.createdAt))
-          .limit(200);
-        
-        console.log(`[licenses/portal] Found ${licensesWithSubscription.length} licenses with subscriptionId`);
-        portalLicenses = licensesWithSubscription;
-      }
-      
-      if (portalLicenses.length === 0) {
-        return {
-          items: [],
-          total: 0,
-          limit: 200,
-          offset: 0,
-        };
-      }
-      
+      console.log(`[licenses/portal] Found ${portalLicenses.length} portal licenses (all licenses with customerId)`);
       for (const lic of portalLicenses) {
-        console.log(`[licenses/portal] License: ${lic.key}, customerId=${lic.customerId}, orgId=${lic.orgId}, subscriptionId=${lic.subscriptionId}`);
+        console.log(`[licenses/portal] License: ${lic.key}, plan=${lic.plan}, customerId=${lic.customerId}, orgId=${lic.orgId}, subscriptionId=${lic.subscriptionId}`);
+      }
+      
+      if (portalLicenses.length === 0) {
+        return {
+          items: [],
+          total: 0,
+          limit: 200,
+          offset: 0,
+        };
       }
 
       // Devices pro License zählen

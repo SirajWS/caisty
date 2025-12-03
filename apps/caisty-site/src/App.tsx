@@ -18,6 +18,7 @@ import PortalInvoiceDetailPage from "./routes/PortalInvoiceDetailPage";
 import PortalAccountPage from "./routes/PortalAccountPage";
 import PortalInstallPage from "./routes/PortalInstallPage"; // Install-Seite
 import PortalPlanBillingPage from "./routes/PortalPlanBillingPage"; // Plan & Abrechnung
+import PortalCheckoutPage from "./routes/PortalCheckoutPage"; // Checkout & Zahlung
 import PortalSupportPage from "./routes/PortalSupportPage"; // Support / Kontakt
 import PortalUpgradeResultPage from "./routes/PortalUpgradeResultPage"; // ⬅️ NEU
 
@@ -41,6 +42,7 @@ export default function App() {
           <Route index element={<PortalDashboard />} />
           <Route path="licenses" element={<PortalLicensesPage />} />
           <Route path="plan" element={<PortalPlanBillingPage />} />
+          <Route path="checkout" element={<PortalCheckoutPage />} />
           <Route path="devices" element={<PortalDevicesPage />} />
           <Route path="invoices" element={<PortalInvoicesPage />} />
           <Route path="invoices/:id" element={<PortalInvoiceDetailPage />} />

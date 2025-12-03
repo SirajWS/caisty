@@ -11,6 +11,7 @@ import { licenses } from "../db/schema/licenses.js";
 import { licenseEvents } from "../db/schema/licenseEvents.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 import { generateLicenseKey } from "../lib/licenseKey.js";
+import { getPlanPrice, type Currency } from "../config/pricing.js";
 
 // Node-Fetch Alias (damit TypeScript nicht meckert)
 const nodeFetch: any = (globalThis as any).fetch;
@@ -215,21 +216,20 @@ type StartUpgradeResponse = {
 };
 
 type PlanPricing = {
-  monthlyAmount: number; // EUR
+  monthlyAmount: number;
   description: string;
 };
 
-// aktuell 0,01 € zum Testen
-const PLAN_PRICING: Record<"starter" | "pro", PlanPricing> = {
-  starter: {
-    monthlyAmount: 0.01,
-    description: "Starter – 1 aktives POS-Gerät",
-  },
-  pro: {
-    monthlyAmount: 0.01,
-    description: "Pro – bis zu 3 aktive POS-Geräte",
-  },
-};
+// Preise aus zentraler Konfiguration (EUR als Standard, kann später erweitert werden)
+function getPlanPricing(plan: "starter" | "pro", currency: Currency = "EUR"): PlanPricing {
+  const monthlyAmount = getPlanPrice(plan, currency, "monthly");
+  return {
+    monthlyAmount,
+    description: plan === "starter" 
+      ? "Starter – 1 aktives POS-Gerät"
+      : "Pro – bis zu 3 aktive POS-Geräte",
+  };
+}
 
 // sehr einfache, aber robuste Invoice-Nummern-Generierung
 async function generateInvoiceNumber(): Promise<string> {
@@ -362,7 +362,10 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
         );
       }
 
-      const pricing = PLAN_PRICING[plan];
+      // Bestimme Währung basierend auf Customer oder Standard EUR
+      // TODO: Später kann die Währung aus Customer-Daten oder Request kommen
+      const currency: Currency = "EUR"; // Standard, kann später erweitert werden
+      const pricing = getPlanPricing(plan, currency);
       const now = new Date();
 
       try {
@@ -378,7 +381,7 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
             plan,
             status: "pending", // <--- wichtig
             priceCents: monthlyPriceCents,
-            currency: "EUR",
+            currency: currency,
             startedAt: now,
             currentPeriodEnd,
           } as any)
@@ -402,7 +405,7 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
             subscriptionId: sub.id,
             number: invoiceNumber,
             amountCents,
-            currency: "EUR",
+            currency: currency,
             status: "open",
             issuedAt,
             dueAt,
@@ -427,7 +430,7 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
         try {
           const order = await createPaypalOrder({
             amount: pricing.monthlyAmount,
-            currency: "EUR",
+            currency: currency,
             description: pricing.description,
             returnUrl,
             cancelUrl,
