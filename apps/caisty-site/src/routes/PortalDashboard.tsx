@@ -10,6 +10,7 @@ import {
   type PortalDevice,
 } from "../lib/portalApi";
 import { usePortalOutlet } from "./PortalLayout";
+import { useTheme } from "../lib/theme";
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
@@ -33,6 +34,8 @@ function formatAmount(currency: string | null | undefined, amount: number): stri
 
 const PortalDashboard: React.FC = () => {
   const { customer } = usePortalOutlet();
+  const { theme } = useTheme();
+  const isLight = theme === "light";
 
   const [licenses, setLicenses] = React.useState<PortalLicense[]>([]);
   const [deviceCount, setDeviceCount] = React.useState(0);
@@ -107,10 +110,18 @@ const PortalDashboard: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1
+          className={`text-2xl font-semibold tracking-tight ${
+            isLight ? "text-slate-900" : "text-slate-100"
+          }`}
+        >
           Willkommen, {customer.name}
         </h1>
-        <p className="text-sm text-slate-300">
+        <p
+          className={`text-sm ${
+            isLight ? "text-slate-600" : "text-slate-300"
+          }`}
+        >
           Überblick über dein Caisty Konto – Lizenzen, Geräte und Rechnungen.
         </p>
       </header>
@@ -118,41 +129,89 @@ const PortalDashboard: React.FC = () => {
       {/* KPI-Row */}
       <div className="grid gap-4 md:grid-cols-3">
         {/* Aktive Lizenz */}
-        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">
-          <div className="text-xs font-semibold text-slate-300">
+        <section
+          className={`rounded-2xl border p-4 space-y-3 ${
+            isLight
+              ? "border-slate-200 bg-white"
+              : "border-slate-800 bg-slate-900/60"
+          }`}
+        >
+          <div
+            className={`text-xs font-semibold ${
+              isLight ? "text-slate-700" : "text-slate-300"
+            }`}
+          >
             Aktive Lizenz
           </div>
 
           {loading ? (
             <div className="space-y-2">
-              <div className="h-4 w-40 rounded bg-slate-800 animate-pulse" />
-              <div className="h-3 w-24 rounded bg-slate-800 animate-pulse" />
-              <div className="h-3 w-32 rounded bg-slate-800 animate-pulse" />
+              <div
+                className={`h-4 w-40 rounded animate-pulse ${
+                  isLight ? "bg-slate-200" : "bg-slate-800"
+                }`}
+              />
+              <div
+                className={`h-3 w-24 rounded animate-pulse ${
+                  isLight ? "bg-slate-200" : "bg-slate-800"
+                }`}
+              />
+              <div
+                className={`h-3 w-32 rounded animate-pulse ${
+                  isLight ? "bg-slate-200" : "bg-slate-800"
+                }`}
+              />
             </div>
           ) : !activeLicense ? (
-            <p className="text-xs text-slate-400">
+            <p
+              className={`text-xs ${
+                isLight ? "text-slate-600" : "text-slate-400"
+              }`}
+            >
               Aktuell ist in deinem Konto noch keine Lizenz hinterlegt.
               Sobald dir dein Anbieter einen Lizenzschlüssel zuweist,
               erscheint er hier.
             </p>
           ) : (
             <div className="space-y-2">
-              <div className="font-mono text-[11px] text-slate-100 break-all">
+              <div
+                className={`font-mono text-[11px] break-all ${
+                  isLight ? "text-slate-900" : "text-slate-100"
+                }`}
+              >
                 {activeLicense.key}
               </div>
-              <div className="text-xs text-slate-300">
+              <div
+                className={`text-xs ${
+                  isLight ? "text-slate-700" : "text-slate-300"
+                }`}
+              >
                 Plan:{" "}
                 <span className="font-medium capitalize">
                   {activeLicense.plan}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-300">Status:</span>
-                <span className="inline-flex items-center rounded-full border border-emerald-500/60 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] text-emerald-300 font-medium">
+                <span
+                  className={isLight ? "text-slate-700" : "text-slate-300"}
+                >
+                  Status:
+                </span>
+                <span
+                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
+                    isLight
+                      ? "border-emerald-400 bg-emerald-50 text-emerald-600"
+                      : "border-emerald-500/60 bg-emerald-500/10 text-emerald-300"
+                  }`}
+                >
                   {activeLicense.status}
                 </span>
               </div>
-              <div className="text-xs text-slate-400">
+              <div
+                className={`text-xs ${
+                  isLight ? "text-slate-600" : "text-slate-400"
+                }`}
+              >
                 Gültig bis:{" "}
                 {activeLicense.validUntil
                   ? formatDate(activeLicense.validUntil)
@@ -163,21 +222,39 @@ const PortalDashboard: React.FC = () => {
         </section>
 
         {/* Verbundene Geräte */}
-        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col justify-between">
+        <section
+          className={`rounded-2xl border p-4 flex flex-col justify-between ${
+            isLight
+              ? "border-slate-200 bg-white"
+              : "border-slate-800 bg-slate-900/60"
+          }`}
+        >
           <div className="space-y-3">
-            <div className="text-xs font-semibold text-slate-300">
+            <div
+              className={`text-xs font-semibold ${
+                isLight ? "text-slate-700" : "text-slate-300"
+              }`}
+            >
               Verbundene Geräte
             </div>
 
             {loading ? (
-              <div className="h-8 w-12 rounded bg-slate-800 animate-pulse" />
+              <div
+                className={`h-8 w-12 rounded animate-pulse ${
+                  isLight ? "bg-slate-200" : "bg-slate-800"
+                }`}
+              />
             ) : (
-              <div className="text-3xl font-semibold text-emerald-400">
+              <div className="text-3xl font-semibold text-emerald-500">
                 {deviceCount}
               </div>
             )}
 
-            <p className="text-xs text-slate-400">
+            <p
+              className={`text-xs ${
+                isLight ? "text-slate-600" : "text-slate-400"
+              }`}
+            >
               Alle POS-Geräte, die aktuell mit deinen Lizenzen verbunden
               sind (nach Hardware-ID gruppiert).
             </p>
@@ -186,7 +263,7 @@ const PortalDashboard: React.FC = () => {
           <div className="mt-3 text-xs">
             <Link
               to="/portal/devices"
-              className="text-emerald-300 hover:text-emerald-200"
+              className="text-emerald-500 hover:text-emerald-600"
             >
               Geräte ansehen →
             </Link>
@@ -194,25 +271,59 @@ const PortalDashboard: React.FC = () => {
         </section>
 
         {/* Letzte Rechnung */}
-        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col justify-between">
+        <section
+          className={`rounded-2xl border p-4 flex flex-col justify-between ${
+            isLight
+              ? "border-slate-200 bg-white"
+              : "border-slate-800 bg-slate-900/60"
+          }`}
+        >
           <div className="space-y-3">
-            <div className="text-xs font-semibold text-slate-300">
+            <div
+              className={`text-xs font-semibold ${
+                isLight ? "text-slate-700" : "text-slate-300"
+              }`}
+            >
               Letzte Rechnung
             </div>
 
             {loading ? (
               <div className="space-y-2">
-                <div className="h-3 w-32 rounded bg-slate-800 animate-pulse" />
-                <div className="h-3 w-24 rounded bg-slate-800 animate-pulse" />
-                <div className="h-3 w-28 rounded bg-slate-800 animate-pulse" />
+                <div
+                  className={`h-3 w-32 rounded animate-pulse ${
+                    isLight ? "bg-slate-200" : "bg-slate-800"
+                  }`}
+                />
+                <div
+                  className={`h-3 w-24 rounded animate-pulse ${
+                    isLight ? "bg-slate-200" : "bg-slate-800"
+                  }`}
+                />
+                <div
+                  className={`h-3 w-28 rounded animate-pulse ${
+                    isLight ? "bg-slate-200" : "bg-slate-800"
+                  }`}
+                />
               </div>
             ) : !latestInvoice ? (
-              <p className="text-xs text-slate-400">
+              <p
+                className={`text-xs ${
+                  isLight ? "text-slate-600" : "text-slate-400"
+                }`}
+              >
                 Noch keine Rechnungen für dieses Konto.
               </p>
             ) : (
-              <div className="space-y-1 text-xs text-slate-300">
-                <div className="font-mono text-[11px] text-slate-100">
+              <div
+                className={`space-y-1 text-xs ${
+                  isLight ? "text-slate-700" : "text-slate-300"
+                }`}
+              >
+                <div
+                  className={`font-mono text-[11px] ${
+                    isLight ? "text-slate-900" : "text-slate-100"
+                  }`}
+                >
                   {latestInvoice.number}
                 </div>
                 <div>
@@ -230,7 +341,9 @@ const PortalDashboard: React.FC = () => {
                     {latestInvoice.status}
                   </span>
                 </div>
-                <div className="text-slate-400">
+                <div
+                  className={isLight ? "text-slate-600" : "text-slate-400"}
+                >
                   Erstellt am: {formatDate(latestInvoice.createdAt)}
                 </div>
               </div>
@@ -240,7 +353,7 @@ const PortalDashboard: React.FC = () => {
           <div className="mt-3 text-xs">
             <Link
               to="/portal/invoices"
-              className="text-emerald-300 hover:text-emerald-200"
+              className="text-emerald-500 hover:text-emerald-600"
             >
               Rechnungen öffnen →
             </Link>
@@ -251,20 +364,34 @@ const PortalDashboard: React.FC = () => {
       {/* Zweite Zeile: Kurzübersicht + Nächste Schritte */}
       <div className="grid gap-4 md:grid-cols-2">
         {/* Lizenzen-Kurzübersicht */}
-        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">
+        <section
+          className={`rounded-2xl border p-4 space-y-3 ${
+            isLight
+              ? "border-slate-200 bg-white"
+              : "border-slate-800 bg-slate-900/60"
+          }`}
+        >
           <div className="flex items-center justify-between gap-2">
             <div>
-              <h2 className="text-sm font-semibold text-slate-100">
+              <h2
+                className={`text-sm font-semibold ${
+                  isLight ? "text-slate-900" : "text-slate-100"
+                }`}
+              >
                 Lizenzen (Kurzübersicht)
               </h2>
-              <p className="text-xs text-slate-400">
+              <p
+                className={`text-xs ${
+                  isLight ? "text-slate-600" : "text-slate-400"
+                }`}
+              >
                 Schnellüberblick über deine Lizenzschlüssel.
               </p>
             </div>
             {licenses.length > 0 && (
               <Link
                 to="/portal/licenses"
-                className="text-[11px] text-emerald-300 hover:text-emerald-200"
+                className="text-[11px] text-emerald-500 hover:text-emerald-600"
               >
                 Alle anzeigen →
               </Link>
@@ -273,11 +400,23 @@ const PortalDashboard: React.FC = () => {
 
           {loading ? (
             <div className="space-y-2 pt-2">
-              <div className="h-4 w-full rounded bg-slate-800 animate-pulse" />
-              <div className="h-4 w-4/5 rounded bg-slate-800 animate-pulse" />
+              <div
+                className={`h-4 w-full rounded animate-pulse ${
+                  isLight ? "bg-slate-200" : "bg-slate-800"
+                }`}
+              />
+              <div
+                className={`h-4 w-4/5 rounded animate-pulse ${
+                  isLight ? "bg-slate-200" : "bg-slate-800"
+                }`}
+              />
             </div>
           ) : licenses.length === 0 ? (
-            <p className="text-xs text-slate-400">
+            <p
+              className={`text-xs ${
+                isLight ? "text-slate-600" : "text-slate-400"
+              }`}
+            >
               Noch keine Lizenzen im Portal sichtbar. Sobald dir dein
               Anbieter eine Lizenz zuweist, erscheint sie hier.
             </p>
@@ -286,26 +425,48 @@ const PortalDashboard: React.FC = () => {
               {licenses.slice(0, 3).map((lic) => (
                 <div
                   key={lic.id}
-                  className="rounded-xl border border-slate-800 bg-slate-950/70 px-3 py-2 flex items-center justify-between gap-2"
+                  className={`rounded-xl border px-3 py-2 flex items-center justify-between gap-2 ${
+                    isLight
+                      ? "border-slate-200 bg-slate-50"
+                      : "border-slate-800 bg-slate-950/70"
+                  }`}
                 >
                   <div>
-                    <div className="font-mono text-[11px] text-slate-100 break-all">
+                    <div
+                      className={`font-mono text-[11px] break-all ${
+                        isLight ? "text-slate-900" : "text-slate-100"
+                      }`}
+                    >
                       {lic.key}
                     </div>
-                    <div className="text-[11px] text-slate-400">
+                    <div
+                      className={`text-[11px] ${
+                        isLight ? "text-slate-600" : "text-slate-400"
+                      }`}
+                    >
                       {lic.plan} • gültig bis{" "}
                       {lic.validUntil
                         ? formatDate(lic.validUntil)
                         : "—"}
                     </div>
                   </div>
-                  <span className="inline-flex items-center rounded-full border border-emerald-500/60 bg-emerald-500/10 px-2 py-0.5 text-[11px] text-emerald-300">
+                  <span
+                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] ${
+                      isLight
+                        ? "border-emerald-400 bg-emerald-50 text-emerald-600"
+                        : "border-emerald-500/60 bg-emerald-500/10 text-emerald-300"
+                    }`}
+                  >
                     {lic.status}
                   </span>
                 </div>
               ))}
               {licenses.length > 3 && (
-                <div className="text-[11px] text-slate-400">
+                <div
+                  className={`text-[11px] ${
+                    isLight ? "text-slate-600" : "text-slate-400"
+                  }`}
+                >
                   + {licenses.length - 3} weitere Lizenz(en)
                 </div>
               )}
@@ -314,15 +475,29 @@ const PortalDashboard: React.FC = () => {
         </section>
 
         {/* Nächste Schritte */}
-        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-slate-100">
+        <section
+          className={`rounded-2xl border p-4 space-y-3 ${
+            isLight
+              ? "border-slate-200 bg-white"
+              : "border-slate-800 bg-slate-900/60"
+          }`}
+        >
+          <h2
+            className={`text-sm font-semibold ${
+              isLight ? "text-slate-900" : "text-slate-100"
+            }`}
+          >
             Nächste Schritte
           </h2>
-          <ol className="space-y-2 text-xs text-slate-300 list-decimal list-inside">
+          <ol
+            className={`space-y-2 text-xs list-decimal list-inside ${
+              isLight ? "text-slate-700" : "text-slate-300"
+            }`}
+          >
             <li>
               <Link
                 to="/portal/install"
-                className="text-emerald-300 hover:text-emerald-200 font-medium"
+                className="text-emerald-500 hover:text-emerald-600 font-medium"
               >
                 Caisty POS installieren
               </Link>{" "}
@@ -332,7 +507,7 @@ const PortalDashboard: React.FC = () => {
               In der Ansicht{" "}
               <Link
                 to="/portal/devices"
-                className="text-emerald-300 hover:text-emerald-200"
+                className="text-emerald-500 hover:text-emerald-600"
               >
                 Geräte
               </Link>{" "}
@@ -342,14 +517,18 @@ const PortalDashboard: React.FC = () => {
               Sobald Abrechnungen erstellt werden, erscheinen sie unter{" "}
               <Link
                 to="/portal/invoices"
-                className="text-emerald-300 hover:text-emerald-200"
+                className="text-emerald-500 hover:text-emerald-600"
               >
                 Rechnungen
               </Link>
               .
             </li>
           </ol>
-          <p className="text-[11px] text-slate-500 mt-2">
+          <p
+            className={`text-[11px] mt-2 ${
+              isLight ? "text-slate-500" : "text-slate-500"
+            }`}
+          >
             In späteren Versionen kommen hier Live-KPIs und letzte
             Aktivitäten dazu.
           </p>

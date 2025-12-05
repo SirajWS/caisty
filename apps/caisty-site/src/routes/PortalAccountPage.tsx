@@ -5,9 +5,12 @@ import {
   updatePortalAccount,
 } from "../lib/portalApi";
 import { usePortalOutlet } from "./PortalLayout";
+import { useTheme } from "../lib/theme";
 
 const PortalAccountPage: React.FC = () => {
   const { customer, setCustomer } = usePortalOutlet();
+  const { theme } = useTheme();
+  const isLight = theme === "light";
 
   const [name, setName] = React.useState(customer.name);
   const [email, setEmail] = React.useState(customer.email);
@@ -129,24 +132,24 @@ const PortalAccountPage: React.FC = () => {
   return (
     <div className="space-y-4">
       <header className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight">Konto</h1>
-        <p className="text-sm text-slate-300">
+        <h1 className={`text-xl font-semibold tracking-tight ${isLight ? "text-slate-900" : "text-slate-50"}`}>Konto</h1>
+        <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-300"}`}>
           Stammdaten, Kontaktinformationen und Sicherheitseinstellungen.
         </p>
       </header>
 
       {/* Stammdaten + aktuelle Lizenz */}
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 md:p-6 space-y-5">
+      <section className={`rounded-2xl border p-5 md:p-6 space-y-5 ${isLight ? "border-slate-200 bg-slate-50" : "border-slate-800 bg-slate-900/60"}`}>
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h2 className="text-sm font-semibold text-slate-100">
+            <h2 className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>
               Stammdaten
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
               Basisinformationen deines Caisty Kontos.
             </p>
           </div>
-          <span className="inline-flex items-center rounded-full border border-slate-700 px-3 py-1 text-[11px] text-slate-300">
+          <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] ${isLight ? "border-slate-300 text-slate-600" : "border-slate-700 text-slate-300"}`}>
             Erste Version – mit einfachen Bearbeitungen
           </span>
         </div>
@@ -171,12 +174,12 @@ const PortalAccountPage: React.FC = () => {
             </div>
 
             {profileError && (
-              <div className="rounded-xl border border-rose-500/60 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-200">
+              <div className={`rounded-xl border px-3 py-2 text-[11px] ${isLight ? "border-rose-300 bg-rose-50 text-rose-800" : "border-rose-500/60 bg-rose-500/10 text-rose-200"}`}>
                 {profileError}
               </div>
             )}
             {profileSuccess && (
-              <div className="rounded-xl border border-emerald-500/60 bg-emerald-500/10 px-3 py-2 text-[11px] text-emerald-200">
+              <div className={`rounded-xl border px-3 py-2 text-[11px] ${isLight ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-emerald-500/60 bg-emerald-500/10 text-emerald-200"}`}>
                 {profileSuccess}
               </div>
             )}
@@ -190,28 +193,28 @@ const PortalAccountPage: React.FC = () => {
             </button>
           </form>
 
-          <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4 space-y-2 text-[11px]">
-            <div className="text-xs font-semibold text-slate-200 mb-1">
+          <div className={`rounded-xl border p-4 space-y-2 text-[11px] ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-950/70"}`}>
+            <div className={`text-xs font-semibold mb-1 ${isLight ? "text-slate-900" : "text-slate-200"}`}>
               Aktive Lizenz
             </div>
             {primaryLicense ? (
               <>
-                <div className="font-mono text-[11px] text-slate-100 break-all">
+                <div className={`font-mono text-[11px] break-all ${isLight ? "text-slate-900" : "text-slate-100"}`}>
                   {primaryLicense.key}
                 </div>
-                <div className="text-slate-300">
+                <div className={isLight ? "text-slate-600" : "text-slate-300"}>
                   Plan:{" "}
                   <span className="font-medium capitalize">
                     {primaryLicense.plan}
                   </span>
                 </div>
-                <div className="text-slate-300">
+                <div className={isLight ? "text-slate-600" : "text-slate-300"}>
                   Status:{" "}
                   <span className="font-medium">
                     {primaryLicense.status}
                   </span>
                 </div>
-                <div className="text-slate-400">
+                <div className={isLight ? "text-slate-500" : "text-slate-400"}>
                   Gültig bis:{" "}
                   {primaryLicense.validUntil
                     ? new Date(
@@ -219,13 +222,13 @@ const PortalAccountPage: React.FC = () => {
                       ).toLocaleString()
                     : "—"}
                 </div>
-                <p className="mt-2 text-slate-500">
+                <p className={`mt-2 ${isLight ? "text-slate-500" : "text-slate-500"}`}>
                   Detailansicht und weitere Lizenzen findest du unter{" "}
-                  <span className="font-semibold">„Lizenzen“</span>.
+                  <span className="font-semibold">„Lizenzen"</span>.
                 </p>
               </>
             ) : (
-              <p className="text-slate-400">
+              <p className={isLight ? "text-slate-500" : "text-slate-400"}>
                 Aktuell ist in deinem Konto noch keine aktive Lizenz
                 hinterlegt. Sobald dir dein Anbieter einen
                 Lizenzschlüssel zuweist, erscheint er hier.
@@ -236,13 +239,13 @@ const PortalAccountPage: React.FC = () => {
       </section>
 
       {/* Sicherheit / Passwort */}
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 md:p-6 space-y-4">
+      <section className={`rounded-2xl border p-5 md:p-6 space-y-4 ${isLight ? "border-slate-200 bg-slate-50" : "border-slate-800 bg-slate-900/60"}`}>
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h2 className="text-sm font-semibold text-slate-100">
+            <h2 className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>
               Sicherheit
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
               Zugangsdaten zu deinem Kundenportal.
             </p>
           </div>
@@ -272,12 +275,12 @@ const PortalAccountPage: React.FC = () => {
             />
 
             {passwordError && (
-              <div className="rounded-xl border border-rose-500/60 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-200">
+              <div className={`rounded-xl border px-3 py-2 text-[11px] ${isLight ? "border-rose-300 bg-rose-50 text-rose-800" : "border-rose-500/60 bg-rose-500/10 text-rose-200"}`}>
                 {passwordError}
               </div>
             )}
             {passwordSuccess && (
-              <div className="rounded-xl border border-emerald-500/60 bg-emerald-500/10 px-3 py-2 text-[11px] text-emerald-200">
+              <div className={`rounded-xl border px-3 py-2 text-[11px] ${isLight ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-emerald-500/60 bg-emerald-500/10 text-emerald-200"}`}>
                 {passwordSuccess}
               </div>
             )}
@@ -285,7 +288,7 @@ const PortalAccountPage: React.FC = () => {
             <button
               type="submit"
               disabled={passwordSaving}
-              className="inline-flex items-center justify-center rounded-full border border-slate-700 px-4 py-2 text-xs font-medium text-slate-100 hover:bg-slate-800 disabled:opacity-60"
+              className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-xs font-medium disabled:opacity-60 ${isLight ? "border-slate-300 text-slate-900 hover:bg-slate-100" : "border-slate-700 text-slate-100 hover:bg-slate-800"}`}
             >
               {passwordSaving
                 ? "Passwort wird geändert…"
@@ -293,8 +296,8 @@ const PortalAccountPage: React.FC = () => {
             </button>
           </div>
 
-          <div className="text-[11px] text-slate-400 space-y-2">
-            <div className="font-semibold text-slate-200">
+          <div className={`text-[11px] space-y-2 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+            <div className={`font-semibold ${isLight ? "text-slate-900" : "text-slate-200"}`}>
               Hinweise
             </div>
             <p>
@@ -311,8 +314,8 @@ const PortalAccountPage: React.FC = () => {
       </section>
 
       {/* Daten & Export */}
-      <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 md:p-6 space-y-3 text-[11px] text-slate-400">
-        <h2 className="text-xs font-semibold text-slate-200">
+      <section className={`rounded-2xl border p-5 md:p-6 space-y-3 text-[11px] ${isLight ? "border-slate-200 bg-slate-50 text-slate-600" : "border-slate-800 bg-slate-900/60 text-slate-400"}`}>
+        <h2 className={`text-xs font-semibold ${isLight ? "text-slate-900" : "text-slate-200"}`}>
           Daten &amp; Export
         </h2>
         <p>
@@ -325,7 +328,7 @@ const PortalAccountPage: React.FC = () => {
           Bis dahin wende dich bitte an{" "}
           <a
             href="mailto:support@caisty.local"
-            className="text-emerald-300 hover:text-emerald-200"
+            className={`hover:underline ${isLight ? "text-emerald-600 hover:text-emerald-700" : "text-emerald-300 hover:text-emerald-200"}`}
           >
             support@caisty.local
           </a>
@@ -342,16 +345,18 @@ const LabeledInput: React.FC<{
   type?: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }> = ({ label, value, type = "text", onChange }) => {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   return (
     <div className="space-y-1">
-      <div className="text-[11px] uppercase text-slate-500">
+      <div className={`text-[11px] uppercase ${isLight ? "text-slate-500" : "text-slate-500"}`}>
         {label}
       </div>
       <input
         type={type}
         value={value}
         onChange={onChange}
-        className="w-full rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-100 outline-none focus:border-emerald-500"
+        className={`w-full rounded-lg border px-3 py-2 text-xs outline-none focus:border-emerald-500 ${isLight ? "border-slate-300 bg-white text-slate-900" : "border-slate-800 bg-slate-950/60 text-slate-100"}`}
       />
     </div>
   );
@@ -361,19 +366,23 @@ const PasswordInput: React.FC<{
   label: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}> = ({ label, value, onChange }) => (
-  <div className="space-y-1">
-    <div className="text-[11px] uppercase text-slate-500">
-      {label}
+}> = ({ label, value, onChange }) => {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
+  return (
+    <div className="space-y-1">
+      <div className={`text-[11px] uppercase ${isLight ? "text-slate-500" : "text-slate-500"}`}>
+        {label}
+      </div>
+      <input
+        type="password"
+        autoComplete="new-password"
+        value={value}
+        onChange={onChange}
+        className={`w-full rounded-lg border px-3 py-2 text-xs outline-none focus:border-emerald-500 ${isLight ? "border-slate-300 bg-white text-slate-900" : "border-slate-800 bg-slate-950/60 text-slate-100"}`}
+      />
     </div>
-    <input
-      type="password"
-      autoComplete="new-password"
-      value={value}
-      onChange={onChange}
-      className="w-full rounded-lg border border-slate-800 bg-slate-950/60 px-3 py-2 text-xs text-slate-100 outline-none focus:border-emerald-500"
-    />
-  </div>
-);
+  );
+};
 
 export default PortalAccountPage;

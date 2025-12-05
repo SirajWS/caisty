@@ -7,6 +7,7 @@ import {
   getPortalInvoiceHtmlUrl,
   type PortalInvoiceDetail,
 } from "../lib/portalApi";
+import { useTheme } from "../lib/theme";
 
 function formatDate(value: string | null): string {
   if (!value) return "—";
@@ -42,6 +43,8 @@ const PortalInvoiceDetailPage: React.FC = () => {
   );
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const { theme } = useTheme();
+  const isLight = theme === "light";
 
   React.useEffect(() => {
     if (!id) return;
@@ -68,7 +71,7 @@ const PortalInvoiceDetailPage: React.FC = () => {
   }, [id]);
 
   if (!id) {
-    return <div>Keine Rechnungs-ID angegeben.</div>;
+    return <div className={isLight ? "text-slate-900" : "text-slate-100"}>Keine Rechnungs-ID angegeben.</div>;
   }
 
   const inv = detail?.invoice;
@@ -77,79 +80,81 @@ const PortalInvoiceDetailPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Rechnung</h1>
-          <p className="text-sm text-slate-300">
+          <h1 className={`text-2xl font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>Rechnung</h1>
+          <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-300"}`}>
             Detailansicht der ausgewählten Rechnung.
           </p>
         </div>
         <Link
           to="/portal/invoices"
-          className="text-sm text-slate-300 hover:text-white"
+          className={`text-sm hover:underline ${isLight ? "text-slate-600 hover:text-slate-900" : "text-slate-300 hover:text-white"}`}
         >
           ← Zurück zur Übersicht
         </Link>
       </div>
 
-      {loading && <div>Lade…</div>}
-      {error && <div className="text-sm text-red-400">{error}</div>}
+      {loading && <div className={isLight ? "text-slate-600" : "text-slate-400"}>Lade…</div>}
+      {error && <div className={`text-sm ${isLight ? "text-red-600" : "text-red-400"}`}>{error}</div>}
 
       {inv && (
         <div className="space-y-4">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+          <div className={`rounded-2xl border p-6 ${isLight ? "border-slate-200 bg-white shadow-sm" : "border-slate-800 bg-slate-900/60"}`}>
             <div className="flex flex-wrap justify-between gap-4">
               <div>
-                <div className="text-xs uppercase text-slate-400">
-                  Rechnungsnummer
+                <div className={`text-xs uppercase font-semibold tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  RECHNUNGSNUMMER
                 </div>
-                <div className="font-mono text-lg text-slate-50">
+                <div className={`font-mono text-lg font-semibold mt-1 ${isLight ? "text-slate-900" : "text-slate-50"}`}>
                   {inv.number}
                 </div>
               </div>
               <div>
-                <div className="text-xs uppercase text-slate-400">
-                  Betrag
+                <div className={`text-xs uppercase font-semibold tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  BETRAG
                 </div>
-                <div className="text-lg text-slate-50">
+                <div className={`text-lg font-semibold mt-1 ${isLight ? "text-slate-900" : "text-slate-50"}`}>
                   {formatAmount(inv.amountCents, inv.currency)}
                 </div>
               </div>
               <div>
-                <div className="text-xs uppercase text-slate-400">
-                  Status
+                <div className={`text-xs uppercase font-semibold tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  STATUS
                 </div>
-                <span className="inline-flex rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-300">
-                  {inv.status}
-                </span>
+                <div className="mt-1">
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${isLight ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"}`}>
+                    {inv.status}
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="mt-4 grid gap-4 text-sm text-slate-200 sm:grid-cols-2">
+            <div className={`mt-6 grid gap-4 text-sm sm:grid-cols-2 ${isLight ? "text-slate-700" : "text-slate-200"}`}>
               <div>
-                <div className="text-xs uppercase text-slate-400">
-                  Ausgestellt am
+                <div className={`text-xs uppercase font-semibold tracking-wider mb-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  AUSGESTELLT AM
                 </div>
-                <div>{formatDate(inv.createdAt)}</div>
+                <div className={isLight ? "text-slate-900" : "text-slate-100"}>{formatDate(inv.createdAt)}</div>
               </div>
               <div>
-                <div className="text-xs uppercase text-slate-400">
-                  Fällig am
+                <div className={`text-xs uppercase font-semibold tracking-wider mb-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  FÄLLIG AM
                 </div>
-                <div>{formatDate(inv.dueAt)}</div>
+                <div className={isLight ? "text-slate-900" : "text-slate-100"}>{formatDate(inv.dueAt)}</div>
               </div>
               <div>
-                <div className="text-xs uppercase text-slate-400">
-                  Zeitraum
+                <div className={`text-xs uppercase font-semibold tracking-wider mb-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  ZEITRAUM
                 </div>
-                <div>
+                <div className={isLight ? "text-slate-900" : "text-slate-100"}>
                   {formatDate(inv.periodStart)} –{" "}
                   {formatDate(inv.periodEnd)}
                 </div>
               </div>
               <div>
-                <div className="text-xs uppercase text-slate-400">
-                  Plan
+                <div className={`text-xs uppercase font-semibold tracking-wider mb-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  PLAN
                 </div>
-                <div>{inv.plan ?? "—"}</div>
+                <div className={isLight ? "text-slate-900" : "text-slate-100"}>{inv.plan ?? "—"}</div>
               </div>
             </div>
 
@@ -178,7 +183,7 @@ const PortalInvoiceDetailPage: React.FC = () => {
                     win.document.close();
                   }
                 }}
-                className="inline-flex items-center justify-center rounded-full border border-emerald-400 px-4 py-1.5 text-sm font-medium text-emerald-200 hover:bg-emerald-500/10 cursor-pointer"
+                className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-medium cursor-pointer transition-colors ${isLight ? "border-emerald-600 text-emerald-700 hover:bg-emerald-50" : "border-emerald-400 text-emerald-200 hover:bg-emerald-500/10"}`}
               >
                 📄 Rechnung anzeigen
               </button>
@@ -209,7 +214,7 @@ const PortalInvoiceDetailPage: React.FC = () => {
                     }, 500);
                   }
                 }}
-                className="inline-flex items-center justify-center rounded-full border border-blue-400 px-4 py-1.5 text-sm font-medium text-blue-200 hover:bg-blue-500/10 cursor-pointer"
+                className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-medium cursor-pointer transition-colors ${isLight ? "border-blue-600 text-blue-700 hover:bg-blue-50" : "border-blue-400 text-blue-200 hover:bg-blue-500/10"}`}
               >
                 📥 Als PDF drucken
               </button>

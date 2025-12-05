@@ -13,6 +13,8 @@ import {
   type PortalCustomer,
 } from "../lib/portalApi";
 import { Button } from "../components/ui/Button";
+import ThemeToggle from "../components/ThemeToggle";
+import { useTheme } from "../lib/theme";
 
 export interface PortalOutletContext {
   customer: PortalCustomer;
@@ -30,6 +32,8 @@ export function usePortalCustomer() {
 }
 
 export default function PortalLayout() {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   const [customer, setCustomer] = React.useState<PortalCustomer | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
@@ -80,18 +84,38 @@ export default function PortalLayout() {
 
   if (loading || !customer) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
+      <div
+        className={`min-h-screen flex items-center justify-center ${
+          isLight ? "bg-slate-50 text-slate-900" : "bg-slate-950 text-slate-100"
+        }`}
+      >
         <div className="space-y-3 text-center">
           <div className="h-8 w-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin mx-auto" />
-          <p className="text-sm text-slate-400">Kundenportal wird geladen…</p>
+          <p
+            className={`text-sm ${
+              isLight ? "text-slate-600" : "text-slate-400"
+            }`}
+          >
+            Kundenportal wird geladen…
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-      <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
+    <div
+      className={`min-h-screen flex flex-col ${
+        isLight ? "bg-slate-50 text-slate-900" : "bg-slate-950 text-slate-100"
+      }`}
+    >
+      <header
+        className={`border-b backdrop-blur ${
+          isLight
+            ? "border-slate-200 bg-white/80"
+            : "border-slate-800 bg-slate-950/80"
+        }`}
+      >
         <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           {/* Logo / Titel */}
           <div className="flex items-center gap-2">
@@ -99,8 +123,18 @@ export default function PortalLayout() {
               C
             </span>
             <div className="leading-tight">
-              <div className="text-sm font-semibold">Caisty Portal</div>
-              <div className="text-[11px] text-slate-400">
+              <div
+                className={`text-sm font-semibold ${
+                  isLight ? "text-slate-900" : "text-slate-100"
+                }`}
+              >
+                Caisty Portal
+              </div>
+              <div
+                className={`text-[11px] ${
+                  isLight ? "text-slate-600" : "text-slate-400"
+                }`}
+              >
                 POS &amp; Cloud-Konto
               </div>
             </div>
@@ -120,11 +154,20 @@ export default function PortalLayout() {
             </nav>
 
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               <div className="hidden sm:flex flex-col items-end">
-                <span className="text-xs font-medium truncate max-w-[160px]">
+                <span
+                  className={`text-xs font-medium truncate max-w-[160px] ${
+                    isLight ? "text-slate-900" : "text-slate-100"
+                  }`}
+                >
                   {customer.name}
                 </span>
-                <span className="text-[11px] text-slate-400 truncate max-w-[200px]">
+                <span
+                  className={`text-[11px] truncate max-w-[200px] ${
+                    isLight ? "text-slate-600" : "text-slate-400"
+                  }`}
+                >
                   {customer.email}
                 </span>
               </div>
@@ -142,7 +185,11 @@ export default function PortalLayout() {
           {/* Mobile-Burger */}
           <button
             type="button"
-            className="md:hidden inline-flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-slate-900 text-slate-200"
+            className={`md:hidden inline-flex h-8 w-8 items-center justify-center rounded-full border ${
+              isLight
+                ? "border-slate-300 bg-slate-100 text-slate-700"
+                : "border-slate-700 bg-slate-900 text-slate-200"
+            }`}
             onClick={() => setMobileNavOpen((open) => !open)}
             aria-label="Portal-Navigation öffnen oder schließen"
           >
@@ -157,25 +204,42 @@ export default function PortalLayout() {
 
         {/* Mobile-Navigation */}
         {mobileNavOpen && (
-          <div className="md:hidden border-t border-slate-800 bg-slate-950/95">
+          <div
+            className={`md:hidden border-t ${
+              isLight
+                ? "border-slate-200 bg-white/95"
+                : "border-slate-800 bg-slate-950/95"
+            }`}
+          >
             <div className="max-w-5xl mx-auto px-4 pb-3 pt-2 space-y-3">
-              <nav className="flex flex-wrap gap-2 text-xs">
-                {/* gleiche Reihenfolge wie Desktop */}
-                <PortalNavLink to="/portal">Dashboard</PortalNavLink>
-                <PortalNavLink to="/portal/licenses">Lizenzen</PortalNavLink>
-                <PortalNavLink to="/portal/plan">Pläne</PortalNavLink>
-                <PortalNavLink to="/portal/devices">Geräte</PortalNavLink>
-                <PortalNavLink to="/portal/invoices">Rechnungen</PortalNavLink>
-                <PortalNavLink to="/portal/support">Support</PortalNavLink> {/* ⬅️ NEU */}
-                <PortalNavLink to="/portal/account">Konto</PortalNavLink>
-              </nav>
+              <div className="flex items-center justify-between">
+                <nav className="flex flex-wrap gap-2 text-xs">
+                  {/* gleiche Reihenfolge wie Desktop */}
+                  <PortalNavLink to="/portal">Dashboard</PortalNavLink>
+                  <PortalNavLink to="/portal/licenses">Lizenzen</PortalNavLink>
+                  <PortalNavLink to="/portal/plan">Pläne</PortalNavLink>
+                  <PortalNavLink to="/portal/devices">Geräte</PortalNavLink>
+                  <PortalNavLink to="/portal/invoices">Rechnungen</PortalNavLink>
+                  <PortalNavLink to="/portal/support">Support</PortalNavLink>
+                  <PortalNavLink to="/portal/account">Konto</PortalNavLink>
+                </nav>
+                <ThemeToggle />
+              </div>
 
               <div className="flex items-center justify-between gap-3">
                 <div className="flex flex-col">
-                  <span className="text-xs font-medium truncate max-w-[160px]">
+                  <span
+                    className={`text-xs font-medium truncate max-w-[160px] ${
+                      isLight ? "text-slate-900" : "text-slate-100"
+                    }`}
+                  >
                     {customer.name}
                   </span>
-                  <span className="text-[11px] text-slate-400 truncate max-w-[200px]">
+                  <span
+                    className={`text-[11px] truncate max-w-[200px] ${
+                      isLight ? "text-slate-600" : "text-slate-400"
+                    }`}
+                  >
                     {customer.email}
                   </span>
                 </div>
@@ -208,6 +272,8 @@ interface PortalNavLinkProps {
 }
 
 function PortalNavLink({ to, children }: PortalNavLinkProps) {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   return (
     <NavLink
       to={to}
@@ -217,6 +283,8 @@ function PortalNavLink({ to, children }: PortalNavLinkProps) {
           "px-2 py-1 rounded-full transition-colors",
           isActive
             ? "bg-emerald-500 text-slate-950 font-semibold"
+            : isLight
+            ? "text-slate-700 hover:bg-slate-100"
             : "text-slate-300 hover:bg-slate-800",
         ].join(" ")
       }

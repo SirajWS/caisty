@@ -4,6 +4,7 @@ import {
   fetchPortalSupportMessages,
   type PortalSupportMessage,
 } from "../lib/portalApi";
+import { useTheme } from "../lib/theme";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "";
@@ -20,6 +21,8 @@ export default function PortalSupportPage() {
 
   const [messages, setMessages] = useState<PortalSupportMessage[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
+  const { theme } = useTheme();
+  const isLight = theme === "light";
 
   async function loadMessages() {
     try {
@@ -69,109 +72,56 @@ export default function PortalSupportPage() {
   }
 
   return (
-    <div className="portal-page">
-      <h1 className="portal-page-title">Support & Kontakt</h1>
-      <p className="portal-page-subtitle">
-        Schick uns eine Nachricht, wenn du Hilfe brauchst oder Fragen zu deinem
-        Konto hast.
-      </p>
+    <div className="space-y-6">
+      <header className="space-y-1">
+        <h1 className={`text-2xl font-semibold tracking-tight ${isLight ? "text-slate-900" : "text-slate-50"}`}>Support & Kontakt</h1>
+        <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+          Schick uns eine Nachricht, wenn du Hilfe brauchst oder Fragen zu deinem
+          Konto hast.
+        </p>
+      </header>
 
       {/* Formular */}
-      <div
-        style={{
-          marginTop: 24,
-          marginBottom: 32,
-          padding: 24,
-          borderRadius: 12,
-          background: "#020617",
-          border: "1px solid #1f2937",
-          boxShadow: "0 15px 30px rgba(0,0,0,0.35)",
-        }}
-      >
+      <div className={`rounded-2xl border p-6 ${isLight ? "border-slate-200 bg-white shadow-sm" : "border-slate-800 bg-slate-900/60"}`}>
         {error && (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: "10px 12px",
-              borderRadius: 8,
-              background: "rgba(248,113,113,0.12)",
-              border: "1px solid rgba(248,113,113,0.5)",
-              fontSize: 13,
-            }}
-          >
+          <div className={`mb-4 rounded-xl border px-3 py-2 text-xs ${isLight ? "border-rose-300 bg-rose-50 text-rose-800" : "border-rose-500/60 bg-rose-500/10 text-rose-200"}`}>
             {error}
           </div>
         )}
         {success && (
-          <div
-            style={{
-              marginBottom: 16,
-              padding: "10px 12px",
-              borderRadius: 8,
-              background: "rgba(34,197,94,0.12)",
-              border: "1px solid rgba(34,197,94,0.5)",
-              fontSize: 13,
-            }}
-          >
+          <div className={`mb-4 rounded-xl border px-3 py-2 text-xs ${isLight ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-emerald-500/60 bg-emerald-500/10 text-emerald-200"}`}>
             {success}
           </div>
         )}
 
-        <form
-          onSubmit={handleSubmit}
-          style={{ display: "flex", flexDirection: "column", gap: 16 }}
-        >
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={{ fontSize: 13 }}>Betreff</label>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2">
+            <label className={`text-xs ${isLight ? "text-slate-700" : "text-slate-300"}`}>Betreff</label>
             <input
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="z. B. Frage zur Testlizenz oder Rechnung"
-              style={{
-                padding: "10px 12px",
-                borderRadius: 8,
-                border: "1px solid #1f2937",
-                background: "#020617",
-                color: "#e5e7eb",
-                fontSize: 14,
-              }}
+              className={`rounded-lg border px-3 py-2 text-sm outline-none focus:border-emerald-500 ${isLight ? "border-slate-300 bg-white text-slate-900" : "border-slate-800 bg-slate-950/60 text-slate-100"}`}
             />
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <label style={{ fontSize: 13 }}>Nachricht</label>
+          <div className="flex flex-col gap-2">
+            <label className={`text-xs ${isLight ? "text-slate-700" : "text-slate-300"}`}>Nachricht</label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={5}
               placeholder="Beschreibe kurz dein Anliegen – je genauer, desto besser können wir helfen."
-              style={{
-                padding: "10px 12px",
-                borderRadius: 8,
-                border: "1px solid #1f2937",
-                background: "#020617",
-                color: "#e5e7eb",
-                fontSize: 14,
-                resize: "vertical",
-              }}
+              className={`rounded-lg border px-3 py-2 text-sm resize-vertical outline-none focus:border-emerald-500 ${isLight ? "border-slate-300 bg-white text-slate-900" : "border-slate-800 bg-slate-950/60 text-slate-100"}`}
             />
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <div className="flex justify-end">
             <button
               type="submit"
               disabled={isSubmitting}
-              style={{
-                padding: "10px 18px",
-                borderRadius: 999,
-                border: "none",
-                background: isSubmitting ? "#15803d" : "#22c55e",
-                color: "#020617",
-                fontWeight: 600,
-                fontSize: 14,
-                cursor: isSubmitting ? "default" : "pointer",
-              }}
+              className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSubmitting ? "Wird gesendet..." : "Nachricht senden"}
             </button>
@@ -180,97 +130,50 @@ export default function PortalSupportPage() {
       </div>
 
       {/* Liste bisheriger Anfragen */}
-      <div
-        style={{
-          marginTop: 8,
-          padding: 20,
-          borderRadius: 12,
-          background: "#020617",
-          border: "1px solid #1f2937",
-        }}
-      >
-        <h2 style={{ fontSize: 16, marginBottom: 12 }}>Deine Anfragen</h2>
+      <div className={`rounded-2xl border p-5 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/60"}`}>
+        <h2 className={`text-sm font-semibold mb-3 ${isLight ? "text-slate-900" : "text-slate-100"}`}>Deine Anfragen</h2>
 
         {isLoadingList ? (
-          <p style={{ fontSize: 13, color: "#9ca3af" }}>
+          <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
             Lade deine bisherigen Anfragen …
           </p>
         ) : messages.length === 0 ? (
-          <p style={{ fontSize: 13, color: "#9ca3af" }}>
+          <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
             Du hast noch keine Support-Anfragen gestellt.
           </p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="flex flex-col gap-3">
             {messages.map((m) => (
               <div
                 key={m.id}
-                style={{
-                  padding: 12,
-                  borderRadius: 8,
-                  border: "1px solid #1f2937",
-                  background: "#020617",
-                }}
+                className={`rounded-lg border p-3 ${isLight ? "border-slate-200 bg-slate-50" : "border-slate-800 bg-slate-950/60"}`}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: 4,
-                    gap: 8,
-                  }}
-                >
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>
+                <div className="flex justify-between mb-1 gap-2">
+                  <div className={`text-sm font-medium ${isLight ? "text-slate-900" : "text-slate-100"}`}>
                     {m.subject}
                   </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: "#9ca3af",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
+                  <div className={`text-[11px] whitespace-nowrap ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                     {formatDate(m.createdAt)}
                   </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: "#e5e7eb",
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
+                <div className={`text-xs whitespace-pre-wrap ${isLight ? "text-slate-700" : "text-slate-300"}`}>
                   {m.message}
                 </div>
 
-                <div style={{ marginTop: 8, fontSize: 11, color: "#9ca3af" }}>
+                <div className={`mt-2 text-[11px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                   Status:{" "}
-                  <span style={{ textTransform: "capitalize" }}>
+                  <span className="capitalize">
                     {m.status}
                   </span>
                 </div>
 
                 {m.replyText && (
-                  <div
-                    style={{
-                      marginTop: 8,
-                      padding: 10,
-                      borderRadius: 6,
-                      background: "rgba(37,99,235,0.15)",
-                      border: "1px solid rgba(59,130,246,0.4)",
-                      fontSize: 13,
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "#bfdbfe",
-                        marginBottom: 4,
-                      }}
-                    >
+                  <div className={`mt-2 rounded-lg border p-2.5 text-xs ${isLight ? "border-blue-200 bg-blue-50" : "border-blue-500/40 bg-blue-500/15"}`}>
+                    <div className={`text-[11px] mb-1 ${isLight ? "text-blue-700" : "text-blue-300"}`}>
                       Antwort vom Support{" "}
                       {m.repliedAt ? `(${formatDate(m.repliedAt)})` : ""}
                     </div>
-                    <div style={{ whiteSpace: "pre-wrap" }}>{m.replyText}</div>
+                    <div className={`whitespace-pre-wrap ${isLight ? "text-blue-900" : "text-blue-100"}`}>{m.replyText}</div>
                   </div>
                 )}
               </div>
