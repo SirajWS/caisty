@@ -1,8 +1,12 @@
 import { Outlet, Link, NavLink } from "react-router-dom";
 import LanguageSelector from "../components/LanguageSelector";
 import CurrencySelector from "../components/CurrencySelector";
+import ThemeToggle from "../components/ThemeToggle";
+import { useTheme } from "../lib/theme";
 
 function NavItem(props: { to: string; children: React.ReactNode }) {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   return (
     <NavLink
       to={props.to}
@@ -10,7 +14,9 @@ function NavItem(props: { to: string; children: React.ReactNode }) {
         [
           "text-sm",
           isActive
-            ? "text-emerald-400"
+            ? "text-emerald-500"
+            : isLight
+            ? "text-slate-600 hover:text-slate-900"
             : "text-slate-300 hover:text-slate-100",
         ].join(" ")
       }
@@ -21,18 +27,25 @@ function NavItem(props: { to: string; children: React.ReactNode }) {
 }
 
 export default function SiteLayout() {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
+  const baseBg = isLight ? "bg-slate-50 text-slate-900" : "bg-slate-950 text-slate-50";
+  const baseBorder = isLight ? "border-slate-200" : "border-slate-800";
+  const mutedText = isLight ? "text-slate-600" : "text-slate-300";
+  const strongText = isLight ? "text-slate-900" : "text-slate-100";
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-50">
+    <div className={`min-h-screen flex flex-col ${baseBg}`}>
       {/* Top-Bar */}
-      <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
+      <header className={`border-b ${baseBorder} ${isLight ? "bg-white/85" : "bg-slate-950/80"} backdrop-blur`}>
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <Link to="/" className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-xl bg-emerald-500/90 flex items-center justify-center text-slate-950 font-bold text-sm">
               C
             </div>
             <div className="flex flex-col leading-tight">
-              <span className="font-semibold text-sm">Caisty</span>
-              <span className="text-xs text-slate-400">
+              <span className={`font-semibold text-sm ${strongText}`}>Caisty</span>
+              <span className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                 POS &amp; Cloud Platform
               </span>
             </div>
@@ -47,9 +60,10 @@ export default function SiteLayout() {
           <div className="flex items-center gap-3">
             <CurrencySelector />
             <LanguageSelector />
+            <ThemeToggle />
             <Link
               to="/login"
-              className="text-sm text-slate-300 hover:text-slate-100"
+              className={`text-sm ${mutedText} hover:text-emerald-500`}
             >
               Login
             </Link>
@@ -71,19 +85,19 @@ export default function SiteLayout() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 bg-slate-950">
+      <footer className={`border-t ${baseBorder} ${isLight ? "bg-white" : "bg-slate-950"}`}>
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="grid gap-8 md:grid-cols-3 mb-6">
             {/* Adresse */}
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-slate-200 mb-2">Kontakt</h3>
-              <div className="text-xs text-slate-400 space-y-1">
-                <p className="font-semibold text-slate-300">Caisty</p>
+              <h3 className={`text-sm font-semibold ${strongText} mb-2`}>Kontakt</h3>
+              <div className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"} space-y-1`}>
+                <p className={`font-semibold ${strongText}`}>Caisty</p>
                 <p>Musterstraße 123</p>
                 <p>12345 Musterstadt</p>
                 <p>Deutschland</p>
                 <p className="mt-2">
-                  <a href="mailto:info@caisty.com" className="text-emerald-400 hover:underline">
+                  <a href="mailto:info@caisty.com" className="text-emerald-500 hover:text-emerald-600 hover:underline">
                     info@caisty.com
                   </a>
                 </p>
@@ -92,15 +106,15 @@ export default function SiteLayout() {
 
             {/* Links */}
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-slate-200 mb-2">Rechtliches</h3>
-              <div className="text-xs text-slate-400 space-y-1">
-                <Link to="/terms" className="block hover:text-emerald-400 transition-colors">
+              <h3 className={`text-sm font-semibold ${strongText} mb-2`}>Rechtliches</h3>
+              <div className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"} space-y-1`}>
+                <Link to="/terms" className={`block ${isLight ? "hover:text-emerald-600" : "hover:text-emerald-400"} transition-colors`}>
                   Allgemeine Geschäftsbedingungen
                 </Link>
-                <Link to="/privacy" className="block hover:text-emerald-400 transition-colors">
+                <Link to="/privacy" className={`block ${isLight ? "hover:text-emerald-600" : "hover:text-emerald-400"} transition-colors`}>
                   Datenschutzerklärung
                 </Link>
-                <Link to="/imprint" className="block hover:text-emerald-400 transition-colors">
+                <Link to="/imprint" className={`block ${isLight ? "hover:text-emerald-600" : "hover:text-emerald-400"} transition-colors`}>
                   Impressum
                 </Link>
               </div>
@@ -108,13 +122,13 @@ export default function SiteLayout() {
 
             {/* Social Media */}
             <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-slate-200 mb-2">Folge uns</h3>
+              <h3 className={`text-sm font-semibold ${strongText} mb-2`}>Folge uns</h3>
               <div className="flex gap-3">
                 <a
                   href="https://facebook.com/caisty"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-slate-700 bg-slate-900 hover:bg-slate-800 hover:border-emerald-500/50 transition-colors"
+                  className={`inline-flex items-center justify-center w-10 h-10 rounded-full border ${isLight ? "border-slate-200 bg-white hover:bg-slate-100" : "border-slate-700 bg-slate-900 hover:bg-slate-800"} hover:border-emerald-500/50 transition-colors`}
                   aria-label="Facebook"
                   title="Facebook"
                 >
@@ -126,7 +140,7 @@ export default function SiteLayout() {
                   href="https://instagram.com/caisty"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-slate-700 bg-slate-900 hover:bg-slate-800 hover:border-emerald-500/50 transition-colors"
+                  className={`inline-flex items-center justify-center w-10 h-10 rounded-full border ${isLight ? "border-slate-200 bg-white hover:bg-slate-100" : "border-slate-700 bg-slate-900 hover:bg-slate-800"} hover:border-emerald-500/50 transition-colors`}
                   aria-label="Instagram"
                   title="Instagram"
                 >
@@ -138,7 +152,7 @@ export default function SiteLayout() {
                   href="https://youtube.com/@caisty"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-slate-700 bg-slate-900 hover:bg-slate-800 hover:border-emerald-500/50 transition-colors"
+                  className={`inline-flex items-center justify-center w-10 h-10 rounded-full border ${isLight ? "border-slate-200 bg-white hover:bg-slate-100" : "border-slate-700 bg-slate-900 hover:bg-slate-800"} hover:border-emerald-500/50 transition-colors`}
                   aria-label="YouTube"
                   title="YouTube"
                 >
@@ -150,9 +164,9 @@ export default function SiteLayout() {
             </div>
           </div>
 
-          <div className="border-t border-slate-800 pt-6 flex flex-col sm:flex-row justify-between gap-3 text-xs text-slate-400">
+          <div className={`border-t ${baseBorder} pt-6 flex flex-col sm:flex-row justify-between gap-3 text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
             <span>© {new Date().getFullYear()} Caisty – All rights reserved.</span>
-            <span className="text-slate-500 italic">
+            <span className={`${isLight ? "text-slate-500" : "text-slate-500"} italic`}>
               Hinweis: Firmendaten sind Platzhalter und müssen nach Firmengründung aktualisiert werden.
             </span>
           </div>

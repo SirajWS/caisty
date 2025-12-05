@@ -4,6 +4,7 @@ import { PRICING, TRIAL_DAYS, MAX_DEVICES } from "../config/pricing";
 import { useCurrency } from "../lib/useCurrency";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
+import { useTheme } from "../lib/theme";
 
 type BillingPeriod = "monthly" | "yearly";
 
@@ -11,7 +12,10 @@ export default function PricingPage() {
   const [billing, setBilling] = useState<BillingPeriod>("monthly");
   const { currency } = useCurrency();
   const { language } = useLanguage();
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   const t = translations[language].pricing;
+  const isTnd = currency === "TND";
 
   const starterMonthly = PRICING[currency].starter.monthly;
   const starterYearly = PRICING[currency].starter.yearly;
@@ -21,29 +25,53 @@ export default function PricingPage() {
   const proYearly = PRICING[currency].pro.yearly;
   const proDevices = MAX_DEVICES.pro;
 
+  const pageBg = isLight ? "bg-slate-50 text-slate-900" : "bg-slate-950 text-slate-50";
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50">
+    <div className={`min-h-screen ${pageBg}`}>
       <section className="max-w-5xl mx-auto px-4 pt-20 pb-16 space-y-8">
         <header className="text-center space-y-3">
-          <h1 className="text-3xl sm:text-4xl font-semibold">
+          <h1
+            className={`text-3xl sm:text-4xl font-semibold ${
+              isLight ? "text-slate-900" : "text-slate-50"
+            }`}
+          >
             {t.title}
           </h1>
-          <p className="text-sm text-slate-300 max-w-2xl mx-auto">
+          <p
+            className={`text-sm max-w-2xl mx-auto ${
+              isLight ? "text-slate-600" : "text-slate-300"
+            }`}
+          >
             {t.description}
           </p>
         </header>
 
         {/* Trial-Hinweis */}
         <section className="max-w-3xl mx-auto">
-          <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs sm:text-sm">
+          <div
+            className={`rounded-2xl border px-4 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs sm:text-sm ${
+              isLight
+                ? "border-emerald-300 bg-emerald-50"
+                : "border-emerald-500/40 bg-emerald-500/10"
+            }`}
+          >
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-2 text-emerald-200">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <div
+                className={`inline-flex items-center gap-2 ${
+                  isLight ? "text-emerald-600" : "text-emerald-200"
+                }`}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 <span className="font-semibold uppercase tracking-wide text-[11px]">
                   {t.trial.badge}
                 </span>
               </div>
-              <p className="text-slate-100">
+              <p
+                className={
+                  isLight ? "text-slate-800" : "text-slate-100"
+                }
+              >
                 {t.trial.title}{" "}
                 <span className="font-semibold">
                   {TRIAL_DAYS}-{language === "de" ? "Tage-Testlizenz" : language === "en" ? "day trial license" : language === "fr" ? "licence d'essai" : "ترخيص تجريبي"}
@@ -62,14 +90,14 @@ export default function PricingPage() {
 
         {/* Billing Toggle */}
         <section className="flex justify-center">
-          <div className="inline-flex items-center rounded-full border border-slate-800 bg-slate-900/80 p-1 text-[11px] sm:text-xs">
+          <div className={`inline-flex items-center rounded-full border ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/80"} p-1 text-[11px] sm:text-xs`}>
             <button
               type="button"
               onClick={() => setBilling("monthly")}
               className={[
                 "px-3 py-1.5 rounded-full transition",
                 billing === "monthly"
-                  ? "bg-slate-800 text-slate-50"
+                  ? isLight ? "bg-slate-100 text-slate-900" : "bg-slate-800 text-slate-50"
                   : "text-slate-400",
               ].join(" ")}
             >
@@ -81,12 +109,16 @@ export default function PricingPage() {
               className={[
                 "px-3 py-1.5 rounded-full transition flex items-center gap-1",
                 billing === "yearly"
-                  ? "bg-slate-800 text-slate-50"
-                  : "text-slate-400",
+                  ? isLight ? "bg-slate-100 text-slate-900" : "bg-slate-800 text-slate-50"
+                  : isLight ? "text-slate-600" : "text-slate-400",
               ].join(" ")}
             >
               {t.billing.yearly}
-              <span className="hidden sm:inline text-[10px] text-emerald-300">
+              <span
+                className={`hidden sm:inline text-[10px] ${
+                  isLight ? "text-emerald-600" : "text-emerald-300"
+                }`}
+              >
                 {t.billing.discount}
               </span>
             </button>
@@ -122,6 +154,26 @@ export default function PricingPage() {
           />
         </div>
 
+        {/* Hinweis EUR Billing */}
+        <div className="space-y-2 text-xs sm:text-sm">
+          {isTnd && (
+            <p
+              className={
+                isLight ? "text-amber-600" : "text-amber-300"
+              }
+            >
+              Hinweis: Die Abrechnung erfolgt aktuell in Euro per PayPal. Die TND-Preise dienen nur als Orientierung.
+            </p>
+          )}
+          <p
+            className={
+              isLight ? "text-slate-600" : "text-slate-400"
+            }
+          >
+            Alle Beträge zzgl. MwSt. – finale Konditionen wählst du im Kundenportal.
+          </p>
+        </div>
+
         {/* Hinweis & Call-to-Action */}
         <section className="mt-6 space-y-4">
           <div className="grid gap-4 md:grid-cols-3 text-sm">
@@ -139,9 +191,23 @@ export default function PricingPage() {
             />
           </div>
 
-          <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-4">
-            <div className="text-xs sm:text-sm text-slate-300 max-w-xl">
-              <span className="font-semibold text-slate-100">
+          <div
+            className={`mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border px-4 py-4 ${
+              isLight
+                ? "border-slate-200 bg-white"
+                : "border-slate-800 bg-slate-900/70"
+            }`}
+          >
+            <div
+              className={`text-xs sm:text-sm max-w-xl ${
+                isLight ? "text-slate-600" : "text-slate-300"
+              }`}
+            >
+              <span
+                className={`font-semibold ${
+                  isLight ? "text-slate-900" : "text-slate-100"
+                }`}
+              >
                 {t.cta.title}
               </span>{" "}
               {t.cta.description}
@@ -157,7 +223,11 @@ export default function PricingPage() {
             </div>
           </div>
 
-          <p className="text-[11px] text-slate-500">
+          <p
+            className={`text-[11px] ${
+              isLight ? "text-slate-500" : "text-slate-500"
+            }`}
+          >
             {t.footer}
           </p>
         </section>
@@ -192,6 +262,8 @@ function PlanCard({
   highlight,
 }: PlanCardProps) {
   const { currency } = useCurrency();
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   const isMonthly = billing === "monthly";
   const price = isMonthly ? priceMonthly : priceYearly;
   const currencySymbol = currency === "EUR" ? "€" : "TND";
@@ -200,20 +272,20 @@ function PlanCard({
   return (
     <div
       className={[
-        "rounded-3xl border bg-slate-900/70 p-6 flex flex-col justify-between",
+        "rounded-3xl border p-6 flex flex-col justify-between",
         highlight
-          ? "border-emerald-500/60 shadow-lg shadow-emerald-900/40"
-          : "border-slate-800",
+          ? isLight ? "border-emerald-300 shadow-lg shadow-emerald-200/40 bg-white" : "border-emerald-500/60 shadow-lg shadow-emerald-900/40 bg-slate-900/70"
+          : isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/70",
       ].join(" ")}
     >
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-2">
           <div>
             <h2 className="text-lg font-semibold">{title}</h2>
-            <p className="text-xs text-slate-400">{description}</p>
+            <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>{description}</p>
           </div>
           {badge && (
-            <span className="inline-flex items-center rounded-full bg-slate-800 px-3 py-1 text-[11px] uppercase tracking-wide text-slate-300">
+            <span className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] uppercase tracking-wide ${isLight ? "bg-slate-100 text-slate-700" : "bg-slate-800 text-slate-300"}`}>
               {badge}
             </span>
           )}
@@ -222,14 +294,14 @@ function PlanCard({
         <div className="space-y-1">
           <div className="text-3xl font-semibold text-emerald-400">
             {price}{" "}
-            <span className="text-base align-baseline text-slate-300">
+            <span className={`text-base align-baseline ${isLight ? "text-slate-600" : "text-slate-300"}`}>
               {suffix}
             </span>
           </div>
-          <div className="text-[11px] text-slate-400">{devicesLabel}</div>
+          <div className={`text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"}`}>{devicesLabel}</div>
         </div>
 
-        <ul className="mt-4 space-y-2 text-sm text-slate-200">
+        <ul className={`mt-4 space-y-2 text-sm ${isLight ? "text-slate-800" : "text-slate-200"}`}>
           {features.map((f) => (
             <li key={f} className="flex items-start gap-2">
               <span className="mt-[3px] h-1.5 w-1.5 rounded-full bg-emerald-400" />
@@ -238,7 +310,7 @@ function PlanCard({
           ))}
         </ul>
       </div>
-    <p className="mt-4 text-[11px] text-slate-500">
+      <p className={`mt-4 text-[11px] ${isLight ? "text-slate-500" : "text-slate-500"}`}>
         {planNote}
       </p>
     </div>
@@ -246,10 +318,12 @@ function PlanCard({
 }
 
 function InfoCard({ title, text }: { title: string; text: string }) {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 space-y-2">
-      <div className="text-sm font-medium text-slate-100">{title}</div>
-      <p className="text-xs text-slate-300">{text}</p>
+    <div className={`rounded-2xl border p-4 space-y-2 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/70"}`}>
+      <div className={`text-sm font-medium ${isLight ? "text-slate-900" : "text-slate-100"}`}>{title}</div>
+      <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-300"}`}>{text}</p>
     </div>
   );
 }

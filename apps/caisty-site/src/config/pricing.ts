@@ -2,6 +2,14 @@
 
 export type Currency = "EUR" | "TND";
 
+// Billing läuft immer in EUR (PayPal). TND ist nur Anzeige.
+export const DEFAULT_BILLING_CURRENCY: Currency = "EUR";
+export const SUPPORTED_DISPLAY_CURRENCIES: Currency[] = ["EUR", "TND"];
+// Statische Display-Werte für TND (kein Live-Rate, Marketing-Orientierung)
+export const DISPLAY_CONVERSION = {
+  EUR_TO_TND_FACTOR: 2.6, // Dokumentationszweck – Preise unten bereits gesetzt
+};
+
 export const PRICING: Record<Currency, {
   starter: {
     monthly: number;

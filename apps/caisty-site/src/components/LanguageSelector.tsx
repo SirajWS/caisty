@@ -1,10 +1,13 @@
 // apps/caisty-site/src/components/LanguageSelector.tsx
 import { useState, useRef, useEffect } from "react";
 import { useLanguage } from "../lib/LanguageContext";
+import { useTheme } from "../lib/theme";
 import { languages } from "../lib/translations/index";
 
 export default function LanguageSelector() {
   const { language, setLanguage } = useLanguage();
+  const { theme } = useTheme();
+  const isLight = theme === "light";
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -27,7 +30,11 @@ export default function LanguageSelector() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 transition-colors text-sm text-slate-300"
+        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors text-sm ${
+          isLight
+            ? "border-slate-300 bg-white hover:bg-slate-50 text-slate-700"
+            : "border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300"
+        }`}
         aria-label="Select language"
       >
         <svg
@@ -60,7 +67,13 @@ export default function LanguageSelector() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 rounded-lg border border-slate-700 bg-slate-900 shadow-xl z-50 overflow-hidden">
+        <div
+          className={`absolute right-0 mt-2 w-48 rounded-lg border shadow-xl z-50 overflow-hidden ${
+            isLight
+              ? "border-slate-300 bg-white"
+              : "border-slate-700 bg-slate-900"
+          }`}
+        >
           {languages.map((lang) => (
             <button
               key={lang.code}
@@ -70,13 +83,23 @@ export default function LanguageSelector() {
               }}
               className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
                 language === lang.code
-                  ? "bg-emerald-500/10 text-emerald-300"
+                  ? isLight
+                    ? "bg-emerald-50 text-emerald-600"
+                    : "bg-emerald-500/10 text-emerald-300"
+                  : isLight
+                  ? "text-slate-700 hover:bg-slate-50"
                   : "text-slate-300 hover:bg-slate-800"
               }`}
             >
               <div className="flex items-center justify-between">
                 <span className="font-medium">{lang.nativeName}</span>
-                <span className="text-xs text-slate-500">{lang.name}</span>
+                <span
+                  className={`text-xs ${
+                    isLight ? "text-slate-500" : "text-slate-500"
+                  }`}
+                >
+                  {lang.name}
+                </span>
               </div>
             </button>
           ))}
