@@ -2,9 +2,9 @@
 import type { FastifyInstance } from "fastify";
 import { sql, eq } from "drizzle-orm";
 
-import { db } from "../db/client";
-import { customers } from "../db/schema/customers";
-import { devices } from "../db/schema/devices";
+import { db } from "../db/client.js";
+import { customers } from "../db/schema/customers.js";
+import { devices } from "../db/schema/devices.js";
 
 type ListQuery = {
   limit?: number;
@@ -50,12 +50,8 @@ export async function registerCustomersRoutes(app: FastifyInstance) {
     "/customers",
     async (request, reply) => {
       const user = (request as any).user;
+      const isAdmin = !!(user?.adminUserId); // Admin-JWT hat adminUserId
       const orgId = user?.orgId;
-
-      if (!orgId) {
-        reply.code(401);
-        return { error: "Missing orgId on user" };
-      }
 
       const { name, email } = request.body;
 
@@ -64,13 +60,55 @@ export async function registerCustomersRoutes(app: FastifyInstance) {
         return { error: "name is required" };
       }
 
+      // Für Admin: Neue Org erstellen für den neuen Customer
+      // Für normale User: orgId vom JWT verwenden
+      let finalOrgId: string;
+
+      if (isAdmin) {
+        // Admin: Erstelle neue Org für den Customer
+        const { orgs } = await import("../db/schema/orgs.js");
+        
+        // Helper: Slug aus Name generieren
+        function makeSlug(name: string): string {
+          const base = name
+            .toLowerCase()
+            .normalize("NFKD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 40);
+          const suffix = Date.now().toString(36).slice(-4);
+          return `${base || "org"}-${suffix}`;
+        }
+        
+        const slug = makeSlug(name.trim());
+        const [newOrg] = await db
+          .insert(orgs)
+          .values({ name: name.trim(), slug })
+          .returning();
+        
+        if (!newOrg?.id) {
+          reply.code(500);
+          return { error: "Failed to create organization" };
+        }
+        
+        finalOrgId = newOrg.id;
+      } else {
+        // Normaler User: orgId vom JWT
+        if (!orgId) {
+          reply.code(401);
+          return { error: "Missing orgId on user" };
+        }
+        finalOrgId = orgId;
+      }
+
       try {
         const [created] = await db
           .insert(customers)
           .values({
-            orgId,
+            orgId: finalOrgId as string,
             name: name.trim(),
-            email: email?.trim() || null,
+            email: email?.trim() || "",
             status: "active",
           })
           .returning();

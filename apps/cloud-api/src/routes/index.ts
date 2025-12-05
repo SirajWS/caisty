@@ -21,6 +21,9 @@ import { registerLicenseVerifyRoute } from "./licenses/verify";
 import { selfServiceTrialRoutes } from "./selfService/trial";
 import notificationsRoutes from "./notifications.js";
 
+// Test-Endpoint für E-Mail (nur Development)
+import { registerTestEmailRoutes } from "./test-email.js";
+
 export default async function routes(app: FastifyInstance) {
   // Basis
   await app.register(healthRoutes);
@@ -47,4 +50,7 @@ export default async function routes(app: FastifyInstance) {
   // Payments & Webhooks
   await app.register(paymentsRoutes);
   await app.register(webhooksRoutes);
+
+  // Test-Endpoint (nur Development)
+  await registerTestEmailRoutes(app);
 }

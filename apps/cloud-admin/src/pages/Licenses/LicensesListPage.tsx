@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet, apiPost, apiDelete } from "../../lib/api";
+import { useTheme, themeColors } from "../../theme/ThemeContext";
 
 type License = {
   id: string;
@@ -48,6 +49,8 @@ const PLAN_DEFAULT_MAX_DEVICES: Record<string, string> = {
 };
 
 export default function LicensesListPage() {
+  const { theme } = useTheme();
+  const colors = themeColors[theme];
   const [licenses, setLicenses] = useState<License[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -272,21 +275,48 @@ export default function LicensesListPage() {
 
   return (
     <div className="admin-page">
-      <h1 className="admin-page-title">Licenses</h1>
-      <p className="admin-page-subtitle">
+      <h1
+        style={{
+          fontSize: "32px",
+          fontWeight: 700,
+          marginBottom: "8px",
+          color: colors.text,
+          letterSpacing: "-0.5px",
+        }}
+      >
+        Licenses
+      </h1>
+      <p
+        style={{
+          fontSize: "14px",
+          color: colors.textSecondary,
+          marginBottom: "24px",
+        }}
+      >
         Übersicht über alle Lizenzschlüssel deiner Organisation.
       </p>
 
       {/* Formular zum Anlegen */}
       <div
         className="dashboard-card"
-        style={{ marginBottom: 24, maxWidth: 900 }}
+        style={{
+          marginBottom: 24,
+          maxWidth: 900,
+          backgroundColor: colors.bgSecondary,
+          borderColor: colors.border,
+          transition: "background-color 0.3s, border-color 0.3s",
+        }}
       >
-        <div className="dashboard-card-title">Neue License anlegen</div>
+        <div
+          className="dashboard-card-title"
+          style={{ color: colors.textSecondary }}
+        >
+          Neue License anlegen
+        </div>
         <p
           style={{
             fontSize: 13,
-            color: "#9ca3af",
+            color: colors.textTertiary,
             marginTop: 4,
             marginBottom: 4,
           }}
@@ -305,7 +335,7 @@ export default function LicensesListPage() {
           }}
         >
           {/* Customer (optional) */}
-          <label style={{ fontSize: 13 }}>
+          <label style={{ fontSize: 13, color: colors.text }}>
             Customer (optional)
             <select
               value={customerSelectValue}
@@ -336,10 +366,11 @@ export default function LicensesListPage() {
                 marginTop: 4,
                 padding: "6px 8px",
                 borderRadius: 6,
-                border: "1px solid #374151",
-                backgroundColor: "#020617",
-                color: "#e5e7eb",
+                border: `1px solid ${colors.borderSecondary}`,
+                backgroundColor: colors.input,
+                color: colors.text,
                 fontSize: 13,
+                transition: "all 0.2s",
               }}
               disabled={customersLoading}
             >
@@ -375,16 +406,17 @@ export default function LicensesListPage() {
                     width: "100%",
                     padding: "6px 8px",
                     borderRadius: 6,
-                    border: "1px solid #374151",
-                    backgroundColor: "#020617",
-                    color: "#e5e7eb",
+                    border: `1px solid ${colors.borderSecondary}`,
+                    backgroundColor: colors.input,
+                    color: colors.text,
                     fontSize: 13,
+                    transition: "all 0.2s",
                   }}
                 />
                 <div
                   style={{
                     fontSize: 11,
-                    color: "#9ca3af",
+                    color: colors.textTertiary,
                     marginTop: 4,
                   }}
                 >
@@ -396,7 +428,7 @@ export default function LicensesListPage() {
           </label>
 
           {/* Plan */}
-          <label style={{ fontSize: 13 }}>
+          <label style={{ fontSize: 13, color: colors.text }}>
             Plan
             <select
               value={form.plan}
@@ -414,10 +446,11 @@ export default function LicensesListPage() {
                 marginTop: 4,
                 padding: "6px 8px",
                 borderRadius: 6,
-                border: "1px solid #374151",
-                backgroundColor: "#020617",
-                color: "#e5e7eb",
+                border: `1px solid ${colors.borderSecondary}`,
+                backgroundColor: colors.input,
+                color: colors.text,
                 fontSize: 13,
+                transition: "all 0.2s",
               }}
             >
               <option value="trial">trial</option>
@@ -427,7 +460,7 @@ export default function LicensesListPage() {
           </label>
 
           {/* Max Devices */}
-          <label style={{ fontSize: 13 }}>
+          <label style={{ fontSize: 13, color: colors.text }}>
             Max Devices
             <input
               type="number"
@@ -441,16 +474,17 @@ export default function LicensesListPage() {
                 marginTop: 4,
                 padding: "6px 8px",
                 borderRadius: 6,
-                border: "1px solid #374151",
-                backgroundColor: "#020617",
-                color: "#e5e7eb",
+                border: `1px solid ${colors.borderSecondary}`,
+                backgroundColor: colors.input,
+                color: colors.text,
                 fontSize: 13,
+                transition: "all 0.2s",
               }}
             />
           </label>
 
           {/* Gültig von */}
-          <label style={{ fontSize: 13 }}>
+          <label style={{ fontSize: 13, color: colors.text }}>
             Gültig von
             <input
               type="date"
@@ -463,16 +497,17 @@ export default function LicensesListPage() {
                 marginTop: 4,
                 padding: "6px 8px",
                 borderRadius: 6,
-                border: "1px solid #374151",
-                backgroundColor: "#020617",
-                color: "#e5e7eb",
+                border: `1px solid ${colors.borderSecondary}`,
+                backgroundColor: colors.input,
+                color: colors.text,
                 fontSize: 13,
+                transition: "all 0.2s",
               }}
             />
           </label>
 
           {/* Gültig bis */}
-          <label style={{ fontSize: 13 }}>
+          <label style={{ fontSize: 13, color: colors.text }}>
             Gültig bis
             <input
               type="date"
@@ -485,10 +520,11 @@ export default function LicensesListPage() {
                 marginTop: 4,
                 padding: "6px 8px",
                 borderRadius: 6,
-                border: "1px solid #374151",
-                backgroundColor: "#020617",
-                color: "#e5e7eb",
+                border: `1px solid ${colors.borderSecondary}`,
+                backgroundColor: colors.input,
+                color: colors.text,
                 fontSize: 13,
+                transition: "all 0.2s",
               }}
             />
           </label>
@@ -513,7 +549,15 @@ export default function LicensesListPage() {
         </form>
 
         {createError && (
-          <div className="admin-error" style={{ marginTop: 12 }}>
+          <div
+            className="admin-error"
+            style={{
+              marginTop: 12,
+              backgroundColor: colors.errorBg,
+              borderColor: `${colors.error}50`,
+              color: colors.error,
+            }}
+          >
             {createError}
           </div>
         )}
@@ -523,15 +567,24 @@ export default function LicensesListPage() {
       {generatedLicenses.length > 0 && (
         <div
           className="dashboard-card"
-          style={{ marginBottom: 24, maxWidth: 900 }}
+          style={{
+            marginBottom: 24,
+            maxWidth: 900,
+            backgroundColor: colors.bgSecondary,
+            borderColor: colors.border,
+            transition: "background-color 0.3s, border-color 0.3s",
+          }}
         >
-          <div className="dashboard-card-title">
+          <div
+            className="dashboard-card-title"
+            style={{ color: colors.textSecondary }}
+          >
             Generierte License-Keys (ohne Customer)
           </div>
           <p
             style={{
               fontSize: 13,
-              color: "#9ca3af",
+              color: colors.textTertiary,
               marginTop: 4,
               marginBottom: 8,
             }}
@@ -543,18 +596,26 @@ export default function LicensesListPage() {
             verschwinden sie aus dieser Liste.
           </p>
 
-          <div className="admin-table-wrapper" style={{ marginTop: 8 }}>
+          <div
+            className="admin-table-wrapper"
+            style={{
+              marginTop: 8,
+              backgroundColor: colors.bgSecondary,
+              borderColor: colors.border,
+              transition: "background-color 0.3s, border-color 0.3s",
+            }}
+          >
             <table className="admin-table">
               <thead>
-                <tr>
-                  <th>Key</th>
-                  <th>Plan</th>
-                  <th>Status</th>
-                  <th>Max Devices</th>
-                  <th>Seats</th>
-                  <th>Gültig bis</th>
-                  <th>Erstellt</th>
-                  <th>Aktion</th>
+                <tr style={{ backgroundColor: colors.bgTertiary }}>
+                  <th style={{ color: colors.textSecondary }}>Key</th>
+                  <th style={{ color: colors.textSecondary }}>Plan</th>
+                  <th style={{ color: colors.textSecondary }}>Status</th>
+                  <th style={{ color: colors.textSecondary }}>Max Devices</th>
+                  <th style={{ color: colors.textSecondary }}>Seats</th>
+                  <th style={{ color: colors.textSecondary }}>Gültig bis</th>
+                  <th style={{ color: colors.textSecondary }}>Erstellt</th>
+                  <th style={{ color: colors.textSecondary }}>Aktion</th>
                 </tr>
               </thead>
               <tbody>
@@ -564,9 +625,21 @@ export default function LicensesListPage() {
                   const full = total > 0 && used >= total;
 
                   return (
-                    <tr key={lic.id}>
-                      <td>{lic.key}</td>
-                      <td>{lic.plan}</td>
+                    <tr
+                      key={lic.id}
+                      style={{
+                        borderBottomColor: colors.border,
+                        transition: "background-color 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                      }}
+                    >
+                      <td style={{ color: colors.text }}>{lic.key}</td>
+                      <td style={{ color: colors.text }}>{lic.plan}</td>
                       <td>
                         <span
                           className={
@@ -580,8 +653,10 @@ export default function LicensesListPage() {
                           {lic.status}
                         </span>
                       </td>
-                      <td>{lic.maxDevices ?? "–"}</td>
-                      <td>
+                      <td style={{ color: colors.text }}>
+                        {lic.maxDevices ?? "–"}
+                      </td>
+                      <td style={{ color: colors.text }}>
                         {used} / {total}
                         {full && (
                           <span
@@ -592,13 +667,18 @@ export default function LicensesListPage() {
                           </span>
                         )}
                       </td>
-                      <td>{formatDate(lic.validUntil)}</td>
-                      <td>{formatDate(lic.createdAt)}</td>
+                      <td style={{ color: colors.text }}>
+                        {formatDate(lic.validUntil)}
+                      </td>
+                      <td style={{ color: colors.text }}>
+                        {formatDate(lic.createdAt)}
+                      </td>
                       <td>
                         <button
                           type="button"
                           onClick={() => handleRevoke(lic.id)}
                           className="badge badge--red"
+                          style={{ cursor: "pointer" }}
                         >
                           Löschen
                         </button>
@@ -615,9 +695,20 @@ export default function LicensesListPage() {
       {/* Filter-Karte */}
       <div
         className="dashboard-card"
-        style={{ marginBottom: 24, maxWidth: 900 }}
+        style={{
+          marginBottom: 24,
+          maxWidth: 900,
+          backgroundColor: colors.bgSecondary,
+          borderColor: colors.border,
+          transition: "background-color 0.3s, border-color 0.3s",
+        }}
       >
-        <div className="dashboard-card-title">Filter</div>
+        <div
+          className="dashboard-card-title"
+          style={{ color: colors.textSecondary }}
+        >
+          Filter
+        </div>
         <div
           style={{
             display: "grid",
@@ -626,7 +717,7 @@ export default function LicensesListPage() {
             marginTop: 12,
           }}
         >
-          <label style={{ fontSize: 13 }}>
+          <label style={{ fontSize: 13, color: colors.text }}>
             Plan
             <select
               value={filterPlan}
@@ -636,10 +727,11 @@ export default function LicensesListPage() {
                 marginTop: 4,
                 padding: "6px 8px",
                 borderRadius: 6,
-                border: "1px solid #374151",
-                backgroundColor: "#020617",
-                color: "#e5e7eb",
+                border: `1px solid ${colors.borderSecondary}`,
+                backgroundColor: colors.input,
+                color: colors.text,
                 fontSize: 13,
+                transition: "all 0.2s",
               }}
             >
               <option value="all">Alle Pläne</option>
@@ -649,7 +741,7 @@ export default function LicensesListPage() {
             </select>
           </label>
 
-          <label style={{ fontSize: 13 }}>
+          <label style={{ fontSize: 13, color: colors.text }}>
             Status
             <select
               value={filterStatus}
@@ -659,10 +751,11 @@ export default function LicensesListPage() {
                 marginTop: 4,
                 padding: "6px 8px",
                 borderRadius: 6,
-                border: "1px solid #374151",
-                backgroundColor: "#020617",
-                color: "#e5e7eb",
+                border: `1px solid ${colors.borderSecondary}`,
+                backgroundColor: colors.input,
+                color: colors.text,
                 fontSize: 13,
+                transition: "all 0.2s",
               }}
             >
               <option value="all">Alle Status</option>
@@ -688,11 +781,18 @@ export default function LicensesListPage() {
               style={{
                 padding: "6px 12px",
                 borderRadius: 6,
-                border: "1px solid #374151",
-                backgroundColor: "#1f2937",
-                color: "#e5e7eb",
+                border: `1px solid ${colors.border}`,
+                backgroundColor: colors.bgTertiary,
+                color: colors.text,
                 fontSize: 13,
                 cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = colors.border;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = colors.bgTertiary;
               }}
             >
               Filter zurücksetzen
@@ -704,7 +804,7 @@ export default function LicensesListPage() {
             style={{
               marginTop: 12,
               fontSize: 12,
-              color: "#9ca3af",
+              color: colors.textTertiary,
             }}
           >
             {filteredAssignedLicenses.length} von {assignedLicenses.length}{" "}
@@ -714,37 +814,69 @@ export default function LicensesListPage() {
       </div>
 
       {/* Tabelle: Licenses mit Customer ODER bereits benutzten Devices */}
-      <div className="admin-table-wrapper">
+      <div
+        className="admin-table-wrapper"
+        style={{
+          backgroundColor: colors.bgSecondary,
+          borderColor: colors.border,
+          transition: "background-color 0.3s, border-color 0.3s",
+        }}
+      >
         <table className="admin-table">
           <thead>
-            <tr>
-              <th>Key</th>
-              <th>Plan</th>
-              <th>Status</th>
-              <th>Max Devices</th>
-              <th>Seats</th>
-              <th>Customer</th>
-              <th>Gültig bis</th>
-              <th>Erstellt</th>
-              <th>Aktion</th>
+            <tr style={{ backgroundColor: colors.bgTertiary }}>
+              <th style={{ color: colors.textSecondary }}>Key</th>
+              <th style={{ color: colors.textSecondary }}>Plan</th>
+              <th style={{ color: colors.textSecondary }}>Status</th>
+              <th style={{ color: colors.textSecondary }}>Max Devices</th>
+              <th style={{ color: colors.textSecondary }}>Seats</th>
+              <th style={{ color: colors.textSecondary }}>Customer</th>
+              <th style={{ color: colors.textSecondary }}>Gültig bis</th>
+              <th style={{ color: colors.textSecondary }}>Erstellt</th>
+              <th style={{ color: colors.textSecondary }}>Aktion</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={9}>Lade Licenses…</td>
+                <td
+                  colSpan={9}
+                  style={{
+                    textAlign: "center",
+                    padding: 24,
+                    color: colors.textSecondary,
+                  }}
+                >
+                  Lade Licenses…
+                </td>
               </tr>
             )}
             {!loading && error && (
               <tr>
                 <td colSpan={9}>
-                  <div className="admin-error">{error}</div>
+                  <div
+                    className="admin-error"
+                    style={{
+                      backgroundColor: colors.errorBg,
+                      borderColor: `${colors.error}50`,
+                      color: colors.error,
+                    }}
+                  >
+                    {error}
+                  </div>
                 </td>
               </tr>
             )}
             {!loading && !error && filteredAssignedLicenses.length === 0 && (
               <tr>
-                <td colSpan={9}>
+                <td
+                  colSpan={9}
+                  style={{
+                    textAlign: "center",
+                    padding: 24,
+                    color: colors.textSecondary,
+                  }}
+                >
                   {assignedLicenses.length === 0
                     ? "Noch keine Licenses mit Customer oder Device vorhanden."
                     : "Keine Lizenzen entsprechen den ausgewählten Filtern."}
@@ -762,11 +894,38 @@ export default function LicensesListPage() {
                   : undefined;
 
                 return (
-                  <tr key={lic.id}>
-                    <td>
-                      <Link to={`/licenses/${lic.id}`}>{lic.key}</Link>
+                  <tr
+                    key={lic.id}
+                    style={{
+                      borderBottomColor: colors.border,
+                      transition: "background-color 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                  >
+                    <td style={{ color: colors.text }}>
+                      <Link
+                        to={`/licenses/${lic.id}`}
+                        style={{
+                          color: colors.accent,
+                          textDecoration: "none",
+                          transition: "color 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = colors.accentHover;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = colors.accent;
+                        }}
+                      >
+                        {lic.key}
+                      </Link>
                     </td>
-                    <td>{lic.plan}</td>
+                    <td style={{ color: colors.text }}>{lic.plan}</td>
                     <td>
                       <span
                         className={
@@ -780,8 +939,10 @@ export default function LicensesListPage() {
                         {lic.status}
                       </span>
                     </td>
-                    <td>{lic.maxDevices ?? "–"}</td>
-                    <td>
+                    <td style={{ color: colors.text }}>
+                      {lic.maxDevices ?? "–"}
+                    </td>
+                    <td style={{ color: colors.text }}>
                       {used} / {total}
                       {full && (
                         <span
@@ -792,9 +953,22 @@ export default function LicensesListPage() {
                         </span>
                       )}
                     </td>
-                    <td>
+                    <td style={{ color: colors.text }}>
                       {lic.customerId ? (
-                        <Link to={`/customers/${lic.customerId}`}>
+                        <Link
+                          to={`/customers/${lic.customerId}`}
+                          style={{
+                            color: colors.accent,
+                            textDecoration: "none",
+                            transition: "color 0.2s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = colors.accentHover;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = colors.accent;
+                          }}
+                        >
                           {customer?.name ||
                             customer?.email ||
                             `${lic.customerId.slice(0, 8)}…`}
@@ -803,8 +977,12 @@ export default function LicensesListPage() {
                         "–"
                       )}
                     </td>
-                    <td>{formatDate(lic.validUntil)}</td>
-                    <td>{formatDate(lic.createdAt)}</td>
+                    <td style={{ color: colors.text }}>
+                      {formatDate(lic.validUntil)}
+                    </td>
+                    <td style={{ color: colors.text }}>
+                      {formatDate(lic.createdAt)}
+                    </td>
                     <td>
                       <button
                         type="button"
@@ -826,7 +1004,7 @@ export default function LicensesListPage() {
         style={{
           marginTop: 8,
           fontSize: 12,
-          color: "#6b7280",
+          color: colors.textTertiary,
         }}
       >
         {total} License(s) in dieser Instanz.

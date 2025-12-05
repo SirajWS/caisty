@@ -120,9 +120,20 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
       .from(customers)
       .where(eq(customers.email, email));
 
-    if (!customer?.passwordHash) {
+    if (!customer) {
       reply.code(401);
       return { ok: false, reason: "invalid_credentials" as const };
+    }
+
+    // Prüfe, ob Customer ein Passwort hat
+    if (!customer.passwordHash) {
+      // Customer hat nur Google-Auth → Fehlermeldung
+      reply.code(401);
+      return { 
+        ok: false, 
+        reason: "google_auth_required" as const,
+        message: "Dieses Konto wurde mit Google erstellt. Bitte melde dich mit Google an." 
+      };
     }
 
     const valid = await bcrypt.compare(password, customer.passwordHash);

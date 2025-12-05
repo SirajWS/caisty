@@ -45,6 +45,16 @@ async function request<T>(
   });
 
   if (res.status === 401) {
+    // Versuche Error-Message aus Response zu lesen
+    try {
+      const ct = res.headers.get("content-type") ?? "";
+      if (ct.includes("application/json")) {
+        const data = (await res.json()) as ApiErrorShape;
+        throw new Error(data.error || data.message || "Nicht autorisiert (401)");
+      }
+    } catch (err) {
+      if (err instanceof Error) throw err;
+    }
     throw new Error("Nicht autorisiert (401)");
   }
 

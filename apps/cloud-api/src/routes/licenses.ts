@@ -219,28 +219,45 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
   // ---------------------------------------------------------------------------
   app.get("/licenses/portal", async (request, reply) => {
     const user = (request as any).user;
+    const isAdmin = !!(user?.adminUserId); // Admin-JWT hat adminUserId
     const orgId = user?.orgId as string | undefined;
 
     try {
-      if (!orgId) {
-        reply.code(400);
-        return { error: "Missing orgId on user" };
-      }
-
       // Portal-Lizenzen: Zeige ALLE Lizenzen, die zu einem Customer gehören (unabhängig von orgId)
       // Das sind automatisch generierte Portal-Lizenzen (Trial, PayPal-Upgrades, etc.)
-      // Jeder Customer hat eine eigene Organisation, daher müssen wir ALLE Lizenzen mit customerId zeigen
+      // Admin-User können ALLE Portal-Lizenzen sehen, normale User nur ihre eigenen
       
-      console.log(`[licenses/portal] Searching for ALL portal licenses (with customerId)`);
+      console.log(`[licenses/portal] Searching for portal licenses (isAdmin: ${isAdmin})`);
       
       // Hole ALLE Lizenzen, die zu einem Customer gehören (das sind Portal-Lizenzen)
-      // Unabhängig von der orgId, da jeder Customer seine eigene Organisation hat
-      const portalLicenses = await db
-        .select()
-        .from(licenses)
-        .where(sql`${licenses.customerId} IS NOT NULL`)
-        .orderBy(desc(licenses.createdAt))
-        .limit(200);
+      // Admin-User sehen alle, normale User nur die ihrer Org
+      let portalLicenses;
+      if (isAdmin) {
+        // Admin: Alle Portal-Lizenzen (mit customerId)
+        portalLicenses = await db
+          .select()
+          .from(licenses)
+          .where(sql`${licenses.customerId} IS NOT NULL`)
+          .orderBy(desc(licenses.createdAt))
+          .limit(200);
+      } else {
+        // Normaler User: Nur Portal-Lizenzen seiner Org
+        if (!orgId) {
+          reply.code(400);
+          return { error: "Missing orgId on user" };
+        }
+        portalLicenses = await db
+          .select()
+          .from(licenses)
+          .where(
+            and(
+              sql`${licenses.customerId} IS NOT NULL`,
+              eq(licenses.orgId, orgId)
+            )
+          )
+          .orderBy(desc(licenses.createdAt))
+          .limit(200);
+      }
       
       console.log(`[licenses/portal] Found ${portalLicenses.length} portal licenses (all licenses with customerId)`);
       for (const lic of portalLicenses) {
@@ -319,12 +336,8 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
   // ---------------------------------------------------------------------------
   app.post<{ Body: CreateLicenseBody }>("/licenses", async (request, reply) => {
     const user = (request as any).user;
+    const isAdmin = !!(user?.adminUserId); // Admin-JWT hat adminUserId
     const orgId = user?.orgId as string | undefined;
-
-    if (!orgId) {
-      reply.code(400);
-      return { error: "Missing orgId on user" };
-    }
 
     const body = request.body;
 
@@ -340,13 +353,49 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
         ? body.customerId
         : null;
 
+    // Bestimme orgId: Wenn Admin, hole orgId vom Customer (falls customerId vorhanden)
+    let finalOrgId: string | null = null;
+    
+    if (isAdmin) {
+      // Admin: orgId vom Customer holen
+      if (customerId) {
+        const [customer] = await db
+          .select({ orgId: customers.orgId })
+          .from(customers)
+          .where(eq(customers.id, customerId))
+          .limit(1);
+        
+        if (!customer) {
+          reply.code(404);
+          return { error: "Customer not found" };
+        }
+        
+        if (!customer.orgId) {
+          reply.code(400);
+          return { error: "Customer has no orgId" };
+        }
+        
+        finalOrgId = customer.orgId;
+      } else {
+        reply.code(400);
+        return { error: "customerId is required when creating license as admin" };
+      }
+    } else {
+      // Normaler User: orgId vom JWT
+      if (!orgId) {
+        reply.code(400);
+        return { error: "Missing orgId on user" };
+      }
+      finalOrgId = orgId;
+    }
+
     const key = generateLicenseKey("CSTY");
 
     try {
       const [created] = await db
         .insert(licenses)
         .values({
-          orgId,
+          orgId: finalOrgId,
           customerId,
           subscriptionId: body.subscriptionId ?? null,
           key,
@@ -359,11 +408,12 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
         .returning();
 
       await db.insert(licenseEvents).values({
-        orgId,
+        orgId: finalOrgId,
         licenseId: created.id,
         type: "created",
         metadata: {
           byUserId: user?.userId ?? null,
+          byAdminUserId: user?.adminUserId ?? null,
         },
       });
 

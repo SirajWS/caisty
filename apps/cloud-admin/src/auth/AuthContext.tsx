@@ -3,8 +3,8 @@ import {
     useContext,
     useEffect,
     useState,
-    ReactNode,
   } from "react";
+import type { ReactNode } from "react";
   
   const TOKEN_KEY = "caisty.admin.token";
   const USER_KEY = "caisty.admin.user";
@@ -12,7 +12,8 @@ import {
   export type AuthUser = {
     id: string;
     email: string;
-    role: string;
+    name: string;
+    role: "superadmin" | "admin" | "support";
   };
   
   type AuthContextValue = {

@@ -11,6 +11,8 @@ import {
 } from "react-router-dom";
 
 import LoginPage from "../pages/LoginPage";
+import ForgotPasswordPage from "../pages/ForgotPasswordPage";
+import ResetPasswordPage from "../pages/ResetPasswordPage";
 import DashboardPage from "../pages/DashboardPage";
 
 import CustomersListPage from "../pages/Customers/CustomersListPage";
@@ -31,6 +33,7 @@ import NotificationsPage from "../pages/Notifications/NotificationsPage";
 import NotificationBell from "../components/NotificationBell";
 
 import { AuthProvider, useAuth } from "../auth/AuthContext";
+import { ThemeProvider, useTheme, themeColors } from "../theme/ThemeContext";
 
 function RequireAuth({ children }: { children: React.ReactElement }) {
   const { token } = useAuth();
@@ -47,6 +50,8 @@ function RequireAuth({ children }: { children: React.ReactElement }) {
 function AppShell({ children }: { children: React.ReactElement }) {
   const { user, clearAuth } = useAuth();
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
+  const colors = themeColors[theme];
 
   function handleLogout() {
     clearAuth();
@@ -54,7 +59,14 @@ function AppShell({ children }: { children: React.ReactElement }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#020617] text-[#e5e7eb]">
+    <div
+      style={{
+        minHeight: "100vh",
+        background: colors.bg,
+        color: colors.text,
+        transition: "background-color 0.3s, color 0.3s",
+      }}
+    >
       {/* Header */}
       <header
         style={{
@@ -62,11 +74,13 @@ function AppShell({ children }: { children: React.ReactElement }) {
           alignItems: "center",
           justifyContent: "space-between",
           padding: "12px 32px",
-          borderBottom: "1px solid #1f2937",
+          borderBottom: `1px solid ${colors.border}`,
+          background: colors.bgSecondary,
+          transition: "background-color 0.3s, border-color 0.3s",
         }}
       >
-        <div style={{ fontSize: "18px", fontWeight: 600 }}>
-          Caisty <span style={{ color: "#22c55e" }}>Admin</span>
+        <div style={{ fontSize: "18px", fontWeight: 600, color: colors.text }}>
+          Caisty <span style={{ color: colors.accent }}>Admin</span>
         </div>
 
         <nav
@@ -77,16 +91,36 @@ function AppShell({ children }: { children: React.ReactElement }) {
             flexWrap: "wrap",
           }}
         >
-          <Link to="/">Dashboard</Link>
-          <Link to="/customers">Customers</Link>
-          <Link to="/subscriptions">Subscriptions</Link>
-          <Link to="/invoices">Invoices</Link>
-          <Link to="/devices">Devices</Link>
-          <Link to="/payments">Payments</Link>
-          <Link to="/webhooks">Webhooks</Link>
-          <Link to="/licenses">Licenses</Link>
-          <Link to="/licenses/portal">Portal-Lizenzen</Link>
-          <Link to="/notifications">Notifications</Link>
+          {[
+            { to: "/", label: "Dashboard" },
+            { to: "/customers", label: "Customers" },
+            { to: "/subscriptions", label: "Subscriptions" },
+            { to: "/invoices", label: "Invoices" },
+            { to: "/devices", label: "Devices" },
+            { to: "/payments", label: "Payments" },
+            { to: "/webhooks", label: "Webhooks" },
+            { to: "/licenses", label: "Licenses" },
+            { to: "/licenses/portal", label: "Portal-Lizenzen" },
+            { to: "/notifications", label: "Notifications" },
+          ].map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              style={{
+                color: colors.textSecondary,
+                textDecoration: "none",
+                transition: "color 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = colors.accent;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = colors.textSecondary;
+              }}
+            >
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
         <div
@@ -98,9 +132,36 @@ function AppShell({ children }: { children: React.ReactElement }) {
           }}
         >
           <NotificationBell />
+          
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            title={`Zu ${theme === "dark" ? "Light" : "Dark"} Mode wechseln`}
+            style={{
+              padding: "6px 12px",
+              borderRadius: "6px",
+              border: `1px solid ${colors.border}`,
+              background: colors.bgTertiary,
+              color: colors.text,
+              cursor: "pointer",
+              fontSize: "14px",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = colors.border;
+              e.currentTarget.style.borderColor = colors.accent;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = colors.bgTertiary;
+              e.currentTarget.style.borderColor = colors.border;
+            }}
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
+          
           {user && (
-            <span style={{ color: "#9ca3af" }}>
-              {user.email} ({user.role})
+            <span style={{ color: colors.textSecondary }}>
+              {user.name || user.email} ({user.role})
             </span>
           )}
           <button
@@ -108,10 +169,19 @@ function AppShell({ children }: { children: React.ReactElement }) {
             style={{
               padding: "6px 12px",
               borderRadius: "6px",
-              border: "1px solid #374151",
-              background: "#111827",
-              color: "#e5e7eb",
+              border: `1px solid ${colors.border}`,
+              background: colors.bgTertiary,
+              color: colors.text,
               cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = colors.border;
+              e.currentTarget.style.borderColor = colors.error;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = colors.bgTertiary;
+              e.currentTarget.style.borderColor = colors.border;
             }}
           >
             Logout
@@ -141,8 +211,10 @@ function AppShell({ children }: { children: React.ReactElement }) {
 function AppRoutes() {
   return (
     <Routes>
-      {/* Login ist frei */}
+      {/* Login & Password Reset sind frei */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Dashboard */}
       <Route
@@ -300,10 +372,12 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

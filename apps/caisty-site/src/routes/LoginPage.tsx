@@ -25,6 +25,12 @@ export default function LoginPage() {
       setError("Google-Anmeldung wurde abgebrochen.");
     } else if (errorParam === "email_not_verified") {
       setError("Deine Google-E-Mail ist nicht verifiziert. Bitte verifiziere sie zuerst.");
+    } else if (errorParam === "duplicate_provider") {
+      setError("Diese Google-Account ist bereits mit einem anderen Konto verknüpft. Bitte verwende ein anderes Google-Konto oder melde dich mit E-Mail und Passwort an.");
+    } else if (errorParam === "db_migration_required") {
+      setError("Datenbank-Migration erforderlich. Bitte kontaktiere den Support.");
+    } else if (errorParam === "invalid_customer") {
+      setError("Ungültiges Konto. Bitte kontaktiere den Support.");
     }
   }, [searchParams]);
 

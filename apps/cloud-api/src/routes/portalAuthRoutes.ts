@@ -3,12 +3,13 @@ import type { FastifyInstance } from "fastify";
 import bcrypt from "bcryptjs";
 import { and, desc, eq } from "drizzle-orm";
 
-import { db } from "../db/client";
-import { customers } from "../db/schema/customers";
-import { orgs } from "../db/schema/orgs";
-import { licenses } from "../db/schema/licenses";
-import { notifications } from "../db/schema/notifications";
-import { signPortalToken, verifyPortalToken } from "../lib/portalJwt";
+import { db } from "../db/client.js";
+import { customers } from "../db/schema/customers.js";
+import { orgs } from "../db/schema/orgs.js";
+import { licenses } from "../db/schema/licenses.js";
+import { notifications } from "../db/schema/notifications.js";
+import { customerAuthProviders } from "../db/schema/customerAuthProviders.js";
+import { signPortalToken, verifyPortalToken } from "../lib/portalJwt.js";
 
 function makeSlug(name: string): string {
   const base = name
@@ -93,6 +94,14 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
         portalStatus: customers.portalStatus,
       });
 
+    // Provider-Verknüpfung für Passwort-Login anlegen
+    await db.insert(customerAuthProviders).values({
+      customerId: customer.id,
+      provider: "password",
+      providerUserId: null,
+      providerEmail: email,
+    });
+
     const token = signPortalToken({
       customerId: customer.id,
       orgId: customer.orgId!,
@@ -133,15 +142,48 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
       .from(customers)
       .where(eq(customers.email, email));
 
-    if (!customer?.passwordHash) {
+    if (!customer) {
       reply.code(401);
       return { ok: false, reason: "invalid_credentials" as const };
+    }
+
+    // Prüfe, ob Customer ein Passwort hat
+    if (!customer.passwordHash) {
+      // Customer hat nur Google-Auth → Fehlermeldung
+      reply.code(401);
+      return { 
+        ok: false, 
+        reason: "google_auth_required" as const,
+        message: "Dieses Konto wurde mit Google erstellt. Bitte melde dich mit Google an." 
+      };
     }
 
     const valid = await bcrypt.compare(password, customer.passwordHash);
     if (!valid) {
       reply.code(401);
       return { ok: false, reason: "invalid_credentials" as const };
+    }
+
+    // Stelle sicher, dass Provider-Verknüpfung existiert (für bestehende Accounts)
+    const [existingProvider] = await db
+      .select()
+      .from(customerAuthProviders)
+      .where(
+        and(
+          eq(customerAuthProviders.customerId, customer.id),
+          eq(customerAuthProviders.provider, "password")
+        )
+      )
+      .limit(1);
+
+    if (!existingProvider) {
+      // Provider-Verknüpfung fehlt → anlegen (für alte Accounts)
+      await db.insert(customerAuthProviders).values({
+        customerId: customer.id,
+        provider: "password",
+        providerUserId: null,
+        providerEmail: email,
+      });
     }
 
     const token = signPortalToken({

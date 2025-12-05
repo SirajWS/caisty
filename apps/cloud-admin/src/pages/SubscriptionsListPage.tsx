@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet, apiDelete } from "../lib/api";
+import { useTheme, themeColors } from "../theme/ThemeContext";
 
 type Subscription = {
   id: string;
@@ -53,6 +54,8 @@ function formatDate(value?: string | null) {
 }
 
 export default function SubscriptionsListPage() {
+  const { theme } = useTheme();
+  const colors = themeColors[theme];
   const [items, setItems] = useState<Subscription[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -93,8 +96,24 @@ export default function SubscriptionsListPage() {
 
   return (
     <div className="admin-page">
-      <h1 className="admin-page-title">Subscriptions</h1>
-      <p className="admin-page-subtitle">
+      <h1
+        style={{
+          fontSize: "32px",
+          fontWeight: 700,
+          marginBottom: "8px",
+          color: colors.text,
+          letterSpacing: "-0.5px",
+        }}
+      >
+        Subscriptions
+      </h1>
+      <p
+        style={{
+          fontSize: "14px",
+          color: colors.textSecondary,
+          marginBottom: "24px",
+        }}
+      >
         Übersicht über alle aktiven und vergangenen Abos.
       </p>
 
@@ -108,73 +127,137 @@ export default function SubscriptionsListPage() {
           flexWrap: "wrap",
           gap: 12,
           fontSize: 13,
-          color: "#9ca3af",
+          color: colors.textSecondary,
         }}
       >
         <span>{total} Subscriptions gesamt</span>
       </div>
 
-      {error && <div className="admin-error-banner">{error}</div>}
+      {error && (
+        <div
+          className="admin-error-banner"
+          style={{
+            backgroundColor: colors.errorBg,
+            borderColor: `${colors.error}50`,
+            color: colors.error,
+          }}
+        >
+          {error}
+        </div>
+      )}
 
-      <div className="admin-card">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Customer</th>
-              <th>Plan</th>
-              <th>Status</th>
-              <th>Preis</th>
-              <th>Intervall</th>
-              <th>Gestartet</th>
-              <th>Läuft bis</th>
-              <th>Rechnungen</th>
-              <th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={10} style={{ textAlign: "center", padding: 24 }}>
-                  Lädt Subscriptions…
-                </td>
+      <div
+        className="admin-card"
+        style={{
+          backgroundColor: colors.bgSecondary,
+          borderColor: colors.border,
+          transition: "background-color 0.3s, border-color 0.3s",
+        }}
+      >
+        <div
+          className="admin-table-wrapper"
+          style={{
+            backgroundColor: colors.bgSecondary,
+            borderColor: colors.border,
+            transition: "background-color 0.3s, border-color 0.3s",
+          }}
+        >
+          <table className="admin-table">
+            <thead>
+              <tr style={{ backgroundColor: colors.bgTertiary }}>
+                <th style={{ color: colors.textSecondary }}>ID</th>
+                <th style={{ color: colors.textSecondary }}>Customer</th>
+                <th style={{ color: colors.textSecondary }}>Plan</th>
+                <th style={{ color: colors.textSecondary }}>Status</th>
+                <th style={{ color: colors.textSecondary }}>Preis</th>
+                <th style={{ color: colors.textSecondary }}>Intervall</th>
+                <th style={{ color: colors.textSecondary }}>Gestartet</th>
+                <th style={{ color: colors.textSecondary }}>Läuft bis</th>
+                <th style={{ color: colors.textSecondary }}>Rechnungen</th>
+                <th style={{ color: colors.textSecondary }}>Aktionen</th>
               </tr>
-            ) : items.length === 0 ? (
-              <tr>
-                <td colSpan={10} style={{ textAlign: "center", padding: 24 }}>
-                  Keine Subscriptions vorhanden.
-                </td>
-              </tr>
-            ) : (
-              items.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.id.slice(0, 8)}…</td>
-                  <td>
-                    {s.customerId ? (
-                      <Link
-                        to={`/customers/${s.customerId}`}
-                        style={{ color: "#a855f7" }}
-                      >
-                        {s.customerName
-                          ? s.customerName
-                          : s.customerId.slice(0, 8) + "…"}
-                      </Link>
-                    ) : (
-                      "—"
-                    )}
-                    {s.customerEmail && (
-                      <span
-                        style={{
-                          marginLeft: 4,
-                          fontSize: 11,
-                          color: "#9ca3af",
-                        }}
-                      >
-                        ({s.customerEmail})
-                      </span>
-                    )}
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan={10}
+                    style={{
+                      textAlign: "center",
+                      padding: 24,
+                      color: colors.textSecondary,
+                    }}
+                  >
+                    Lädt Subscriptions…
                   </td>
-                  <td>{s.plan || "—"}</td>
+                </tr>
+              ) : items.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={10}
+                    style={{
+                      textAlign: "center",
+                      padding: 24,
+                      color: colors.textSecondary,
+                    }}
+                  >
+                    Keine Subscriptions vorhanden.
+                  </td>
+                </tr>
+              ) : (
+                items.map((s) => (
+                  <tr
+                    key={s.id}
+                    style={{
+                      borderBottomColor: colors.border,
+                      transition: "background-color 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                  >
+                    <td style={{ color: colors.text }}>
+                      {s.id.slice(0, 8)}…
+                    </td>
+                    <td style={{ color: colors.text }}>
+                      {s.customerId ? (
+                        <Link
+                          to={`/customers/${s.customerId}`}
+                          style={{
+                            color: colors.accent,
+                            textDecoration: "none",
+                            transition: "color 0.2s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = colors.accentHover;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = colors.accent;
+                          }}
+                        >
+                          {s.customerName
+                            ? s.customerName
+                            : s.customerId.slice(0, 8) + "…"}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                      {s.customerEmail && (
+                        <span
+                          style={{
+                            marginLeft: 4,
+                            fontSize: 11,
+                            color: colors.textTertiary,
+                          }}
+                        >
+                          ({s.customerEmail})
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ color: colors.text }}>{s.plan || "—"}</td>
                   <td>
                     <span
                       className={`status-badge status-${s.status ?? "unknown"}`}
@@ -223,7 +306,7 @@ export default function SubscriptionsListPage() {
                                 }
                               }}
                               style={{
-                                color: "#a855f7",
+                                color: colors.accent,
                                 fontSize: 11,
                                 textDecoration: "none",
                                 background: "none",
@@ -231,6 +314,13 @@ export default function SubscriptionsListPage() {
                                 cursor: "pointer",
                                 textAlign: "left",
                                 padding: 0,
+                                transition: "color 0.2s",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = colors.accentHover;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = colors.accent;
                               }}
                             >
                               {inv.number} 📄
@@ -270,7 +360,14 @@ export default function SubscriptionsListPage() {
                                 cursor: "pointer",
                                 fontSize: 12,
                                 padding: 0,
-                                color: "#10b981",
+                                color: colors.accent,
+                                transition: "color 0.2s",
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = colors.accentHover;
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = colors.accent;
                               }}
                             >
                               📥
@@ -279,7 +376,7 @@ export default function SubscriptionsListPage() {
                         ))}
                       </div>
                     ) : (
-                      "—"
+                      <span style={{ color: colors.textSecondary }}>—</span>
                     )}
                   </td>
                   <td>
@@ -309,20 +406,21 @@ export default function SubscriptionsListPage() {
                         }}
                         disabled={deleteBusyId === s.customerId}
                         style={{
-                          background: "#ef4444",
-                          color: "white",
+                          background: colors.error,
+                          color: theme === "dark" ? "#fee2e2" : "#ffffff",
                           border: "none",
                           borderRadius: 4,
                           padding: "4px 8px",
                           fontSize: 11,
                           cursor: deleteBusyId === s.customerId ? "wait" : "pointer",
                           opacity: deleteBusyId === s.customerId ? 0.6 : 1,
+                          transition: "opacity 0.2s",
                         }}
                       >
                         {deleteBusyId === s.customerId ? "..." : "Löschen"}
                       </button>
                     ) : (
-                      "—"
+                      <span style={{ color: colors.textSecondary }}>—</span>
                     )}
                   </td>
                 </tr>
@@ -330,6 +428,7 @@ export default function SubscriptionsListPage() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

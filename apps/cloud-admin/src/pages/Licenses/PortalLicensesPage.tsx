@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet, apiDelete } from "../../lib/api";
+import { useTheme, themeColors } from "../../theme/ThemeContext";
 
 type License = {
   id: string;
@@ -28,6 +29,8 @@ type Customer = {
 };
 
 export default function PortalLicensesPage() {
+  const { theme } = useTheme();
+  const colors = themeColors[theme];
   const [licenses, setLicenses] = useState<License[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -110,8 +113,24 @@ export default function PortalLicensesPage() {
 
   return (
     <div className="admin-page">
-      <h1 className="admin-page-title">Portal-Lizenzen</h1>
-      <p className="admin-page-subtitle">
+      <h1
+        style={{
+          fontSize: "32px",
+          fontWeight: 700,
+          marginBottom: "8px",
+          color: colors.text,
+          letterSpacing: "-0.5px",
+        }}
+      >
+        Portal-Lizenzen
+      </h1>
+      <p
+        style={{
+          fontSize: "14px",
+          color: colors.textSecondary,
+          marginBottom: "24px",
+        }}
+      >
         Übersicht über alle automatisch generierten Lizenzen aus dem
         Kundenportal.
       </p>
@@ -119,7 +138,18 @@ export default function PortalLicensesPage() {
       <div style={{ marginTop: 8, marginBottom: 16 }}>
         <Link
           to="/licenses"
-          style={{ fontSize: 13, color: "#a855f7", textDecoration: "none" }}
+          style={{
+            fontSize: 13,
+            color: colors.accent,
+            textDecoration: "none",
+            transition: "color 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = colors.accentHover;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = colors.accent;
+          }}
         >
           ← zurück zur Übersicht
         </Link>
@@ -128,9 +158,20 @@ export default function PortalLicensesPage() {
       {/* Filter-Karte */}
       <div
         className="dashboard-card"
-        style={{ marginBottom: 24, maxWidth: 900 }}
+        style={{
+          marginBottom: 24,
+          maxWidth: 900,
+          backgroundColor: colors.bgSecondary,
+          borderColor: colors.border,
+          transition: "background-color 0.3s, border-color 0.3s",
+        }}
       >
-        <div className="dashboard-card-title">Filter</div>
+        <div
+          className="dashboard-card-title"
+          style={{ color: colors.textSecondary }}
+        >
+          Filter
+        </div>
         <div
           style={{
             display: "grid",
@@ -139,7 +180,7 @@ export default function PortalLicensesPage() {
             marginTop: 12,
           }}
         >
-          <label style={{ fontSize: 13 }}>
+          <label style={{ fontSize: 13, color: colors.text }}>
             Plan
             <select
               value={filterPlan}
@@ -149,10 +190,11 @@ export default function PortalLicensesPage() {
                 marginTop: 4,
                 padding: "6px 8px",
                 borderRadius: 6,
-                border: "1px solid #374151",
-                backgroundColor: "#020617",
-                color: "#e5e7eb",
+                border: `1px solid ${colors.borderSecondary}`,
+                backgroundColor: colors.input,
+                color: colors.text,
                 fontSize: 13,
+                transition: "all 0.2s",
               }}
             >
               <option value="all">Alle Pläne</option>
@@ -162,7 +204,7 @@ export default function PortalLicensesPage() {
             </select>
           </label>
 
-          <label style={{ fontSize: 13 }}>
+          <label style={{ fontSize: 13, color: colors.text }}>
             Status
             <select
               value={filterStatus}
@@ -172,10 +214,11 @@ export default function PortalLicensesPage() {
                 marginTop: 4,
                 padding: "6px 8px",
                 borderRadius: 6,
-                border: "1px solid #374151",
-                backgroundColor: "#020617",
-                color: "#e5e7eb",
+                border: `1px solid ${colors.borderSecondary}`,
+                backgroundColor: colors.input,
+                color: colors.text,
                 fontSize: 13,
+                transition: "all 0.2s",
               }}
             >
               <option value="all">Alle Status</option>
@@ -201,11 +244,18 @@ export default function PortalLicensesPage() {
               style={{
                 padding: "6px 12px",
                 borderRadius: 6,
-                border: "1px solid #374151",
-                backgroundColor: "#1f2937",
-                color: "#e5e7eb",
+                border: `1px solid ${colors.border}`,
+                backgroundColor: colors.bgTertiary,
+                color: colors.text,
                 fontSize: 13,
                 cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = colors.border;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = colors.bgTertiary;
               }}
             >
               Filter zurücksetzen
@@ -217,7 +267,7 @@ export default function PortalLicensesPage() {
             style={{
               marginTop: 12,
               fontSize: 12,
-              color: "#9ca3af",
+              color: colors.textTertiary,
             }}
           >
             {filteredLicenses.length} von {licenses.length} Lizenzen angezeigt
@@ -226,37 +276,69 @@ export default function PortalLicensesPage() {
       </div>
 
       {/* Tabelle: Portal-Lizenzen */}
-      <div className="admin-table-wrapper">
+      <div
+        className="admin-table-wrapper"
+        style={{
+          backgroundColor: colors.bgSecondary,
+          borderColor: colors.border,
+          transition: "background-color 0.3s, border-color 0.3s",
+        }}
+      >
         <table className="admin-table">
           <thead>
-            <tr>
-              <th>Key</th>
-              <th>Plan</th>
-              <th>Status</th>
-              <th>Max Devices</th>
-              <th>Seats</th>
-              <th>Customer</th>
-              <th>Gültig bis</th>
-              <th>Erstellt</th>
-              <th>Aktion</th>
+            <tr style={{ backgroundColor: colors.bgTertiary }}>
+              <th style={{ color: colors.textSecondary }}>Key</th>
+              <th style={{ color: colors.textSecondary }}>Plan</th>
+              <th style={{ color: colors.textSecondary }}>Status</th>
+              <th style={{ color: colors.textSecondary }}>Max Devices</th>
+              <th style={{ color: colors.textSecondary }}>Seats</th>
+              <th style={{ color: colors.textSecondary }}>Customer</th>
+              <th style={{ color: colors.textSecondary }}>Gültig bis</th>
+              <th style={{ color: colors.textSecondary }}>Erstellt</th>
+              <th style={{ color: colors.textSecondary }}>Aktion</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={9}>Lade Portal-Lizenzen…</td>
+                <td
+                  colSpan={9}
+                  style={{
+                    textAlign: "center",
+                    padding: 24,
+                    color: colors.textSecondary,
+                  }}
+                >
+                  Lade Portal-Lizenzen…
+                </td>
               </tr>
             )}
             {!loading && error && (
               <tr>
                 <td colSpan={9}>
-                  <div className="admin-error">{error}</div>
+                  <div
+                    className="admin-error"
+                    style={{
+                      backgroundColor: colors.errorBg,
+                      borderColor: `${colors.error}50`,
+                      color: colors.error,
+                    }}
+                  >
+                    {error}
+                  </div>
                 </td>
               </tr>
             )}
             {!loading && !error && filteredLicenses.length === 0 && (
               <tr>
-                <td colSpan={9}>
+                <td
+                  colSpan={9}
+                  style={{
+                    textAlign: "center",
+                    padding: 24,
+                    color: colors.textSecondary,
+                  }}
+                >
                   {licenses.length === 0
                     ? "Noch keine Portal-Lizenzen vorhanden."
                     : "Keine Lizenzen entsprechen den ausgewählten Filtern."}
@@ -274,11 +356,38 @@ export default function PortalLicensesPage() {
                   : undefined;
 
                 return (
-                  <tr key={lic.id}>
-                    <td>
-                      <Link to={`/licenses/${lic.id}`}>{lic.key}</Link>
+                  <tr
+                    key={lic.id}
+                    style={{
+                      borderBottomColor: colors.border,
+                      transition: "background-color 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = "transparent";
+                    }}
+                  >
+                    <td style={{ color: colors.text }}>
+                      <Link
+                        to={`/licenses/${lic.id}`}
+                        style={{
+                          color: colors.accent,
+                          textDecoration: "none",
+                          transition: "color 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.color = colors.accentHover;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.color = colors.accent;
+                        }}
+                      >
+                        {lic.key}
+                      </Link>
                     </td>
-                    <td>{lic.plan}</td>
+                    <td style={{ color: colors.text }}>{lic.plan}</td>
                     <td>
                       <span
                         className={
@@ -292,8 +401,10 @@ export default function PortalLicensesPage() {
                         {lic.status}
                       </span>
                     </td>
-                    <td>{lic.maxDevices ?? "–"}</td>
-                    <td>
+                    <td style={{ color: colors.text }}>
+                      {lic.maxDevices ?? "–"}
+                    </td>
+                    <td style={{ color: colors.text }}>
                       {used} / {total}
                       {full && (
                         <span
@@ -304,9 +415,22 @@ export default function PortalLicensesPage() {
                         </span>
                       )}
                     </td>
-                    <td>
+                    <td style={{ color: colors.text }}>
                       {lic.customerId ? (
-                        <Link to={`/customers/${lic.customerId}`}>
+                        <Link
+                          to={`/customers/${lic.customerId}`}
+                          style={{
+                            color: colors.accent,
+                            textDecoration: "none",
+                            transition: "color 0.2s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = colors.accentHover;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = colors.accent;
+                          }}
+                        >
                           {customer?.name ||
                             customer?.email ||
                             `${lic.customerId.slice(0, 8)}…`}
@@ -315,8 +439,12 @@ export default function PortalLicensesPage() {
                         "–"
                       )}
                     </td>
-                    <td>{formatDate(lic.validUntil)}</td>
-                    <td>{formatDate(lic.createdAt)}</td>
+                    <td style={{ color: colors.text }}>
+                      {formatDate(lic.validUntil)}
+                    </td>
+                    <td style={{ color: colors.text }}>
+                      {formatDate(lic.createdAt)}
+                    </td>
                     <td>
                       <button
                         type="button"
@@ -338,7 +466,7 @@ export default function PortalLicensesPage() {
         style={{
           marginTop: 8,
           fontSize: 12,
-          color: "#6b7280",
+          color: colors.textTertiary,
         }}
       >
         {total} Portal-Lizenz(en) in dieser Instanz.

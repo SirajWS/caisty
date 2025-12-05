@@ -1,7 +1,7 @@
 // apps/cloud-api/src/db/client.ts
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { env } from "../config/env";
+import { env } from "../config/env.js";
 
 const queryClient = postgres(env.DATABASE_URL, {
   max: 10,

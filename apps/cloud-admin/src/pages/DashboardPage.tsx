@@ -1,6 +1,7 @@
 // apps/cloud-admin/src/pages/DashboardPage.tsx
 import { useEffect, useState } from "react";
 import { apiGet, type ListResponse } from "../lib/api";
+import { useTheme, themeColors } from "../theme/ThemeContext";
 
 type HealthResponse = {
   ok: boolean;
@@ -23,6 +24,8 @@ type DashboardStats = {
 };
 
 export default function DashboardPage() {
+  const { theme } = useTheme();
+  const colors = themeColors[theme];
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
@@ -122,15 +125,43 @@ export default function DashboardPage() {
 
   return (
     <div className="admin-page">
-      <h1 className="admin-page-title">Dashboard</h1>
-      <p className="admin-page-subtitle">
+      <h1
+        style={{
+          fontSize: "32px",
+          fontWeight: 700,
+          marginBottom: "8px",
+          color: colors.text,
+          letterSpacing: "-0.5px",
+        }}
+      >
+        Dashboard
+      </h1>
+      <p
+        style={{
+          fontSize: "14px",
+          color: colors.textSecondary,
+          marginBottom: "24px",
+        }}
+      >
         Überblick über den Status deiner Caisty Cloud Umgebung.
       </p>
 
       <div className="dashboard-grid">
         {/* API Status */}
-        <div className="dashboard-card">
-          <div className="dashboard-card-title">API Status</div>
+        <div
+          className="dashboard-card"
+          style={{
+            backgroundColor: colors.bgSecondary,
+            borderColor: colors.border,
+            transition: "background-color 0.3s, border-color 0.3s",
+          }}
+        >
+          <div
+            className="dashboard-card-title"
+            style={{ color: colors.textSecondary }}
+          >
+            API Status
+          </div>
           {hasHealthOk && (
             <>
               <div className="dashboard-status-line">
@@ -155,12 +186,30 @@ export default function DashboardPage() {
         </div>
 
         {/* Kunden – nur aktive anzeigen */}
-        <div className="dashboard-card">
-          <div className="dashboard-card-title">Kunden</div>
-          <div className="dashboard-card-value">
+        <div
+          className="dashboard-card"
+          style={{
+            backgroundColor: colors.bgSecondary,
+            borderColor: colors.border,
+            transition: "background-color 0.3s, border-color 0.3s",
+          }}
+        >
+          <div
+            className="dashboard-card-title"
+            style={{ color: colors.textSecondary }}
+          >
+            Kunden
+          </div>
+          <div
+            className="dashboard-card-value"
+            style={{ color: colors.accent }}
+          >
             {loadingStats && !stats ? "…" : stats?.customersActive ?? "–"}
           </div>
-          <div className="dashboard-card-meta">
+          <div
+            className="dashboard-card-meta"
+            style={{ color: colors.textTertiary }}
+          >
             {stats
               ? `${stats.customersActive} aktive Kunden (gesamt: ${stats.customersTotal}).`
               : "Anzahl aktiver Kunden in dieser Instanz."}
@@ -168,12 +217,30 @@ export default function DashboardPage() {
         </div>
 
         {/* Subscriptions */}
-        <div className="dashboard-card">
-          <div className="dashboard-card-title">Subscriptions</div>
-          <div className="dashboard-card-value">
+        <div
+          className="dashboard-card"
+          style={{
+            backgroundColor: colors.bgSecondary,
+            borderColor: colors.border,
+            transition: "background-color 0.3s, border-color 0.3s",
+          }}
+        >
+          <div
+            className="dashboard-card-title"
+            style={{ color: colors.textSecondary }}
+          >
+            Subscriptions
+          </div>
+          <div
+            className="dashboard-card-value"
+            style={{ color: colors.accent }}
+          >
             {loadingStats && !stats ? "…" : stats?.subscriptionsActive ?? "–"}
           </div>
-          <div className="dashboard-card-meta">
+          <div
+            className="dashboard-card-meta"
+            style={{ color: colors.textTertiary }}
+          >
             {stats
               ? `${stats.subscriptionsActive} aktiv von ${stats.subscriptionsTotal} gesamt.`
               : "Aktive und gesamte Subscriptions."}
@@ -181,12 +248,30 @@ export default function DashboardPage() {
         </div>
 
         {/* Rechnungen & Devices (nach Hardware-ID) */}
-        <div className="dashboard-card">
-          <div className="dashboard-card-title">Rechnungen &amp; Devices</div>
-          <div className="dashboard-card-value">
+        <div
+          className="dashboard-card"
+          style={{
+            backgroundColor: colors.bgSecondary,
+            borderColor: colors.border,
+            transition: "background-color 0.3s, border-color 0.3s",
+          }}
+        >
+          <div
+            className="dashboard-card-title"
+            style={{ color: colors.textSecondary }}
+          >
+            Rechnungen &amp; Devices
+          </div>
+          <div
+            className="dashboard-card-value"
+            style={{ color: colors.accent }}
+          >
             {loadingStats && !stats ? "…" : stats?.invoicesTotal ?? "–"}
           </div>
-          <div className="dashboard-card-meta">
+          <div
+            className="dashboard-card-meta"
+            style={{ color: colors.textTertiary }}
+          >
             {stats
               ? `Rechnungen gesamt: ${stats.invoicesTotal} · Devices (nach Hardware-ID): ${stats.devicesTotal}.`
               : "Rechnungen und Anzahl Geräte (Fingerprint / Device-ID)."}

@@ -1,9 +1,11 @@
 // apps/cloud-api/src/routes/webhooks.ts
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import { db } from "../db/client";
-import { webhooks } from "../db/schema/webhooks";
-import { payments } from "../db/schema/payments";
-import { orgs } from "../db/schema/orgs";
+import { db } from "../db/client.js";
+import { webhooks } from "../db/schema/webhooks.js";
+import { payments } from "../db/schema/payments.js";
+import { orgs } from "../db/schema/orgs.js";
+import { notifications } from "../db/schema/notifications.js";
+import { customers } from "../db/schema/customers.js";
 import { and, eq } from "drizzle-orm";
 
 type PaypalAmount = {
@@ -48,6 +50,11 @@ function toAmountCents(amount?: PaypalAmount): number | null {
   const num = Number(raw.replace(",", "."));
   if (Number.isNaN(num)) return null;
   return Math.round(num * 100);
+}
+
+function formatAmount(amountCents: number, currency: string): string {
+  const value = amountCents / 100;
+  return `${value.toFixed(2)} ${currency}`;
 }
 
 // Platzhalter – echte Signaturprüfung kannst du später einbauen
@@ -130,6 +137,7 @@ export async function registerWebhooksRoutes(app: FastifyInstance) {
 
         if (existingPayments.length > 0) {
           const current = existingPayments[0];
+          const oldStatus = current.status;
 
           await db
             .update(payments)
@@ -141,6 +149,35 @@ export async function registerWebhooksRoutes(app: FastifyInstance) {
               currency: currency || current.currency,
             })
             .where(eq(payments.id, current.id));
+
+          // Notification für failed Payment
+          if (status === "failed" && oldStatus !== "failed" && current.customerId) {
+            // Customer-Info für Notification holen
+            const [customer] = await db
+              .select()
+              .from(customers)
+              .where(eq(customers.id, current.customerId))
+              .limit(1);
+
+            const customerName = customer
+              ? customer.name || customer.email || current.customerId
+              : current.customerId;
+
+            await db.insert(notifications).values({
+              orgId: current.orgId || org.id,
+              type: "payment_failed",
+              title: "Zahlung fehlgeschlagen",
+              body: `Zahlung für ${customerName} ist fehlgeschlagen (${formatAmount(current.amountCents, current.currency)}).`,
+              customerId: current.customerId,
+              data: {
+                paymentId: current.id,
+                providerPaymentId: current.providerPaymentId,
+                amountCents: current.amountCents,
+                currency: current.currency,
+                providerStatus: resource.state ?? resource.status ?? eventType,
+              },
+            });
+          }
         } else {
           // Aktuell: Wenn kein Payment existiert, loggen wir nur das Webhook-Event.
           request.log.info(

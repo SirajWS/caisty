@@ -12,12 +12,36 @@ export default function PortalLoginSuccessPage() {
     if (token) {
       // Token sofort speichern
       setStoredPortalToken(token);
+      
+      // Prüfe, ob wir auf der richtigen Domain/Port sind (Kundenportal, nicht Admin)
+      const currentUrl = window.location.href;
+      const currentHost = window.location.host;
+      const currentPort = window.location.port;
+      
+      console.log("🔍 PortalLoginSuccessPage - Current URL:", currentUrl);
+      console.log("🔍 PortalLoginSuccessPage - Current Host:", currentHost);
+      console.log("🔍 PortalLoginSuccessPage - Current Port:", currentPort);
+      
+      // Wenn wir auf Port 5173 (Admin) sind, zur korrekten Portal-URL weiterleiten
+      if (currentPort === "5173" || currentHost.includes("5173") || currentUrl.includes(":5173")) {
+        console.warn("⚠️ Auf Admin-Port (5173) erkannt, leite zum Kundenportal (5175) weiter...");
+        const portalUrl = currentUrl
+          .replace(":5173", ":5175")
+          .replace(/\/admin.*$/, "")
+          .replace(/\/portal\/login\/success.*$/, "/portal/login/success") + `?token=${encodeURIComponent(token)}`;
+        console.log("🔍 Redirecting to:", portalUrl);
+        window.location.href = portalUrl;
+        return;
+      }
+      
       // Kurze Verzögerung, damit localStorage gesetzt ist, dann weiterleiten
       setTimeout(() => {
+        console.log("✅ Weiterleitung zu /portal");
         navigate("/portal", { replace: true });
       }, 50);
     } else {
       // Kein Token → zurück zum Login mit Fehlermeldung
+      console.error("❌ Kein Token in URL-Parametern");
       navigate("/login?error=missing_token", { replace: true });
     }
   }, [token, navigate]);

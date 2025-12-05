@@ -19,6 +19,8 @@ import { registerWebhooksRoutes } from "./routes/webhooks.js";
 
 // 🔹 Portal (eigenes JWT, separate Auth)
 import { registerPortalAuthRoutes } from "./routes/portalAuthRoutes.js";
+import { registerPortalGoogleAuthRoutes } from "./routes/portal-google-auth.js";
+import { registerPortalPasswordResetRoutes } from "./routes/portal-password-reset.js";
 import { registerPortalDataRoutes } from "./routes/portal-data.js";
 import { registerPortalSupportRoutes } from "./routes/portal-support.js";
 import { registerPortalTrialLicenseRoutes } from "./routes/portal-trial-license.js";
@@ -27,8 +29,15 @@ import { registerPortalLicensesRoutes } from "./routes/portal-licenses.js";
 import { registerPortalInvoiceRoutes } from "./routes/portal-invoices.js";
 
 import { registerAdminNotificationsRoutes } from "./routes/admin-notifications.js";
+import { registerAdminAuthRoutes } from "./routes/admin-auth.js";
+import { registerAdminSettingsRoutes } from "./routes/admin-settings.js";
+
+// Test-Endpoints (nur Development)
+import { registerTestEmailRoutes } from "./routes/test-email.js";
+import { registerTestResetTokenRoutes } from "./routes/test-reset-token.js";
 
 import { verifyToken } from "./lib/jwt.js";
+import { verifyAdminToken } from "./lib/adminJwt.js";
 
 export async function buildServer() {
   const app = Fastify({
@@ -52,12 +61,15 @@ export async function buildServer() {
     const isPublicRoute =
       url === "/health" ||
       url === "/auth/login" ||
+      url.startsWith("/admin/auth/") || // Admin-Auth-Routes (login, forgot-password, reset-password)
       url.startsWith("/portal/") || // Portal-API (Portal-JWT)
       (url === "/webhooks/paypal" && method === "POST") ||
       (url === "/licenses/verify" && method === "POST") ||
       (url === "/devices/bind" && method === "POST") ||
       (url === "/devices/heartbeat" && method === "POST") ||
-      (url.startsWith("/invoices/") && url.endsWith("/html")); // Invoice HTML-Export (mit Auth im Handler)
+      (url.startsWith("/invoices/") && url.endsWith("/html")) || // Invoice HTML-Export (mit Auth im Handler)
+      (env.NODE_ENV === "development" && url.startsWith("/test-email")) || // Test-Endpoint nur in Development
+      (env.NODE_ENV === "development" && url.startsWith("/test-reset-token")); // Test-Endpoint nur in Development
 
     if (isPublicRoute) {
       return;
@@ -74,8 +86,18 @@ export async function buildServer() {
     const token = auth.slice("Bearer ".length);
 
     try {
-      const payload = verifyToken(token);
-      (request as any).user = payload;
+      // Versuche zuerst Admin-JWT, dann normales JWT
+      try {
+        const adminPayload = verifyAdminToken(token);
+        (request as any).user = {
+          ...adminPayload,
+          isAdmin: true, // Flag für Admin-User
+        };
+      } catch {
+        // Falls Admin-JWT fehlschlägt, versuche normales JWT
+        const payload = verifyToken(token);
+        (request as any).user = payload;
+      }
     } catch (err) {
       request.log.warn({ err }, "Invalid or expired JWT");
       reply.code(401);
@@ -93,12 +115,20 @@ export async function buildServer() {
   // Portal-Routen (nutzen eigenes JWT via portalJwt)
   // ---------------------------------------------------------------------------
   await registerPortalAuthRoutes(app);
+  await registerPortalGoogleAuthRoutes(app); // Google OAuth
+  await registerPortalPasswordResetRoutes(app); // Password Reset
   await registerPortalDataRoutes(app);
   await registerPortalTrialLicenseRoutes(app);
   await registerPortalSupportRoutes(app);
   await registerPortalUpgradeRoutes(app);    // Upgrade + PayPal
   await registerPortalLicensesRoutes(app);   // "Meine Lizenzen" (Portal-Liste)
   await registerPortalInvoiceRoutes(app);    // Invoice-Details
+
+  // ---------------------------------------------------------------------------
+  // Admin-Auth (neues Admin-Auth-System)
+  // ---------------------------------------------------------------------------
+  await registerAdminAuthRoutes(app);
+  await registerAdminSettingsRoutes(app); // Superadmin-Settings
 
   // ---------------------------------------------------------------------------
   // Admin-Notifications (Admin-JWT)
@@ -125,6 +155,12 @@ export async function buildServer() {
   // ---------------------------------------------------------------------------
   await registerPaymentsRoutes(app);
   await registerWebhooksRoutes(app);
+
+  // ---------------------------------------------------------------------------
+  // Test-Endpoints (nur Development)
+  // ---------------------------------------------------------------------------
+  await registerTestEmailRoutes(app);
+  await registerTestResetTokenRoutes(app);
 
   return app;
 }

@@ -1,6 +1,8 @@
 export * from "./orgs";
 export * from "./users";
 export * from "./customers";
+export * from "./customerAuthProviders";
+export * from "./passwordResets";
 export * from "./subscriptions";
 export * from "./invoices";
 export * from "./devices";
@@ -8,3 +10,6 @@ export * from "./payments";
 export * from "./webhooks";
 export * from "./licenses";
 export * from "./licenseEvents";
+export * from "./adminUsers";
+export * from "./adminPasswordResets";
+export * from "./adminPermissions";

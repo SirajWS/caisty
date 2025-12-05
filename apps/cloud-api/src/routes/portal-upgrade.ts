@@ -9,6 +9,7 @@ import { subscriptions } from "../db/schema/subscriptions.js";
 import { invoices } from "../db/schema/invoices.js";
 import { licenses } from "../db/schema/licenses.js";
 import { licenseEvents } from "../db/schema/licenseEvents.js";
+import { notifications } from "../db/schema/notifications.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 import { generateLicenseKey } from "../lib/licenseKey.js";
 import { getPlanPrice, type Currency } from "../config/pricing.js";
@@ -49,9 +50,9 @@ const PUBLIC_API_BASE_URL =
   process.env.PUBLIC_API_BASE_URL ?? "http://127.0.0.1:3333";
 
 // Hier läuft das Portal (Vite dev oder später das echte Frontend)
-// z.B. DEV: http://localhost:5173
+// z.B. DEV: http://localhost:5175 (caisty-site, nicht cloud-admin!)
 const PORTAL_BASE_URL =
-  process.env.PORTAL_BASE_URL ?? "http://http://localhost:5173";
+  process.env.PORTAL_BASE_URL ?? "http://localhost:5175";
 
 async function getPaypalAccessToken(): Promise<string> {
   if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) {
@@ -391,6 +392,21 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
           throw new Error("Failed to create subscription - no ID returned");
         }
 
+        // Notification für neue Subscription
+        await db.insert(notifications).values({
+          orgId: customer.orgId,
+          type: "portal_subscription_created",
+          title: "Neue Subscription erstellt",
+          body: `Kunde ${customer.name || customer.email || customerId} hat eine ${plan}-Subscription gestartet`,
+          customerId,
+          data: {
+            subscriptionId: sub.id,
+            plan,
+            priceCents: monthlyPriceCents,
+            currency,
+          },
+        });
+
         // 2) Invoice
         const amountCents = monthlyPriceCents;
         const invoiceNumber = await generateInvoiceNumber();
@@ -509,7 +525,7 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
           .set({ status: "paid" } as any)
           .where(eq(invoices.id as any, invoiceId as any));
 
-        // 2) Invoice + Subscription aus DB holen
+        // 2) Invoice + Subscription + Customer aus DB holen
         const [inv] = await db
           .select()
           .from(invoices)
@@ -522,6 +538,19 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
             .from(subscriptions)
             .where(eq(subscriptions.id as any, inv.subscriptionId as any))
             .limit(1);
+
+          // Customer für Notifications holen
+          let customerName = "Unbekannter Kunde";
+          if (inv.customerId) {
+            const [customer] = await db
+              .select()
+              .from(customers)
+              .where(eq(customers.id as any, inv.customerId as any))
+              .limit(1);
+            if (customer) {
+              customerName = customer.name || customer.email || inv.customerId;
+            }
+          }
 
           // 2.1 Subscription von "pending" auf "active"
           if (sub && sub.status !== "active") {
@@ -583,6 +612,24 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
                     source: "portal_payment",
                     invoiceId: String(inv.id),
                     subscriptionId: inv.subscriptionId ? String(inv.subscriptionId) : null,
+                  },
+                });
+
+                // Notification für erfolgreiche Zahlung und Lizenz-Erstellung
+                await db.insert(notifications).values({
+                  orgId: String(inv.orgId),
+                  type: "portal_payment_success",
+                  title: "Zahlung erfolgreich - Lizenz erstellt",
+                  body: `${customerName} hat erfolgreich für ${sub?.plan ?? "starter"}-Plan gezahlt. Lizenz ${createdLicense.key} wurde erstellt.`,
+                  customerId: inv.customerId ? String(inv.customerId) : null,
+                  licenseId: createdLicense.id,
+                  data: {
+                    invoiceId: String(inv.id),
+                    subscriptionId: inv.subscriptionId ? String(inv.subscriptionId) : null,
+                    plan: sub?.plan ?? "starter",
+                    licenseKey: createdLicense.key,
+                    amountCents: inv.amountCents,
+                    currency: inv.currency,
                   },
                 });
               }
