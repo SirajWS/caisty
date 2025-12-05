@@ -1,7 +1,8 @@
 // apps/cloud-api/src/routes/admin-auth.ts
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { db } from "../db/client.js";
-import { adminUsers, adminPasswordResets } from "../db/schema/index.js";
+import { adminUsers } from "../db/schema/adminUsers.js";
+import { adminPasswordResets } from "../db/schema/adminPasswordResets.js";
 import { eq, and, sql, isNull } from "drizzle-orm";
 import { verifyPassword, hashPassword } from "../lib/passwords.js";
 import { signAdminToken, verifyAdminToken, type AdminJwtPayload } from "../lib/adminJwt.js";
@@ -152,9 +153,8 @@ export async function registerAdminAuthRoutes(app: FastifyInstance) {
         expiresAt,
       });
 
-      // Admin-Reset-Link sollte auf Admin-Portal zeigen (Port 5173)
-      // PORTAL_BASE_URL ist für Kunden-Portal, Admin nutzt normalerweise Port 5173
-      const adminBaseUrl = env.PORTAL_BASE_URL?.replace("5175", "5173") || "http://localhost:5173";
+      // Admin-Reset-Link nutzt eigene Basis-URL (ADMIN_BASE_URL)
+      const adminBaseUrl = env.ADMIN_BASE_URL || "http://localhost:5173";
       const resetLink = `${adminBaseUrl}/reset-password?token=${encodeURIComponent(token)}`;
       
       app.log.info({ email, resetLink, tokenHash: tokenHash.substring(0, 8) + "..." }, "Admin password reset link generated");
