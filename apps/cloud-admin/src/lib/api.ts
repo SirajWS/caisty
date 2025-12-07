@@ -1,5 +1,12 @@
 // apps/cloud-admin/src/lib/api.ts
-const API_BASE = "/api";
+
+// Basis-URL für die API
+// - Lokal: /api  (z.B. via Vite-Proxy)
+// - Produktion: VITE_API_BASE_URL = https://api.caisty.com
+const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
+// trailing Slashes am Ende wegnehmen, damit wir sauber `${API_BASE}/...` machen können
+const API_BASE = RAW_API_BASE.replace(/\/+$/, "");
+
 const TOKEN_KEY = "caisty.admin.token";
 
 function getToken(): string | null {
@@ -39,7 +46,10 @@ async function request<T>(
     (headers as any)["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  // Pfad immer an die Basis hängen
+  const url = `${API_BASE}${path}`;
+
+  const res = await fetch(url, {
     ...options,
     headers,
   });
@@ -76,6 +86,7 @@ async function request<T>(
 
   const ct = res.headers.get("content-type") ?? "";
   if (!ct.includes("application/json")) {
+    // Wenn kein JSON zurückkommt, einfach undefined liefern
     return undefined as T;
   }
 
@@ -108,6 +119,30 @@ export function apiPatch<TReq, TRes>(
 
 export function apiDelete<T = any>(path: string): Promise<T> {
   return request<T>(path, { method: "DELETE" });
+}
+
+// ---------------------------------------------------------------------------
+// Admin Auth – 👉 diese Funktionen solltest du im Login-Formular benutzen
+// ---------------------------------------------------------------------------
+
+export type AdminLoginResponse = {
+  token: string;
+  // hier kannst du bei Bedarf noch user-Daten ergänzen
+  // user: { id: string; email: string; role: string; ... }
+};
+
+export function adminLogin(
+  email: string,
+  password: string,
+): Promise<AdminLoginResponse> {
+  return apiPost<{ email: string; password: string }, AdminLoginResponse>(
+    "/admin/auth/login",
+    { email, password },
+  );
+}
+
+export function adminMe<TRes = any>(): Promise<TRes> {
+  return apiGet<TRes>("/admin/auth/me");
 }
 
 // ---------------------------------------------------------------------------
@@ -187,6 +222,7 @@ export function replySupportMessage(
   );
 }
 
+// Aktuell noch Dummy – solange es im Backend keinen Endpoint gibt
 export function markNotificationRead(
   id: string,
 ): Promise<{ ok: boolean }> {

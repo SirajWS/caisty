@@ -1,15 +1,16 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import { apiPost } from "../lib/api";
+// ⬇️ statt apiPost direkt den speziellen Helper nutzen
+import { adminLogin } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import type { AuthUser } from "../auth/AuthContext";
 import { useTheme, themeColors } from "../theme/ThemeContext";
 
 type LoginResponse = {
-  ok: boolean;
-  token?: string;
-  user?: AuthUser;
+  token: string;
+  user: AuthUser;
+  ok?: boolean;
   error?: string;
 };
 
@@ -34,12 +35,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await apiPost<{ email: string; password: string }, LoginResponse>(
-        "/admin/auth/login",
-        { email, password },
-      );
+      // ⬇️ POST auf https://api.caisty.com/admin/auth/login (prod)
+      const res = (await adminLogin(email, password)) as LoginResponse;
 
-      if (!res.ok || !res.token || !res.user) {
+      if (!res.token || !res.user) {
         setError(res.error || "Login fehlgeschlagen");
         return;
       }
@@ -54,12 +53,13 @@ export default function LoginPage() {
     }
   }
 
-  const bgGradient = theme === "dark" 
-    ? "linear-gradient(135deg, #0f172a 0%, #020617 100%)"
-    : "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)";
+  const bgGradient =
+    theme === "dark"
+      ? "linear-gradient(135deg, #0f172a 0%, #020617 100%)"
+      : "linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)";
 
   return (
-    <div 
+    <div
       style={{
         minHeight: "100vh",
         display: "flex",
@@ -78,9 +78,10 @@ export default function LoginPage() {
           border: `1px solid ${colors.borderSecondary}`,
           borderRadius: "16px",
           padding: "40px",
-          boxShadow: theme === "dark" 
-            ? "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)"
-            : "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.05)",
+          boxShadow:
+            theme === "dark"
+              ? "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)"
+              : "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.05)",
           backdropFilter: "blur(10px)",
           transition: "background-color 0.3s, border-color 0.3s",
         }}
@@ -92,7 +93,7 @@ export default function LoginPage() {
               fontWeight: 700,
               color: colors.text,
               marginBottom: "8px",
-              letterSpacing: "-0.5px"
+              letterSpacing: "-0.5px",
             }}
           >
             Caisty <span style={{ color: colors.accent }}>Admin</span>
@@ -101,14 +102,17 @@ export default function LoginPage() {
             style={{
               fontSize: "14px",
               color: colors.textSecondary,
-              marginTop: "8px"
+              marginTop: "8px",
             }}
           >
             Melde dich mit deinem Admin-Account an
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: "flex", flexDirection: "column", gap: "20px" }}
+        >
           <div>
             <label
               style={{
@@ -116,7 +120,7 @@ export default function LoginPage() {
                 fontSize: "14px",
                 color: colors.textSecondary,
                 marginBottom: "8px",
-                fontWeight: 500
+                fontWeight: 500,
               }}
             >
               E-Mail
@@ -137,7 +141,7 @@ export default function LoginPage() {
                 fontSize: "14px",
                 outline: "none",
                 transition: "all 0.2s",
-                boxSizing: "border-box"
+                boxSizing: "border-box",
               }}
               onFocus={(e) => {
                 e.currentTarget.style.borderColor = colors.accent;
@@ -157,7 +161,7 @@ export default function LoginPage() {
                 fontSize: "14px",
                 color: "#cbd5e1",
                 marginBottom: "8px",
-                fontWeight: 500
+                fontWeight: 500,
               }}
             >
               Passwort
@@ -169,27 +173,27 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="current-password"
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                paddingRight: "44px",
-                background: colors.input,
-                border: `1px solid ${colors.borderSecondary}`,
-                borderRadius: "8px",
-                color: colors.text,
-                fontSize: "14px",
-                outline: "none",
-                transition: "all 0.2s",
-                boxSizing: "border-box"
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = colors.accent;
-                e.currentTarget.style.boxShadow = `0 0 0 3px ${colors.accent}20`;
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = colors.borderSecondary;
-                e.currentTarget.style.boxShadow = "none";
-              }}
+                style={{
+                  width: "100%",
+                  padding: "12px 16px",
+                  paddingRight: "44px",
+                  background: colors.input,
+                  border: `1px solid ${colors.borderSecondary}`,
+                  borderRadius: "8px",
+                  color: colors.text,
+                  fontSize: "14px",
+                  outline: "none",
+                  transition: "all 0.2s",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = colors.accent;
+                  e.currentTarget.style.boxShadow = `0 0 0 3px ${colors.accent}20`;
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = colors.borderSecondary;
+                  e.currentTarget.style.boxShadow = "none";
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.currentTarget.form?.requestSubmit();
@@ -211,7 +215,7 @@ export default function LoginPage() {
                   fontSize: "14px",
                   padding: "4px",
                   display: "flex",
-                  alignItems: "center"
+                  alignItems: "center",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.color = "#94a3b8";
@@ -233,7 +237,7 @@ export default function LoginPage() {
                 border: `1px solid ${colors.error}50`,
                 borderRadius: "8px",
                 color: colors.error,
-                fontSize: "14px"
+                fontSize: "14px",
               }}
             >
               {error}
@@ -254,7 +258,7 @@ export default function LoginPage() {
               borderRadius: "8px",
               cursor: loading ? "not-allowed" : "pointer",
               transition: "all 0.2s",
-              opacity: loading ? 0.7 : 1
+              opacity: loading ? 0.7 : 1,
             }}
             onMouseEnter={(e) => {
               if (!loading) {
@@ -279,7 +283,7 @@ export default function LoginPage() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginTop: "8px"
+              marginTop: "8px",
             }}
           >
             <Link
@@ -289,7 +293,7 @@ export default function LoginPage() {
                 color: colors.accent,
                 textDecoration: "none",
                 cursor: "pointer",
-                transition: "color 0.2s"
+                transition: "color 0.2s",
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.color = colors.accentHover;
@@ -300,7 +304,7 @@ export default function LoginPage() {
             >
               Passwort vergessen?
             </Link>
-            
+
             {import.meta.env.DEV && (
               <button
                 type="button"
@@ -316,7 +320,7 @@ export default function LoginPage() {
                   borderRadius: "4px",
                   padding: "4px 8px",
                   cursor: "pointer",
-                  transition: "all 0.2s"
+                  transition: "all 0.2s",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = "#475569";
