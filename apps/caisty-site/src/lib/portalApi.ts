@@ -1,8 +1,14 @@
 // apps/caisty-site/src/lib/portalApi.ts
 
-const API_BASE =
-  import.meta.env.VITE_CLOUD_API_URL?.replace(/\/+$/, "") ??
-  "http://127.0.0.1:3333";
+// Basis-URL für das Portal-Backend
+// Prod: https://api.caisty.com
+const RAW_API_BASE =
+  import.meta.env.VITE_PORTAL_API_BASE_URL ??
+  import.meta.env.VITE_API_BASE_URL ??
+  import.meta.env.VITE_CLOUD_API_URL ??
+  "https://api.caisty.com";
+
+const API_BASE = RAW_API_BASE.replace(/\/+$/, "");
 
 const PORTAL_TOKEN_KEY = "caisty.portal.token";
 
@@ -92,18 +98,22 @@ export async function portalRegister(input: {
 export async function portalLogin(input: {
   email: string;
   password: string;
-}): Promise<PortalCustomer> {
+}: Promise<PortalCustomer>) {
   const res = await fetch(`${API_BASE}/portal/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
 
-  const data = (await res.json()) as AuthResponse & { reason?: string; message?: string };
+  const data = (await res.json()) as AuthResponse & {
+    reason?: string;
+    message?: string;
+  };
 
   if (!res.ok || !data.ok) {
-    const errorMessage = data.message || 
-      (data.reason === "google_auth_required" 
+    const errorMessage =
+      data.message ||
+      (data.reason === "google_auth_required"
         ? "Dieses Konto wurde mit Google erstellt. Bitte melde dich mit Google an."
         : "Login fehlgeschlagen.");
     throw new Error(errorMessage);
@@ -127,7 +137,9 @@ interface ForgotPasswordResponse {
   resetLink?: string; // Nur in Development
 }
 
-export async function requestPasswordReset(email: string): Promise<ForgotPasswordResponse> {
+export async function requestPasswordReset(
+  email: string,
+): Promise<ForgotPasswordResponse> {
   const res = await fetch(`${API_BASE}/portal/auth/forgot-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -157,7 +169,7 @@ interface ResetPasswordResponse {
 
 export async function resetPassword(
   token: string,
-  newPassword: string
+  newPassword: string,
 ): Promise<ResetPasswordResponse> {
   const res = await fetch(`${API_BASE}/portal/auth/reset-password`, {
     method: "POST",
@@ -365,10 +377,7 @@ export async function fetchPortalInvoice(
 }
 
 export function getPortalInvoiceHtmlUrl(id: string): string {
-  const base =
-    import.meta.env.VITE_CLOUD_API_URL?.replace(/\/+$/, "") ??
-    "http://127.0.0.1:3333";
-  return `${base}/portal/invoices/${id}/html`;
+  return `${API_BASE}/portal/invoices/${id}/html`;
 }
 
 // ---------- Trial-Lizenz einmalig anlegen ----------
@@ -456,7 +465,7 @@ export async function startPortalUpgrade(
   plan: "starter" | "pro",
 ): Promise<PortalUpgradeStartResponse> {
   const token = getStoredPortalToken();
-  if (!token) throw new Error("Nicht angemeldet.");
+  if (!token) throw Error("Nicht angemeldet.");
 
   const res = await fetch(`${API_BASE}/portal/upgrade/start`, {
     method: "POST",
