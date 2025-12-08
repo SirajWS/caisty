@@ -2,13 +2,14 @@
 
 // Basis-URL für das Portal-Backend
 // Prod: https://api.caisty.com
-const RAW_API_BASE =
-  import.meta.env.VITE_PORTAL_API_BASE_URL ??
-  import.meta.env.VITE_API_BASE_URL ??
-  import.meta.env.VITE_CLOUD_API_URL ??
-  "https://api.caisty.com";
+const RAW_API_BASE = import.meta.env.VITE_CLOUD_API_URL || "https://api.caisty.com";
 
+// alle Trailing-Slashes entfernen
 const API_BASE = RAW_API_BASE.replace(/\/+$/, "");
+
+// Debug-Log, damit wir in Browser-Konsole sehen, was wirklich benutzt wird
+// (kannst du später wieder entfernen, wenn alles läuft)
+console.log("Caisty Portal API_BASE =", API_BASE);
 
 const PORTAL_TOKEN_KEY = "caisty.portal.token";
 
@@ -98,7 +99,7 @@ export async function portalRegister(input: {
 export async function portalLogin(input: {
   email: string;
   password: string;
-}: Promise<PortalCustomer>) {
+}): Promise<PortalCustomer> {
   const res = await fetch(`${API_BASE}/portal/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
