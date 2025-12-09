@@ -3,27 +3,25 @@ import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { storePortalToken } from "../lib/portalApi";
 
-export function PortalLoginSuccessPage() {
+export default function PortalLoginSuccessPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const token = params.get("token");
-    // const state = params.get("state") || "login"; // Für zukünftige Verwendung (z.B. unterschiedliche Weiterleitung)
+    const state = params.get("state") || "login";
 
     if (!token) {
-      // Kein Token → zurück auf Login
-      navigate("/login", { replace: true });
+      // Kein Token → zurück zum Login
+      navigate("/portal/login", { replace: true });
       return;
     }
 
     // Token im LocalStorage speichern
     storePortalToken(token);
 
-    // Wenn state=register → nach /portal (Dashboard)
-    // Wenn state=login → auch nach /portal
-    // (später könntest du hier unterscheiden)
+    // Egal ob state=register oder state=login → ins Portal-Dashboard
     navigate("/portal", { replace: true });
   }, [location, navigate]);
 
@@ -37,6 +35,3 @@ export function PortalLoginSuccessPage() {
     </div>
   );
 }
-
-export default PortalLoginSuccessPage;
-
