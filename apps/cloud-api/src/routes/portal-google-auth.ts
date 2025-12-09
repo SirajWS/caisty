@@ -120,6 +120,10 @@ export async function registerPortalGoogleAuthRoutes(app: FastifyInstance) {
       };
     }
 
+    // State-Parameter aus Query lesen (register oder login)
+    const query = request.query as { state?: string };
+    const state = query.state || "login"; // Default: login
+
     const params = new URLSearchParams({
       client_id: GOOGLE_CLIENT_ID,
       redirect_uri: GOOGLE_REDIRECT_URI,
@@ -127,6 +131,7 @@ export async function registerPortalGoogleAuthRoutes(app: FastifyInstance) {
       scope: "openid email profile",
       access_type: "offline",
       prompt: "consent",
+      state: state, // State an Google weitergeben (wird im Callback zurückgegeben)
     });
 
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
@@ -136,15 +141,19 @@ export async function registerPortalGoogleAuthRoutes(app: FastifyInstance) {
 
   // GET /portal/auth/google/callback - Google Callback
   app.get("/portal/auth/google/callback", async (request, reply) => {
-    const query = request.query as { code?: string; error?: string };
+    const query = request.query as { code?: string; error?: string; state?: string };
+    
+    // State-Parameter aus Google-Callback lesen (register oder login)
+    const state = query.state || "login"; // Default: login
+    const redirectPage = state === "register" ? "register" : "login";
 
     if (query.error) {
-      reply.redirect(`${PORTAL_BASE_URL}/login?error=google_auth_failed`);
+      reply.redirect(`${PORTAL_BASE_URL}/${redirectPage}?error=google_auth_failed`);
       return;
     }
 
     if (!query.code) {
-      reply.redirect(`${PORTAL_BASE_URL}/login?error=missing_code`);
+      reply.redirect(`${PORTAL_BASE_URL}/${redirectPage}?error=missing_code`);
       return;
     }
 
@@ -157,7 +166,7 @@ export async function registerPortalGoogleAuthRoutes(app: FastifyInstance) {
       const googleUser = await getGoogleUserInfo(accessToken);
 
       if (!googleUser.email_verified) {
-        reply.redirect(`${PORTAL_BASE_URL}/login?error=email_not_verified`);
+        reply.redirect(`${PORTAL_BASE_URL}/${redirectPage}?error=email_not_verified`);
         return;
       }
 
@@ -319,7 +328,7 @@ export async function registerPortalGoogleAuthRoutes(app: FastifyInstance) {
         }
       }
 
-      reply.redirect(`${PORTAL_BASE_URL}/login?error=${errorParam}`);
+      reply.redirect(`${PORTAL_BASE_URL}/${redirectPage}?error=${errorParam}`);
     }
   });
 }

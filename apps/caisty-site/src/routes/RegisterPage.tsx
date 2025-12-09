@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { portalRegister } from "../lib/portalApi";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -9,11 +9,32 @@ export default function RegisterPage() {
   const { theme } = useTheme();
   const isLight = theme === "light";
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  // Prüfe URL-Parameter für Fehlermeldungen (z.B. von Google OAuth)
+  React.useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam === "oauth_error") {
+      setError("Google-Registrierung fehlgeschlagen. Bitte versuche es erneut.");
+    } else if (errorParam === "google_auth_failed") {
+      setError("Google-Registrierung wurde abgebrochen.");
+    } else if (errorParam === "email_not_verified") {
+      setError("Deine Google-E-Mail ist nicht verifiziert. Bitte verifiziere sie zuerst.");
+    } else if (errorParam === "duplicate_provider") {
+      setError("Diese Google-Account ist bereits mit einem anderen Konto verknüpft. Bitte verwende ein anderes Google-Konto oder melde dich mit E-Mail und Passwort an.");
+    } else if (errorParam === "db_migration_required") {
+      setError("Datenbank-Migration erforderlich. Bitte kontaktiere den Support.");
+    } else if (errorParam === "invalid_customer") {
+      setError("Ungültiges Konto. Bitte kontaktiere den Support.");
+    } else if (errorParam === "missing_code") {
+      setError("Google-Authentifizierung fehlgeschlagen: Code fehlt. Bitte versuche es erneut.");
+    }
+  }, [searchParams]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -153,7 +174,7 @@ export default function RegisterPage() {
         <button
           type="button"
           onClick={() => {
-            window.location.href = `${import.meta.env.VITE_CLOUD_API_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3333"}/portal/auth/google`;
+            window.location.href = `${import.meta.env.VITE_CLOUD_API_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3333"}/portal/auth/google?state=register`;
           }}
           className={`mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border transition-colors text-sm ${
             isLight

@@ -166,7 +166,7 @@ export default function LoginPage() {
         <button
           type="button"
           onClick={() => {
-            window.location.href = `${import.meta.env.VITE_CLOUD_API_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3333"}/portal/auth/google`;
+            window.location.href = `${import.meta.env.VITE_CLOUD_API_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3333"}/portal/auth/google?state=login`;
           }}
           className={`mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border transition-colors text-sm ${
             isLight
