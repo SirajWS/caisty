@@ -10,7 +10,7 @@ export default function PortalLoginSuccessPage() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const token = params.get("token");
-    const state = params.get("state") || "login";
+    // const state = params.get("state") || "login"; // Für zukünftige Verwendung reserviert
 
     if (!token) {
       // Kein Token → zurück zum Login
