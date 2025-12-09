@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { portalRegister } from "../lib/portalApi";
+import { portalRegister, getGoogleAuthUrl } from "../lib/portalApi";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { useTheme } from "../lib/theme";
@@ -174,7 +174,9 @@ export default function RegisterPage() {
         <button
           type="button"
           onClick={() => {
-            window.location.href = `${import.meta.env.VITE_CLOUD_API_URL?.replace(/\/+$/, "") ?? "http://127.0.0.1:3333"}/portal/auth/google?state=register`;
+            const base = getGoogleAuthUrl(); // z.B. https://api.caisty.com/portal/auth/google
+            const url = `${base}?state=register`;
+            window.location.href = url;
           }}
           className={`mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border transition-colors text-sm ${
             isLight
