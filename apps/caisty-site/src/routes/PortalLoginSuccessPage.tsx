@@ -10,18 +10,17 @@ export default function PortalLoginSuccessPage() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const token = params.get("token");
-    // const state = params.get("state") || "login"; // Für zukünftige Verwendung reserviert
 
     if (!token) {
-      // Kein Token → zurück zum Login
-      navigate("/portal/login", { replace: true });
+      // Kein Token -> zurück zum Login
+      navigate("/login", { replace: true });
       return;
     }
 
-    // Token im LocalStorage speichern
+    // Token speichern
     storePortalToken(token);
 
-    // Egal ob state=register oder state=login → ins Portal-Dashboard
+    // Nach erfolgreichem Login/Registrierung ins Portal-Dashboard
     navigate("/portal", { replace: true });
   }, [location, navigate]);
 
