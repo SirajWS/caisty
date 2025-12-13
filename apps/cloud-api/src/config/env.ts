@@ -27,15 +27,20 @@ export const ENV = {
       ? "https://api.caisty.com/portal/auth/google/callback"
       : "http://localhost:3333/portal/auth/google/callback"),
   PORTAL_BASE_URL: (() => {
-    const url = process.env.PORTAL_BASE_URL ?? 
+    // FORCE: Wenn ENV auf Admin-Port zeigt, überschreibe es
+    const envUrl = process.env.PORTAL_BASE_URL;
+    if (envUrl && (envUrl.includes("5175") || envUrl.includes("admin"))) {
+      console.error("❌ ERROR: PORTAL_BASE_URL in .env zeigt auf Admin-Port!");
+      console.error("   Aktueller Wert:", envUrl);
+      console.error("   Überschreibe mit: http://localhost:5173");
+      console.error("   Bitte ändere PORTAL_BASE_URL in .env zu: http://localhost:5173");
+      // Temporär überschreiben, damit es funktioniert
+      return "http://localhost:5173";
+    }
+    const url = envUrl ?? 
       (process.env.NODE_ENV === "production"
         ? "https://www.caisty.com"
         : "http://localhost:5173");
-    // Debug: Warnung wenn auf Admin-Port zeigt
-    if (url.includes("5175") || url.includes("admin")) {
-      console.warn("⚠️ WARNING: PORTAL_BASE_URL zeigt auf Admin-Port!", url);
-      console.warn("   Sollte auf Port 5173 (Kundenportal) zeigen!");
-    }
     return url;
   })(),
   // SMTP / E-Mail-Konfiguration (Zoho Mail)
