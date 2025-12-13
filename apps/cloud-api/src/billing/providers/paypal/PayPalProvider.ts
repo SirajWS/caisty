@@ -1,10 +1,10 @@
-import type { PaymentProvider } from "../PaymentProvider";
+import type { PaymentProvider } from "../PaymentProvider.js";
 import type {
   CheckoutRequest,
   CheckoutResponse,
   ProviderEnv,
   WebhookHandleResult,
-} from "../../types";
+} from "../../types.js";
 
 type PayPalAccessTokenResponse = {
   access_token: string;
@@ -75,7 +75,7 @@ export class PayPalProvider implements PaymentProvider {
     const currency = (req.currency ?? "EUR") as "EUR" | "TND";
 
     // Get price from pricing config
-    const { getPlanPrice } = await import("../../config/pricing.js");
+    const { getPlanPrice } = await import("../../../config/pricing.js");
     const price = getPlanPrice(planId, currency, period);
     const priceStr = price.toFixed(2);
 

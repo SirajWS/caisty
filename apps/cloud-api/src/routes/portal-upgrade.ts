@@ -40,6 +40,7 @@ function getPortalAuth(request: FastifyRequest): PortalJwtPayload {
 // ---------------- Billing Service ----------------
 
 import { billingService } from "../billing/billingServiceInstance.js";
+import { PayPalProvider } from "../billing/providers/paypal/PayPalProvider.js";
 
 // Hier läuft die Cloud-API (Fastify)
 const PUBLIC_API_BASE_URL =
@@ -49,6 +50,61 @@ const PUBLIC_API_BASE_URL =
 // z.B. DEV: http://localhost:5175 (caisty-site, nicht cloud-admin!)
 const PORTAL_BASE_URL =
   process.env.PORTAL_BASE_URL ?? "http://localhost:5175";
+
+// Temporary: PayPal capture function (will be moved to PayPalProvider in Phase 2.4)
+// *** DEV-Bypass: ermöglicht lokale Tests ohne echtes PayPal-Capture ***
+async function capturePaypalOrder(orderId: string): Promise<boolean> {
+  // Wenn wir von außen ein Token wie DEV_OK schicken, einfach "success"
+  if (orderId.startsWith("DEV_")) {
+    return true;
+  }
+
+  // TODO: Move this to PayPalProvider in Phase 2.4
+  const provider = new PayPalProvider();
+  const baseUrl = provider.env === "live" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
+  
+  // Get access token (temporary - should use provider method)
+  const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID ?? "";
+  const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET ?? "";
+  const auth = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`).toString("base64");
+  
+  const tokenRes = await fetch(`${baseUrl}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${auth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=client_credentials",
+  });
+
+  if (!tokenRes.ok) {
+    throw new Error("PayPal auth failed");
+  }
+
+  const tokenData = (await tokenRes.json()) as { access_token: string };
+  const accessToken = tokenData.access_token;
+
+  const res = await fetch(
+    `${baseUrl}/v2/checkout/orders/${orderId}/capture`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(
+      `PayPal capture failed: ${res.status} ${res.statusText} – ${txt}`,
+    );
+  }
+
+  const data = (await res.json()) as any;
+  return data.status === "COMPLETED";
+}
 
 // ---------------- Typen & Pricing ----------------
 
