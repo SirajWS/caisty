@@ -37,13 +37,9 @@ function getPortalAuth(request: FastifyRequest): PortalJwtPayload {
   return verifyPortalToken(token) as PortalJwtPayload;
 }
 
-// ---------------- PayPal Helper ----------------
+// ---------------- Billing Service ----------------
 
-const PAYPAL_BASE_URL =
-  process.env.PAYPAL_BASE_URL ?? "https://api-m.sandbox.paypal.com";
-
-const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID ?? "";
-const PAYPAL_CLIENT_SECRET = process.env.PAYPAL_CLIENT_SECRET ?? "";
+import { billingService } from "../billing/billingServiceInstance.js";
 
 // Hier läuft die Cloud-API (Fastify)
 const PUBLIC_API_BASE_URL =
@@ -53,131 +49,6 @@ const PUBLIC_API_BASE_URL =
 // z.B. DEV: http://localhost:5175 (caisty-site, nicht cloud-admin!)
 const PORTAL_BASE_URL =
   process.env.PORTAL_BASE_URL ?? "http://localhost:5175";
-
-async function getPaypalAccessToken(): Promise<string> {
-  if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) {
-    throw new Error("PAYPAL_CLIENT_ID / PAYPAL_CLIENT_SECRET not configured");
-  }
-
-  const res = await nodeFetch(`${PAYPAL_BASE_URL}/v1/oauth2/token`, {
-    method: "POST",
-    headers: {
-      Authorization:
-        "Basic " +
-        Buffer.from(
-          `${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`,
-          "utf8",
-        ).toString("base64"),
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: "grant_type=client_credentials",
-  });
-
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(
-      `PayPal token request failed: ${res.status} ${res.statusText} – ${txt}`,
-    );
-  }
-
-  const data = (await res.json()) as { access_token: string };
-  if (!data.access_token) {
-    throw new Error("PayPal token missing in response");
-  }
-  return data.access_token;
-}
-
-type PaypalOrderResult = {
-  id: string;
-  approvalUrl: string;
-};
-
-async function createPaypalOrder(opts: {
-  amount: number; // EUR, z.B. 0.01
-  currency: string;
-  description: string;
-  returnUrl: string;
-  cancelUrl: string;
-}): Promise<PaypalOrderResult> {
-  const accessToken = await getPaypalAccessToken();
-
-  const res = await nodeFetch(`${PAYPAL_BASE_URL}/v2/checkout/orders`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      intent: "CAPTURE",
-      purchase_units: [
-        {
-          amount: {
-            currency_code: opts.currency,
-            value: opts.amount.toFixed(2),
-          },
-          description: opts.description,
-        },
-      ],
-      application_context: {
-        return_url: opts.returnUrl,
-        cancel_url: opts.cancelUrl,
-      },
-    }),
-  });
-
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(
-      `PayPal order create failed: ${res.status} ${res.statusText} – ${txt}`,
-    );
-  }
-
-  const data = (await res.json()) as any;
-
-  const approvalLink = (data.links || []).find(
-    (l: any) => l.rel === "approve",
-  );
-
-  if (!data.id || !approvalLink?.href) {
-    throw new Error("PayPal order missing id or approval link");
-  }
-
-  return {
-    id: String(data.id),
-    approvalUrl: String(approvalLink.href),
-  };
-}
-
-// *** DEV-Bypass: ermöglicht lokale Tests ohne echtes PayPal-Capture ***
-async function capturePaypalOrder(orderId: string): Promise<boolean> {
-  // Wenn wir von außen ein Token wie DEV_OK schicken, einfach "success"
-  if (orderId.startsWith("DEV_")) {
-    return true;
-  }
-
-  const accessToken = await getPaypalAccessToken();
-
-  const res = await nodeFetch(
-    `${PAYPAL_BASE_URL}/v2/checkout/orders/${orderId}/capture`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-    },
-  );
-
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(
-      `PayPal capture failed: ${res.status} ${res.statusText} – ${txt}`,
-    );
-  }
-
-  const data = (await res.json()) as any;
-  return data.status === "COMPLETED";
-}
 
 // ---------------- Typen & Pricing ----------------
 
@@ -432,7 +303,7 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
           throw new Error("Failed to create invoice - no ID returned");
         }
 
-        // 3) PayPal-Order (Fehler hier brechen das Upgrade NICHT ab)
+        // 3) Checkout via BillingService (Fehler hier brechen das Upgrade NICHT ab)
         const returnUrl = `${PUBLIC_API_BASE_URL}/portal/upgrade/paypal-return?invoiceId=${encodeURIComponent(
           String(inv.id),
         )}`;
@@ -444,17 +315,18 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
         let paypalOrderId: string | undefined;
 
         try {
-          const order = await createPaypalOrder({
-            amount: pricing.monthlyAmount,
-            currency: currency,
-            description: pricing.description,
+          const checkoutResult = await billingService.checkout({
+            provider: "paypal",
+            planId: `${plan}_monthly`,
             returnUrl,
             cancelUrl,
+            currency,
           });
-          redirectUrl = order.approvalUrl;
-          paypalOrderId = order.id;
+
+          redirectUrl = checkoutResult.checkoutUrl;
+          // paypalOrderId wird später aus Webhook kommen
         } catch (err) {
-          app.log.error({ err }, "PayPal order creation failed");
+          app.log.error({ err }, "Billing checkout failed");
           // redirectUrl bleibt undefined → Frontend kann zu /portal/invoices schicken
         }
 

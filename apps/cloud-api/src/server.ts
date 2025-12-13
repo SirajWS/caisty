@@ -16,6 +16,7 @@ import { registerPublicLicenseRoutes } from "./routes/public-license.js";
 
 import { registerPaymentsRoutes } from "./routes/payments.js";
 import { registerWebhooksRoutes } from "./routes/webhooks.js";
+import { registerBillingRoutes } from "./routes/billing.js";
 
 // 🔹 Portal (eigenes JWT, separate Auth)
 import { registerPortalAuthRoutes } from "./routes/portalAuthRoutes.js";
@@ -155,6 +156,7 @@ export async function buildServer() {
   // ---------------------------------------------------------------------------
   await registerPaymentsRoutes(app);
   await registerWebhooksRoutes(app);
+  await registerBillingRoutes(app);
 
   // ---------------------------------------------------------------------------
   // Test-Endpoints (nur Development)
