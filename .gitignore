@@ -9,8 +9,11 @@ dist
 build
 turbo
 
-# Drizzle Migrations (kannst du auch tracken, wenn du willst)
-drizzle
+# Drizzle intern (Meta/Cache)
+apps/cloud-api/drizzle/meta/
+apps/cloud-api/drizzle/_journal.json
+
+# NICHT ignorieren: apps/cloud-api/drizzle/*.sql (Migrationen versionieren!)
 
 # Umgebungsvariablen
 .env
