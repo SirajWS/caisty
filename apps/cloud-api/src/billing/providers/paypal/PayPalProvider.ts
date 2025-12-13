@@ -128,17 +128,83 @@ export class PayPalProvider implements PaymentProvider {
   }
 
   /* =========================
-     WEBHOOK (Phase 2.4)
+     CAPTURE ORDER
+     ========================= */
+
+  /**
+   * Captures a PayPal order (used after user approves payment)
+   * DEV-Bypass: If orderId starts with "DEV_", returns true immediately
+   */
+  async captureOrder(orderId: string): Promise<boolean> {
+    // DEV-Bypass: ermöglicht lokale Tests ohne echtes PayPal-Capture
+    if (orderId.startsWith("DEV_")) {
+      return true;
+    }
+
+    const accessToken = await this.getAccessToken();
+
+    const res = await fetch(
+      `${this.baseUrl}/v2/checkout/orders/${orderId}/capture`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(
+        `PayPal capture failed: ${res.status} ${res.statusText} – ${txt}`,
+      );
+    }
+
+    const data = (await res.json()) as any;
+    return data.status === "COMPLETED";
+  }
+
+  /* =========================
+     WEBHOOK
      ========================= */
 
   async handleWebhook(
-    _rawBody: string,
-    _headers: Record<string, string | string[] | undefined>
+    rawBody: string,
+    headers: Record<string, string | string[] | undefined>
   ): Promise<WebhookHandleResult> {
+    // TODO: Signature verification (Phase 2.5)
+    // For now, we trust the webhook
+
+    let eventData: any;
+    try {
+      eventData = JSON.parse(rawBody);
+    } catch (err) {
+      return {
+        ok: false,
+        status: "failed",
+        message: "Invalid JSON payload",
+      };
+    }
+
+    const eventId = eventData.id || eventData.event_id;
+    const eventType = eventData.event_type || eventData.type || "unknown";
+
+    if (!eventId) {
+      return {
+        ok: false,
+        status: "failed",
+        message: "Missing event ID",
+      };
+    }
+
+    // Webhook will be persisted by the webhook route handler
+    // We just return the event info for processing
     return {
       ok: true,
-      status: "ignored",
-      message: "PayPal webhook not implemented yet",
+      status: "processed",
+      providerEventId: eventId,
+      message: `PayPal event ${eventType} received`,
     };
   }
 }

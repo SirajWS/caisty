@@ -4,15 +4,15 @@ import { IdempotencyService } from "./IdempotencyService";
 
 export class BillingService {
   constructor(
-    private readonly providers: Record<ProviderName, PaymentProvider>,
+    public readonly providers: Record<ProviderName, PaymentProvider>,
     private readonly idem: IdempotencyService
   ) {}
 
-  async checkout(req: CheckoutRequest, idempotencyKey?: string): Promise<CheckoutResponse> {
+  async checkout(req: CheckoutRequest, idempotencyKey?: string, orgId?: string): Promise<CheckoutResponse> {
     const provider = this.providers[req.provider];
     if (!provider) throw new Error(`Unsupported provider: ${req.provider}`);
 
-    if (!idempotencyKey) {
+    if (!idempotencyKey || !orgId) {
       return provider.checkout(req);
     }
 
@@ -22,11 +22,11 @@ export class BillingService {
       metadata: req.metadata ?? {},
     });
 
-    const cached = await this.idem.get<CheckoutResponse>(idempotencyKey, requestHash);
+    const cached = await this.idem.get<CheckoutResponse>(idempotencyKey, requestHash, orgId);
     if (cached.hit) return cached.value;
 
     const result = await provider.checkout(req);
-    await this.idem.set(idempotencyKey, requestHash, result);
+    await this.idem.set(idempotencyKey, requestHash, result, orgId, "billing.checkout");
 
     return result;
   }
