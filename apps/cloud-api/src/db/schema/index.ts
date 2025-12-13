@@ -13,3 +13,6 @@ export * from "./licenseEvents";
 export * from "./adminUsers";
 export * from "./adminPasswordResets";
 export * from "./adminPermissions";
+export * from "./billingCustomers";
+export * from "./invoiceLines";
+export * from "./idempotencyKeys";
