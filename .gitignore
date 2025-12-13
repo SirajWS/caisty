@@ -21,3 +21,7 @@ drizzle
 .vscode
 .DS_Store
 Thumbs.db
+
+# Turborepo
+.turbo/
+
