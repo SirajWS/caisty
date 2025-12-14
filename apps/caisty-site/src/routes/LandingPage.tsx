@@ -323,6 +323,46 @@ export default function LandingPage() {
         )}
       </section>
 
+      {/* Zahlungsmethoden */}
+      <section className="max-w-5xl mx-auto px-4 pb-12 space-y-5">
+        <div className="space-y-4">
+          <h2
+            className={`text-xl font-semibold ${
+              isLight ? "text-slate-900" : "text-slate-50"
+            }`}
+          >
+            {t.payment.title}
+          </h2>
+          <p
+            className={`text-base leading-relaxed max-w-2xl ${
+              isLight
+                ? "text-slate-700"
+                : "text-slate-200"
+            }`}
+          >
+            {t.payment.description}
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 text-sm">
+          <PaymentMethodCard
+            title={t.payment.paypal.title}
+            description={t.payment.paypal.description}
+            icon="PayPal"
+          />
+          <PaymentMethodCard
+            title={t.payment.stripe.title}
+            description={t.payment.stripe.description}
+            icon="Stripe"
+            cards={t.payment.stripe.cards}
+          />
+        </div>
+
+        <p className={`text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+          {t.payment.secure}
+        </p>
+      </section>
+
       {/* Für wen ist Caisty? */}
       <section className="max-w-5xl mx-auto px-4 pb-12 space-y-4">
         <h2 className="text-xl font-semibold">{t.forWhom.title}</h2>
@@ -562,6 +602,60 @@ function FeatureCard(props: { title: string; text: string }) {
     <div className={`rounded-2xl border p-4 space-y-2 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/70"}`}>
       <div className={`text-sm font-medium ${isLight ? "text-slate-900" : "text-slate-100"}`}>{props.title}</div>
       <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-300"}`}>{props.text}</p>
+    </div>
+  );
+}
+
+function PaymentMethodCard(props: {
+  title: string;
+  description: string;
+  icon: "PayPal" | "Stripe";
+  cards?: string;
+}) {
+  const { theme } = useTheme();
+  const isLight = theme === "light";
+  return (
+    <div
+      className={`rounded-2xl border p-4 space-y-3 ${
+        isLight
+          ? "border-slate-200 bg-white"
+          : "border-slate-800 bg-slate-900/70"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div
+          className={`text-sm font-semibold ${
+            isLight ? "text-slate-900" : "text-slate-100"
+          }`}
+        >
+          {props.title}
+        </div>
+        {props.icon === "PayPal" && (
+          <div className="text-xs font-semibold text-[#0070ba]">PayPal</div>
+        )}
+        {props.icon === "Stripe" && (
+          <div className="text-xs font-semibold text-[#635bff]">Stripe</div>
+        )}
+      </div>
+      <p
+        className={`text-xs leading-relaxed ${
+          isLight ? "text-slate-600" : "text-slate-300"
+        }`}
+      >
+        {props.description}
+      </p>
+      {props.cards && (
+        <div
+          className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] ${
+            isLight
+              ? "border-slate-200 bg-slate-50 text-slate-700"
+              : "border-slate-700 bg-slate-900 text-slate-300"
+          }`}
+        >
+          <span>💳</span>
+          <span>{props.cards}</span>
+        </div>
+      )}
     </div>
   );
 }

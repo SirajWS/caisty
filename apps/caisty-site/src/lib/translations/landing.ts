@@ -87,6 +87,20 @@ export const landing: Record<Language, {
     paragraph4: string;
     paragraph5: string;
   };
+  payment: {
+    title: string;
+    description: string;
+    paypal: {
+      title: string;
+      description: string;
+    };
+    stripe: {
+      title: string;
+      description: string;
+      cards: string;
+    };
+    secure: string;
+  };
 }> = {
   de: {
     hero: {
@@ -187,6 +201,20 @@ export const landing: Record<Language, {
       strictRequirement: "strikten Fiskalisierungspflicht",
       paragraph4: "– zum Beispiel Deutschland, Österreich, Italien, Frankreich, Spanien, Portugal und andere – ist oft ein zertifiziertes Fiskalgerät oder zertifizierte Software vorgeschrieben. Solange das passende Caisty-Fiskalpaket nur als angezeigt wird, nutzt du den generischen Modus auf eigene Verantwortung. Kläre immer mit deinem lokalen Steuerberater oder der Behörde, ob dieser Modus für dein Geschäft erlaubt ist.",
       paragraph5: "Caisty hilft dir technisch (Belege, Journale, Exporte), ersetzt aber keine Rechtsberatung oder offizielle Registrierung bei Steuerbehörden.",
+    },
+    payment: {
+      title: "Sichere Zahlungsmethoden",
+      description: "Wir unterstützen verschiedene Zahlungsmethoden für deine Abrechnung. Du kannst zwischen PayPal und Kreditkarte (über Stripe) wählen.",
+      paypal: {
+        title: "PayPal",
+        description: "Zahle bequem mit deinem PayPal-Konto. Schnell, sicher und weltweit akzeptiert.",
+      },
+      stripe: {
+        title: "Kreditkarte (Stripe)",
+        description: "Zahle mit Visa oder Mastercard direkt per Kreditkarte. Alle Transaktionen werden sicher über Stripe verarbeitet.",
+        cards: "Visa & Mastercard",
+      },
+      secure: "Alle Zahlungen werden verschlüsselt und sicher verarbeitet. Wir speichern keine Kreditkartendaten auf unseren Servern.",
     },
   },
   en: {
@@ -289,6 +317,20 @@ export const landing: Record<Language, {
       paragraph4: "– for example Germany, Austria, Italy, France, Spain, Portugal and others – a certified fiscal device or certified software is often mandatory. As long as the matching Caisty fiscal pack is only shown as, you are using the generic mode at your own responsibility. Always confirm with your local tax advisor or authority whether this mode is allowed for your business.",
       paragraph5: "Caisty helps you technically (receipts, journals, exports), but it does not replace legal advice or official registration with tax authorities.",
     },
+    payment: {
+      title: "Secure Payment Methods",
+      description: "We support various payment methods for your billing. You can choose between PayPal and credit card (via Stripe).",
+      paypal: {
+        title: "PayPal",
+        description: "Pay conveniently with your PayPal account. Fast, secure, and accepted worldwide.",
+      },
+      stripe: {
+        title: "Credit Card (Stripe)",
+        description: "Pay with Visa or Mastercard directly via credit card. All transactions are securely processed through Stripe.",
+        cards: "Visa & Mastercard",
+      },
+      secure: "All payments are encrypted and securely processed. We do not store credit card data on our servers.",
+    },
   },
   fr: {
     hero: {
@@ -390,6 +432,20 @@ export const landing: Record<Language, {
       paragraph4: "– par exemple l'Allemagne, l'Autriche, l'Italie, la France, l'Espagne, le Portugal et d'autres – un dispositif fiscal certifié ou un logiciel certifié est souvent obligatoire. Tant que le pack fiscal Caisty correspondant n'est affiché que comme, vous utilisez le mode générique à vos propres risques. Confirmez toujours avec votre conseiller fiscal local ou l'autorité si ce mode est autorisé pour votre entreprise.",
       paragraph5: "Caisty vous aide techniquement (reçus, journaux, exports), mais ne remplace pas les conseils juridiques ou l'enregistrement officiel auprès des autorités fiscales.",
     },
+    payment: {
+      title: "Méthodes de paiement sécurisées",
+      description: "Nous prenons en charge diverses méthodes de paiement pour votre facturation. Vous pouvez choisir entre PayPal et carte de crédit (via Stripe).",
+      paypal: {
+        title: "PayPal",
+        description: "Payez facilement avec votre compte PayPal. Rapide, sécurisé et accepté dans le monde entier.",
+      },
+      stripe: {
+        title: "Carte de crédit (Stripe)",
+        description: "Payez avec Visa ou Mastercard directement par carte de crédit. Toutes les transactions sont traitées en toute sécurité via Stripe.",
+        cards: "Visa & Mastercard",
+      },
+      secure: "Tous les paiements sont cryptés et traités en toute sécurité. Nous ne stockons pas les données de carte de crédit sur nos serveurs.",
+    },
   },
   ar: {
     hero: {
@@ -490,6 +546,20 @@ export const landing: Record<Language, {
       strictRequirement: "متطلبات ضريبية صارمة",
       paragraph4: "– على سبيل المثال ألمانيا، النمسا، إيطاليا، فرنسا، إسبانيا، البرتغال وغيرها – غالباً ما يكون مطلوباً جهاز ضريبي معتمد أو برنامج معتمد. طالما أن حزمة Caisty الضريبية المطابقة تظهر فقط كـ، فأنت تستخدم الوضع العام على مسؤوليتك الخاصة. تأكد دائماً من مستشارك الضريبي المحلي أو السلطة ما إذا كان هذا الوضع مسموحاً لعملك.",
       paragraph5: "يساعدك Caisty تقنياً (الإيصالات، السجلات، التصدير)، لكنه لا يحل محل المشورة القانونية أو التسجيل الرسمي لدى السلطات الضريبية.",
+    },
+    payment: {
+      title: "طرق الدفع الآمنة",
+      description: "ندعم طرق دفع مختلفة للفوترة. يمكنك الاختيار بين PayPal وبطاقة الائتمان (عبر Stripe).",
+      paypal: {
+        title: "PayPal",
+        description: "ادفع بسهولة باستخدام حساب PayPal الخاص بك. سريع وآمن ومقبول عالمياً.",
+      },
+      stripe: {
+        title: "بطاقة الائتمان (Stripe)",
+        description: "ادفع باستخدام Visa أو Mastercard مباشرة عبر بطاقة الائتمان. تتم معالجة جميع المعاملات بأمان من خلال Stripe.",
+        cards: "Visa & Mastercard",
+      },
+      secure: "يتم تشفير جميع المدفوعات ومعالجتها بأمان. لا نقوم بتخزين بيانات بطاقة الائتمان على خوادمنا.",
     },
   },
 };
