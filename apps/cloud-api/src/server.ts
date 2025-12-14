@@ -62,6 +62,7 @@ export async function buildServer() {
 
     const isPublicRoute =
       url === "/health" ||
+      url.startsWith("/public/") || // ✅ Public POS endpoints (activate, etc.)
       url === "/auth/login" ||
       url.startsWith("/admin/auth/") || // Admin-Auth-Routes (login, forgot-password, reset-password)
       url.startsWith("/portal/") || // Portal-API (Portal-JWT)
@@ -114,7 +115,7 @@ export async function buildServer() {
   // ---------------------------------------------------------------------------
   await registerHealthRoute(app);
   await registerAuthRoutes(app);
-  
+
   // Debug-Routen (nur Development)
   if (env.NODE_ENV === "development") {
     await registerDebugDbRoutes(app);
@@ -129,9 +130,9 @@ export async function buildServer() {
   await registerPortalDataRoutes(app);
   await registerPortalTrialLicenseRoutes(app);
   await registerPortalSupportRoutes(app);
-  await registerPortalUpgradeRoutes(app);    // Upgrade + PayPal
-  await registerPortalLicensesRoutes(app);   // "Meine Lizenzen" (Portal-Liste)
-  await registerPortalInvoiceRoutes(app);    // Invoice-Details
+  await registerPortalUpgradeRoutes(app); // Upgrade + PayPal
+  await registerPortalLicensesRoutes(app); // "Meine Lizenzen" (Portal-Liste)
+  await registerPortalInvoiceRoutes(app); // Invoice-Details
 
   // ---------------------------------------------------------------------------
   // Admin-Auth (neues Admin-Auth-System)
