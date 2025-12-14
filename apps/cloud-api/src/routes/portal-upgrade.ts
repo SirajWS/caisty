@@ -9,7 +9,7 @@ import { subscriptions } from "../db/schema/subscriptions.js";
 import { invoices } from "../db/schema/invoices.js";
 import { licenses } from "../db/schema/licenses.js";
 import { licenseEvents } from "../db/schema/licenseEvents.js";
-import { notifications } from "../db/schema/notifications.js";
+import { notificationService } from "../billing/NotificationService.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 import { generateLicenseKey } from "../lib/licenseKey.js";
 import { getPlanPrice, type Currency } from "../config/pricing.js";
@@ -44,12 +44,17 @@ import { PayPalProvider } from "../billing/providers/paypal/PayPalProvider.js";
 
 // Hier läuft die Cloud-API (Fastify)
 const PUBLIC_API_BASE_URL =
-  process.env.PUBLIC_API_BASE_URL ?? "http://127.0.0.1:3333";
+  process.env.PUBLIC_API_BASE_URL ?? 
+  (process.env.NODE_ENV === "production"
+    ? "https://api.caisty.com"
+    : "http://localhost:3333");
 
 // Hier läuft das Portal (Vite dev oder später das echte Frontend)
-// z.B. DEV: http://localhost:5175 (caisty-site, nicht cloud-admin!)
-const PORTAL_BASE_URL =
-  process.env.PORTAL_BASE_URL ?? "http://localhost:5175";
+// DEV: http://localhost:5173 (caisty-site, Kundenportal)
+// PROD: https://www.caisty.com
+// WICHTIG: Verwende ENV.PORTAL_BASE_URL (hat automatische Korrektur für 5175)
+import { ENV } from "../config/env.js";
+const PORTAL_BASE_URL = ENV.PORTAL_BASE_URL;
 
 // PayPal Provider instance for capture
 const paypalProvider = new PayPalProvider();
@@ -82,7 +87,7 @@ type StartUpgradeResponse = {
     currency: string;
     status: string;
     issuedAt: string;
-    dueAt: string;
+    dueAt: string | null;
   };
   // PayPal-spezifisch
   redirectUrl?: string;
@@ -268,25 +273,25 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
         }
 
         // Notification für neue Subscription
-        await db.insert(notifications).values({
+        await notificationService.notifySubscriptionCreated({
           orgId: customer.orgId,
-          type: "portal_subscription_created",
-          title: "Neue Subscription erstellt",
-          body: `Kunde ${customer.name || customer.email || customerId} hat eine ${plan}-Subscription gestartet`,
           customerId,
-          data: {
-            subscriptionId: sub.id,
-            plan,
-            priceCents: monthlyPriceCents,
-            currency,
-          },
+          customerName: customer.name || customer.email || undefined,
+          subscriptionId: sub.id,
+          plan,
+          priceCents: monthlyPriceCents,
+          currency,
         });
 
         // 2) Invoice
         const amountCents = monthlyPriceCents;
         const invoiceNumber = await generateInvoiceNumber();
         const issuedAt = now;
-        const dueAt = addDays(now, 14);
+        const planName = plan === "starter" ? "Starter" : plan === "pro" ? "Pro" : plan;
+        
+        // Fälligkeitsdatum nur setzen bei "open" Status (nicht bei "paid")
+        const invoiceStatus = "open";
+        const dueAt = invoiceStatus === "open" ? addDays(now, 14) : null;
 
         const [inv] = await db
           .insert(invoices)
@@ -297,9 +302,13 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
             number: invoiceNumber,
             amountCents,
             currency: currency,
-            status: "open",
+            status: invoiceStatus,
             issuedAt,
-            dueAt,
+            dueAt: dueAt, // Nur bei "open" Status, sonst null
+            provider: "paypal", // Legacy route nutzt nur PayPal
+            providerEnv: "test", // TODO: aus ENV lesen
+            planName: planName,
+            paymentMethod: "paypal",
           } as any)
           .returning();
 
@@ -348,7 +357,7 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
             currency: String(inv.currency ?? "EUR"),
             status: String(inv.status),
             issuedAt: issuedAt.toISOString(),
-            dueAt: dueAt.toISOString(),
+            dueAt: inv.dueAt ? new Date(inv.dueAt).toISOString() : null,
           },
           redirectUrl,
           paypalOrderId,
@@ -393,12 +402,17 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
     }
 
     try {
-      const ok = await paypalProvider.captureOrder(token);
-      if (ok) {
+      const captureResult = await paypalProvider.captureOrder(token);
+      if (captureResult.success) {
         // 1) Invoice auf "paid"
         await db
           .update(invoices as any)
-          .set({ status: "paid" } as any)
+          .set({ 
+            status: "paid",
+            paidAt: new Date(),
+            dueAt: null, // Bei bezahlten Rechnungen kein Fälligkeitsdatum
+            providerRef: token, // PayPal orderId (token ist die orderId)
+          } as any)
           .where(eq(invoices.id as any, invoiceId as any));
 
         // 2) Invoice + Subscription + Customer aus DB holen
@@ -492,21 +506,27 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
                 });
 
                 // Notification für erfolgreiche Zahlung und Lizenz-Erstellung
-                await db.insert(notifications).values({
+                await notificationService.notifyPayPalPaymentCompleted({
                   orgId: String(inv.orgId),
-                  type: "portal_payment_success",
-                  title: "Zahlung erfolgreich - Lizenz erstellt",
-                  body: `${customerName} hat erfolgreich für ${sub?.plan ?? "starter"}-Plan gezahlt. Lizenz ${createdLicense.key} wurde erstellt.`,
-                  customerId: inv.customerId ? String(inv.customerId) : null,
+                  customerId: inv.customerId ? String(inv.customerId) : undefined,
+                  invoiceId: String(inv.id),
+                  invoiceNumber: inv.number,
+                  orderId: token, // PayPal orderId
+                  amountCents: inv.amountCents,
+                  currency: inv.currency || "EUR",
                   licenseId: createdLicense.id,
-                  data: {
-                    invoiceId: String(inv.id),
-                    subscriptionId: inv.subscriptionId ? String(inv.subscriptionId) : null,
-                    plan: sub?.plan ?? "starter",
-                    licenseKey: createdLicense.key,
-                    amountCents: inv.amountCents,
-                    currency: inv.currency,
-                  },
+                });
+                
+                // Zusätzliche Notification für Lizenz-Erstellung
+                await notificationService.notifyLicenseCreated({
+                  orgId: String(inv.orgId),
+                  customerId: inv.customerId ? String(inv.customerId) : undefined,
+                  licenseId: createdLicense.id,
+                  licenseKey: createdLicense.key,
+                  plan: sub?.plan ?? "starter",
+                  source: "portal_payment",
+                  invoiceId: inv.id ? String(inv.id) : undefined,
+                  subscriptionId: inv.subscriptionId ? String(inv.subscriptionId) : undefined,
                 });
               }
 

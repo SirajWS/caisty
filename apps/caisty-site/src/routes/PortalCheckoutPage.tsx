@@ -3,7 +3,7 @@ import React from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { PRICING, formatPrice } from "../config/pricing";
 import { useCurrency } from "../lib/useCurrency";
-import { startPortalUpgrade } from "../lib/portalApi";
+import { getStoredPortalToken } from "../lib/portalApi";
 
 type PaymentMethod = "paypal" | "card";
 
@@ -38,21 +38,71 @@ const PortalCheckoutPage: React.FC = () => {
     : "Für Betriebe mit mehreren Kassen oder kleinen Filialketten. Mehrere Geräte unter einer Lizenz, erweiterte Auswertungen (geplant), priorisierter Support.";
 
   async function handlePayment() {
-    if (selectedPaymentMethod === "card") {
-      // Mastercard/Visa ist noch nicht verfügbar
-      setError("Kartenzahlung ist derzeit noch nicht verfügbar. Bitte wähle PayPal.");
-      return;
-    }
-
     try {
       setError(null);
       setProcessing(true);
 
-      const res = await startPortalUpgrade(plan);
+      // Neue Billing-API verwenden (unterstützt PayPal + Stripe)
+      const provider = selectedPaymentMethod === "card" ? "stripe" : "paypal";
+      
+      const token = getStoredPortalToken();
+      if (!token) {
+        setError("Nicht angemeldet. Bitte melde dich erneut an.");
+        navigate("/login");
+        return;
+      }
 
-      // Falls PayPal-Redirect vorhanden → direkt weiter
-      if (res.redirectUrl) {
-        window.location.href = res.redirectUrl;
+      const API_BASE = import.meta.env.VITE_CLOUD_API_URL || 
+        (import.meta.env.DEV ? "http://localhost:3333" : "https://api.caisty.com");
+
+      // Portal Base URL: Im Development IMMER Port 5173 (Kundenportal), nie 5175 (Admin)
+      const getPortalBaseUrl = () => {
+        if (import.meta.env.DEV) {
+          // Development: Force Port 5173 (Kundenportal)
+          return "http://localhost:5173";
+        }
+        // Production: Use window.location.origin or env var
+        return import.meta.env.VITE_PORTAL_BASE_URL || window.location.origin;
+      };
+
+      const portalBaseUrl = getPortalBaseUrl();
+
+      const checkoutRes = await fetch(`${API_BASE}/api/billing/checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "Idempotency-Key": `checkout:${plan}:${provider}:${Date.now()}`,
+        },
+        body: JSON.stringify({
+          provider,
+          planId: `${plan}_monthly`,
+          returnUrl: `${portalBaseUrl}/portal/checkout/success`,
+          cancelUrl: `${portalBaseUrl}/portal/checkout/cancel`,
+          currency: currency,
+        }),
+      });
+
+      if (checkoutRes.status === 401) {
+        setError("Nicht angemeldet. Bitte melde dich erneut an.");
+        navigate("/login");
+        return;
+      }
+
+      const checkoutData = await checkoutRes.json();
+
+      if (!checkoutRes.ok || !checkoutData.ok) {
+        throw new Error(checkoutData.message ?? "Checkout konnte nicht gestartet werden.");
+      }
+
+      // Store invoiceId for success page
+      if (checkoutData.invoiceId) {
+        sessionStorage.setItem("pendingInvoiceId", checkoutData.invoiceId);
+      }
+
+      // Redirect zur Checkout-URL (PayPal oder Stripe)
+      if (checkoutData.checkoutUrl) {
+        window.location.href = checkoutData.checkoutUrl;
         return;
       }
 
@@ -181,10 +231,11 @@ const PortalCheckoutPage: React.FC = () => {
                 <div className="text-2xl">💳</div>
               </label>
 
-              {/* Mastercard / Visa (Coming Soon) */}
-              <label className="flex items-start gap-3 p-4 rounded-xl border-2 cursor-not-allowed opacity-60"
+              {/* Mastercard / Visa */}
+              <label className="flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors hover:bg-slate-800/50"
                 style={{
-                  borderColor: "#334155",
+                  borderColor: selectedPaymentMethod === "card" ? "#10b981" : "#334155",
+                  backgroundColor: selectedPaymentMethod === "card" ? "rgba(16, 185, 129, 0.1)" : "transparent",
                 }}
               >
                 <input
@@ -192,22 +243,21 @@ const PortalCheckoutPage: React.FC = () => {
                   name="paymentMethod"
                   value="card"
                   checked={selectedPaymentMethod === "card"}
-                  onChange={() => {}}
-                  disabled
-                  className="mt-1 h-4 w-4 text-slate-500"
+                  onChange={(e) => setSelectedPaymentMethod(e.target.value as PaymentMethod)}
+                  className="mt-1 h-4 w-4 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-2"
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-semibold text-slate-400">Kreditkarte</span>
-                    <span className="inline-flex items-center rounded-full bg-slate-700 border border-slate-600 px-2 py-0.5 text-[10px] font-medium text-slate-400">
-                      Coming Soon
+                    <span className="text-sm font-semibold text-slate-50">Kreditkarte</span>
+                    <span className="inline-flex items-center rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
+                      Verfügbar
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500">
-                    Mastercard & Visa – in Kürze verfügbar
+                  <p className="text-xs text-slate-400">
+                    Mastercard & Visa – sicher bezahlen
                   </p>
                 </div>
-                <div className="text-2xl opacity-50">💳</div>
+                <div className="text-2xl">💳</div>
               </label>
             </div>
           </section>
@@ -250,14 +300,14 @@ const PortalCheckoutPage: React.FC = () => {
             <button
               type="button"
               onClick={handlePayment}
-              disabled={processing || selectedPaymentMethod === "card"}
+              disabled={processing}
               className="w-full inline-flex items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
             >
               {processing
                 ? "Wird verarbeitet…"
                 : selectedPaymentMethod === "paypal"
                   ? "Mit PayPal bezahlen"
-                  : "Zahlungsmethode wählen"}
+                  : "Mit Kreditkarte bezahlen"}
             </button>
 
             <p className="text-[11px] text-slate-500 text-center">

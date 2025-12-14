@@ -1,8 +1,10 @@
 // apps/caisty-site/src/lib/portalApi.ts
 
 // Basis-URL für das Portal-Backend
-// Prod: https://api.caisty.com
-const RAW_API_BASE = import.meta.env.VITE_CLOUD_API_URL || "https://api.caisty.com";
+// Development: http://localhost:3333
+// Production: https://api.caisty.com
+const RAW_API_BASE = import.meta.env.VITE_CLOUD_API_URL || 
+  (import.meta.env.DEV ? "http://localhost:3333" : "https://api.caisty.com");
 
 // alle Trailing-Slashes entfernen
 const API_BASE = RAW_API_BASE.replace(/\/+$/, "");

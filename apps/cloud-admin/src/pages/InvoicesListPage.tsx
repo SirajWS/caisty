@@ -1,7 +1,7 @@
 // apps/cloud-admin/src/pages/InvoicesListPage.tsx
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiGet } from "../lib/api";
+import { apiGet, apiDelete } from "../lib/api";
 import { formatDateTime, formatMoney } from "../lib/format";
 import { useTheme, themeColors } from "../theme/ThemeContext";
 
@@ -31,6 +31,7 @@ export default function InvoicesListPage() {
   const [data, setData] = useState<InvoicesResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -167,6 +168,7 @@ export default function InvoicesListPage() {
                         display: "flex",
                         alignItems: "center",
                         gap: 8,
+                        flexWrap: "wrap",
                       }}
                     >
                       <button
@@ -259,6 +261,54 @@ export default function InvoicesListPage() {
                       >
                         📥 PDF
                       </button>
+                      {/* Delete-Button für Invoice (nur open/cancelled) */}
+                      {["open", "cancelled", "canceled", "draft"].includes(
+                        inv.status?.toLowerCase() || ""
+                      ) && (
+                        <button
+                          onClick={async () => {
+                            if (
+                              !confirm(
+                                `Möchten Sie die Rechnung "${inv.number}" (Status: ${inv.status}) wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
+                              )
+                            ) {
+                              return;
+                            }
+                            setDeleteBusyId(inv.id);
+                            try {
+                              const result = await apiDelete<{ ok: boolean; message?: string; error?: string }>(
+                                `/invoices/${inv.id}`
+                              );
+                              if (!result.ok) {
+                                throw new Error(result.error || "Fehler beim Löschen");
+                              }
+                              // Liste neu laden
+                              const data = await apiGet<InvoicesResponse>("/invoices?limit=50&offset=0");
+                              setData(data);
+                            } catch (err: any) {
+                              console.error("Error deleting invoice", err);
+                              alert(err?.message || "Fehler beim Löschen der Rechnung.");
+                            } finally {
+                              setDeleteBusyId(null);
+                            }
+                          }}
+                          disabled={deleteBusyId === inv.id}
+                          style={{
+                            background: colors.error,
+                            color: theme === "dark" ? "#fee2e2" : "#ffffff",
+                            border: "none",
+                            borderRadius: 4,
+                            padding: "4px 8px",
+                            fontSize: 11,
+                            cursor: deleteBusyId === inv.id ? "wait" : "pointer",
+                            opacity: deleteBusyId === inv.id ? 0.6 : 1,
+                            transition: "opacity 0.2s",
+                          }}
+                          title="Rechnung löschen (nur open/cancelled)"
+                        >
+                          {deleteBusyId === inv.id ? "..." : "🗑️"}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

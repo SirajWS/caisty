@@ -21,6 +21,8 @@ import PortalAccountPage from "./routes/PortalAccountPage";
 import PortalInstallPage from "./routes/PortalInstallPage"; // Install-Seite
 import PortalPlanBillingPage from "./routes/PortalPlanBillingPage"; // Plan & Abrechnung
 import PortalCheckoutPage from "./routes/PortalCheckoutPage"; // Checkout & Zahlung
+import PortalCheckoutSuccessPage from "./routes/PortalCheckoutSuccessPage"; // Checkout Success
+import PortalCheckoutCancelPage from "./routes/PortalCheckoutCancelPage"; // Checkout Cancel
 import PortalLoginSuccessPage from "./routes/PortalLoginSuccessPage"; // Google OAuth Success
 import PortalSupportPage from "./routes/PortalSupportPage"; // Support / Kontakt
 import PortalUpgradeResultPage from "./routes/PortalUpgradeResultPage"; // ⬅️ NEU
@@ -51,6 +53,8 @@ export default function App() {
           <Route path="licenses" element={<PortalLicensesPage />} />
           <Route path="plan" element={<PortalPlanBillingPage />} />
           <Route path="checkout" element={<PortalCheckoutPage />} />
+          <Route path="checkout/success" element={<PortalCheckoutSuccessPage />} />
+          <Route path="checkout/cancel" element={<PortalCheckoutCancelPage />} />
           <Route path="devices" element={<PortalDevicesPage />} />
           <Route path="invoices" element={<PortalInvoicesPage />} />
           <Route path="invoices/:id" element={<PortalInvoiceDetailPage />} />

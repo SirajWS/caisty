@@ -1,0 +1,55 @@
+[35mapps/caisty-site/src/lib/portalApi.ts[m[36m:[m[32m461[m[36m:[m  [1;31mredirect[mUrl?: string;
+[35mapps/caisty-site/src/routes/LoginPage.tsx[m[36m:[m[32m169[m[36m:[m            const base = getGoogleAuthUrl(); // z.B. https://api.[1;31mcaisty.com/portal[m/auth/google
+[35mapps/caisty-site/src/routes/PortalCheckoutPage.tsx[m[36m:[m[32m25[m[36m:[m      navigate("[1;31m/portal/plan[m", { replace: true });
+[35mapps/caisty-site/src/routes/PortalCheckoutPage.tsx[m[36m:[m[32m54[m[36m:[m      if (res.[1;31mredirect[mUrl) {
+[35mapps/caisty-site/src/routes/PortalCheckoutPage.tsx[m[36m:[m[32m55[m[36m:[m        window.location.href = res.[1;31mredirect[mUrl;
+[35mapps/caisty-site/src/routes/PortalCheckoutPage.tsx[m[36m:[m[32m59[m[36m:[m      // Fallback: kein [1;31mredirect[mUrl → Nutzer zu Rechnungen schicken
+[35mapps/caisty-site/src/routes/PortalCheckoutPage.tsx[m[36m:[m[32m83[m[36m:[m            to="[1;31m/portal/plan[m"
+[35mapps/caisty-site/src/routes/PortalLayout.tsx[m[36m:[m[32m149[m[36m:[m              <PortalNavLink to="[1;31m/portal/plan[m">Pläne</PortalNavLink>
+[35mapps/caisty-site/src/routes/PortalLayout.tsx[m[36m:[m[32m220[m[36m:[m                  <PortalNavLink to="[1;31m/portal/plan[m">Pläne</PortalNavLink>
+[35mapps/caisty-site/src/routes/PortalLicensesPage.tsx[m[36m:[m[32m106[m[36m:[m            to="[1;31m/portal/plan[m"
+[35mapps/caisty-site/src/routes/PortalLicensesPage.tsx[m[36m:[m[32m297[m[36m:[m          to="[1;31m/portal/plan[m"
+[35mapps/caisty-site/src/routes/PortalUpgradeResultPage.tsx[m[36m:[m[32m111[m[36m:[m          to="[1;31m/portal/plan[m"
+[35mapps/caisty-site/src/routes/RegisterPage.tsx[m[36m:[m[32m177[m[36m:[m            const base = getGoogleAuthUrl(); // z.B. https://api.[1;31mcaisty.com/portal[m/auth/google
+[35mapps/cloud-api/src/billing/providers/paypal/PayPalProvider.ts[m[36m:[m[32m101[m[36m:[m          return_url: req.[1;31mreturnUrl[m,
+[35mapps/cloud-api/src/billing/types.ts[m[36m:[m[32m11[m[36m:[m  [1;31mreturnUrl[m: string;
+[35mapps/cloud-api/src/config/env.ts[m[36m:[m[32m23[m[36m:[m  [1;31mPORTAL_BASE_URL[m: process.env.[1;31mPORTAL_BASE_URL[m ?? "http://localhost:5175",
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m28[m[36m:[mconst [1;31mPORTAL_BASE_URL[m = ENV.[1;31mPORTAL_BASE_URL[m;
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m49[m[36m:[m      [1;31mredirect[m_uri: GOOGLE_REDIRECT_URI,
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m101[m[36m:[m      [1;31mredirect[mUri: GOOGLE_REDIRECT_URI,
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m102[m[36m:[m      portalBaseUrl: [1;31mPORTAL_BASE_URL[m,
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m105[m[36m:[m    // Warnung, wenn [1;31mPORTAL_BASE_URL[m auf Admin-Port zeigt
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m106[m[36m:[m    if ([1;31mPORTAL_BASE_URL[m.includes("5173") || [1;31mPORTAL_BASE_URL[m.includes("admin")) {
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m107[m[36m:[m      app.log.warn({ portalBaseUrl: [1;31mPORTAL_BASE_URL[m }, "⚠️ [1;31mPORTAL_BASE_URL[m zeigt auf Admin-Port! Sollte auf Port 5175 (Kundenportal) zeigen.");
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m129[m[36m:[m      [1;31mredirect[m_uri: GOOGLE_REDIRECT_URI,
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m139[m[36m:[m    reply.[1;31mredirect[m(googleAuthUrl);
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m148[m[36m:[m    const [1;31mredirect[mPage = state === "register" ? "register" : "login";
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m151[m[36m:[m      reply.[1;31mredirect[m(`${[1;31mPORTAL_BASE_URL[m}/${[1;31mredirect[mPage}?error=google_auth_failed`);
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m156[m[36m:[m      reply.[1;31mredirect[m(`${[1;31mPORTAL_BASE_URL[m}/${[1;31mredirect[mPage}?error=missing_code`);
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m169[m[36m:[m        reply.[1;31mredirect[m(`${[1;31mPORTAL_BASE_URL[m}/${[1;31mredirect[mPage}?error=email_not_verified`);
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m204[m[36m:[m        reply.[1;31mredirect[m(`${[1;31mPORTAL_BASE_URL[m}/portal/login/success?token=${encodeURIComponent(token)}`);
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m257[m[36m:[m        reply.[1;31mredirect[m(`${[1;31mPORTAL_BASE_URL[m}/portal/login/success?token=${encodeURIComponent(token)}`);
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m304[m[36m:[m      reply.[1;31mredirect[m(`${[1;31mPORTAL_BASE_URL[m}/portal/login/success?token=${encodeURIComponent(token)}`);
+[35mapps/cloud-api/src/routes/portal-google-auth.ts[m[36m:[m[32m331[m[36m:[m      reply.[1;31mredirect[m(`${[1;31mPORTAL_BASE_URL[m}/${[1;31mredirect[mPage}?error=${errorParam}`);
+[35mapps/cloud-api/src/routes/portal-password-reset.ts[m[36m:[m[32m12[m[36m:[mconst [1;31mPORTAL_BASE_URL[m = ENV.[1;31mPORTAL_BASE_URL[m;
+[35mapps/cloud-api/src/routes/portal-password-reset.ts[m[36m:[m[32m96[m[36m:[m      const resetLink = `${[1;31mPORTAL_BASE_URL[m}/reset-password?token=${resetToken}`;
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m46[m[36m:[mconst [1;31mPUBLIC_API_BASE_URL[m =
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m47[m[36m:[m  process.env.[1;31mPUBLIC_API_BASE_URL[m ?? "http://127.0.0.1:3333";
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m51[m[36m:[mconst [1;31mPORTAL_BASE_URL[m =
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m52[m[36m:[m  process.env.[1;31mPORTAL_BASE_URL[m ?? "http://localhost:5175";
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m88[m[36m:[m  [1;31mredirect[mUrl?: string;
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m311[m[36m:[m        const [1;31mreturnUrl[m = `${[1;31mPUBLIC_API_BASE_URL[m}/portal/upgrade/paypal-return?invoiceId=${encodeURIComponent(
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m314[m[36m:[m        const cancelUrl = `${[1;31mPUBLIC_API_BASE_URL[m}/portal/upgrade/paypal-cancel?invoiceId=${encodeURIComponent(
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m318[m[36m:[m        let [1;31mredirect[mUrl: string | undefined;
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m325[m[36m:[m            [1;31mreturnUrl[m,
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m330[m[36m:[m          [1;31mredirect[mUrl = checkoutResult.checkoutUrl;
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m334[m[36m:[m          // [1;31mredirect[mUrl bleibt undefined → Frontend kann zu /portal/invoices schicken
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m353[m[36m:[m          [1;31mredirect[mUrl,
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m556[m[36m:[m        const location = `${[1;31mPORTAL_BASE_URL[m}/portal/upgrade/result?status=success&invoiceId=${encodeURIComponent(
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m559[m[36m:[m        reply.[1;31mredirect[m(location);
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m563[m[36m:[m      const location = `${[1;31mPORTAL_BASE_URL[m}/portal/upgrade/result?status=failed&invoiceId=${encodeURIComponent(
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m566[m[36m:[m      reply.[1;31mredirect[m(location);
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m569[m[36m:[m      const location = `${[1;31mPORTAL_BASE_URL[m}/portal/upgrade/result?status=failed&invoiceId=${encodeURIComponent(
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m572[m[36m:[m      reply.[1;31mredirect[m(location);
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m602[m[36m:[m    const location = `${[1;31mPORTAL_BASE_URL[m}/portal/upgrade/result?status=cancelled${
+[35mapps/cloud-api/src/routes/portal-upgrade.ts[m[36m:[m[32m605[m[36m:[m    reply.[1;31mredirect[m(location);

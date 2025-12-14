@@ -154,7 +154,7 @@ export async function registerAdminAuthRoutes(app: FastifyInstance) {
       });
 
       // Admin-Reset-Link nutzt eigene Basis-URL (ADMIN_BASE_URL)
-      const adminBaseUrl = env.ADMIN_BASE_URL || "http://localhost:5173";
+      const adminBaseUrl = env.ADMIN_BASE_URL || "http://localhost:5175";
       const resetLink = `${adminBaseUrl}/reset-password?token=${encodeURIComponent(token)}`;
       
       app.log.info({ email, resetLink, tokenHash: tokenHash.substring(0, 8) + "..." }, "Admin password reset link generated");

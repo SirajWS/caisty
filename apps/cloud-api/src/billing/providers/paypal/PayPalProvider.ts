@@ -94,6 +94,9 @@ export class PayPalProvider implements PaymentProvider {
               value: priceStr,
             },
             description: `${planId} - ${period}`,
+            // Store invoiceId in custom_id for later retrieval
+            custom_id: req.metadata?.invoiceId || "",
+            reference_id: req.metadata?.invoiceId || "",
           },
         ],
         application_context: {
@@ -133,16 +136,39 @@ export class PayPalProvider implements PaymentProvider {
 
   /**
    * Captures a PayPal order (used after user approves payment)
-   * DEV-Bypass: If orderId starts with "DEV_", returns true immediately
+   * DEV-Bypass: If orderId starts with "DEV_", returns success immediately
+   * Returns order details including custom_id (invoiceId)
    */
-  async captureOrder(orderId: string): Promise<boolean> {
+  async captureOrder(orderId: string): Promise<{ success: boolean; invoiceId?: string }> {
     // DEV-Bypass: ermöglicht lokale Tests ohne echtes PayPal-Capture
     if (orderId.startsWith("DEV_")) {
-      return true;
+      return { success: true, invoiceId: orderId.replace("DEV_", "") };
     }
 
     const accessToken = await this.getAccessToken();
 
+    // First, get order details to extract custom_id (invoiceId)
+    const orderRes = await fetch(
+      `${this.baseUrl}/v2/checkout/orders/${orderId}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    let invoiceId: string | undefined;
+    if (orderRes.ok) {
+      const orderData = (await orderRes.json()) as any;
+      // Extract invoiceId from custom_id or reference_id
+      invoiceId = orderData.purchase_units?.[0]?.custom_id || 
+                   orderData.purchase_units?.[0]?.reference_id ||
+                   orderData.purchase_units?.[0]?.invoice_id;
+    }
+
+    // Now capture the order
     const res = await fetch(
       `${this.baseUrl}/v2/checkout/orders/${orderId}/capture`,
       {
@@ -162,7 +188,10 @@ export class PayPalProvider implements PaymentProvider {
     }
 
     const data = (await res.json()) as any;
-    return data.status === "COMPLETED";
+    return {
+      success: data.status === "COMPLETED",
+      invoiceId: invoiceId || data.purchase_units?.[0]?.custom_id || data.purchase_units?.[0]?.reference_id,
+    };
   }
 
   /* =========================
@@ -173,7 +202,7 @@ export class PayPalProvider implements PaymentProvider {
     rawBody: string,
     headers: Record<string, string | string[] | undefined>
   ): Promise<WebhookHandleResult> {
-    // TODO: Signature verification (Phase 2.5)
+    // TODO: Signature verification (später)
     // For now, we trust the webhook
 
     let eventData: any;
@@ -198,13 +227,34 @@ export class PayPalProvider implements PaymentProvider {
       };
     }
 
-    // Webhook will be persisted by the webhook route handler
-    // We just return the event info for processing
-    return {
-      ok: true,
-      status: "processed",
-      providerEventId: eventId,
-      message: `PayPal event ${eventType} received`,
-    };
+    // Verarbeite das Event mit WebhookProcessor
+    try {
+      const { WebhookProcessor } = await import("../../WebhookProcessor.js");
+      const processor = new WebhookProcessor();
+      const result = await processor.processPayPalEvent(eventType, eventData);
+
+      if (!result.success) {
+        return {
+          ok: false,
+          status: "failed",
+          message: result.message,
+          providerEventId: eventId,
+        };
+      }
+
+      return {
+        ok: true,
+        status: "processed",
+        providerEventId: eventId,
+        message: result.message,
+      };
+    } catch (err: any) {
+      return {
+        ok: false,
+        status: "failed",
+        message: `Error processing webhook: ${err?.message || "Unknown error"}`,
+        providerEventId: eventId,
+      };
+    }
   }
 }

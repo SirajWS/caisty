@@ -220,9 +220,20 @@ export function renderInvoiceHtml(
           <div style="margin-bottom: 8px;">
             <strong>Ausgestellt am:</strong> ${issuedAt}
           </div>
-          ${dueAt ? `<div><strong>Fällig am:</strong> ${dueAt}</div>` : ""}
+          ${invoice.status !== "paid" && dueAt ? `<div style="margin-bottom: 8px;"><strong>Fällig am:</strong> ${dueAt}</div>` : ""}
+          ${invoice.paidAt ? `<div style="margin-bottom: 8px;"><strong>Bezahlt am:</strong> ${new Date(invoice.paidAt).toLocaleDateString("de-DE", { year: "numeric", month: "long", day: "numeric" })}</div>` : ""}
         </div>
       </div>
+      ${invoice.planName || invoice.provider || invoice.paymentMethod || invoice.providerRef ? `
+      <div class="section" style="margin-top: 20px;">
+        <div class="section-title">Zahlungsinformationen</div>
+        <div class="section-content" style="margin-top: 12px;">
+          ${invoice.planName ? `<div style="margin-bottom: 8px;"><strong>Plan:</strong> Caisty ${invoice.planName}</div>` : ""}
+          ${invoice.paymentMethod ? `<div style="margin-bottom: 8px;"><strong>Zahlungsart:</strong> ${invoice.paymentMethod === "paypal" ? "PayPal" : invoice.paymentMethod === "card" ? "Kreditkarte (Visa/Mastercard)" : invoice.paymentMethod}</div>` : ""}
+          ${invoice.providerRef ? `<div style="margin-bottom: 8px;"><strong>Transaktions-ID:</strong> <code style="font-size: 11px; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-family: monospace;">${invoice.providerRef}</code></div>` : ""}
+        </div>
+      </div>
+      ` : ""}
     </div>
   </div>
 
@@ -235,7 +246,7 @@ export function renderInvoiceHtml(
     </thead>
     <tbody>
       <tr>
-        <td>Caisty POS Lizenz – Monatliche Abrechnung</td>
+        <td>${invoice.planName ? `Caisty ${invoice.planName} Lizenz` : "Caisty POS Lizenz"} – Monatliche Abrechnung</td>
         <td class="text-right">${amount} ${invoice.currency ?? "EUR"}</td>
       </tr>
       <tr class="total-row">
@@ -262,3 +273,4 @@ export function renderInvoiceHtml(
 </body>
 </html>`;
 }
+

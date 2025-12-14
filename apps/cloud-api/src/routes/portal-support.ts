@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 
-import { addSupportNotification } from "../lib/admin-notifications-store.js";
+import { notificationService } from "../billing/NotificationService.js";
 import { db } from "../db/client";
 import { customers } from "../db/schema";
 
@@ -168,8 +168,9 @@ export async function registerPortalSupportRoutes(app: FastifyInstance) {
 
       SUPPORT_MESSAGES.push(stored);
 
-      // Admin-Notification inkl. supportMessageId erzeugen
-      addSupportNotification({
+      // Admin-Notification inkl. supportMessageId erzeugen (in DB speichern)
+      await notificationService.notifySupportMessage({
+        orgId: customer.orgId!,
         customerId: customer.id,
         customerName: customer.name,
         customerEmail: customer.email,

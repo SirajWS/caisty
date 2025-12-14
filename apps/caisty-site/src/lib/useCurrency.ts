@@ -12,13 +12,7 @@ function detectCurrency(): Currency {
     return stored;
   }
 
-  // Auto-Detection: Wenn Sprache arabisch oder französisch + Tunesien → TND
-  const lang = navigator.language.toLowerCase();
-  if (lang.startsWith("ar") || (lang.startsWith("fr") && lang.includes("tn"))) {
-    return "TND";
-  }
-
-  // Default: EUR
+  // Standard: Immer EUR (Auto-Detection deaktiviert)
   return "EUR";
 }
 
@@ -31,9 +25,14 @@ export function useCurrency() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(CURRENCY_STORAGE_KEY);
-      if (stored === "EUR" || stored === "TND") {
-        setCurrency(stored);
+      // Wenn TND gespeichert ist, auf EUR zurücksetzen
+      if (stored === "TND") {
+        localStorage.setItem(CURRENCY_STORAGE_KEY, "EUR");
+        setCurrency("EUR");
+      } else if (stored === "EUR") {
+        setCurrency("EUR");
       }
+      // Wenn nichts gespeichert ist, bleibt EUR (Standard)
     }
   }, []);
 

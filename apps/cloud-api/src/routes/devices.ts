@@ -1,8 +1,8 @@
 import type { FastifyInstance } from "fastify";
-import { db } from "../db/client";
-import { devices } from "../db/schema/devices";
-import { licenses } from "../db/schema/licenses";
-import { customers } from "../db/schema/customers";
+import { db } from "../db/client.js";
+import { devices } from "../db/schema/devices.js";
+import { licenses } from "../db/schema/licenses.js";
+import { customers } from "../db/schema/customers.js";
 import { desc, eq } from "drizzle-orm";
 
 export async function registerDevicesRoutes(app: FastifyInstance) {
@@ -36,36 +36,48 @@ export async function registerDevicesRoutes(app: FastifyInstance) {
       .from(devices)
       .leftJoin(licenses, eq(devices.licenseId, licenses.id))
       .leftJoin(customers, eq(devices.customerId, customers.id))
-      .where(orgId ? eq(devices.orgId, orgId) : undefined)
       .orderBy(desc(devices.createdAt))
       .limit(500);
 
+    // Safe date conversion helper
+    const safeDate = (date: any): string | null => {
+      if (!date) return null;
+      try {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return null;
+        return d.toISOString();
+      } catch {
+        return null;
+      }
+    };
+
     // Gruppieren nach Fingerprint (oder id, falls fingerprint null)
     const grouped = Object.values(
-      rows.reduce((acc, row) => {
+      rows.reduce((acc: Record<string, any>, row: any) => {
         const key = row.fingerprint || row.id;
+        if (!key) return acc; // Skip rows without key
         if (!acc[key]) {
           acc[key] = {
-            fingerprint: row.fingerprint,
-            id: row.id,
-            name: row.name,
-            type: row.type,
-            status: row.status,
-            customerId: row.customerId,
-            customerName: row.customerName,
-            lastSeenAt: row.lastSeenAt,
-            lastHeartbeatAt: row.lastHeartbeatAt,
-            createdAt: row.createdAt,
+            fingerprint: row.fingerprint || null,
+            id: String(row.id),
+            name: String(row.name ?? ""),
+            type: String(row.type ?? ""),
+            status: String(row.status ?? ""),
+            customerId: row.customerId ? String(row.customerId) : null,
+            customerName: row.customerName ? String(row.customerName) : null,
+            lastSeenAt: safeDate(row.lastSeenAt),
+            lastHeartbeatAt: safeDate(row.lastHeartbeatAt),
+            createdAt: safeDate(row.createdAt) || new Date().toISOString(),
             licenses: [],
           };
         }
         if (row.licenseId) {
           acc[key].licenses.push({
-            id: row.licenseId,
-            key: row.licenseKey,
-            plan: row.licensePlan,
-            validFrom: row.licenseValidFrom,
-            validUntil: row.licenseValidUntil,
+            id: String(row.licenseId),
+            key: String(row.licenseKey ?? ""),
+            plan: String(row.licensePlan ?? ""),
+            validFrom: safeDate(row.licenseValidFrom),
+            validUntil: safeDate(row.licenseValidUntil),
           });
         }
         return acc;

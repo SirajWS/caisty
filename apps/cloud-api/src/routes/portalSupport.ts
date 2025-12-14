@@ -1,7 +1,10 @@
-// apps/cloud-api/src/routes/portal-support.ts
+// apps/cloud-api/src/routes/portalSupport.ts
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
-import { addSupportNotification } from "../lib/admin-notifications-store.js";
+import { eq } from "drizzle-orm";
+import { db } from "../db/client.js";
+import { customers } from "../db/schema/customers.js";
+import { notificationService } from "../billing/NotificationService.js";
 
 type CreateBody = {
   subject: string;
@@ -65,14 +68,27 @@ export async function registerPortalSupportRoutes(app: FastifyInstance) {
 
     SUPPORT_MESSAGES.push(stored);
 
-    // ⬅️ Admin-Notification erzeugen
-    addSupportNotification({
-      customerId: customer.id,
-      customerName: customer.name,
-      customerEmail: customer.email,
-      subject,
-      message,
-    });
+    // ⬅️ Admin-Notification erzeugen (in DB speichern)
+    if (customer.id !== "unknown") {
+      // Versuche Customer aus DB zu holen für orgId
+      const [dbCustomer] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.id, customer.id))
+        .limit(1);
+      
+      if (dbCustomer?.orgId) {
+        await notificationService.notifySupportMessage({
+          orgId: dbCustomer.orgId,
+          customerId: customer.id,
+          customerName: customer.name,
+          customerEmail: customer.email,
+          subject,
+          message,
+          supportMessageId: stored.id,
+        });
+      }
+    }
 
     const { customerId: _ignore, ...publicMsg } = stored;
     return publicMsg;

@@ -25,7 +25,28 @@ function makeSlug(name: string): string {
 const GOOGLE_CLIENT_ID = ENV.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = ENV.GOOGLE_CLIENT_SECRET;
 const GOOGLE_REDIRECT_URI = ENV.GOOGLE_REDIRECT_URI;
-const PORTAL_BASE_URL = ENV.PORTAL_BASE_URL;
+// FORCE: Stelle sicher, dass PORTAL_BASE_URL auf 5173 zeigt (nicht 5175)
+// HARD FIX: In Development IMMER 5173 verwenden
+const PORTAL_BASE_URL = (() => {
+  // In Development: IMMER 5173 (Kundenportal), nie 5175 (Admin)
+  if (process.env.NODE_ENV !== "production") {
+    const hardcoded = "http://localhost:5173";
+    const envUrl = ENV.PORTAL_BASE_URL;
+    if (envUrl !== hardcoded) {
+      console.error("❌ PORTAL_BASE_URL ist nicht 5173!");
+      console.error("   ENV sagt:", envUrl);
+      console.error("   FORCE: Verwende", hardcoded);
+    }
+    return hardcoded;
+  }
+  // Production: Verwende ENV-Wert
+  const url = ENV.PORTAL_BASE_URL;
+  if (url.includes("5175") || url.includes("admin")) {
+    console.error("❌ CRITICAL: PORTAL_BASE_URL zeigt auf Admin-Port! Force-Setze auf 5173");
+    return "http://localhost:5173";
+  }
+  return url;
+})();
 
 // Node-Fetch Alias
 const nodeFetch: any = (globalThis as any).fetch;
@@ -100,11 +121,15 @@ export async function registerPortalGoogleAuthRoutes(app: FastifyInstance) {
       clientSecretLength: GOOGLE_CLIENT_SECRET.length,
       redirectUri: GOOGLE_REDIRECT_URI,
       portalBaseUrl: PORTAL_BASE_URL,
+      envPortalBaseUrl: ENV.PORTAL_BASE_URL,
+      nodeEnv: process.env.NODE_ENV,
     }, "Google OAuth config check");
     
     // Warnung, wenn PORTAL_BASE_URL auf Admin-Port zeigt
-    if (PORTAL_BASE_URL.includes("5173") || PORTAL_BASE_URL.includes("admin")) {
-      app.log.warn({ portalBaseUrl: PORTAL_BASE_URL }, "⚠️ PORTAL_BASE_URL zeigt auf Admin-Port! Sollte auf Port 5175 (Kundenportal) zeigen.");
+    if (PORTAL_BASE_URL.includes("5175") || PORTAL_BASE_URL.includes("admin")) {
+      app.log.error({ portalBaseUrl: PORTAL_BASE_URL }, "❌ CRITICAL: PORTAL_BASE_URL zeigt auf Admin-Port! Sollte auf Port 5173 (Kundenportal) zeigen.");
+    } else {
+      app.log.info({ portalBaseUrl: PORTAL_BASE_URL }, "✅ PORTAL_BASE_URL ist korrekt (5173)");
     }
 
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
@@ -201,6 +226,8 @@ export async function registerPortalGoogleAuthRoutes(app: FastifyInstance) {
           orgId: customer.orgId!,
         });
 
+        // DEBUG: Log den Redirect-URL
+        app.log.info({ redirectUrl: `${PORTAL_BASE_URL}/portal/login/success?token=...` }, "Redirecting to portal after login");
         reply.redirect(`${PORTAL_BASE_URL}/portal/login/success?token=${encodeURIComponent(token)}`);
         return;
       }
@@ -254,6 +281,8 @@ export async function registerPortalGoogleAuthRoutes(app: FastifyInstance) {
           orgId: existingCustomer.orgId!,
         });
 
+        // DEBUG: Log den Redirect-URL
+        app.log.info({ redirectUrl: `${PORTAL_BASE_URL}/portal/login/success?token=...` }, "Redirecting to portal after linking Google");
         reply.redirect(`${PORTAL_BASE_URL}/portal/login/success?token=${encodeURIComponent(token)}`);
         return;
       }
@@ -301,6 +330,8 @@ export async function registerPortalGoogleAuthRoutes(app: FastifyInstance) {
         orgId: customer.orgId!,
       });
 
+      // DEBUG: Log den Redirect-URL
+      app.log.info({ redirectUrl: `${PORTAL_BASE_URL}/portal/login/success?token=...` }, "Redirecting to portal after registration");
       reply.redirect(`${PORTAL_BASE_URL}/portal/login/success?token=${encodeURIComponent(token)}`);
     } catch (err) {
       // Detailliertes Error-Logging für Debugging

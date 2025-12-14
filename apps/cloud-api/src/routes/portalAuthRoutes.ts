@@ -7,7 +7,7 @@ import { db } from "../db/client.js";
 import { customers } from "../db/schema/customers.js";
 import { orgs } from "../db/schema/orgs.js";
 import { licenses } from "../db/schema/licenses.js";
-import { notifications } from "../db/schema/notifications.js";
+import { notificationService } from "../billing/NotificationService.js";
 import { customerAuthProviders } from "../db/schema/customerAuthProviders.js";
 import { signPortalToken, verifyPortalToken } from "../lib/portalJwt.js";
 
@@ -108,14 +108,11 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
     });
 
     // Notification für Admin: Neues Portal-Konto
-    await db.insert(notifications).values({
+    await notificationService.notifyPortalSignup({
       orgId: customer.orgId!,
-      type: "portal_signup",
-      title: `Neues Portal-Konto: ${customer.name || customer.email}`,
-      body: `E-Mail: ${customer.email}`,
       customerId: customer.id,
-      licenseId: null,
-      data: { email: customer.email },
+      customerName: customer.name || undefined,
+      customerEmail: customer.email,
     });
 
     return { ok: true, token, customer };

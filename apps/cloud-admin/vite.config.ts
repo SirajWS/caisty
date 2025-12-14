@@ -5,7 +5,7 @@ import react from "@vitejs/plugin-react-swc";
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
+    port: 5175, // Admin-App auf Port 5175 (Portal-App auf 5173)
     proxy: {
       "/api": {
         target: "http://127.0.0.1:3333",

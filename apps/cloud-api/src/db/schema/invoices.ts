@@ -38,6 +38,10 @@ export const invoices = pgTable(
     provider: varchar("provider", { length: 20 }), // paypal|stripe
     providerEnv: varchar("provider_env", { length: 10 }), // test|live
     providerInvoiceId: text("provider_invoice_id"),
+    providerRef: text("provider_ref"), // PayPal orderId oder Stripe sessionId
+
+    planName: text("plan_name"), // "Starter", "Pro" (für Rechnungsanzeige)
+    paymentMethod: varchar("payment_method", { length: 20 }), // "paypal" | "card"
 
     amountNetCents: integer("amount_net_cents"),
     amountTaxCents: integer("amount_tax_cents"),

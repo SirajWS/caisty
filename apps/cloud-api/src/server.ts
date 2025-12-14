@@ -36,6 +36,7 @@ import { registerAdminSettingsRoutes } from "./routes/admin-settings.js";
 // Test-Endpoints (nur Development)
 import { registerTestEmailRoutes } from "./routes/test-email.js";
 import { registerTestResetTokenRoutes } from "./routes/test-reset-token.js";
+import { registerDebugDbRoutes } from "./routes/debug-db.js";
 
 import { verifyToken } from "./lib/jwt.js";
 import { verifyAdminToken } from "./lib/adminJwt.js";
@@ -64,13 +65,15 @@ export async function buildServer() {
       url === "/auth/login" ||
       url.startsWith("/admin/auth/") || // Admin-Auth-Routes (login, forgot-password, reset-password)
       url.startsWith("/portal/") || // Portal-API (Portal-JWT)
+      url.startsWith("/api/billing/") || // Billing-API (Portal-JWT, handled in route)
       (url === "/webhooks/paypal" && method === "POST") ||
       (url === "/licenses/verify" && method === "POST") ||
       (url === "/devices/bind" && method === "POST") ||
       (url === "/devices/heartbeat" && method === "POST") ||
       (url.startsWith("/invoices/") && url.endsWith("/html")) || // Invoice HTML-Export (mit Auth im Handler)
       (env.NODE_ENV === "development" && url.startsWith("/test-email")) || // Test-Endpoint nur in Development
-      (env.NODE_ENV === "development" && url.startsWith("/test-reset-token")); // Test-Endpoint nur in Development
+      (env.NODE_ENV === "development" && url.startsWith("/test-reset-token")) || // Test-Endpoint nur in Development
+      (env.NODE_ENV === "development" && url.startsWith("/debug/")); // Debug-Endpoints nur in Development
 
     if (isPublicRoute) {
       return;
@@ -111,6 +114,11 @@ export async function buildServer() {
   // ---------------------------------------------------------------------------
   await registerHealthRoute(app);
   await registerAuthRoutes(app);
+  
+  // Debug-Routen (nur Development)
+  if (env.NODE_ENV === "development") {
+    await registerDebugDbRoutes(app);
+  }
 
   // ---------------------------------------------------------------------------
   // Portal-Routen (nutzen eigenes JWT via portalJwt)

@@ -380,48 +380,103 @@ export default function SubscriptionsListPage() {
                     )}
                   </td>
                   <td>
-                    {s.customerStatus === "inactive" && s.customerId ? (
-                      <button
-                        onClick={async () => {
-                          if (
-                            !confirm(
-                              `Möchten Sie den Kunden "${s.customerName || s.customerId}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
-                            )
-                          ) {
-                            return;
-                          }
-                          setDeleteBusyId(s.customerId);
-                          try {
-                            await apiDelete<{ ok: boolean }>(`/customers/${s.customerId}`);
-                            // Liste neu laden
-                            const data = await apiGet<SubscriptionsResponse>("/subscriptions");
-                            setItems(data.items ?? []);
-                            setTotal(data.total ?? data.items?.length ?? 0);
-                          } catch (err) {
-                            console.error("Error deleting customer", err);
-                            alert("Fehler beim Löschen des Kunden.");
-                          } finally {
-                            setDeleteBusyId(null);
-                          }
-                        }}
-                        disabled={deleteBusyId === s.customerId}
-                        style={{
-                          background: colors.error,
-                          color: theme === "dark" ? "#fee2e2" : "#ffffff",
-                          border: "none",
-                          borderRadius: 4,
-                          padding: "4px 8px",
-                          fontSize: 11,
-                          cursor: deleteBusyId === s.customerId ? "wait" : "pointer",
-                          opacity: deleteBusyId === s.customerId ? 0.6 : 1,
-                          transition: "opacity 0.2s",
-                        }}
-                      >
-                        {deleteBusyId === s.customerId ? "..." : "Löschen"}
-                      </button>
-                    ) : (
-                      <span style={{ color: colors.textSecondary }}>—</span>
-                    )}
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      {/* Delete-Button für Subscription (nur cancelled/failed) */}
+                      {["cancelled", "canceled", "failed", "past_due", "unpaid"].includes(
+                        s.status?.toLowerCase() || ""
+                      ) && (
+                        <button
+                          onClick={async () => {
+                            if (
+                              !confirm(
+                                `Möchten Sie die Subscription "${s.plan}" (Status: ${s.status}) wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
+                              )
+                            ) {
+                              return;
+                            }
+                            setDeleteBusyId(s.id);
+                            try {
+                              const result = await apiDelete<{ ok: boolean; message?: string; error?: string }>(
+                                `/subscriptions/${s.id}`
+                              );
+                              if (!result.ok) {
+                                throw new Error(result.error || "Fehler beim Löschen");
+                              }
+                              // Liste neu laden
+                              const data = await apiGet<SubscriptionsResponse>("/subscriptions");
+                              setItems(data.items ?? []);
+                              setTotal(data.total ?? data.items?.length ?? 0);
+                            } catch (err: any) {
+                              console.error("Error deleting subscription", err);
+                              alert(err?.message || "Fehler beim Löschen der Subscription.");
+                            } finally {
+                              setDeleteBusyId(null);
+                            }
+                          }}
+                          disabled={deleteBusyId === s.id}
+                          style={{
+                            background: colors.error,
+                            color: theme === "dark" ? "#fee2e2" : "#ffffff",
+                            border: "none",
+                            borderRadius: 4,
+                            padding: "4px 8px",
+                            fontSize: 11,
+                            cursor: deleteBusyId === s.id ? "wait" : "pointer",
+                            opacity: deleteBusyId === s.id ? 0.6 : 1,
+                            transition: "opacity 0.2s",
+                          }}
+                          title="Subscription löschen (nur cancelled/failed)"
+                        >
+                          {deleteBusyId === s.id ? "..." : "🗑️"}
+                        </button>
+                      )}
+                      {s.customerStatus === "inactive" && s.customerId && (
+                        <button
+                          onClick={async () => {
+                            if (
+                              !confirm(
+                                `Möchten Sie den Kunden "${s.customerName || s.customerId}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
+                              )
+                            ) {
+                              return;
+                            }
+                            setDeleteBusyId(s.customerId);
+                            try {
+                              await apiDelete<{ ok: boolean }>(`/customers/${s.customerId}`);
+                              // Liste neu laden
+                              const data = await apiGet<SubscriptionsResponse>("/subscriptions");
+                              setItems(data.items ?? []);
+                              setTotal(data.total ?? data.items?.length ?? 0);
+                            } catch (err) {
+                              console.error("Error deleting customer", err);
+                              alert("Fehler beim Löschen des Kunden.");
+                            } finally {
+                              setDeleteBusyId(null);
+                            }
+                          }}
+                          disabled={deleteBusyId === s.customerId}
+                          style={{
+                            background: colors.error,
+                            color: theme === "dark" ? "#fee2e2" : "#ffffff",
+                            border: "none",
+                            borderRadius: 4,
+                            padding: "4px 8px",
+                            fontSize: 11,
+                            cursor: deleteBusyId === s.customerId ? "wait" : "pointer",
+                            opacity: deleteBusyId === s.customerId ? 0.6 : 1,
+                            transition: "opacity 0.2s",
+                          }}
+                        >
+                          {deleteBusyId === s.customerId ? "..." : "Kunde löschen"}
+                        </button>
+                      )}
+                      {!["cancelled", "canceled", "failed", "past_due", "unpaid"].includes(
+                        s.status?.toLowerCase() || ""
+                      ) &&
+                        s.customerStatus !== "inactive" && (
+                          <span style={{ color: colors.textSecondary }}>—</span>
+                        )}
+                    </div>
                   </td>
                 </tr>
               ))

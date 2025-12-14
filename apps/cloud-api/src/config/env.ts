@@ -27,20 +27,32 @@ export const ENV = {
       ? "https://api.caisty.com/portal/auth/google/callback"
       : "http://localhost:3333/portal/auth/google/callback"),
   PORTAL_BASE_URL: (() => {
-    // FORCE: Wenn ENV auf Admin-Port zeigt, überschreibe es
+    // FORCE: Wenn ENV auf Admin-Port zeigt, überschreibe es IMMER
     const envUrl = process.env.PORTAL_BASE_URL;
+    
+    // HARD FIX: Immer auf 5173 setzen, wenn es 5175 oder admin enthält
     if (envUrl && (envUrl.includes("5175") || envUrl.includes("admin"))) {
       console.error("❌ ERROR: PORTAL_BASE_URL in .env zeigt auf Admin-Port!");
       console.error("   Aktueller Wert:", envUrl);
-      console.error("   Überschreibe mit: http://localhost:5173");
+      console.error("   FORCE: Setze auf http://localhost:5173");
       console.error("   Bitte ändere PORTAL_BASE_URL in .env zu: http://localhost:5173");
-      // Temporär überschreiben, damit es funktioniert
+      // IMMER überschreiben, damit es funktioniert
       return "http://localhost:5173";
     }
+    
+    // Default: 5173 für Development
     const url = envUrl ?? 
       (process.env.NODE_ENV === "production"
         ? "https://www.caisty.com"
         : "http://localhost:5173");
+    
+    // Zusätzliche Sicherheit: Prüfe nochmal das Ergebnis
+    if (url.includes("5175") || url.includes("admin")) {
+      console.error("❌ WARNUNG: PORTAL_BASE_URL enthält immer noch 5175/admin!");
+      console.error("   Force-Setze auf http://localhost:5173");
+      return "http://localhost:5173";
+    }
+    
     return url;
   })(),
   // SMTP / E-Mail-Konfiguration (Zoho Mail)
@@ -49,6 +61,12 @@ export const ENV = {
   SMTP_USER: process.env.SMTP_USER ?? "", // z.B. admin@caisty.com (für SMTP-Login)
   SMTP_PASSWORD: process.env.SMTP_PASSWORD ?? "", // Zoho App-Passwort
   SMTP_FROM: process.env.SMTP_FROM ?? "Caisty Support <support@caisty.com>", // Absender (kann "Name <email>" Format haben)
+  // Stripe Configuration
+  STRIPE_ENV: process.env.STRIPE_ENV ?? "test",
+  STRIPE_SECRET_KEY_TEST: process.env.STRIPE_SECRET_KEY_TEST ?? "",
+  STRIPE_SECRET_KEY_LIVE: process.env.STRIPE_SECRET_KEY_LIVE ?? "",
+  STRIPE_WEBHOOK_SECRET_TEST: process.env.STRIPE_WEBHOOK_SECRET_TEST ?? "",
+  STRIPE_WEBHOOK_SECRET_LIVE: process.env.STRIPE_WEBHOOK_SECRET_LIVE ?? "",
 };
 
 // Alias – sodass sowohl env als auch ENV funktioniert

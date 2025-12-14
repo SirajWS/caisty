@@ -5,7 +5,7 @@ import { and, eq, ne } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { licenses } from "../db/schema/licenses.js";
 import { licenseEvents } from "../db/schema/licenseEvents.js";
-import { notifications } from "../db/schema/notifications.js";
+import { notificationService } from "../billing/NotificationService.js";
 import { generateLicenseKey } from "../lib/licenseKey.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 
@@ -141,15 +141,20 @@ export async function registerPortalTrialLicenseRoutes(app: FastifyInstance) {
         },
       });
 
+      // Customer-Name für Notification holen
+      const [customer] = await db
+        .select()
+        .from(customers)
+        .where(eq(customers.id, customerId))
+        .limit(1);
+
       // Notification für Admin
-      await db.insert(notifications).values({
+      await notificationService.notifyTrialLicenseCreated({
         orgId,
-        type: "portal_trial_created",
-        title: "Trial-Lizenz aus Portal angelegt",
-        body: `Kunde ${customerId}, gültig bis ${validUntil.toISOString()}`,
         customerId,
+        customerName: customer?.name || customer?.email || undefined,
         licenseId: created.id,
-        data: { key: created.key, validUntil: created.validUntil },
+        licenseKey: created.key,
       });
 
       reply.code(201);

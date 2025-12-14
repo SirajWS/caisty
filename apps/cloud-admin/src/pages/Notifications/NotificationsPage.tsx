@@ -127,30 +127,43 @@ export default function NotificationsPage() {
         style={{
           marginTop: 24,
           borderRadius: 12,
-          border: "1px solid #1f2937",
+          border: "1px solid #374151",
           overflow: "hidden",
+          background: "#111827",
         }}
       >
         <div
           style={{
-            padding: "10px 12px",
-            borderBottom: "1px solid #111827",
+            padding: "12px 16px",
+            borderBottom: "1px solid #374151",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            fontSize: 13,
+            fontSize: 14,
+            background: "#1f2937",
           }}
         >
-          <span>Letzte Ereignisse</span>
+          <span style={{ color: "#e5e7eb", fontWeight: 500 }}>Letzte Ereignisse</span>
           <button
             type="button"
             onClick={load}
             style={{
-              fontSize: 11,
-              border: "none",
-              background: "transparent",
-              color: "#9ca3af",
+              fontSize: 12,
+              border: "1px solid #4b5563",
+              borderRadius: 6,
+              padding: "4px 10px",
+              background: "#374151",
+              color: "#e5e7eb",
               cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#4b5563";
+              e.currentTarget.style.borderColor = "#6b7280";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#374151";
+              e.currentTarget.style.borderColor = "#4b5563";
             }}
           >
             aktualisieren
@@ -176,26 +189,26 @@ export default function NotificationsPage() {
             <thead>
               <tr
                 style={{
-                  background: "#020617",
-                  borderBottom: "1px solid #111827",
+                  background: "#1f2937",
+                  borderBottom: "1px solid #374151",
                 }}
               >
-                <th style={{ textAlign: "left", padding: "8px 10px" }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: "#e5e7eb", fontWeight: 600 }}>
                   Titel
                 </th>
-                <th style={{ textAlign: "left", padding: "8px 10px" }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: "#e5e7eb", fontWeight: 600 }}>
                   Typ
                 </th>
-                <th style={{ textAlign: "left", padding: "8px 10px" }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: "#e5e7eb", fontWeight: 600 }}>
                   Kunde
                 </th>
-                <th style={{ textAlign: "left", padding: "8px 10px" }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: "#e5e7eb", fontWeight: 600 }}>
                   Status
                 </th>
-                <th style={{ textAlign: "left", padding: "8px 10px" }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: "#e5e7eb", fontWeight: 600 }}>
                   Zeit
                 </th>
-                <th style={{ padding: "8px 10px" }}>Aktion</th>
+                <th style={{ padding: "10px 12px", color: "#e5e7eb", fontWeight: 600 }}>Aktion</th>
               </tr>
             </thead>
             <tbody>
@@ -203,26 +216,39 @@ export default function NotificationsPage() {
                 <tr
                   key={n.id}
                   style={{
-                    borderBottom: "1px solid #111827",
-                    background: n.isRead ? "#020617" : "#020617",
+                    borderBottom: "1px solid #374151",
+                    background: n.isRead ? "#111827" : "#1f2937",
+                    transition: "background-color 0.2s",
                   }}
                 >
-                  <td style={{ padding: "8px 10px" }}>{n.title}</td>
-                  <td style={{ padding: "8px 10px", color: "#9ca3af" }}>
+                  <td style={{ padding: "10px 12px", color: "#e5e7eb" }}>{n.title}</td>
+                  <td style={{ padding: "10px 12px", color: "#9ca3af" }}>
                     {n.kind || n.source || "info"}
                   </td>
-                  <td style={{ padding: "8px 10px", color: "#9ca3af" }}>
+                  <td style={{ padding: "10px 12px", color: "#9ca3af" }}>
                     {n.customerName ||
                       n.customerEmail ||
                       n.customerId ||
                       "unknown"}
                   </td>
-                  <td style={{ padding: "8px 10px" }}>
-                    {n.isRead ? "gelesen" : "neu"}
+                  <td style={{ padding: "10px 12px" }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "2px 8px",
+                        borderRadius: 12,
+                        fontSize: 11,
+                        fontWeight: 500,
+                        background: n.isRead ? "#374151" : "#22c55e",
+                        color: n.isRead ? "#9ca3af" : "#ffffff",
+                      }}
+                    >
+                      {n.isRead ? "gelesen" : "neu"}
+                    </span>
                   </td>
                   <td
                     style={{
-                      padding: "8px 10px",
+                      padding: "10px 12px",
                       color: "#9ca3af",
                       whiteSpace: "nowrap",
                     }}
@@ -243,12 +269,21 @@ export default function NotificationsPage() {
                       onClick={() => handleOpen(n)}
                       style={{
                         fontSize: 11,
-                        borderRadius: 999,
-                        border: "1px solid #374151",
-                        padding: "4px 10px",
-                        background: "#020617",
+                        borderRadius: 6,
+                        border: "1px solid #4b5563",
+                        padding: "4px 12px",
+                        background: "#374151",
                         color: "#e5e7eb",
                         cursor: "pointer",
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#4b5563";
+                        e.currentTarget.style.borderColor = "#6b7280";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#374151";
+                        e.currentTarget.style.borderColor = "#4b5563";
                       }}
                     >
                       öffnen
@@ -259,12 +294,21 @@ export default function NotificationsPage() {
                         onClick={() => handleMarkRead(n.id)}
                         style={{
                           fontSize: 11,
-                          borderRadius: 999,
-                          border: "1px solid #374151",
-                          padding: "4px 10px",
-                          background: "#020617",
+                          borderRadius: 6,
+                          border: "1px solid #4b5563",
+                          padding: "4px 12px",
+                          background: "#374151",
                           color: "#e5e7eb",
                           cursor: "pointer",
+                          transition: "all 0.2s",
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#4b5563";
+                          e.currentTarget.style.borderColor = "#6b7280";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "#374151";
+                          e.currentTarget.style.borderColor = "#4b5563";
                         }}
                       >
                         als gelesen

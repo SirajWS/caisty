@@ -1,6 +1,8 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { db } from "../db/client.js";
-import { licenses, devices, invoices } from "../db/schema/index.js";
+import { licenses } from "../db/schema/licenses.js";
+import { devices } from "../db/schema/devices.js";
+import { invoices } from "../db/schema/invoices.js";
 import { desc, eq } from "drizzle-orm";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 
@@ -94,28 +96,41 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
       return { message: "Invalid or missing portal token" };
     }
 
-    const rows = await db
-      .select({ inv: invoices })
-      .from(invoices)
-      .where(eq(invoices.customerId, payload.customerId))
-      .orderBy(desc(invoices.createdAt));
+    try {
+      const rows = await db
+        .select({ inv: invoices })
+        .from(invoices)
+        .where(eq(invoices.customerId, payload.customerId))
+        .orderBy(desc(invoices.createdAt));
 
-    return rows.map((r: any) => {
-      const inv = r.inv as any;
-      // amountCents zurückgeben, damit Frontend durch 100 teilen kann
-      const amountCents = inv.amountCents ?? 0;
+      return rows.map((r: any) => {
+        const inv = r.inv as any;
+        if (!inv) {
+          return null;
+        }
+        // amountCents zurückgeben, damit Frontend durch 100 teilen kann
+        const amountCents = inv.amountCents ?? 0;
+        return {
+          id: String(inv.id),
+          number: String(inv.number ?? ""),
+          amountCents: Number(amountCents),
+          currency: String(inv.currency ?? "EUR"),
+          status: String(inv.status ?? "open"),
+          periodStart: null, // periodFrom existiert nicht im Schema
+          periodEnd: null, // periodTo existiert nicht im Schema
+          createdAt: inv.createdAt ? new Date(inv.createdAt).toISOString() : new Date().toISOString(),
+          dueAt: inv.dueAt ? new Date(inv.dueAt).toISOString() : null,
+          plan: inv.planName ? String(inv.planName) : null, // Verwende planName aus Schema
+        };
+      }).filter((item) => item !== null);
+    } catch (err: any) {
+      request.log.error({ err, customerId: payload.customerId }, "Error loading portal invoices");
+      reply.code(500);
       return {
-        id: inv.id,
-        number: inv.number,
-        amountCents,
-        currency: inv.currency ?? "EUR",
-        status: inv.status,
-        periodStart: inv.periodFrom ? new Date(inv.periodFrom).toISOString() : null,
-        periodEnd: inv.periodTo ? new Date(inv.periodTo).toISOString() : null,
-        createdAt: new Date(inv.createdAt).toISOString(),
-        dueAt: inv.dueAt ? new Date(inv.dueAt).toISOString() : null,
-        plan: null, // wird später aus Subscription geholt
+        ok: false,
+        error: "Failed to load invoices",
+        message: err?.message || "Internal server error",
       };
-    });
+    }
   });
 }
