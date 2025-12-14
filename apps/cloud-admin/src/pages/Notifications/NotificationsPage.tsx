@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from "react";
-import {
+import { useEffect, useState } from "react";
+import type {
   AdminNotification,
   AdminSupportMessage,
+} from "../../lib/api";
+import {
   fetchNotifications,
   fetchSupportMessage,
   replySupportMessage,
@@ -114,9 +116,10 @@ export default function NotificationsPage() {
             marginTop: 16,
             padding: "10px 12px",
             borderRadius: 8,
-            background: "rgba(248,113,113,0.12)",
-            border: "1px solid rgba(248,113,113,0.5)",
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
             fontSize: 13,
+            color: "#991b1b",
           }}
         >
           {error}
@@ -127,43 +130,45 @@ export default function NotificationsPage() {
         style={{
           marginTop: 24,
           borderRadius: 12,
-          border: "1px solid #374151",
+          border: "1px solid #e5e7eb",
           overflow: "hidden",
-          background: "#111827",
+          background: "#ffffff",
+          boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
         }}
       >
         <div
           style={{
             padding: "12px 16px",
-            borderBottom: "1px solid #374151",
+            borderBottom: "1px solid #e5e7eb",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             fontSize: 14,
-            background: "#1f2937",
+            background: "#f9fafb",
           }}
         >
-          <span style={{ color: "#e5e7eb", fontWeight: 500 }}>Letzte Ereignisse</span>
+          <span style={{ color: "#111827", fontWeight: 600 }}>Letzte Ereignisse</span>
           <button
             type="button"
             onClick={load}
             style={{
               fontSize: 12,
-              border: "1px solid #4b5563",
+              border: "1px solid #d1d5db",
               borderRadius: 6,
               padding: "4px 10px",
-              background: "#374151",
-              color: "#e5e7eb",
+              background: "#ffffff",
+              color: "#374151",
               cursor: "pointer",
               transition: "all 0.2s",
+              fontWeight: 500,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#4b5563";
-              e.currentTarget.style.borderColor = "#6b7280";
+              e.currentTarget.style.background = "#f3f4f6";
+              e.currentTarget.style.borderColor = "#9ca3af";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#374151";
-              e.currentTarget.style.borderColor = "#4b5563";
+              e.currentTarget.style.background = "#ffffff";
+              e.currentTarget.style.borderColor = "#d1d5db";
             }}
           >
             aktualisieren
@@ -171,11 +176,11 @@ export default function NotificationsPage() {
         </div>
 
         {loading ? (
-          <div style={{ padding: 16, fontSize: 13, color: "#9ca3af" }}>
+          <div style={{ padding: 16, fontSize: 13, color: "#6b7280" }}>
             Wird geladen …
           </div>
         ) : items.length === 0 ? (
-          <div style={{ padding: 16, fontSize: 13, color: "#9ca3af" }}>
+          <div style={{ padding: 16, fontSize: 13, color: "#6b7280" }}>
             Noch keine Notifications vorhanden.
           </div>
         ) : (
@@ -189,26 +194,26 @@ export default function NotificationsPage() {
             <thead>
               <tr
                 style={{
-                  background: "#1f2937",
-                  borderBottom: "1px solid #374151",
+                  background: "#f9fafb",
+                  borderBottom: "1px solid #e5e7eb",
                 }}
               >
-                <th style={{ textAlign: "left", padding: "10px 12px", color: "#e5e7eb", fontWeight: 600 }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: "#374151", fontWeight: 600 }}>
                   Titel
                 </th>
-                <th style={{ textAlign: "left", padding: "10px 12px", color: "#e5e7eb", fontWeight: 600 }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: "#374151", fontWeight: 600 }}>
                   Typ
                 </th>
-                <th style={{ textAlign: "left", padding: "10px 12px", color: "#e5e7eb", fontWeight: 600 }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: "#374151", fontWeight: 600 }}>
                   Kunde
                 </th>
-                <th style={{ textAlign: "left", padding: "10px 12px", color: "#e5e7eb", fontWeight: 600 }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: "#374151", fontWeight: 600 }}>
                   Status
                 </th>
-                <th style={{ textAlign: "left", padding: "10px 12px", color: "#e5e7eb", fontWeight: 600 }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: "#374151", fontWeight: 600 }}>
                   Zeit
                 </th>
-                <th style={{ padding: "10px 12px", color: "#e5e7eb", fontWeight: 600 }}>Aktion</th>
+                <th style={{ padding: "10px 12px", color: "#374151", fontWeight: 600 }}>Aktion</th>
               </tr>
             </thead>
             <tbody>
@@ -216,16 +221,26 @@ export default function NotificationsPage() {
                 <tr
                   key={n.id}
                   style={{
-                    borderBottom: "1px solid #374151",
-                    background: n.isRead ? "#111827" : "#1f2937",
+                    borderBottom: "1px solid #e5e7eb",
+                    background: n.isRead ? "#ffffff" : "#f9fafb",
                     transition: "background-color 0.2s",
                   }}
+                  onMouseEnter={(e) => {
+                    if (n.isRead) {
+                      e.currentTarget.style.background = "#f3f4f6";
+                    } else {
+                      e.currentTarget.style.background = "#f3f4f6";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = n.isRead ? "#ffffff" : "#f9fafb";
+                  }}
                 >
-                  <td style={{ padding: "10px 12px", color: "#e5e7eb" }}>{n.title}</td>
-                  <td style={{ padding: "10px 12px", color: "#9ca3af" }}>
+                  <td style={{ padding: "10px 12px", color: "#111827", fontWeight: n.isRead ? 400 : 500 }}>{n.title}</td>
+                  <td style={{ padding: "10px 12px", color: "#6b7280" }}>
                     {n.kind || n.source || "info"}
                   </td>
-                  <td style={{ padding: "10px 12px", color: "#9ca3af" }}>
+                  <td style={{ padding: "10px 12px", color: "#6b7280", fontSize: 12 }}>
                     {n.customerName ||
                       n.customerEmail ||
                       n.customerId ||
@@ -235,12 +250,13 @@ export default function NotificationsPage() {
                     <span
                       style={{
                         display: "inline-block",
-                        padding: "2px 8px",
+                        padding: "3px 10px",
                         borderRadius: 12,
                         fontSize: 11,
-                        fontWeight: 500,
-                        background: n.isRead ? "#374151" : "#22c55e",
-                        color: n.isRead ? "#9ca3af" : "#ffffff",
+                        fontWeight: 600,
+                        background: n.isRead ? "#e5e7eb" : "#dcfce7",
+                        color: n.isRead ? "#6b7280" : "#166534",
+                        border: n.isRead ? "none" : "1px solid #bbf7d0",
                       }}
                     >
                       {n.isRead ? "gelesen" : "neu"}
@@ -249,8 +265,9 @@ export default function NotificationsPage() {
                   <td
                     style={{
                       padding: "10px 12px",
-                      color: "#9ca3af",
+                      color: "#6b7280",
                       whiteSpace: "nowrap",
+                      fontSize: 12,
                     }}
                   >
                     {formatDate(n.createdAt)}
@@ -270,20 +287,21 @@ export default function NotificationsPage() {
                       style={{
                         fontSize: 11,
                         borderRadius: 6,
-                        border: "1px solid #4b5563",
+                        border: "1px solid #d1d5db",
                         padding: "4px 12px",
-                        background: "#374151",
-                        color: "#e5e7eb",
+                        background: "#ffffff",
+                        color: "#374151",
                         cursor: "pointer",
                         transition: "all 0.2s",
+                        fontWeight: 500,
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#4b5563";
-                        e.currentTarget.style.borderColor = "#6b7280";
+                        e.currentTarget.style.background = "#f3f4f6";
+                        e.currentTarget.style.borderColor = "#9ca3af";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "#374151";
-                        e.currentTarget.style.borderColor = "#4b5563";
+                        e.currentTarget.style.background = "#ffffff";
+                        e.currentTarget.style.borderColor = "#d1d5db";
                       }}
                     >
                       öffnen
@@ -295,20 +313,21 @@ export default function NotificationsPage() {
                         style={{
                           fontSize: 11,
                           borderRadius: 6,
-                          border: "1px solid #4b5563",
+                          border: "1px solid #d1d5db",
                           padding: "4px 12px",
-                          background: "#374151",
-                          color: "#e5e7eb",
+                          background: "#ffffff",
+                          color: "#374151",
                           cursor: "pointer",
                           transition: "all 0.2s",
+                          fontWeight: 500,
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#4b5563";
-                          e.currentTarget.style.borderColor = "#6b7280";
+                          e.currentTarget.style.background = "#f3f4f6";
+                          e.currentTarget.style.borderColor = "#9ca3af";
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "#374151";
-                          e.currentTarget.style.borderColor = "#4b5563";
+                          e.currentTarget.style.background = "#ffffff";
+                          e.currentTarget.style.borderColor = "#d1d5db";
                         }}
                       >
                         als gelesen
@@ -328,13 +347,14 @@ export default function NotificationsPage() {
           style={{
             marginTop: 24,
             borderRadius: 12,
-            border: "1px solid #1f2937",
+            border: "1px solid #e5e7eb",
             padding: 16,
-            background: "#020617",
+            background: "#ffffff",
+            boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
           }}
         >
-          <h2 style={{ fontSize: 16, marginBottom: 8 }}>Support-Anfrage</h2>
-          <p style={{ fontSize: 13, color: "#9ca3af", marginBottom: 12 }}>
+          <h2 style={{ fontSize: 16, marginBottom: 8, color: "#111827", fontWeight: 600 }}>Support-Anfrage</h2>
+          <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>
             {selected.customerName || selected.customerEmail || selected.customerId}
             {" · "}
             {formatDate(selected.createdAt)}
@@ -345,15 +365,16 @@ export default function NotificationsPage() {
               marginBottom: 12,
               padding: 12,
               borderRadius: 8,
-              border: "1px solid #1f2937",
-              background: "#020617",
+              border: "1px solid #e5e7eb",
+              background: "#f9fafb",
             }}
           >
             <div
               style={{
                 fontSize: 14,
-                fontWeight: 500,
+                fontWeight: 600,
                 marginBottom: 4,
+                color: "#111827",
               }}
             >
               {selected.subject}
@@ -361,8 +382,9 @@ export default function NotificationsPage() {
             <div
               style={{
                 fontSize: 13,
-                color: "#e5e7eb",
+                color: "#374151",
                 whiteSpace: "pre-wrap",
+                lineHeight: 1.6,
               }}
             >
               {selected.message}
@@ -375,16 +397,17 @@ export default function NotificationsPage() {
                 marginBottom: 12,
                 padding: 12,
                 borderRadius: 8,
-                border: "1px solid rgba(59,130,246,0.6)",
-                background: "rgba(37,99,235,0.15)",
+                border: "1px solid #bfdbfe",
+                background: "#eff6ff",
                 fontSize: 13,
               }}
             >
               <div
                 style={{
                   fontSize: 11,
-                  color: "#bfdbfe",
+                  color: "#1e40af",
                   marginBottom: 4,
+                  fontWeight: 600,
                 }}
               >
                 Deine bisherige Antwort{" "}
@@ -392,7 +415,7 @@ export default function NotificationsPage() {
                   ? `(${formatDate(selected.repliedAt)})`
                   : ""}
               </div>
-              <div style={{ whiteSpace: "pre-wrap" }}>
+              <div style={{ whiteSpace: "pre-wrap", color: "#1e3a8a" }}>
                 {selected.replyText}
               </div>
             </div>
@@ -404,9 +427,10 @@ export default function NotificationsPage() {
                 marginBottom: 12,
                 padding: "8px 10px",
                 borderRadius: 8,
-                background: "rgba(248,113,113,0.12)",
-                border: "1px solid rgba(248,113,113,0.5)",
+                background: "#fef2f2",
+                border: "1px solid #fecaca",
                 fontSize: 13,
+                color: "#991b1b",
               }}
             >
               {detailError}
@@ -419,6 +443,8 @@ export default function NotificationsPage() {
                 fontSize: 13,
                 display: "block",
                 marginBottom: 4,
+                color: "#374151",
+                fontWeight: 500,
               }}
             >
               Antwort an den Kunden
@@ -432,9 +458,9 @@ export default function NotificationsPage() {
                 width: "100%",
                 padding: "10px 12px",
                 borderRadius: 8,
-                border: "1px solid #1f2937",
-                background: "#020617",
-                color: "#e5e7eb",
+                border: "1px solid #d1d5db",
+                background: "#ffffff",
+                color: "#111827",
                 fontSize: 14,
                 resize: "vertical",
               }}
@@ -454,12 +480,22 @@ export default function NotificationsPage() {
               onClick={() => setSelected(null)}
               style={{
                 fontSize: 13,
-                borderRadius: 999,
-                border: "1px solid #374151",
+                borderRadius: 6,
+                border: "1px solid #d1d5db",
                 padding: "6px 14px",
-                background: "#020617",
-                color: "#e5e7eb",
+                background: "#ffffff",
+                color: "#374151",
                 cursor: "pointer",
+                fontWeight: 500,
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#f3f4f6";
+                e.currentTarget.style.borderColor = "#9ca3af";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#ffffff";
+                e.currentTarget.style.borderColor = "#d1d5db";
               }}
             >
               schließen
@@ -470,13 +506,24 @@ export default function NotificationsPage() {
               disabled={savingReply}
               style={{
                 fontSize: 13,
-                borderRadius: 999,
+                borderRadius: 6,
                 border: "none",
                 padding: "6px 16px",
-                background: savingReply ? "#15803d" : "#22c55e",
-                color: "#020617",
+                background: savingReply ? "#86efac" : "#22c55e",
+                color: "#ffffff",
                 fontWeight: 600,
                 cursor: savingReply ? "default" : "pointer",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                if (!savingReply) {
+                  e.currentTarget.style.background = "#16a34a";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!savingReply) {
+                  e.currentTarget.style.background = "#22c55e";
+                }
               }}
             >
               {savingReply ? "Wird gesendet…" : "Antwort senden"}

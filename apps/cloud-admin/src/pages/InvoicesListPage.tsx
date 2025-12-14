@@ -32,6 +32,14 @@ export default function InvoicesListPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+  const [showCancelled, setShowCancelled] = useState(false);
+
+  // Filter invoices by status
+  const paidInvoices = data?.items.filter((inv) => inv.status?.toLowerCase() === "paid") ?? [];
+  const openCancelledInvoices =
+    data?.items.filter((inv) =>
+      ["open", "cancelled", "canceled", "draft"].includes(inv.status?.toLowerCase() || "")
+    ) ?? [];
 
   useEffect(() => {
     setLoading(true);
@@ -67,8 +75,36 @@ export default function InvoicesListPage() {
           marginBottom: "24px",
         }}
       >
-        {data ? `${data.total} Rechnungen` : "Lade Daten…"}
+        Übersicht über alle bezahlten und offenen Rechnungen.
       </p>
+
+      {data && (
+        <div
+          style={{
+            marginTop: 16,
+            marginBottom: 16,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+            fontSize: 13,
+            color: colors.textSecondary,
+          }}
+        >
+          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+            <span>
+              <strong style={{ color: colors.text }}>{paidInvoices.length}</strong> bezahlte Rechnungen
+            </span>
+            {openCancelledInvoices.length > 0 && (
+              <span>
+                <strong style={{ color: colors.text }}>{openCancelledInvoices.length}</strong> offene/beendete Rechnungen
+              </span>
+            )}
+            <span style={{ color: colors.textTertiary }}>• {data.total} gesamt</span>
+          </div>
+        </div>
+      )}
 
       {loading && <p style={{ color: colors.textSecondary }}>Lade…</p>}
       {error && (
@@ -84,29 +120,53 @@ export default function InvoicesListPage() {
         </div>
       )}
 
-      {data && data.items.length > 0 && (
+      {/* Bezahlte Rechnungen */}
+      {data && paidInvoices.length > 0 && (
         <div
-          className="admin-table-wrapper"
+          className="admin-card"
           style={{
             backgroundColor: colors.bgSecondary,
             borderColor: colors.border,
             transition: "background-color 0.3s, border-color 0.3s",
+            marginBottom: openCancelledInvoices.length > 0 ? 24 : 0,
           }}
         >
-          <table className="admin-table">
-            <thead>
-              <tr style={{ backgroundColor: colors.bgTertiary }}>
-                <th style={{ color: colors.textSecondary }}>Nummer</th>
-                <th style={{ color: colors.textSecondary }}>Kunde</th>
-                <th style={{ color: colors.textSecondary }}>Status</th>
-                <th style={{ color: colors.textSecondary }}>Betrag</th>
-                <th style={{ color: colors.textSecondary }}>Ausgestellt</th>
-                <th style={{ color: colors.textSecondary }}>Fällig am</th>
-                <th style={{ color: colors.textSecondary }}>Aktionen</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((inv) => (
+          <div
+            style={{
+              padding: "12px 16px",
+              borderBottom: `1px solid ${colors.border}`,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              backgroundColor: colors.bgTertiary,
+            }}
+          >
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: colors.text, margin: 0 }}>
+              ✅ Bezahlte Rechnungen ({paidInvoices.length})
+            </h2>
+          </div>
+          <div
+            className="admin-table-wrapper"
+            style={{
+              backgroundColor: colors.bgSecondary,
+              borderColor: colors.border,
+              transition: "background-color 0.3s, border-color 0.3s",
+            }}
+          >
+            <table className="admin-table">
+              <thead>
+                <tr style={{ backgroundColor: colors.bgTertiary }}>
+                  <th style={{ color: colors.textSecondary }}>Nummer</th>
+                  <th style={{ color: colors.textSecondary }}>Kunde</th>
+                  <th style={{ color: colors.textSecondary }}>Status</th>
+                  <th style={{ color: colors.textSecondary }}>Betrag</th>
+                  <th style={{ color: colors.textSecondary }}>Ausgestellt</th>
+                  <th style={{ color: colors.textSecondary }}>Fällig am</th>
+                  <th style={{ color: colors.textSecondary }}>Aktionen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paidInvoices.map((inv) => (
                 <tr
                   key={inv.id}
                   style={{
@@ -261,60 +321,278 @@ export default function InvoicesListPage() {
                       >
                         📥 PDF
                       </button>
-                      {/* Delete-Button für Invoice (nur open/cancelled) */}
-                      {["open", "cancelled", "canceled", "draft"].includes(
-                        inv.status?.toLowerCase() || ""
-                      ) && (
-                        <button
-                          onClick={async () => {
-                            if (
-                              !confirm(
-                                `Möchten Sie die Rechnung "${inv.number}" (Status: ${inv.status}) wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
-                              )
-                            ) {
-                              return;
-                            }
-                            setDeleteBusyId(inv.id);
-                            try {
-                              const result = await apiDelete<{ ok: boolean; message?: string; error?: string }>(
-                                `/invoices/${inv.id}`
-                              );
-                              if (!result.ok) {
-                                throw new Error(result.error || "Fehler beim Löschen");
-                              }
-                              // Liste neu laden
-                              const data = await apiGet<InvoicesResponse>("/invoices?limit=50&offset=0");
-                              setData(data);
-                            } catch (err: any) {
-                              console.error("Error deleting invoice", err);
-                              alert(err?.message || "Fehler beim Löschen der Rechnung.");
-                            } finally {
-                              setDeleteBusyId(null);
-                            }
-                          }}
-                          disabled={deleteBusyId === inv.id}
-                          style={{
-                            background: colors.error,
-                            color: theme === "dark" ? "#fee2e2" : "#ffffff",
-                            border: "none",
-                            borderRadius: 4,
-                            padding: "4px 8px",
-                            fontSize: 11,
-                            cursor: deleteBusyId === inv.id ? "wait" : "pointer",
-                            opacity: deleteBusyId === inv.id ? 0.6 : 1,
-                            transition: "opacity 0.2s",
-                          }}
-                          title="Rechnung löschen (nur open/cancelled)"
-                        >
-                          {deleteBusyId === inv.id ? "..." : "🗑️"}
-                        </button>
-                      )}
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+      )}
+
+      {/* Offene/Beendete Rechnungen (Collapsible) */}
+      {data && openCancelledInvoices.length > 0 && (
+        <div
+          className="admin-card"
+          style={{
+            backgroundColor: colors.bgSecondary,
+            borderColor: colors.border,
+            transition: "background-color 0.3s, border-color 0.3s",
+            opacity: 0.9,
+          }}
+        >
+          <div
+            style={{
+              padding: "12px 16px",
+              borderBottom: showCancelled ? `1px solid ${colors.border}` : "none",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              backgroundColor: colors.bgTertiary,
+              cursor: "pointer",
+            }}
+            onClick={() => setShowCancelled(!showCancelled)}
+          >
+            <h2 style={{ fontSize: 16, fontWeight: 600, color: colors.text, margin: 0 }}>
+              🗑️ Offene/Beendete Rechnungen ({openCancelledInvoices.length})
+            </h2>
+            <span style={{ fontSize: 14, color: colors.textSecondary }}>
+              {showCancelled ? "▼" : "▶"}
+            </span>
+          </div>
+          {showCancelled && (
+            <div
+              className="admin-table-wrapper"
+              style={{
+                backgroundColor: colors.bgSecondary,
+                borderColor: colors.border,
+                transition: "background-color 0.3s, border-color 0.3s",
+              }}
+            >
+              <table className="admin-table">
+                <thead>
+                  <tr style={{ backgroundColor: colors.bgTertiary }}>
+                    <th style={{ color: colors.textSecondary }}>Nummer</th>
+                    <th style={{ color: colors.textSecondary }}>Kunde</th>
+                    <th style={{ color: colors.textSecondary }}>Status</th>
+                    <th style={{ color: colors.textSecondary }}>Betrag</th>
+                    <th style={{ color: colors.textSecondary }}>Ausgestellt</th>
+                    <th style={{ color: colors.textSecondary }}>Fällig am</th>
+                    <th style={{ color: colors.textSecondary }}>Aktionen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {openCancelledInvoices.map((inv) => (
+                    <tr
+                      key={inv.id}
+                      style={{
+                        borderBottomColor: colors.border,
+                        transition: "background-color 0.2s",
+                        opacity: 0.8,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = colors.bgTertiary;
+                        e.currentTarget.style.opacity = "1";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = "transparent";
+                        e.currentTarget.style.opacity = "0.8";
+                      }}
+                    >
+                      <td style={{ color: colors.textSecondary }}>
+                        <Link
+                          to={`/invoices/${inv.id}`}
+                          style={{
+                            color: colors.textSecondary,
+                            textDecoration: "none",
+                            transition: "color 0.2s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = colors.accent;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = colors.textSecondary;
+                          }}
+                        >
+                          {inv.number}
+                        </Link>
+                      </td>
+                      <td style={{ color: colors.textSecondary }}>
+                        {inv.customerName
+                          ? `${inv.customerName} (${inv.customerEmail ?? ""})`
+                          : "—"}
+                      </td>
+                      <td>
+                        <span
+                          className={
+                            inv.status === "paid"
+                              ? "badge badge--green"
+                              : "badge badge--red"
+                          }
+                          style={{ opacity: 0.7 }}
+                        >
+                          {inv.status}
+                        </span>
+                      </td>
+                      <td style={{ color: colors.textSecondary }}>
+                        {formatMoney(inv.amountCents, inv.currency)}
+                      </td>
+                      <td style={{ color: colors.textSecondary, fontSize: 12 }}>
+                        {formatDateTime(inv.createdAt)}
+                      </td>
+                      <td style={{ color: colors.textSecondary, fontSize: 12 }}>
+                        {formatDateTime(inv.dueAt)}
+                      </td>
+                      <td>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <button
+                            onClick={async () => {
+                              const token = localStorage.getItem("caisty.admin.token");
+                              if (!token) {
+                                alert("Nicht angemeldet");
+                                return;
+                              }
+                              const url = `/api/invoices/${inv.id}/html`;
+                              const res = await fetch(url, {
+                                headers: {
+                                  Authorization: `Bearer ${token}`,
+                                },
+                              });
+                              if (!res.ok) {
+                                alert(`Fehler: ${res.status}`);
+                                return;
+                              }
+                              const html = await res.text();
+                              const win = window.open();
+                              if (win) {
+                                win.document.write(html);
+                                win.document.close();
+                              }
+                            }}
+                            title="Rechnung anzeigen"
+                            style={{
+                              color: colors.textSecondary,
+                              fontSize: 12,
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: "4px 8px",
+                              transition: "color 0.2s",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = colors.accent;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = colors.textSecondary;
+                            }}
+                          >
+                            📄 Anzeigen
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const token = localStorage.getItem("caisty.admin.token");
+                              if (!token) {
+                                alert("Nicht angemeldet");
+                                return;
+                              }
+                              const url = `/api/invoices/${inv.id}/html`;
+                              const res = await fetch(url, {
+                                headers: {
+                                  Authorization: `Bearer ${token}`,
+                                },
+                              });
+                              if (!res.ok) {
+                                alert(`Fehler: ${res.status}`);
+                                return;
+                              }
+                              const html = await res.text();
+                              const win = window.open();
+                              if (win) {
+                                win.document.write(html);
+                                win.document.close();
+                                setTimeout(() => {
+                                  win?.print();
+                                }, 500);
+                              }
+                            }}
+                            title="Als PDF drucken"
+                            style={{
+                              color: colors.textSecondary,
+                              fontSize: 12,
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: "4px 8px",
+                              transition: "color 0.2s",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = colors.accent;
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = colors.textSecondary;
+                            }}
+                          >
+                            📥 PDF
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (
+                                !confirm(
+                                  `Möchten Sie die Rechnung "${inv.number}" (Status: ${inv.status}) wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
+                                )
+                              ) {
+                                return;
+                              }
+                              setDeleteBusyId(inv.id);
+                              try {
+                                const result = await apiDelete<{ ok: boolean; message?: string; error?: string }>(
+                                  `/invoices/${inv.id}`
+                                );
+                                if (!result.ok) {
+                                  throw new Error(result.error || "Fehler beim Löschen");
+                                }
+                                // Liste neu laden
+                                const data = await apiGet<InvoicesResponse>("/invoices?limit=50&offset=0");
+                                setData(data);
+                              } catch (err: any) {
+                                console.error("Error deleting invoice", err);
+                                alert(err?.message || "Fehler beim Löschen der Rechnung.");
+                              } finally {
+                                setDeleteBusyId(null);
+                              }
+                            }}
+                            disabled={deleteBusyId === inv.id}
+                            style={{
+                              background: colors.error,
+                              color: theme === "dark" ? "#fee2e2" : "#ffffff",
+                              border: "none",
+                              borderRadius: 4,
+                              padding: "4px 8px",
+                              fontSize: 11,
+                              cursor: deleteBusyId === inv.id ? "wait" : "pointer",
+                              opacity: deleteBusyId === inv.id ? 0.6 : 1,
+                              transition: "opacity 0.2s",
+                            }}
+                            title="Rechnung löschen"
+                          >
+                            {deleteBusyId === inv.id ? "..." : "🗑️ Löschen"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
