@@ -6,6 +6,12 @@ import { db } from "../db/client";
 import { devices } from "../db/schema/devices";
 import { licenses } from "../db/schema/licenses";
 
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+}
+
 type HeartbeatBody = {
   deviceId: string;
 };
@@ -41,6 +47,13 @@ const devicesHeartbeatRoutes = async (app: FastifyInstance) => {
         return reply.status(400).send({
           ok: false,
           error: "MISSING_FIELDS",
+        });
+      }
+
+      if (!isUuid(deviceId)) {
+        return reply.status(400).send({
+          ok: false,
+          error: "DEVICE_NOT_FOUND",
         });
       }
 

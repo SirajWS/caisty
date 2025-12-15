@@ -8,6 +8,12 @@ import { devices } from "../db/schema/devices";
 import { licenseEvents } from "../db/schema/licenseEvents";
 import { customers } from "../db/schema/customers";
 
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+}
+
 type CloudCustomerProfile = {
   accountName?: string;
   legalName?: string;
@@ -357,6 +363,15 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
           ok: false,
           reason: "missing_device_id",
           message: "Field 'deviceId' is required.",
+        };
+      }
+
+      if (!isUuid(body.deviceId)) {
+        reply.code(400);
+        return {
+          ok: false,
+          reason: "invalid_device_id",
+          message: "deviceId must be a UUID returned by /devices/bind",
         };
       }
 
