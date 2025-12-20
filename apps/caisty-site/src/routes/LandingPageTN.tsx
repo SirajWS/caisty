@@ -1,95 +1,32 @@
-// src/routes/LandingPageTN.tsx
 import { Link } from "react-router-dom";
-import { useLanguage } from "../lib/LanguageContext";
 import { useTheme } from "../lib/theme";
 
 export default function LandingPageTN() {
-  const { language } = useLanguage();
   const { theme } = useTheme();
   const isLight = theme === "light";
-  const pageBg = isLight ? "bg-slate-50 text-slate-900" : "bg-slate-950 text-slate-50";
 
-  // super simple text map (später kannst du es in translations auslagern)
-  const isAr = language === "ar";
-  const t = isAr
-    ? {
-        badge: "نسخة تونس 🇹🇳",
-        title: "كاشيّة ذكيّة للمطاعم",
-        titleHighlight: "ساهلة و تخدمك كل نهار",
-        desc: "بيعك، الكاشيّة، والتسيير… الكل في بلاصة وحدة. مناسبة للمطاعم، السناكات، القهاوي و المحلات.",
-        ctaPrimary: "جرّب مجّانًا",
-        ctaSecondary: "شوف الأسعار",
-        whoTitle: "لشكون Caisty؟",
-        whoItems: ["مطاعم", "سناكات / فاست فود", "قهاوي", "محلات عصرية"],
-        howTitle: "كيفاش تخدم؟",
-        howSteps: ["ركّب الكاشيّة", "ادخل للبورطال", "سيّر خدمتك و راقب المبيعات"],
-        featuresTitle: "شنوّة يربحك Caisty؟",
-        features: [
-          { title: "كاشيّة سريعة", text: "بيع سريع و واجهة واضحة للڨارسون." },
-          { title: "بورطال كلاود", text: "تراقب خدمتك من أي بلاصة." },
-          { title: "إدارة الأجهزة", text: "تعرف شكون أونلاين و شكون أوفلاين." },
-        ],
-        pricingTitle: "الأسعار (تونس)",
-        pricingNote: "طرق دفع محلية قريبًا. توا تنجم تجرّب و تبعث طلب ديمو.",
-        plans: [
-          { name: "تجربة", price: "0 TND", note: "7 أيّام", points: ["بدون بطاقة", "بورطال", "تجربة حقيقية"] },
-          { name: "Starter", price: "ابتداءً من 49 TND/شهر", note: "للصغار", points: ["كاشيّة + بورطال", "متابعة الأجهزة", "دعم"] },
-          { name: "Pro", price: "ابتداءً من 79 TND/شهر", note: "للأكثر نشاط", points: ["خصائص أكثر", "تقارير", "أولوية دعم"] },
-        ],
-        finalTitle: "تحب ديمو؟",
-        finalDesc: "خلي رقمك/إيميلك و نحكيو معاك. ولا ابدأ تجربة مجّانية.",
-        ctaDemo: "اطلب ديمو",
-      }
-    : {
-        badge: "Version Tunisie 🇹🇳",
-        title: "Une caisse moderne",
-        titleHighlight: "simple et efficace",
-        desc: "Ventes, caisse et gestion — tout en un. Parfait pour restaurants, snacks, cafés et boutiques modernes.",
-        ctaPrimary: "Commencer gratuit",
-        ctaSecondary: "Voir les prix",
-        whoTitle: "Pour qui ?",
-        whoItems: ["Restaurants", "Snacks / Fast-food", "Cafés", "Boutiques modernes"],
-        howTitle: "Comment ça marche ?",
-        howSteps: ["Installez la caisse", "Connectez-vous au portail", "Gérez et suivez vos ventes"],
-        featuresTitle: "Pourquoi Caisty ?",
-        features: [
-          { title: "Caisse rapide", text: "Une interface claire, pensée pour le service." },
-          { title: "Portail cloud", text: "Gardez tout sous contrôle, même à distance." },
-          { title: "Gestion des appareils", text: "Suivez les appareils connectés en temps réel." },
-        ],
-        pricingTitle: "Prix (Tunisie)",
-        pricingNote: "Les moyens de paiement locaux arrivent bientôt. Pour l’instant: essai + demande de démo.",
-        plans: [
-          { name: "Essai", price: "0 TND", note: "7 jours", points: ["Sans carte", "Portail inclus", "Test réel"] },
-          { name: "Starter", price: "À partir de 49 TND/mois", note: "Pour démarrer", points: ["Caisse + portail", "Suivi appareils", "Support"] },
-          { name: "Pro", price: "À partir de 79 TND/mois", note: "Pour grandir", points: ["Plus de fonctions", "Rapports", "Support prioritaire"] },
-        ],
-        finalTitle: "Besoin d’une démo ?",
-        finalDesc: "Laissez votre contact — on vous rappelle. Ou démarrez un essai gratuit.",
-        ctaDemo: "Demander une démo",
-      };
+  const pageBg = isLight ? "bg-slate-50 text-slate-900" : "bg-slate-950 text-slate-50";
+  const cardBg = isLight ? "bg-white border-slate-200" : "bg-slate-900/70 border-slate-800";
+  const muted = isLight ? "text-slate-600" : "text-slate-300";
+  const strong = isLight ? "text-slate-900" : "text-slate-50";
 
   return (
     <div className={`min-h-screen ${pageBg}`}>
-      {/* HERO */}
-      <section className="max-w-5xl mx-auto px-4 pt-20 pb-14">
-        <div
-          className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium mb-6 ${
-            isLight
-              ? "border-emerald-300 bg-emerald-50 text-emerald-600"
-              : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-          }`}
-        >
-          {t.badge}
+      {/* Hero */}
+      <section className="max-w-5xl mx-auto px-4 pt-16 pb-12">
+        <div className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 text-emerald-600 px-3 py-1 text-[11px] font-medium mb-6">
+          Version Tunisie TN
         </div>
 
         <div className="grid gap-10 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] items-center">
           <div className="space-y-6">
-            <h1 className={`text-3xl sm:text-4xl md:text-5xl font-semibold leading-tight ${isLight ? "text-slate-900" : "text-slate-50"}`}>
-              {t.title} <span className="text-emerald-500">{t.titleHighlight}</span>
+            <h1 className={`text-3xl sm:text-4xl md:text-5xl font-semibold leading-tight ${strong}`}>
+              Une caisse moderne{" "}
+              <span className="text-emerald-500">simple et efficace</span>
             </h1>
-            <p className={`text-sm sm:text-base max-w-xl ${isLight ? "text-slate-600" : "text-slate-300"}`}>
-              {t.desc}
+
+            <p className={`text-sm sm:text-base max-w-xl ${muted}`}>
+              Ventes, caisse et gestion — tout en un. Parfait pour restaurants, snacks, cafés et boutiques modernes.
             </p>
 
             <div className="flex flex-wrap gap-3 text-sm">
@@ -97,8 +34,9 @@ export default function LandingPageTN() {
                 to="/register"
                 className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors"
               >
-                {t.ctaPrimary}
+                Commencer gratuit
               </Link>
+
               <a
                 href="#pricing"
                 className={`inline-flex items-center justify-center rounded-full border px-5 py-2 text-sm font-medium transition-colors ${
@@ -107,100 +45,175 @@ export default function LandingPageTN() {
                     : "border-slate-700 text-slate-100 hover:bg-slate-800"
                 }`}
               >
-                {t.ctaSecondary}
+                Voir les prix
               </a>
             </div>
+
+            <p className={`text-[11px] max-w-md ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+              Commencez avec un essai sans paiement. Vous pouvez évoluer vers Starter ou Pro ensuite.
+            </p>
           </div>
 
-          {/* simple mock */}
-          <div className={`rounded-3xl border p-4 shadow-xl ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/70"}`}>
-            <div className={`text-[11px] uppercase tracking-wide ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-              Caisty • TN
+          {/* Mini mock light */}
+          <div className={`rounded-3xl border p-4 shadow-xl ${cardBg}`}>
+            <div className="flex items-center justify-between mb-3">
+              <div className={`text-[11px] uppercase tracking-wide ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                CAISTY • TN
+              </div>
+              <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] ${isLight ? "bg-slate-100 text-slate-700" : "bg-slate-800 text-slate-300"}`}>
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                Portail • Dashboard
+              </div>
             </div>
-            <div className={`mt-3 rounded-2xl border p-4 ${isLight ? "border-slate-200 bg-slate-50" : "border-slate-800 bg-slate-950/80"}`}>
+
+            <div className={`rounded-2xl border p-4 space-y-3 ${isLight ? "border-slate-200 bg-slate-50" : "border-slate-800 bg-slate-950/80"}`}>
               <div className={`text-xs font-semibold ${isLight ? "text-slate-900" : "text-slate-200"}`}>
-                {isAr ? "لوحة تحكّم" : "Portail • Dashboard"}
+                Ventes du jour
               </div>
-              <div className="mt-3 grid gap-3 text-[11px]">
-                <div className={`rounded-xl border p-3 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/80"}`}>
-                  <div className={`${isLight ? "text-slate-600" : "text-slate-400"}`}>{isAr ? "مبيعات اليوم" : "Ventes du jour"}</div>
-                  <div className="text-2xl font-semibold text-emerald-500">—</div>
-                </div>
-                <div className={`rounded-xl border p-3 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/80"}`}>
-                  <div className={`${isLight ? "text-slate-600" : "text-slate-400"}`}>{isAr ? "الأجهزة" : "Appareils"}</div>
-                  <div className="text-2xl font-semibold text-emerald-500">—</div>
+              <div className={`rounded-xl border p-3 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/80"}`}>
+                <div className={`text-[11px] ${muted}`}>Appareils</div>
+                <div className="mt-2 h-1.5 rounded bg-emerald-200">
+                  <div className="h-1.5 w-1/3 rounded bg-emerald-500" />
                 </div>
               </div>
-              <div className={`mt-3 text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                {isAr ? "تجربة بسيطة… و من بعد نطورو معاك." : "Simple à démarrer — on évolue avec vous."}
+              <div className={`rounded-xl border p-3 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/80"}`}>
+                <div className={`text-[11px] ${muted}`}>Simple à démarrer — on évolue avec vous.</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* WHO */}
+      {/* Pour qui */}
       <section className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
-        <h2 className={`text-xl font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>{t.whoTitle}</h2>
+        <h2 className={`text-xl font-semibold ${strong}`}>Pour qui ?</h2>
         <div className="grid gap-4 md:grid-cols-4 text-sm">
-          {t.whoItems.map((x, i) => (
-            <MiniCard key={i} text={x} />
-          ))}
+          <SimpleChip label="Restaurants" />
+          <SimpleChip label="Snacks / Fast-food" />
+          <SimpleChip label="Cafés" />
+          <SimpleChip label="Boutiques modernes" />
         </div>
       </section>
 
-      {/* HOW */}
+      {/* Comment ça marche */}
       <section className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
-        <h2 className={`text-xl font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>{t.howTitle}</h2>
+        <h2 className={`text-xl font-semibold ${strong}`}>Comment ça marche ?</h2>
         <div className="grid gap-4 md:grid-cols-3 text-sm">
-          {t.howSteps.map((x, i) => (
-            <StepCard key={i} number={i + 1} text={x} />
-          ))}
+          <StepCard
+            title="1"
+            text="Installez la caisse"
+            light={isLight}
+          />
+          <StepCard
+            title="2"
+            text="Connectez-vous au portail"
+            light={isLight}
+          />
+          <StepCard
+            title="3"
+            text="Gérez et suivez vos ventes"
+            light={isLight}
+          />
         </div>
       </section>
 
-      {/* FEATURES */}
+      {/* Pourquoi */}
       <section className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
-        <h2 className={`text-xl font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>{t.featuresTitle}</h2>
+        <h2 className={`text-xl font-semibold ${strong}`}>Pourquoi Caisty ?</h2>
+
         <div className="grid gap-4 md:grid-cols-3 text-sm">
-          {t.features.map((f, i) => (
-            <FeatureCard key={i} title={f.title} text={f.text} />
-          ))}
+          <FeatureCard
+            title="Caisse rapide"
+            text="Une interface claire, pensée pour le service."
+            light={isLight}
+          />
+          <FeatureCard
+            title="Portail cloud"
+            text="Gardez tout sous contrôle, même à distance."
+            light={isLight}
+          />
+          <FeatureCard
+            title="Gestion des appareils"
+            text="Suivez les appareils connectés en temps réel."
+            light={isLight}
+          />
         </div>
       </section>
 
-      {/* PRICING */}
-      <section id="pricing" className="max-w-5xl mx-auto px-4 pb-14 space-y-4">
-        <h2 className={`text-xl font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>{t.pricingTitle}</h2>
-        <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-300"}`}>{t.pricingNote}</p>
+      {/* Pricing */}
+      <section id="pricing" className="max-w-5xl mx-auto px-4 pb-12 space-y-4">
+        <div className="space-y-2">
+          <h2 className={`text-xl font-semibold ${strong}`}>Prix (Tunisie)</h2>
+          <p className={`${muted} text-sm`}>
+            Les moyens de paiement locaux arrivent bientôt. Pour l’instant : essai + demande de démo.
+          </p>
+        </div>
 
         <div className="grid gap-4 md:grid-cols-3 text-sm">
-          {t.plans.map((p, i) => (
-            <PlanCardTN key={i} name={p.name} price={p.price} note={p.note} points={p.points} highlight={p.name === "Starter"} />
-          ))}
+          <PlanCardTN
+            name="Essai"
+            price="0 TND"
+            subtitle="7 jours"
+            bullets={["Sans carte", "Portail inclus", "Test réel"]}
+            highlight={false}
+            light={isLight}
+          />
+          <PlanCardTN
+            name="Starter"
+            price="À partir de 49 TND/mois"
+            subtitle="Pour démarrer"
+            bullets={["Caisse + portail", "Suivi appareils", "Support"]}
+            highlight
+            light={isLight}
+          />
+          <PlanCardTN
+            name="Pro"
+            price="À partir de 99 TND/mois"
+            subtitle="Pour grandir"
+            bullets={["Plus de fonctions", "Rapports", "Support prioritaire"]}
+            highlight={false}
+            light={isLight}
+          />
         </div>
       </section>
 
-      {/* FINAL CTA */}
+      {/* Paiement (sans mentionner PayPal/Stripe) */}
+      <section className="max-w-5xl mx-auto px-4 pb-16 space-y-4">
+        <h2 className={`text-xl font-semibold ${strong}`}>Méthodes de paiement sécurisées</h2>
+        <div className={`rounded-2xl border p-4 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/70"}`}>
+          <p className={`text-sm ${muted}`}>
+            Nous activons progressivement des solutions de paiement adaptées à la Tunisie.
+            En attendant, vous pouvez commencer gratuitement et demander une démo — nous vous accompagnons pour la mise en place.
+          </p>
+        </div>
+      </section>
+
+      {/* CTA final */}
       <section className="max-w-5xl mx-auto px-4 pb-20">
         <div className={`rounded-3xl border p-6 md:p-8 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/70"}`}>
-          <h3 className={`text-lg font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>{t.finalTitle}</h3>
-          <p className={`mt-2 text-sm ${isLight ? "text-slate-600" : "text-slate-300"}`}>{t.finalDesc}</p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              to="/register"
-              className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors"
-            >
-              {t.ctaPrimary}
-            </Link>
-            <Link
-              to="/contact"
-              className={`inline-flex items-center justify-center rounded-full border px-5 py-2 text-sm font-medium transition-colors ${
-                isLight ? "border-slate-300 text-slate-700 hover:bg-slate-50" : "border-slate-700 text-slate-100 hover:bg-slate-800"
-              }`}
-            >
-              {t.ctaDemo}
-            </Link>
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className={`text-lg font-semibold ${strong}`}>Prêt à tester Caisty ?</h3>
+              <p className={`text-sm ${muted}`}>Créez votre compte et démarrez l’essai gratuitement.</p>
+            </div>
+            <div className="flex gap-3">
+              <Link
+                to="/register"
+                className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors"
+              >
+                Commencer gratuit
+              </Link>
+              <Link
+                to="/login"
+                className={`inline-flex items-center justify-center rounded-full border px-5 py-2 text-sm font-medium transition-colors ${
+                  isLight
+                    ? "border-slate-300 text-slate-700 hover:bg-slate-50"
+                    : "border-slate-700 text-slate-100 hover:bg-slate-800"
+                }`}
+              >
+                Se connecter
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -208,62 +221,70 @@ export default function LandingPageTN() {
   );
 }
 
-function MiniCard({ text }: { text: string }) {
-  const { theme } = useTheme();
-  const isLight = theme === "light";
+function SimpleChip({ label }: { label: string }) {
   return (
-    <div className={`rounded-2xl border p-4 text-xs ${isLight ? "border-slate-200 bg-white text-slate-700" : "border-slate-800 bg-slate-900/70 text-slate-300"}`}>
-      {text}
+    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+      {label}
     </div>
   );
 }
 
-function StepCard({ number, text }: { number: number; text: string }) {
-  const { theme } = useTheme();
-  const isLight = theme === "light";
+function FeatureCard(props: { title: string; text: string; light: boolean }) {
   return (
-    <div className={`rounded-2xl border p-4 space-y-2 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/70"}`}>
-      <div className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold ${isLight ? "bg-emerald-100 text-emerald-700" : "bg-emerald-500/15 text-emerald-300"}`}>
-        {number}
+    <div className={`rounded-2xl border p-4 space-y-2 ${props.light ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/70"}`}>
+      <div className={`text-sm font-medium ${props.light ? "text-slate-900" : "text-slate-100"}`}>{props.title}</div>
+      <p className={`text-xs ${props.light ? "text-slate-600" : "text-slate-300"}`}>{props.text}</p>
+    </div>
+  );
+}
+
+function StepCard(props: { title: string; text: string; light: boolean }) {
+  return (
+    <div className={`rounded-2xl border p-4 ${props.light ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/70"}`}>
+      <div className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${props.light ? "bg-emerald-100 text-emerald-600" : "bg-emerald-500/15 text-emerald-300"}`}>
+        {props.title}
       </div>
-      <div className={`text-xs ${isLight ? "text-slate-700" : "text-slate-300"}`}>{text}</div>
+      <div className={`mt-2 text-sm font-medium ${props.light ? "text-slate-900" : "text-slate-100"}`}>{props.text}</div>
     </div>
   );
 }
 
-function FeatureCard({ title, text }: { title: string; text: string }) {
-  const { theme } = useTheme();
-  const isLight = theme === "light";
-  return (
-    <div className={`rounded-2xl border p-4 space-y-2 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/70"}`}>
-      <div className={`text-sm font-medium ${isLight ? "text-slate-900" : "text-slate-100"}`}>{title}</div>
-      <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-300"}`}>{text}</p>
-    </div>
-  );
-}
-
-function PlanCardTN(props: { name: string; price: string; note: string; points: string[]; highlight?: boolean }) {
-  const { theme } = useTheme();
-  const isLight = theme === "light";
-
+function PlanCardTN(props: {
+  name: string;
+  price: string;
+  subtitle: string;
+  bullets: string[];
+  highlight?: boolean;
+  light: boolean;
+}) {
+  const base = "rounded-2xl border p-4 space-y-3";
   const style = props.highlight
-    ? isLight
+    ? props.light
       ? "border-emerald-300 shadow-lg shadow-emerald-200/40 bg-white"
       : "border-emerald-500/70 shadow-lg shadow-emerald-900/40 bg-slate-900/70"
-    : isLight
-      ? "border-slate-200 bg-white"
-      : "border-slate-800 bg-slate-900/70";
+    : props.light
+    ? "border-slate-200 bg-white"
+    : "border-slate-800 bg-slate-900/70";
 
   return (
-    <div className={`rounded-2xl border p-4 space-y-3 text-xs sm:text-sm ${style}`}>
+    <div className={`${base} ${style}`}>
       <div className="flex items-center justify-between">
-        <div className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>{props.name}</div>
+        <div className={`text-sm font-semibold ${props.light ? "text-slate-900" : "text-slate-100"}`}>{props.name}</div>
+        {props.highlight && (
+          <span className={`text-[10px] rounded-full border px-2 py-0.5 ${props.light ? "border-slate-200 bg-slate-50 text-slate-700" : "border-slate-700 bg-slate-900 text-slate-300"}`}>
+            Populaire
+          </span>
+        )}
       </div>
-      <div className="text-lg font-semibold text-emerald-400">{props.price}</div>
-      <div className={`text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"}`}>{props.note}</div>
-      <ul className={`mt-2 space-y-1 text-[11px] ${isLight ? "text-slate-700" : "text-slate-300"}`}>
-        {props.points.map((p, i) => (
-          <li key={i}>• {p}</li>
+
+      <div className="space-y-1">
+        <div className="text-lg font-semibold text-emerald-500">{props.price}</div>
+        <div className={`text-[11px] ${props.light ? "text-slate-600" : "text-slate-400"}`}>{props.subtitle}</div>
+      </div>
+
+      <ul className={`space-y-1 text-[11px] ${props.light ? "text-slate-700" : "text-slate-300"}`}>
+        {props.bullets.map((b, i) => (
+          <li key={i}>• {b}</li>
         ))}
       </ul>
     </div>
