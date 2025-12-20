@@ -1,3 +1,4 @@
+// apps/caisty-site/src/layouts/SiteLayout.tsx
 import { Outlet, Link, NavLink } from "react-router-dom";
 import LanguageSelector from "../components/LanguageSelector";
 import CurrencySelector from "../components/CurrencySelector";
@@ -34,6 +35,9 @@ export default function SiteLayout() {
   const mutedText = isLight ? "text-slate-600" : "text-slate-300";
   const strongText = isLight ? "text-slate-900" : "text-slate-100";
 
+  const host = typeof window !== "undefined" ? window.location.hostname : "";
+  const isTN = host === "tn.caisty.com";
+
   return (
     <div className={`min-h-screen flex flex-col ${baseBg}`}>
       {/* Top-Bar */}
@@ -51,22 +55,29 @@ export default function SiteLayout() {
             </div>
           </Link>
 
-          <nav className="flex items-center gap-6">
-            <NavItem to="/">Produkt</NavItem>
-            <NavItem to="/pricing">Preise</NavItem>
-            {/* Später z.B. /portal */}
-          </nav>
+          {/* Nav (nur für www / global) */}
+          {!isTN && (
+            <nav className="flex items-center gap-6">
+              <NavItem to="/">Produkt</NavItem>
+              <NavItem to="/pricing">Preise</NavItem>
+              {/* Später z.B. /portal */}
+            </nav>
+          )}
 
           <div className="flex items-center gap-3">
-            <CurrencySelector />
+            {/* Currency nur für www/global */}
+            {!isTN && <CurrencySelector />}
+
             <LanguageSelector />
             <ThemeToggle />
+
             <Link
               to="/login"
               className={`text-sm ${mutedText} hover:text-emerald-500`}
             >
               Login
             </Link>
+
             <Link
               to="/register"
               className="text-sm px-3 py-1.5 rounded-full bg-emerald-500 text-slate-950 font-medium hover:bg-emerald-400"
@@ -167,7 +178,7 @@ export default function SiteLayout() {
           <div className={`border-t ${baseBorder} pt-6 flex flex-col sm:flex-row justify-between gap-3 text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
             <span>© {new Date().getFullYear()} Caisty – All rights reserved.</span>
             <span className={`${isLight ? "text-slate-500" : "text-slate-500"} italic`}>
-              Hinweis: Firmendaten sind Platzhalter und müssen nach Firmengründung aktualisiert werden.
+              Hinweis: Firmendaten sind Platzhalter und müssen nach Firmgründung aktualisiert werden.
             </span>
           </div>
         </div>

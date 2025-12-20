@@ -2,6 +2,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import SiteLayout from "./layouts/SiteLayout";
 import LandingPage from "./routes/LandingPage";
+import LandingPageTN from "./routes/LandingPageTN";
 import PricingPage from "./routes/PricingPage";
 import LoginPage from "./routes/LoginPage";
 import RegisterPage from "./routes/RegisterPage";
@@ -18,22 +19,25 @@ import PortalDevicesPage from "./routes/PortalDevicesPage";
 import PortalInvoicesPage from "./routes/portal/PortalInvoicesPage";
 import PortalInvoiceDetailPage from "./routes/PortalInvoiceDetailPage";
 import PortalAccountPage from "./routes/PortalAccountPage";
-import PortalInstallPage from "./routes/PortalInstallPage"; // Install-Seite
-import PortalPlanBillingPage from "./routes/PortalPlanBillingPage"; // Plan & Abrechnung
-import PortalCheckoutPage from "./routes/PortalCheckoutPage"; // Checkout & Zahlung
-import PortalCheckoutSuccessPage from "./routes/PortalCheckoutSuccessPage"; // Checkout Success
-import PortalCheckoutCancelPage from "./routes/PortalCheckoutCancelPage"; // Checkout Cancel
-import PortalLoginSuccessPage from "./routes/PortalLoginSuccessPage"; // Google OAuth Success
-import PortalSupportPage from "./routes/PortalSupportPage"; // Support / Kontakt
-import PortalUpgradeResultPage from "./routes/PortalUpgradeResultPage"; // ⬅️ NEU
+import PortalInstallPage from "./routes/PortalInstallPage";
+import PortalPlanBillingPage from "./routes/PortalPlanBillingPage";
+import PortalCheckoutPage from "./routes/PortalCheckoutPage";
+import PortalCheckoutSuccessPage from "./routes/PortalCheckoutSuccessPage";
+import PortalCheckoutCancelPage from "./routes/PortalCheckoutCancelPage";
+import PortalLoginSuccessPage from "./routes/PortalLoginSuccessPage";
+import PortalSupportPage from "./routes/PortalSupportPage";
+import PortalUpgradeResultPage from "./routes/PortalUpgradeResultPage";
 
 export default function App() {
+  const host = typeof window !== "undefined" ? window.location.hostname : "";
+  const isTN = host === "tn.caisty.com";
+
   return (
     <BrowserRouter>
       <Routes>
         {/* Marketing-Site */}
         <Route element={<SiteLayout />}>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={isTN ? <LandingPageTN /> : <LandingPage />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -61,10 +65,7 @@ export default function App() {
           <Route path="support" element={<PortalSupportPage />} />
           <Route path="account" element={<PortalAccountPage />} />
           <Route path="install" element={<PortalInstallPage />} />
-          <Route
-            path="upgrade/result"
-            element={<PortalUpgradeResultPage />}
-          />
+          <Route path="upgrade/result" element={<PortalUpgradeResultPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
