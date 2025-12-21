@@ -1,5 +1,7 @@
+// apps/caisty-site/src/routes/LandingPageTN.tsx
 import { Link } from "react-router-dom";
 import { useTheme } from "../lib/theme";
+import { useMemo, useState } from "react";
 
 export default function LandingPageTN() {
   const { theme } = useTheme();
@@ -11,10 +13,23 @@ export default function LandingPageTN() {
   const border = isLight ? "border-slate-200" : "border-slate-800";
   const card = isLight ? "bg-white" : "bg-slate-900/70";
 
+  const [activeShot, setActiveShot] = useState<null | { src: string; alt: string }>(null);
+
+  // TODO: ersetze diese Pfade durch echte Screenshots in:
+  // apps/caisty-site/public/tn/pos-1.png usw.
+  const screenshots = useMemo(
+    () => [
+      { src: "/tn/pos-1.png", alt: "Caisty POS — écran de vente" },
+      { src: "/tn/pos-2.png", alt: "Caisty POS — panier / commande" },
+      { src: "/tn/pos-3.png", alt: "Caisty POS — clôture / rapport" },
+    ],
+    []
+  );
+
   return (
     <div className={`min-h-screen ${pageBg}`}>
       {/* HERO */}
-      <section className="max-w-5xl mx-auto px-4 pt-16 pb-12">
+      <section className="max-w-5xl mx-auto px-4 pt-16 pb-10">
         <div
           className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium mb-6 ${
             isLight
@@ -33,8 +48,8 @@ export default function LandingPageTN() {
             </h1>
 
             <p className={`text-sm sm:text-base max-w-xl ${muted}`}>
-              Caisty POS est une solution de caisse intelligente avec un portail cloud intégré.
-              Gérez vos ventes, licences, appareils et factures — sans complexité.
+              Caisty POS est une solution de caisse rapide, avec un portail cloud clair.
+              Gérez vos licences, vos appareils et vos factures — sans complexité.
             </p>
 
             <div className="flex flex-wrap gap-3 text-sm">
@@ -107,6 +122,42 @@ export default function LandingPageTN() {
         </div>
       </section>
 
+      {/* VIDEO BOX (oben) */}
+      <section className="max-w-5xl mx-auto px-4 pb-10">
+        <div className={`rounded-3xl border p-6 md:p-8 ${border} ${card}`}>
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <h3 className={`text-lg font-semibold ${strong}`}>Découvrez Caisty POS en 90 secondes</h3>
+              <p className={`text-sm ${muted}`}>
+                Vidéo de présentation (bientôt). Idéal pour une campagne publicitaire.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              className={`inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-medium border transition-colors ${
+                isLight
+                  ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  : "border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800"
+              }`}
+              onClick={() => {
+                alert("Vidéo bientôt disponible 🙂");
+              }}
+            >
+              ▶ Lire la vidéo
+            </button>
+          </div>
+
+          <div
+            className={`mt-5 h-56 rounded-2xl border border-dashed flex items-center justify-center ${
+              isLight ? "border-slate-300 bg-slate-50 text-slate-500" : "border-slate-700 bg-slate-900/60 text-slate-400"
+            }`}
+          >
+            Zone vidéo (YouTube / MP4 / Loom)
+          </div>
+        </div>
+      </section>
+
       {/* POURQUOI */}
       <section className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
         <h2 className={`text-xl font-semibold ${strong}`}>Pourquoi Caisty ?</h2>
@@ -138,7 +189,7 @@ export default function LandingPageTN() {
       <section id="how" className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
         <h2 className={`text-xl font-semibold ${strong}`}>Comment ça marche ?</h2>
         <p className={`text-sm max-w-3xl ${muted}`}>
-          Créez un compte, installez Caisty POS depuis votre portail, entrez la clé de licence — et commencez.
+          Créez un compte, téléchargez Caisty POS depuis votre portail, entrez la clé de licence — et commencez.
           L’essai est disponible immédiatement.
         </p>
 
@@ -189,16 +240,54 @@ export default function LandingPageTN() {
               </p>
             </div>
 
-            {/* Image placeholder */}
+            {/* Galerie screenshots (3 + zoom) */}
             <div className="relative">
-              <div className={`absolute -inset-1 rounded-3xl blur-xl ${isLight ? "bg-emerald-100/60" : "bg-emerald-500/10"}`} />
+              <div
+                className={`absolute -inset-1 rounded-3xl blur-xl ${
+                  isLight ? "bg-emerald-100/60" : "bg-emerald-500/10"
+                }`}
+              />
               <div className={`relative rounded-2xl border p-4 ${border} ${isLight ? "bg-white" : "bg-slate-950/60"}`}>
-                <div className={`text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"} mb-2`}>
-                  Aperçu Caisty POS (image bientôt)
+                <div className="flex items-center justify-between mb-3">
+                  <div className={`text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                    Aperçu Caisty POS
+                  </div>
+                  <div className={`text-[11px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                    Cliquez pour agrandir
+                  </div>
                 </div>
-                <div className={`h-40 rounded-xl border border-dashed flex items-center justify-center ${isLight ? "border-slate-300 bg-slate-50 text-slate-500" : "border-slate-700 bg-slate-900/60 text-slate-400"}`}>
-                  Zone image / screenshot POS
+
+                <div className="grid grid-cols-3 gap-2">
+                  {screenshots.map((s) => (
+                    <button
+                      key={s.src}
+                      type="button"
+                      className={`group relative overflow-hidden rounded-xl border ${border} ${
+                        isLight ? "bg-slate-50" : "bg-slate-900/50"
+                      }`}
+                      onClick={() => setActiveShot(s)}
+                      aria-label={`Ouvrir ${s.alt}`}
+                      title="Agrandir"
+                    >
+                      <img
+                        src={s.src}
+                        alt={s.alt}
+                        className="h-24 w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
+                        loading="lazy"
+                      />
+                      <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute inset-0 bg-black/25" />
+                        <div className="absolute bottom-1 right-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] text-slate-800">
+                          🔍
+                        </div>
+                      </div>
+                    </button>
+                  ))}
                 </div>
+
+                <p className={`mt-3 text-[11px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  Placez vos images dans <span className="font-semibold">public/tn/</span> : pos-1.png, pos-2.png, pos-3.png.
+                </p>
               </div>
             </div>
           </div>
@@ -221,41 +310,6 @@ export default function LandingPageTN() {
             <ListItem light={isLight} text="Installation et mises à jour Caisty POS" />
             <ListItem light={isLight} text="Support et contact" />
             <ListItem light={isLight} text="Gestion centralisée — sans complexité" />
-          </div>
-        </div>
-      </section>
-
-      {/* VIDEO PLACEHOLDER */}
-      <section className="max-w-5xl mx-auto px-4 pb-10">
-        <div className={`rounded-3xl border p-6 md:p-8 ${border} ${card}`}>
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="space-y-2">
-              <h3 className={`text-lg font-semibold ${strong}`}>Découvrez Caisty POS en 90 secondes</h3>
-              <p className={`text-sm ${muted}`}>
-                Vidéo de présentation (bientôt). Parfait pour une campagne publicitaire.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className={`inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-medium border transition-colors ${
-                isLight
-                  ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                  : "border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800"
-              }`}
-              onClick={() => {
-                // plus tard: ouvrir une modal vidéo / youtube / mp4
-                alert("Vidéo bientôt disponible 🙂");
-              }}
-            >
-              ▶ Lire la vidéo
-            </button>
-          </div>
-
-          <div className={`mt-5 h-56 rounded-2xl border border-dashed flex items-center justify-center ${
-            isLight ? "border-slate-300 bg-slate-50 text-slate-500" : "border-slate-700 bg-slate-900/60 text-slate-400"
-          }`}>
-            Zone vidéo (YouTube / MP4 / Loom)
           </div>
         </div>
       </section>
@@ -301,7 +355,7 @@ export default function LandingPageTN() {
         <div className={`rounded-2xl border p-4 ${border} ${card}`}>
           <p className={`text-sm ${muted}`}>
             Nous activons progressivement des solutions de paiement adaptées à la Tunisie.
-            En attendant, vous pouvez commencer gratuitement et demander une démo — nous vous accompagnons personnellement.
+            En attendant, vous pouvez commencer gratuitement et demander une démo — nous vous accompagnons.
           </p>
         </div>
       </section>
@@ -336,6 +390,51 @@ export default function LandingPageTN() {
         </div>
       </section>
 
+      {/* Lightbox screenshot */}
+      {activeShot && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Aperçu image"
+          onClick={() => setActiveShot(null)}
+        >
+          <div
+            className={`w-full max-w-5xl rounded-2xl overflow-hidden border ${
+              isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-950"
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={`flex items-center justify-between px-4 py-3 border-b ${border}`}>
+              <div className={`text-sm font-semibold ${strong}`}>{activeShot.alt}</div>
+              <button
+                type="button"
+                className={`rounded-full px-3 py-1.5 text-sm border transition-colors ${
+                  isLight
+                    ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                    : "border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800"
+                }`}
+                onClick={() => setActiveShot(null)}
+              >
+                Fermer
+              </button>
+            </div>
+
+            <div className="bg-black">
+              <img
+                src={activeShot.src}
+                alt={activeShot.alt}
+                className="w-full max-h-[75vh] object-contain"
+              />
+            </div>
+
+            <div className={`px-4 py-3 text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+              Astuce: remplacez ces images par des captures réelles du POS quand vous voulez.
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Petit spacing */}
       <div className="h-6" />
     </div>
@@ -367,9 +466,11 @@ function AudienceCard(props: { light: boolean; title: string; text: string }) {
 function StepCard(props: { light: boolean; n: number; title: string; text: string }) {
   return (
     <div className={`rounded-2xl border p-4 space-y-2 ${props.light ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/70"}`}>
-      <div className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
-        props.light ? "bg-emerald-100 text-emerald-600" : "bg-emerald-500/15 text-emerald-300"
-      }`}>
+      <div
+        className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold ${
+          props.light ? "bg-emerald-100 text-emerald-600" : "bg-emerald-500/15 text-emerald-300"
+        }`}
+      >
         {props.n}
       </div>
       <div className={`text-sm font-semibold ${props.light ? "text-slate-900" : "text-slate-100"}`}>{props.title}</div>
@@ -409,9 +510,11 @@ function PlanCardTN(props: {
       <div className="flex items-center justify-between">
         <div className={`text-sm font-semibold ${props.light ? "text-slate-900" : "text-slate-100"}`}>{props.name}</div>
         {props.highlight && (
-          <span className={`text-[10px] rounded-full border px-2 py-0.5 ${
-            props.light ? "border-slate-200 bg-slate-50 text-slate-700" : "border-slate-700 bg-slate-900 text-slate-300"
-          }`}>
+          <span
+            className={`text-[10px] rounded-full border px-2 py-0.5 ${
+              props.light ? "border-slate-200 bg-slate-50 text-slate-700" : "border-slate-700 bg-slate-900 text-slate-300"
+            }`}
+          >
             Populaire
           </span>
         )}
