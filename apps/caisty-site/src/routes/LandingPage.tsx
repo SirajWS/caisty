@@ -1,27 +1,30 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { PRICING, TRIAL_DAYS, MAX_DEVICES, formatPrice } from "../config/pricing";
-import { useCurrency } from "../lib/useCurrency";
+import { TRIAL_DAYS, MAX_DEVICES } from "../config/pricing";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
 import { useTheme } from "../lib/theme";
 
 export default function LandingPage() {
-  const { currency } = useCurrency();
   const { language } = useLanguage();
   const { theme } = useTheme();
   const isLight = theme === "light";
   const t = translations[language].landing;
-  
-  const starter = PRICING[currency].starter;
-  const pro = PRICING[currency].pro;
-  const currencySymbol = currency === "EUR" ? "€" : "TND";
-  const isTnd = currency === "TND";
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const pageBg = isLight ? "bg-slate-50 text-slate-900" : "bg-slate-950 text-slate-50";
+
+  // Screenshot-Galerie (Platzhalter - du kannst später echte Bilder hinzufügen)
+  const screenshots = [
+    { id: 1, src: "/screenshots/dashboard.png", alt: "Dashboard", title: "Dashboard" },
+    { id: 2, src: "/screenshots/pos.png", alt: "POS Interface", title: "POS Interface" },
+    { id: 3, src: "/screenshots/portal.png", alt: "Kundenportal", title: "Kundenportal" },
+  ];
+
 
   return (
     <div className={`min-h-screen ${pageBg}`}>
       {/* Hero */}
-      <section className="max-w-5xl mx-auto px-4 pt-20 pb-16">
+      <section className="max-w-5xl mx-auto px-4 pb-16">
         <div
           className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium mb-6 ${
             isLight
@@ -85,11 +88,6 @@ export default function LandingPage() {
               </span>{" "}
               {t.hero.trialNote2}
             </p>
-            {isTnd && (
-              <p className="text-[11px] text-amber-500">
-                Hinweis: Die Abrechnung erfolgt aktuell in Euro per PayPal. TND-Preise sind nur zur Orientierung.
-              </p>
-            )}
           </div>
 
           {/* Dashboard-Mock */}
@@ -209,7 +207,7 @@ export default function LandingPage() {
                 }`}
               >
                 „Wir wollten eine Kasse, die einfach läuft – und ein Portal,
-                das wir verstehen.“ – fiktives Bistro
+                das wir verstehen." – fiktives Bistro
               </div>
             </div>
           </div>
@@ -278,7 +276,7 @@ export default function LandingPage() {
           <PlanCard
             name={t.plans.trial.name}
             badge={t.plans.trial.badge}
-            price={`0 ${currencySymbol}`}
+            price="0 €"
             note={`${TRIAL_DAYS} ${t.plans.trial.note}`}
             details={[
               t.plans.trial.detail1,
@@ -289,8 +287,8 @@ export default function LandingPage() {
           <PlanCard
             name={t.plans.starter.name}
             badge={t.plans.starter.badge}
-            price={`${formatPrice(starter.monthly, currency)}`}
-            subPrice={`${t.plans.starter.subPrice.replace("€", formatPrice(starter.yearly, currency))}`}
+            price="19,99 €"
+            subPrice={t.plans.starter.subPrice.replace("€", "19,99 €")}
             note={`${MAX_DEVICES.starter} ${t.plans.starter.note}`}
             highlight
             details={[
@@ -302,8 +300,8 @@ export default function LandingPage() {
           <PlanCard
             name={t.plans.pro.name}
             badge={t.plans.pro.badge}
-            price={`${formatPrice(pro.monthly, currency)}`}
-            subPrice={`${t.plans.pro.subPrice.replace("€", formatPrice(pro.yearly, currency))}`}
+            price="29,99 €"
+            subPrice={t.plans.pro.subPrice.replace("€", "29,99 €")}
             note={`${MAX_DEVICES.pro} ${t.plans.pro.note}`}
             details={[
               t.plans.pro.detail1,
@@ -316,11 +314,6 @@ export default function LandingPage() {
         <p className="text-[11px] text-slate-500">
           {t.plans.note}
         </p>
-        {isTnd && (
-          <p className="text-[11px] text-amber-500">
-            Hinweis: Abrechnung erfolgt in Euro per PayPal. TND-Preise sind eine Orientierung.
-          </p>
-        )}
       </section>
 
       {/* Zahlungsmethoden */}
@@ -552,7 +545,7 @@ export default function LandingPage() {
       </section>
 
       {/* Fiscal info / international use */}
-      <section className="max-w-5xl mx-auto px-4 pb-20">
+      <section className="max-w-5xl mx-auto px-4 pb-12">
         <div
           className={`rounded-3xl border p-5 space-y-3 text-xs sm:text-sm ${
             isLight
@@ -591,6 +584,141 @@ export default function LandingPage() {
           </p>
         </div>
       </section>
+
+      {/* Video-Box und Screenshots ganz unten */}
+      <section className="max-w-5xl mx-auto px-4 pb-20 pt-12">
+        {/* Video-Box */}
+        <div
+          className={`rounded-3xl border overflow-hidden shadow-xl ${
+            isLight
+              ? "border-slate-200 bg-white shadow-emerald-200/40"
+              : "border-slate-800 bg-slate-900/70 shadow-emerald-900/40"
+          }`}
+        >
+          <div className="aspect-video bg-slate-900 flex items-center justify-center relative">
+            {/* Platzhalter für Video - du kannst hier ein <video> oder iframe einfügen */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <button
+                className={`rounded-full p-4 ${
+                  isLight
+                    ? "bg-white/90 text-slate-900 hover:bg-white"
+                    : "bg-slate-800/90 text-slate-100 hover:bg-slate-800"
+                } transition-all hover:scale-110`}
+                aria-label="Video abspielen"
+              >
+                <svg
+                  className="w-12 h-12"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </button>
+            </div>
+            {/* Optional: Video-Thumbnail als Hintergrund */}
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-slate-900/80" />
+          </div>
+        </div>
+
+        {/* 3 Screenshots direkt unter dem Video */}
+        <div className="grid grid-cols-3 gap-4 mt-6">
+          {screenshots.map((screenshot) => (
+            <button
+              key={screenshot.id}
+              onClick={() => setSelectedImage(screenshot.src)}
+              className={`group rounded-xl border overflow-hidden transition-all hover:scale-105 relative ${
+                isLight
+                  ? "border-slate-200 bg-white hover:border-emerald-300"
+                  : "border-slate-800 bg-slate-900/70 hover:border-emerald-500/50"
+              }`}
+            >
+              <div className="aspect-video bg-slate-800 flex items-center justify-center relative">
+                {/* Platzhalter für Bild */}
+                <span
+                  className={`text-xs transition-opacity ${
+                    isLight ? "text-slate-400" : "text-slate-500"
+                  }`}
+                >
+                  {screenshot.title}
+                </span>
+                {/* Hover-Overlay */}
+                <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/10 transition-colors flex items-center justify-center">
+                  <svg
+                    className="w-8 h-8 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Screenshot/Image Modal */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative max-w-5xl w-full">
+            <button
+              className="absolute -top-12 right-0 text-white hover:text-slate-300 transition-colors z-10"
+              onClick={() => setSelectedImage(null)}
+              aria-label="Schließen"
+            >
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div
+              className={`rounded-xl border overflow-hidden ${
+                isLight
+                  ? "border-slate-300 bg-white"
+                  : "border-slate-700 bg-slate-900"
+              }`}
+            >
+              <img
+                src={selectedImage}
+                alt="Bild"
+                className="w-full h-auto max-h-[80vh] object-contain"
+                onClick={(e) => e.stopPropagation()}
+                onError={(e) => {
+                  // Fallback wenn Bild nicht geladen werden kann
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = "none";
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = `
+                      <div class="p-20 text-center ${
+                        isLight ? "text-slate-600" : "text-slate-400"
+                      }">
+                        <p class="text-sm">Bild wird geladen...</p>
+                        <p class="text-xs mt-2">Pfad: ${selectedImage}</p>
+                      </div>
+                    `;
+                  }
+                }}
+              />
+            </div>
+            <p
+              className={`text-center mt-4 text-sm ${
+                isLight ? "text-slate-300" : "text-slate-500"
+              }`}
+            >
+              Klicke außerhalb des Bildes zum Schließen
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

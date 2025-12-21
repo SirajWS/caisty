@@ -13,15 +13,14 @@ export default function LandingPageTN() {
   const border = isLight ? "border-slate-200" : "border-slate-800";
   const card = isLight ? "bg-white" : "bg-slate-900/70";
 
-  const [activeShot, setActiveShot] = useState<null | { src: string; alt: string }>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-  // TODO: ersetze diese Pfade durch echte Screenshots in:
-  // apps/caisty-site/public/tn/pos-1.png usw.
+  // Screenshots für Video-Section unten
   const screenshots = useMemo(
     () => [
-      { src: "/tn/pos-1.png", alt: "Caisty POS — écran de vente" },
-      { src: "/tn/pos-2.png", alt: "Caisty POS — panier / commande" },
-      { src: "/tn/pos-3.png", alt: "Caisty POS — clôture / rapport" },
+      { id: 1, src: "/tn/pos-1.png", alt: "Caisty POS — écran de vente", title: "Écran de vente" },
+      { id: 2, src: "/tn/pos-2.png", alt: "Caisty POS — panier / commande", title: "Panier" },
+      { id: 3, src: "/tn/pos-3.png", alt: "Caisty POS — clôture / rapport", title: "Rapport" },
     ],
     []
   );
@@ -122,42 +121,6 @@ export default function LandingPageTN() {
         </div>
       </section>
 
-      {/* VIDEO BOX (oben) */}
-      <section className="max-w-5xl mx-auto px-4 pb-10">
-        <div className={`rounded-3xl border p-6 md:p-8 ${border} ${card}`}>
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="space-y-2">
-              <h3 className={`text-lg font-semibold ${strong}`}>Découvrez Caisty POS en 90 secondes</h3>
-              <p className={`text-sm ${muted}`}>
-                Vidéo de présentation (bientôt). Idéal pour une campagne publicitaire.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className={`inline-flex items-center justify-center rounded-full px-5 py-2 text-sm font-medium border transition-colors ${
-                isLight
-                  ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                  : "border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800"
-              }`}
-              onClick={() => {
-                alert("Vidéo bientôt disponible 🙂");
-              }}
-            >
-              ▶ Lire la vidéo
-            </button>
-          </div>
-
-          <div
-            className={`mt-5 h-56 rounded-2xl border border-dashed flex items-center justify-center ${
-              isLight ? "border-slate-300 bg-slate-50 text-slate-500" : "border-slate-700 bg-slate-900/60 text-slate-400"
-            }`}
-          >
-            Zone vidéo (YouTube / MP4 / Loom)
-          </div>
-        </div>
-      </section>
-
       {/* POURQUOI */}
       <section className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
         <h2 className={`text-xl font-semibold ${strong}`}>Pourquoi Caisty ?</h2>
@@ -171,146 +134,6 @@ export default function LandingPageTN() {
           <FeatureCard light={isLight} title="Portail client" text="Licences, appareils, factures, installation — tout au même endroit." />
           <FeatureCard light={isLight} title="Pensé pour évoluer" text="Commencez simple, ajoutez des options quand votre activité grandit." />
           <FeatureCard light={isLight} title="Contrôle total" text="Suivez vos appareils et vos licences en temps réel." />
-        </div>
-      </section>
-
-      {/* POUR QUI */}
-      <section className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
-        <h2 className={`text-xl font-semibold ${strong}`}>Pour qui est Caisty ?</h2>
-        <div className="grid gap-4 md:grid-cols-4 text-sm">
-          <AudienceCard light={isLight} title="Restaurants" text="Service rapide, suivi clair et gestion simple des ventes." />
-          <AudienceCard light={isLight} title="Snacks / Fast-food" text="Commandes rapides, peu de clics, efficacité maximale." />
-          <AudienceCard light={isLight} title="Cafés & bars" text="Articles simples, mises à jour rapides, rapports quotidiens." />
-          <AudienceCard light={isLight} title="Boutiques modernes" text="POS, reçus et rapports essentiels — sans surplus inutile." />
-        </div>
-      </section>
-
-      {/* COMMENT CA MARCHE */}
-      <section id="how" className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
-        <h2 className={`text-xl font-semibold ${strong}`}>Comment ça marche ?</h2>
-        <p className={`text-sm max-w-3xl ${muted}`}>
-          Créez un compte, téléchargez Caisty POS depuis votre portail, entrez la clé de licence — et commencez.
-          L’essai est disponible immédiatement.
-        </p>
-
-        <div className="grid gap-4 md:grid-cols-3 text-sm">
-          <StepCard
-            light={isLight}
-            n={1}
-            title="Créer le compte"
-            text="Créez votre compte Caisty et accédez au portail client. Une licence d’essai est générée automatiquement."
-          />
-          <StepCard
-            light={isLight}
-            n={2}
-            title="Télécharger Caisty POS"
-            text="Depuis le portail, téléchargez l’installateur pour votre système (Windows aujourd’hui, Linux/macOS bientôt)."
-          />
-          <StepCard
-            light={isLight}
-            n={3}
-            title="Installer & commencer"
-            text="Installez sur votre PC de caisse, entrez la clé de licence — terminé. Vous pouvez utiliser l’app immédiatement."
-          />
-        </div>
-      </section>
-
-      {/* DU TELECHARGEMENT */}
-      <section className="max-w-5xl mx-auto px-4 pb-10">
-        <div className={`rounded-3xl border p-6 md:p-7 ${border} ${card}`}>
-          <div className="grid gap-6 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] items-center">
-            <div className="space-y-3">
-              <h3 className={`text-lg font-semibold ${strong}`}>
-                Du téléchargement à la caisse prête à l’emploi en quelques minutes
-              </h3>
-              <p className={`text-sm ${muted}`}>
-                L’installation de Caisty POS se fait entièrement via votre portail client. Vous y trouvez :
-                l’installateur officiel, votre clé de licence et un guide étape par étape.
-              </p>
-
-              <ul className={`text-sm space-y-2 ${isLight ? "text-slate-700" : "text-slate-200"}`}>
-                <li className="flex gap-2"><Dot /> l’installateur officiel</li>
-                <li className="flex gap-2"><Dot /> votre clé de licence</li>
-                <li className="flex gap-2"><Dot /> un guide clair étape par étape</li>
-              </ul>
-
-              <p className={`text-[11px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                La page d’installation détaillée est disponible après connexion dans le portail client,
-                section <span className="font-semibold">« Installer Caisty POS »</span>.
-              </p>
-            </div>
-
-            {/* Galerie screenshots (3 + zoom) */}
-            <div className="relative">
-              <div
-                className={`absolute -inset-1 rounded-3xl blur-xl ${
-                  isLight ? "bg-emerald-100/60" : "bg-emerald-500/10"
-                }`}
-              />
-              <div className={`relative rounded-2xl border p-4 ${border} ${isLight ? "bg-white" : "bg-slate-950/60"}`}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className={`text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                    Aperçu Caisty POS
-                  </div>
-                  <div className={`text-[11px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                    Cliquez pour agrandir
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  {screenshots.map((s) => (
-                    <button
-                      key={s.src}
-                      type="button"
-                      className={`group relative overflow-hidden rounded-xl border ${border} ${
-                        isLight ? "bg-slate-50" : "bg-slate-900/50"
-                      }`}
-                      onClick={() => setActiveShot(s)}
-                      aria-label={`Ouvrir ${s.alt}`}
-                      title="Agrandir"
-                    >
-                      <img
-                        src={s.src}
-                        alt={s.alt}
-                        className="h-24 w-full object-cover transition-transform duration-200 group-hover:scale-[1.03]"
-                        loading="lazy"
-                      />
-                      <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <div className="absolute inset-0 bg-black/25" />
-                        <div className="absolute bottom-1 right-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] text-slate-800">
-                          🔍
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                <p className={`mt-3 text-[11px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                  Placez vos images dans <span className="font-semibold">public/tn/</span> : pos-1.png, pos-2.png, pos-3.png.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* PORTAIL CLIENT */}
-      <section className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
-        <h2 className={`text-xl font-semibold ${strong}`}>Le portail client Caisty</h2>
-
-        <div className={`rounded-3xl border p-6 ${border} ${card}`}>
-          <p className={`text-sm ${muted} mb-4`}>
-            Le portail client Caisty vous permet de gérer votre activité simplement — accessible de partout :
-          </p>
-
-          <div className="grid gap-3 md:grid-cols-2 text-sm">
-            <ListItem light={isLight} text="Licences actives et historique" />
-            <ListItem light={isLight} text="Appareils connectés (PC de caisse)" />
-            <ListItem light={isLight} text="Factures et abonnements" />
-            <ListItem light={isLight} text="Installation et mises à jour Caisty POS" />
-            <ListItem light={isLight} text="Support et contact" />
-            <ListItem light={isLight} text="Gestion centralisée — sans complexité" />
-          </div>
         </div>
       </section>
 
@@ -360,83 +183,202 @@ export default function LandingPageTN() {
         </div>
       </section>
 
-      {/* CTA FINAL */}
-      <section className="max-w-5xl mx-auto px-4 pb-20">
-        <div className={`rounded-3xl border p-6 md:p-8 ${border} ${card}`}>
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <h3 className={`text-lg font-semibold ${strong}`}>Prêt à essayer Caisty POS ?</h3>
-              <p className={`text-sm ${muted}`}>Créez votre compte gratuitement et démarrez l’essai sans engagement.</p>
-            </div>
-            <div className="flex gap-3">
-              <Link
-                to="/register"
-                className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors"
-              >
-                Commencer gratuitement
-              </Link>
-              <Link
-                to="/login"
-                className={`inline-flex items-center justify-center rounded-full border px-5 py-2 text-sm font-medium transition-colors ${
-                  isLight
-                    ? "border-slate-300 text-slate-700 hover:bg-slate-50"
-                    : "border-slate-700 text-slate-100 hover:bg-slate-800"
-                }`}
-              >
-                Se connecter
-              </Link>
-            </div>
+      {/* POUR QUI */}
+      <section className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
+        <h2 className={`text-xl font-semibold ${strong}`}>Pour qui est Caisty ?</h2>
+        <div className="grid gap-4 md:grid-cols-4 text-sm">
+          <AudienceCard light={isLight} title="Restaurants" text="Service rapide, suivi clair et gestion simple des ventes." />
+          <AudienceCard light={isLight} title="Snacks / Fast-food" text="Commandes rapides, peu de clics, efficacité maximale." />
+          <AudienceCard light={isLight} title="Cafés & bars" text="Articles simples, mises à jour rapides, rapports quotidiens." />
+          <AudienceCard light={isLight} title="Boutiques modernes" text="POS, reçus et rapports essentiels — sans surplus inutile." />
+        </div>
+      </section>
+
+      {/* COMMENT CA MARCHE */}
+      <section id="how" className="max-w-5xl mx-auto px-4 pb-10 space-y-4">
+        <h2 className={`text-xl font-semibold ${strong}`}>Comment ça marche ?</h2>
+        <p className={`text-sm max-w-3xl ${muted}`}>
+          Créez un compte, téléchargez Caisty POS depuis votre portail, entrez la clé de licence — et commencez.
+          L’essai est disponible immédiatement.
+        </p>
+
+        <div className="grid gap-4 md:grid-cols-3 text-sm">
+          <StepCard
+            light={isLight}
+            n={1}
+            title="Créer le compte"
+            text="Créez votre compte Caisty et accédez au portail client. Une licence d’essai est générée automatiquement."
+          />
+          <StepCard
+            light={isLight}
+            n={2}
+            title="Télécharger Caisty POS"
+            text="Depuis le portail, téléchargez l’installateur pour votre système (Windows aujourd’hui, Linux/macOS bientôt)."
+          />
+          <StepCard
+            light={isLight}
+            n={3}
+            title="Installer & commencer"
+            text="Installez sur votre PC de caisse, entrez la clé de licence — terminé. Vous pouvez utiliser l’app immédiatement."
+          />
+        </div>
+      </section>
+
+      {/* INSTALLATION */}
+      <section className="max-w-5xl mx-auto px-4 pb-10">
+        <div className={`rounded-3xl border p-6 md:p-7 ${border} ${card}`}>
+          <div className="space-y-3">
+            <h3 className={`text-lg font-semibold ${strong}`}>
+              Du téléchargement à la caisse prête à l’emploi en quelques minutes
+            </h3>
+            <p className={`text-sm ${muted}`}>
+              L’installation de Caisty POS se fait entièrement via votre portail client. Vous y trouvez :
+              l’installateur officiel, votre clé de licence et un guide étape par étape.
+            </p>
+
+            <ul className={`text-sm space-y-2 ${isLight ? "text-slate-700" : "text-slate-200"}`}>
+              <li className="flex gap-2"><Dot /> l’installateur officiel</li>
+              <li className="flex gap-2"><Dot /> votre clé de licence</li>
+              <li className="flex gap-2"><Dot /> un guide clair étape par étape</li>
+            </ul>
+
+            <p className={`text-[11px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+              La page d’installation détaillée est disponible après connexion dans le portail client,
+              section <span className="font-semibold">« Installer Caisty POS »</span>.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* Lightbox screenshot */}
-      {activeShot && (
+      {/* Video-Box und Screenshots ganz unten */}
+      <section className="max-w-5xl mx-auto px-4 pb-20 pt-12">
+        {/* Video-Box */}
         <div
-          className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Aperçu image"
-          onClick={() => setActiveShot(null)}
+          className={`rounded-3xl border overflow-hidden shadow-xl ${
+            isLight
+              ? "border-slate-200 bg-white shadow-emerald-200/40"
+              : "border-slate-800 bg-slate-900/70 shadow-emerald-900/40"
+          }`}
         >
-          <div
-            className={`w-full max-w-5xl rounded-2xl overflow-hidden border ${
-              isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-950"
-            }`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className={`flex items-center justify-between px-4 py-3 border-b ${border}`}>
-              <div className={`text-sm font-semibold ${strong}`}>{activeShot.alt}</div>
+          <div className="aspect-video bg-slate-900 flex items-center justify-center relative">
+            {/* Platzhalter für Video */}
+            <div className="absolute inset-0 flex items-center justify-center">
               <button
-                type="button"
-                className={`rounded-full px-3 py-1.5 text-sm border transition-colors ${
+                className={`rounded-full p-4 ${
                   isLight
-                    ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                    : "border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-800"
-                }`}
-                onClick={() => setActiveShot(null)}
+                    ? "bg-white/90 text-slate-900 hover:bg-white"
+                    : "bg-slate-800/90 text-slate-100 hover:bg-slate-800"
+                } transition-all hover:scale-110`}
+                aria-label="Lire la vidéo"
+                onClick={() => {
+                  alert("Vidéo bientôt disponible 🙂");
+                }}
               >
-                Fermer
+                <svg
+                  className="w-12 h-12"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
               </button>
             </div>
+            {/* Optional: Video-Thumbnail als Hintergrund */}
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-slate-900/80" />
+          </div>
+        </div>
 
-            <div className="bg-black">
+        {/* 3 Screenshots direkt unter dem Video */}
+        <div className="grid grid-cols-3 gap-4 mt-6">
+          {screenshots.map((screenshot) => (
+            <button
+              key={screenshot.id}
+              onClick={() => setSelectedImage(screenshot.src)}
+              className={`group rounded-xl border overflow-hidden transition-all hover:scale-105 relative ${
+                isLight
+                  ? "border-slate-200 bg-white hover:border-emerald-300"
+                  : "border-slate-800 bg-slate-900/70 hover:border-emerald-500/50"
+              }`}
+            >
+              <div className="aspect-video bg-slate-800 flex items-center justify-center relative">
+                {/* Platzhalter für Bild */}
+                <span
+                  className={`text-xs transition-opacity ${
+                    isLight ? "text-slate-400" : "text-slate-500"
+                  }`}
+                >
+                  {screenshot.title}
+                </span>
+                {/* Hover-Overlay */}
+                <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/10 transition-colors flex items-center justify-center">
+                  <svg
+                    className="w-8 h-8 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* Screenshot/Image Modal */}
+      {selectedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+          onClick={() => setSelectedImage(null)}
+        >
+          <div className="relative max-w-5xl w-full">
+            <button
+              className="absolute -top-12 right-0 text-white hover:text-slate-300 transition-colors z-10"
+              onClick={() => setSelectedImage(null)}
+              aria-label="Fermer"
+            >
+              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div
+              className={`rounded-xl border overflow-hidden ${
+                isLight
+                  ? "border-slate-300 bg-white"
+                  : "border-slate-700 bg-slate-900"
+              }`}
+            >
               <img
-                src={activeShot.src}
-                alt={activeShot.alt}
-                className="w-full max-h-[75vh] object-contain"
+                src={selectedImage}
+                alt="Screenshot"
+                className="w-full h-auto max-h-[80vh] object-contain"
+                onClick={(e) => e.stopPropagation()}
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = "none";
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = `
+                      <div class="p-20 text-center ${
+                        isLight ? "text-slate-600" : "text-slate-400"
+                      }">
+                        <p class="text-sm">Image en cours de chargement...</p>
+                        <p class="text-xs mt-2">Chemin: ${selectedImage}</p>
+                      </div>
+                    `;
+                  }
+                }}
               />
-            </div>
-
-            <div className={`px-4 py-3 text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-              Astuce: remplacez ces images par des captures réelles du POS quand vous voulez.
             </div>
           </div>
         </div>
       )}
-
-      {/* Petit spacing */}
-      <div className="h-6" />
     </div>
   );
 }
@@ -475,15 +417,6 @@ function StepCard(props: { light: boolean; n: number; title: string; text: strin
       </div>
       <div className={`text-sm font-semibold ${props.light ? "text-slate-900" : "text-slate-100"}`}>{props.title}</div>
       <p className={`text-xs leading-relaxed ${props.light ? "text-slate-600" : "text-slate-300"}`}>{props.text}</p>
-    </div>
-  );
-}
-
-function ListItem(props: { light: boolean; text: string }) {
-  return (
-    <div className={`rounded-xl border p-3 flex items-start gap-2 ${props.light ? "border-slate-200 bg-slate-50" : "border-slate-800 bg-slate-950/40"}`}>
-      <span className="mt-0.5 text-emerald-500">✓</span>
-      <span className={`${props.light ? "text-slate-700" : "text-slate-200"} text-sm`}>{props.text}</span>
     </div>
   );
 }
