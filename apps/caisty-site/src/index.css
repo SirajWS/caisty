@@ -2,9 +2,20 @@
 
 @import "tailwindcss";
 
+html {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
 body {
   @apply bg-slate-900 text-slate-100;
   overflow-x: hidden;
+  max-width: 100%;
+}
+
+#root {
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 a {
@@ -153,9 +164,10 @@ a {
 
 @media (max-width: 768px) {
   .landing-page .lp-hero-glow {
-    width: min(120vw, 480px);
-    height: min(120vw, 480px);
-    right: -20%;
+    /* avoid >100vw — causes horizontal overflow / “dark strip” on mobile */
+    width: min(92vw, 420px);
+    height: min(92vw, 420px);
+    right: -12%;
     top: -8%;
   }
 }

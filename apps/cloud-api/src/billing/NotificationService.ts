@@ -19,10 +19,14 @@ export class NotificationService {
     licenseId?: string | null;
     data?: any;
   }) {
+    const orgId = String(input.orgId ?? "").trim();
+    if (!orgId) {
+      throw new Error("NOTIFICATION_MISSING_ORG_ID");
+    }
     const [row] = await db
       .insert(notifications)
       .values({
-        orgId: input.orgId,
+        orgId,
         type: input.type,
         title: input.title,
         body: input.body ?? null,

@@ -1,12 +1,13 @@
 // apps/cloud-api/src/routes/portal-support.ts
 import type { FastifyInstance } from "fastify";
 import { randomUUID } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 import { notificationService } from "../billing/NotificationService.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 import { db } from "../db/client.js";
 import { customers } from "../db/schema/customers.js";
+import { invoices } from "../db/schema/invoices.js";
 
 type CreateBody = {
   subject: string;
@@ -115,6 +116,21 @@ async function getPortalCustomerContext(request: any) {
     }
   }
 
+  // Legacy: customer.org_id can be null while invoices still reference a valid org
+  if (id !== "unknown" && !orgId) {
+    try {
+      const [inv] = await db
+        .select({ orgId: invoices.orgId })
+        .from(invoices)
+        .where(eq(invoices.customerId, id))
+        .orderBy(desc(invoices.createdAt))
+        .limit(1);
+      if (inv?.orgId) orgId = String(inv.orgId);
+    } catch (err) {
+      console.error("Failed to resolve org from invoices for support", err);
+    }
+  }
+
   return { id, name, email, orgId };
 }
 
@@ -178,8 +194,17 @@ export async function registerPortalSupportRoutes(app: FastifyInstance) {
           message,
           supportMessageId: stored.id,
         });
-      } catch (err) {
+      } catch (err: any) {
         request.log.error({ err }, "portal support: notification insert failed");
+        if (String(err?.message ?? "").includes("NOTIFICATION_MISSING_ORG_ID")) {
+          reply.code(422);
+          return {
+            ok: false,
+            code: "MISSING_ORG",
+            error:
+              "Dein Konto ist keiner Organisation zugeordnet. Bitte kontaktiere support@caisty.com.",
+          };
+        }
         reply.code(500);
         return {
           ok: false,
