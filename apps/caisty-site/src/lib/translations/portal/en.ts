@@ -1,4 +1,6 @@
 // English strings for customer portal (source of truth for shape).
+import type { TranslationSchema } from "../types";
+
 export const portalEn = {
   layout: {
     loading: "Loading customer portal…",
@@ -354,6 +356,6 @@ export const portalEn = {
     title: "Plans & pricing",
     comingSoon: "Coming soon.",
   },
-} as const;
+};
 
-export type PortalTranslations = typeof portalEn;
+export type PortalTranslations = TranslationSchema<typeof portalEn>;

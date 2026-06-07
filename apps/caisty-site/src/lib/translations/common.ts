@@ -1,57 +1,8 @@
 // Gemeinsame Übersetzungen (Buttons, Labels, etc.)
 import type { Language } from "./types";
+import type { TranslationSchema } from "./types";
 
-export const common: Record<
-  Language,
-  {
-    buttons: {
-      login: string;
-      register: string;
-      startFree: string;
-      viewPricing: string;
-      logout: string;
-      save: string;
-      cancel: string;
-      delete: string;
-      edit: string;
-      back: string;
-      next: string;
-      submit: string;
-    };
-    nav: {
-      product: string;
-      pricing: string;
-      payment: string;
-      fiscal: string;
-      dashboard: string;
-      licenses: string;
-      plan: string;
-      devices: string;
-      invoices: string;
-      support: string;
-      account: string;
-    };
-    layout: {
-      menuOpen: string;
-      menuClose: string;
-      tagline: string;
-    };
-    footer: {
-      brandTagline: string;
-      contactTitle: string;
-      legalTitle: string;
-      terms: string;
-      privacy: string;
-      imprint: string;
-      followTitle: string;
-      facebook: string;
-      instagram: string;
-      youtube: string;
-      copyright: string;
-      companyNote: string;
-    };
-  }
-> = {
+const commonLocales = {
   en: {
     buttons: {
       login: "Login",
@@ -249,3 +200,6 @@ export const common: Record<
     },
   },
 };
+
+export type CommonTranslations = TranslationSchema<(typeof commonLocales)["en"]>;
+export const common: Record<Language, CommonTranslations> = commonLocales;

@@ -1,6 +1,11 @@
 // Hauptdatei für alle Übersetzungen - führt alle Module zusammen
-import type { Language } from "./types";
+import type { Language, TranslationSchema } from "./types";
 import { isLanguage } from "./types";
+import type { CommonTranslations } from "./common";
+import type { LandingCopy } from "./landing";
+import type { PricingTranslations } from "./pricing";
+import type { AuthTranslations } from "./auth";
+import type { PortalTranslations } from "./portal";
 import { common } from "./common";
 import { landing } from "./landing";
 import { pricing } from "./pricing";
@@ -8,17 +13,20 @@ import { auth } from "./auth";
 import { portal } from "./portal";
 
 // Exportiere Types und Languages
-export type { Language };
+export type { Language, TranslationSchema };
 export { languages } from "./types";
 
 // Kombiniere alle Übersetzungen
-export const translations: Record<Language, {
-  common: typeof common.de;
-  landing: typeof landing.de;
-  pricing: typeof pricing.de;
-  auth: typeof auth.de;
-  portal: typeof portal.en;
-}> = {
+export const translations: Record<
+  Language,
+  {
+    common: CommonTranslations;
+    landing: LandingCopy;
+    pricing: PricingTranslations;
+    auth: AuthTranslations;
+    portal: PortalTranslations;
+  }
+> = {
   de: {
     common: common.de,
     landing: landing.de,
@@ -50,7 +58,7 @@ export const translations: Record<Language, {
 };
 
 /** Portal copy; falls back to English if `language` is unknown or `portal` is missing (stale cache / HMR). */
-export function getPortalTranslations(language: string): typeof portal.en {
+export function getPortalTranslations(language: string): PortalTranslations {
   const lang: Language = isLanguage(language) ? language : "en";
   return translations[lang]?.portal ?? translations.en.portal;
 }

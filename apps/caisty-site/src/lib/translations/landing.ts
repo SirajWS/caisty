@@ -1,113 +1,8 @@
 // Landing Page Übersetzungen — Reihenfolge Sprachen: en, fr, de, ar
 import type { Language } from "./types";
+import type { TranslationSchema } from "./types";
 
-export type LandingCopy = {
-  hero: {
-    badge: string;
-    title: string;
-    description: string;
-    ctaPrimary: string;
-    ctaSecondary: string;
-    trialTrust: string;
-  };
-  preview: {
-    title: string;
-    caption: string;
-    items: string[];
-    liveBadge: string;
-    demoBadge: string;
-    devicesOnline: string;
-    quote: string;
-  };
-  why: {
-    title: string;
-    description: string;
-    feature1Title: string;
-    feature1Text: string;
-    feature2Title: string;
-    feature2Text: string;
-    feature3Title: string;
-    feature3Text: string;
-  };
-  forWhom: {
-    title: string;
-    target1Title: string;
-    target1Text: string;
-    target2Title: string;
-    target2Text: string;
-    target3Title: string;
-    target3Text: string;
-  };
-  plans: {
-    title: string;
-    intro: string;
-    trial: {
-      name: string;
-      badge: string;
-      priceLine: string;
-      subline: string;
-      features: string[];
-    };
-    starter: {
-      name: string;
-      badge: string;
-      recommended: string;
-      priceLine: string;
-      subline: string;
-      features: string[];
-    };
-    pro: {
-      name: string;
-      badge: string;
-      priceLine: string;
-      subline: string;
-      features: string[];
-    };
-    note: string;
-  };
-  payment: {
-    title: string;
-    description: string;
-    paypal: { title: string; description: string };
-    stripe: { title: string; description: string };
-    footnote: string;
-  };
-  install: {
-    title: string;
-    description: string;
-    steps: string[];
-    noteBefore: string;
-    noteHighlight: string;
-    noteAfter: string;
-    mockTitle: string;
-    previewBadge: string;
-    platformWin: string;
-    platformLinux: string;
-    platformMac: string;
-    downloadHint: string;
-    smallDownload: string;
-    smallInstall: string;
-    smallLicense: string;
-  };
-  fiscal: {
-    title: string;
-    lead: string;
-    countries: string[];
-    strict: string;
-    disclaimer: string;
-  };
-  demo: {
-    sectionTitle: string;
-    videoAria: string;
-    closeLabel: string;
-    clickOutside: string;
-    shotDashboard: string;
-    shotPos: string;
-    shotPortal: string;
-  };
-};
-
-export const landing: Record<Language, LandingCopy> = {
+const landingLocales = {
   en: {
     hero: {
       badge: "POS & cloud portal for modern businesses",
@@ -741,3 +636,6 @@ export const landing: Record<Language, LandingCopy> = {
     },
   },
 };
+
+export type LandingCopy = TranslationSchema<(typeof landingLocales)["en"]>;
+export const landing: Record<Language, LandingCopy> = landingLocales;

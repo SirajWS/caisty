@@ -1,63 +1,8 @@
 // Pricing Page Übersetzungen
 import type { Language } from "./types";
+import type { TranslationSchema } from "./types";
 
-export const pricing: Record<Language, {
-  title: string;
-  description: string;
-  trial: {
-    badge: string;
-    title: string;
-    daysLabel: string;
-    description: string;
-    cta: string;
-  };
-  billing: {
-    monthly: string;
-    yearly: string;
-    discount: string;
-  };
-  priceMonthlySuffix: string;
-  priceYearlySuffix: string;
-  amountsNote: string;
-  tndBillingNote: string;
-  plans: {
-    starter: {
-      title: string;
-      badge: string;
-      description: string;
-      devicesLabel: string;
-      features: string[];
-    };
-    pro: {
-      title: string;
-      badge: string;
-      description: string;
-      devicesLabel: string;
-      features: string[];
-    };
-  };
-  info: {
-    contract: {
-      title: string;
-      text: string;
-    };
-    hardware: {
-      title: string;
-      text: string;
-    };
-    nextSteps: {
-      title: string;
-      text: string;
-    };
-  };
-  cta: {
-    title: string;
-    description: string;
-    button: string;
-  };
-  footer: string;
-  planNote: string;
-}> = {
+const pricingLocales = {
   de: {
     title: "Einfache Pläne für deinen Start mit Caisty.",
     description:
@@ -355,4 +300,7 @@ export const pricing: Record<Language, {
       "يمكنك تغيير خطتك لاحقاً في البوابة – الترقية ممكنة عادةً فوراً، التخفيض إلى فترة الفوترة التالية.",
   },
 };
+
+export type PricingTranslations = TranslationSchema<(typeof pricingLocales)["en"]>;
+export const pricing: Record<Language, PricingTranslations> = pricingLocales;
 

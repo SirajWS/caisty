@@ -1,94 +1,7 @@
 import type { Language } from "./types";
+import type { TranslationSchema } from "./types";
 
-export type AuthTranslations = {
-  login: {
-    title: string;
-    subtitle: string;
-    emailLabel: string;
-    passwordLabel: string;
-    submit: string;
-    submitting: string;
-    forgotPassword: string;
-    divider: string;
-    google: string;
-    noAccount: string;
-    registerLink: string;
-    errors: {
-      oauthError: string;
-      missingToken: string;
-      googleAuthFailed: string;
-      emailNotVerified: string;
-      duplicateProvider: string;
-      dbMigrationRequired: string;
-      invalidCustomer: string;
-    };
-    genericError: string;
-  };
-  register: {
-    title: string;
-    subtitle: string;
-    orgNameLabel: string;
-    emailLabel: string;
-    passwordLabel: string;
-    submit: string;
-    submitting: string;
-    divider: string;
-    google: string;
-    hasAccount: string;
-    loginLink: string;
-    errors: {
-      oauthError: string;
-      googleAuthFailed: string;
-      emailNotVerified: string;
-      duplicateProvider: string;
-      dbMigrationRequired: string;
-      invalidCustomer: string;
-      missingCode: string;
-    };
-    genericError: string;
-  };
-  forgotPassword: {
-    title: string;
-    subtitle: string;
-    emailLabel: string;
-    emailPlaceholder: string;
-    submit: string;
-    submitting: string;
-    backToLogin: string;
-    successTitle: string;
-    successBody: string;
-    successCheckEmail: string;
-    successValidFor: string;
-    devModeLabel: string;
-    devModeIntro: string;
-    genericError: string;
-  };
-  resetPassword: {
-    setTitle: string;
-    setSubtitle: string;
-    newPasswordLabel: string;
-    newPasswordPlaceholder: string;
-    confirmLabel: string;
-    confirmPlaceholder: string;
-    submit: string;
-    submitting: string;
-    backToLogin: string;
-    successTitle: string;
-    successRedirecting: string;
-    invalidLinkPageTitle: string;
-    invalidLinkPageBody: string;
-    requestNewLink: string;
-    goToLogin: string;
-    errInvalidLink: string;
-    errInvalidLinkShort: string;
-    errPasswordTooShort: string;
-    errPasswordsMismatch: string;
-    errResetNoLogin: string;
-    genericError: string;
-  };
-};
-
-export const auth: Record<Language, AuthTranslations> = {
+const authLocales = {
   de: {
     login: {
       title: "Anmelden",
@@ -459,3 +372,6 @@ export const auth: Record<Language, AuthTranslations> = {
     },
   },
 };
+
+export type AuthTranslations = TranslationSchema<(typeof authLocales)["en"]>;
+export const auth: Record<Language, AuthTranslations> = authLocales;
