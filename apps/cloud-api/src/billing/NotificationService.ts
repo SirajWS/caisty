@@ -421,8 +421,12 @@ export class NotificationService {
     message: string;
     supportMessageId: string;
   }) {
+    const orgId = String(args.orgId ?? "").trim();
+    if (!orgId) {
+      return null;
+    }
     return this.create({
-      orgId: args.orgId,
+      orgId,
       type: "portal_support_message",
       title: `Support-Anfrage: ${args.subject}`,
       body: args.message,

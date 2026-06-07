@@ -8,11 +8,15 @@ import { verifyPortalToken } from "../lib/portalJwt.js";
 import { db } from "../db/client.js";
 import { customers } from "../db/schema/customers.js";
 import { invoices } from "../db/schema/invoices.js";
+import { licenses } from "../db/schema/licenses.js";
+import { supportMessages } from "../db/schema/supportMessages.js";
 
 type CreateBody = {
   subject: string;
   message: string;
 };
+
+type OrgIdSource = "jwt" | "customer" | "latestInvoice" | "license" | "none";
 
 type PortalSupportMessage = {
   id: string;
@@ -30,7 +34,16 @@ type StoredSupportMessage = PortalSupportMessage & {
   customerEmail?: string;
 };
 
+/** DB column `support_messages.org_id` is NOT NULL — use when no real org was resolved. */
+const NO_ORG_SENTINEL = "__no_org__";
+
 const SUPPORT_MESSAGES: StoredSupportMessage[] = [];
+
+function trimOrg(v: unknown): string | null {
+  if (v == null) return null;
+  const s = String(v).trim();
+  return s.length ? s : null;
+}
 
 // Holt ggf. Name/E-Mail / orgId aus der DB
 async function findCustomerFromDb(id: string) {
@@ -44,19 +57,25 @@ async function findCustomerFromDb(id: string) {
       orgId: customers.orgId,
     })
     .from(customers)
-    .where(eq(customers.id, id))
+    .where(eq(customers.id, id as any))
     .limit(1);
 
   if (rows.length === 0) return null;
   return rows[0];
 }
 
-// Versucht, aus dem Request den Portal-Kunden zu ziehen
-async function getPortalCustomerContext(request: any) {
+// Versucht, aus dem Request den Portal-Kunden zu ziehen; orgId nach Priorität a) JWT b) Customer c) Rechnung d) Lizenz
+async function getPortalCustomerContext(request: any): Promise<{
+  id: string;
+  name?: string;
+  email?: string;
+  orgId: string | null;
+  orgIdSource: OrgIdSource;
+}> {
   const r: any = request;
 
   let id = "unknown" as string;
-  let orgId: string | null = null;
+  let jwtOrgId: string | null = null;
   let name: string | undefined;
   let email: string | undefined;
 
@@ -75,7 +94,7 @@ async function getPortalCustomerContext(request: any) {
       c.accountId ??
       "unknown";
 
-    orgId = c.orgId ?? c.org_id ?? null;
+    jwtOrgId = trimOrg(c.orgId ?? c.org_id);
 
     name =
       c.name ??
@@ -94,44 +113,178 @@ async function getPortalCustomerContext(request: any) {
       try {
         const payload = verifyPortalToken(token);
         id = payload.customerId ?? "unknown";
-        orgId = payload.orgId ?? null;
+        jwtOrgId = trimOrg(payload.orgId);
       } catch {
         id = "unknown";
-        orgId = null;
+        jwtOrgId = null;
       }
     }
   }
 
-  // Name/E-Mail/orgId aus der DB nachziehen wenn nötig
+  let row: Awaited<ReturnType<typeof findCustomerFromDb>> = null;
   if (id !== "unknown") {
     try {
-      const row = await findCustomerFromDb(id);
+      row = await findCustomerFromDb(id);
       if (row) {
         if (!name) name = row.name ?? name;
         if (!email) email = row.email ?? email;
-        if (!orgId && row.orgId) orgId = String(row.orgId);
       }
     } catch (err) {
       console.error("Failed to load customer for support message", err);
     }
   }
 
-  // Legacy: customer.org_id can be null while invoices still reference a valid org
+  let orgId: string | null = null;
+  let orgIdSource: OrgIdSource = "none";
+
+  const fromJwt = jwtOrgId;
+  if (fromJwt) {
+    orgId = fromJwt;
+    orgIdSource = "jwt";
+  } else if (row?.orgId) {
+    const o = trimOrg(row.orgId);
+    if (o) {
+      orgId = o;
+      orgIdSource = "customer";
+    }
+  }
+
   if (id !== "unknown" && !orgId) {
     try {
       const [inv] = await db
         .select({ orgId: invoices.orgId })
         .from(invoices)
-        .where(eq(invoices.customerId, id))
+        .where(eq(invoices.customerId, id as any))
         .orderBy(desc(invoices.createdAt))
         .limit(1);
-      if (inv?.orgId) orgId = String(inv.orgId);
+      const o = trimOrg(inv?.orgId);
+      if (o) {
+        orgId = o;
+        orgIdSource = "latestInvoice";
+      }
     } catch (err) {
       console.error("Failed to resolve org from invoices for support", err);
     }
   }
 
-  return { id, name, email, orgId };
+  if (id !== "unknown" && !orgId) {
+    try {
+      const [lic] = await db
+        .select({ orgId: licenses.orgId })
+        .from(licenses)
+        .where(eq(licenses.customerId, String(id)))
+        .orderBy(desc(licenses.createdAt))
+        .limit(1);
+      const o = trimOrg(lic?.orgId);
+      if (o) {
+        orgId = o;
+        orgIdSource = "license";
+      }
+    } catch (err) {
+      console.error("Failed to resolve org from licenses for support", err);
+    }
+  }
+
+  return { id, name, email, orgId, orgIdSource };
+}
+
+function dbRowToStored(
+  row: typeof supportMessages.$inferSelect,
+  overlay?: StoredSupportMessage | undefined,
+): StoredSupportMessage {
+  const createdAt =
+    row.createdAt instanceof Date
+      ? row.createdAt.toISOString()
+      : String(row.createdAt);
+  const base: StoredSupportMessage = {
+    id: row.id,
+    customerId: row.customerId ?? "",
+    customerEmail: row.email,
+    subject: row.subject,
+    message: row.message,
+    status: "open",
+    createdAt,
+    replyText: null,
+    repliedAt: null,
+  };
+  if (overlay) {
+    base.status = overlay.status;
+    base.replyText = overlay.replyText;
+    base.repliedAt = overlay.repliedAt;
+    base.customerName = overlay.customerName;
+  }
+  return base;
+}
+
+async function listMergedForCustomer(customerId: string): Promise<PortalSupportMessage[]> {
+  let dbRows: (typeof supportMessages.$inferSelect)[] = [];
+  try {
+    dbRows = await db
+      .select()
+      .from(supportMessages)
+      .where(eq(supportMessages.customerId, String(customerId)))
+      .orderBy(desc(supportMessages.createdAt));
+  } catch (err) {
+    console.error("listMergedForCustomer: db read failed", err);
+  }
+
+  const byId = new Map<string, StoredSupportMessage>();
+
+  for (const row of dbRows) {
+    const overlay = SUPPORT_MESSAGES.find((m) => m.id === row.id);
+    byId.set(row.id, dbRowToStored(row, overlay));
+  }
+
+  for (const m of SUPPORT_MESSAGES) {
+    if (m.customerId !== customerId) continue;
+    if (!byId.has(m.id)) {
+      byId.set(m.id, m);
+    }
+  }
+
+  const items = [...byId.values()]
+    .map(({ customerId: _c, customerName: _n, customerEmail: _e, ...rest }) => rest)
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+
+  return items;
+}
+
+async function listMergedForAdmin(): Promise<StoredSupportMessage[]> {
+  let dbRows: (typeof supportMessages.$inferSelect)[] = [];
+  try {
+    dbRows = await db.select().from(supportMessages).orderBy(desc(supportMessages.createdAt));
+  } catch (err) {
+    console.error("listMergedForAdmin: db read failed", err);
+  }
+
+  const byId = new Map<string, StoredSupportMessage>();
+
+  for (const row of dbRows) {
+    const overlay = SUPPORT_MESSAGES.find((m) => m.id === row.id);
+    byId.set(row.id, dbRowToStored(row, overlay));
+  }
+
+  for (const m of SUPPORT_MESSAGES) {
+    if (!byId.has(m.id)) {
+      byId.set(m.id, m);
+    }
+  }
+
+  return [...byId.values()].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+async function findMergedById(id: string): Promise<StoredSupportMessage | null> {
+  const mem = SUPPORT_MESSAGES.find((m) => m.id === id);
+  if (mem) return mem;
+
+  try {
+    const [row] = await db.select().from(supportMessages).where(eq(supportMessages.id, id)).limit(1);
+    if (!row) return null;
+    return dbRowToStored(row);
+  } catch (err) {
+    console.error("findMergedById: db read failed", err);
+    return null;
+  }
 }
 
 export async function registerPortalSupportRoutes(app: FastifyInstance) {
@@ -159,17 +312,7 @@ export async function registerPortalSupportRoutes(app: FastifyInstance) {
         return { ok: false, error: "Nicht angemeldet." };
       }
 
-      const orgId = customer.orgId;
-      if (!orgId) {
-        reply.code(422);
-        return {
-          ok: false,
-          code: "MISSING_ORG",
-          error:
-            "Dein Konto ist keiner Organisation zugeordnet. Bitte kontaktiere support@caisty.com.",
-        };
-      }
-
+      const resolvedOrgId = customer.orgId;
       const now = new Date().toISOString();
       const stored: StoredSupportMessage = {
         id: randomUUID(),
@@ -184,36 +327,64 @@ export async function registerPortalSupportRoutes(app: FastifyInstance) {
         repliedAt: null,
       };
 
+      // 1) In-Memory zuerst (Admin-Antworten / Legacy)
+      SUPPORT_MESSAGES.push(stored);
+
+      // 2) Persist in DB (org_id NOT NULL → Sentinel wenn keine echte Org)
+      const dbOrgId = resolvedOrgId ?? NO_ORG_SENTINEL;
+      const dbEmail = (customer.email ?? "").trim() || "portal+unknown@caisty.invalid";
       try {
-        await notificationService.notifySupportMessage({
-          orgId,
-          customerId: customer.id,
-          customerName: customer.name,
-          customerEmail: customer.email ?? "",
+        await db.insert(supportMessages).values({
+          id: stored.id,
+          orgId: dbOrgId,
+          customerId: String(customer.id),
+          email: dbEmail,
           subject,
           message,
-          supportMessageId: stored.id,
         });
-      } catch (err: any) {
-        request.log.error({ err }, "portal support: notification insert failed");
-        if (String(err?.message ?? "").includes("NOTIFICATION_MISSING_ORG_ID")) {
-          reply.code(422);
-          return {
-            ok: false,
-            code: "MISSING_ORG",
-            error:
-              "Dein Konto ist keiner Organisation zugeordnet. Bitte kontaktiere support@caisty.com.",
-          };
-        }
-        reply.code(500);
-        return {
-          ok: false,
-          error:
-            "Die Nachricht konnte gerade nicht gesendet werden. Bitte versuche es später erneut.",
-        };
+      } catch (err) {
+        request.log.warn({ err, id: stored.id }, "support message: DB insert failed (in-memory copy exists)");
       }
 
-      SUPPORT_MESSAGES.push(stored);
+      request.log.info(
+        {
+          customerId: customer.id,
+          resolvedOrgId: resolvedOrgId ?? null,
+          orgIdSource: customer.orgIdSource,
+          supportMessageId: stored.id,
+        },
+        "portal support: message created",
+      );
+
+      // 3) Notification nur bei gültiger orgId — Fehler niemals als 500 an den Kunden
+      if (resolvedOrgId) {
+        try {
+          await notificationService.notifySupportMessage({
+            orgId: resolvedOrgId,
+            customerId: customer.id,
+            customerName: customer.name,
+            customerEmail: customer.email ?? "",
+            subject,
+            message,
+            supportMessageId: stored.id,
+          });
+        } catch (err) {
+          request.log.error(
+            { err, customerId: customer.id, resolvedOrgId, orgIdSource: customer.orgIdSource },
+            "portal support: notification insert failed (message was still saved)",
+          );
+        }
+      } else {
+        request.log.warn(
+          {
+            customerId: customer.id,
+            resolvedOrgId: null,
+            orgIdSource: customer.orgIdSource,
+            supportMessageId: stored.id,
+          },
+          "Support message created without notification because orgId is missing",
+        );
+      }
 
       const {
         customerId: _cid,
@@ -229,18 +400,7 @@ export async function registerPortalSupportRoutes(app: FastifyInstance) {
   app.get("/portal/support-messages", async (request) => {
     const customer = await getPortalCustomerContext(request);
 
-    const items = SUPPORT_MESSAGES
-      .filter((m) => m.customerId === customer.id)
-      .map(
-        ({
-          customerId: _cid,
-          customerName: _cn,
-          customerEmail: _ce,
-          ...rest
-        }) => rest,
-      )
-      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-
+    const items = await listMergedForCustomer(customer.id);
     return { items };
   });
 
@@ -250,9 +410,7 @@ export async function registerPortalSupportRoutes(app: FastifyInstance) {
 
   // Alle Support-Anfragen (für zukünftige Admin-Ansicht)
   app.get("/admin/support-messages", async () => {
-    const items = SUPPORT_MESSAGES.slice().sort((a, b) =>
-      a.createdAt < b.createdAt ? 1 : -1,
-    );
+    const items = await listMergedForAdmin();
     return { items };
   });
 
@@ -261,7 +419,7 @@ export async function registerPortalSupportRoutes(app: FastifyInstance) {
     "/admin/support-messages/:id",
     async (request, reply) => {
       const { id } = request.params;
-      const msg = SUPPORT_MESSAGES.find((m) => m.id === id);
+      const msg = await findMergedById(id);
       if (!msg) {
         reply.code(404);
         return { error: "Support message not found" };
@@ -277,10 +435,15 @@ export async function registerPortalSupportRoutes(app: FastifyInstance) {
   }>("/admin/support-messages/:id/reply", async (request, reply) => {
     const { id } = request.params;
     const { replyText, status } = request.body;
-    const msg = SUPPORT_MESSAGES.find((m) => m.id === id);
+    let msg = SUPPORT_MESSAGES.find((m) => m.id === id);
     if (!msg) {
-      reply.code(404);
-      return { error: "Support message not found" };
+      const loaded = await findMergedById(id);
+      if (!loaded) {
+        reply.code(404);
+        return { error: "Support message not found" };
+      }
+      SUPPORT_MESSAGES.push(loaded);
+      msg = loaded;
     }
 
     msg.replyText = replyText;
