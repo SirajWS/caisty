@@ -168,6 +168,7 @@ export async function registerPortalInvoiceRoutes(app: FastifyInstance) {
         subscriptionPlan = subRow?.plan ? String(subRow.plan) : null;
       }
 
+      const inv = invoiceData.invoice as any;
       const invForCalc = {
         status: inv.status,
         amountCents: inv.amountCents,
