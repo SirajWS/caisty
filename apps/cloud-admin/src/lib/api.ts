@@ -7,6 +7,12 @@ const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
 // trailing Slashes am Ende wegnehmen, damit wir sauber `${API_BASE}/...` machen können
 export const API_BASE = RAW_API_BASE.replace(/\/+$/, "");
 
+/** Absolute URL for fetches that cannot use `apiGet` (e.g. HTML/binary). Same base as JSON API. */
+export function buildAdminApiUrl(path: string): string {
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return `${API_BASE}${p}`;
+}
+
 const TOKEN_KEY = "caisty.admin.token";
 
 function getToken(): string | null {
@@ -16,6 +22,18 @@ function getToken(): string | null {
   } catch {
     return null;
   }
+}
+
+/** HTML-Rechnung für Admin (Auth-Header). Nutzt dieselbe Basis wie `apiGet` (wichtig für Produktion). */
+export async function fetchAdminInvoiceHtml(invoiceId: string): Promise<string> {
+  const token = getToken();
+  if (!token) throw new Error("Nicht angemeldet");
+  const url = buildAdminApiUrl(`/invoices/${encodeURIComponent(invoiceId)}/html`);
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`);
+  }
+  return res.text();
 }
 
 type ApiErrorShape = { error?: string; message?: string };
@@ -222,11 +240,13 @@ export function replySupportMessage(
   );
 }
 
-// Aktuell noch Dummy – solange es im Backend keinen Endpoint gibt
 export function markNotificationRead(
   id: string,
-): Promise<{ ok: boolean }> {
-  return Promise.resolve({ ok: true });
+): Promise<{ item?: AdminNotification }> {
+  return apiPost<Record<string, never>, { item?: AdminNotification }>(
+    `/admin/notifications/${encodeURIComponent(id)}/read`,
+    {},
+  );
 }
 
 export function apiGetNotifications(): Promise<
@@ -238,7 +258,7 @@ export function apiGetNotifications(): Promise<
 export function apiMarkNotificationRead(
   id: string,
 ): Promise<{ item: AdminNotification }> {
-  return markNotificationRead(id).then(() => ({
-    item: { id } as AdminNotification,
+  return markNotificationRead(id).then((data) => ({
+    item: (data.item ?? { id }) as AdminNotification,
   }));
 }

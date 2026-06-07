@@ -19,6 +19,7 @@ apps/cloud-api/drizzle/_journal.json
 .env
 .env.*
 !.env.example
+!.env.production
 
 # Editor / OS
 .vscode

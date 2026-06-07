@@ -1,7 +1,7 @@
 // apps/cloud-admin/src/pages/SubscriptionsListPage.tsx
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiGet, apiDelete } from "../lib/api";
+import { apiGet, apiDelete, fetchAdminInvoiceHtml } from "../lib/api";
 import { useTheme, themeColors } from "../theme/ThemeContext";
 
 type Subscription = {
@@ -318,26 +318,15 @@ export default function SubscriptionsListPage() {
                           >
                             <button
                               onClick={async () => {
-                                const token = localStorage.getItem("caisty.admin.token");
-                                if (!token) {
-                                  alert("Nicht angemeldet");
-                                  return;
-                                }
-                                const url = `/api/invoices/${inv.id}/html`;
-                                const res = await fetch(url, {
-                                  headers: {
-                                    Authorization: `Bearer ${token}`,
-                                  },
-                                });
-                                if (!res.ok) {
-                                  alert(`Fehler: ${res.status}`);
-                                  return;
-                                }
-                                const html = await res.text();
-                                const win = window.open();
-                                if (win) {
-                                  win.document.write(html);
-                                  win.document.close();
+                                try {
+                                  const html = await fetchAdminInvoiceHtml(inv.id);
+                                  const win = window.open();
+                                  if (win) {
+                                    win.document.write(html);
+                                    win.document.close();
+                                  }
+                                } catch (e) {
+                                  alert(e instanceof Error ? e.message : "Fehler beim Laden");
                                 }
                               }}
                               style={{
@@ -362,30 +351,18 @@ export default function SubscriptionsListPage() {
                             </button>
                             <button
                               onClick={async () => {
-                                const token = localStorage.getItem("caisty.admin.token");
-                                if (!token) {
-                                  alert("Nicht angemeldet");
-                                  return;
-                                }
-                                const url = `/api/invoices/${inv.id}/html`;
-                                const res = await fetch(url, {
-                                  headers: {
-                                    Authorization: `Bearer ${token}`,
-                                  },
-                                });
-                                if (!res.ok) {
-                                  alert(`Fehler: ${res.status}`);
-                                  return;
-                                }
-                                const html = await res.text();
-                                const win = window.open();
-                                if (win) {
-                                  win.document.write(html);
-                                  win.document.close();
-                                  // Print-Dialog nach kurzer Verzögerung öffnen
-                                  setTimeout(() => {
-                                    win?.print();
-                                  }, 500);
+                                try {
+                                  const html = await fetchAdminInvoiceHtml(inv.id);
+                                  const win = window.open();
+                                  if (win) {
+                                    win.document.write(html);
+                                    win.document.close();
+                                    setTimeout(() => {
+                                      win?.print();
+                                    }, 500);
+                                  }
+                                } catch (e) {
+                                  alert(e instanceof Error ? e.message : "Fehler beim Laden");
                                 }
                               }}
                               title="Als PDF drucken"
@@ -606,26 +583,15 @@ export default function SubscriptionsListPage() {
                               >
                                 <button
                                   onClick={async () => {
-                                    const token = localStorage.getItem("caisty.admin.token");
-                                    if (!token) {
-                                      alert("Nicht angemeldet");
-                                      return;
-                                    }
-                                    const url = `/api/invoices/${inv.id}/html`;
-                                    const res = await fetch(url, {
-                                      headers: {
-                                        Authorization: `Bearer ${token}`,
-                                      },
-                                    });
-                                    if (!res.ok) {
-                                      alert(`Fehler: ${res.status}`);
-                                      return;
-                                    }
-                                    const html = await res.text();
-                                    const win = window.open();
-                                    if (win) {
-                                      win.document.write(html);
-                                      win.document.close();
+                                    try {
+                                      const html = await fetchAdminInvoiceHtml(inv.id);
+                                      const win = window.open();
+                                      if (win) {
+                                        win.document.write(html);
+                                        win.document.close();
+                                      }
+                                    } catch (e) {
+                                      alert(e instanceof Error ? e.message : "Fehler beim Laden");
                                     }
                                   }}
                                   style={{
