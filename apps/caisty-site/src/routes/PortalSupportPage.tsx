@@ -119,11 +119,11 @@ export default function PortalSupportPage() {
             />
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex w-full flex-col gap-2 pt-1 sm:flex-row sm:justify-end">
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`${portalPrimaryCta()} disabled:opacity-60`}
+              className={`w-full justify-center sm:w-auto ${portalPrimaryCta()} disabled:opacity-60`}
             >
               {isSubmitting ? t.support.submitting : t.support.send}
             </button>
@@ -149,11 +149,11 @@ export default function PortalSupportPage() {
                 key={m.id}
                 className={`rounded-lg border p-3 ${isLight ? "border-slate-200 bg-slate-50" : "border-slate-800 bg-slate-950/60"}`}
               >
-                <div className="flex justify-between mb-1 gap-2">
-                  <div className={`text-sm font-medium ${isLight ? "text-slate-900" : "text-slate-100"}`}>
+                <div className="mb-1 flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-2">
+                  <div className={`min-w-0 text-sm font-medium ${isLight ? "text-slate-900" : "text-slate-100"}`}>
                     {m.subject}
                   </div>
-                  <div className={`text-[11px] whitespace-nowrap ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  <div className={`shrink-0 text-[11px] sm:text-right ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                     {formatDate(m.createdAt)}
                   </div>
                 </div>

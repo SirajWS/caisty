@@ -11,7 +11,8 @@ import { getPortalTranslations } from "../lib/translations";
 import { portalLocaleTag } from "../lib/portalLocale";
 import { portalCardShell, portalLicenseStatusBadge, portalPrimaryCta, portalTextLink } from "../lib/portalUi";
 
-const SUPPORT_EMAIL = "support@caisty.local";
+const SUPPORT_EMAIL =
+  import.meta.env.VITE_PUBLIC_SUPPORT_EMAIL ?? "support@caisty.com";
 
 const PortalAccountPage: React.FC = () => {
   const { customer, setCustomer } = usePortalOutlet();

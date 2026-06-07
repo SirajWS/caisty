@@ -1,7 +1,7 @@
 // apps/cloud-admin/src/pages/Invoices/InvoiceDetailPage.tsx
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { apiGet } from "../../lib/api";
+import { apiGet, API_BASE } from "../../lib/api";
 import { formatDateTime, formatMoney } from "../../lib/format";
 
 type InvoiceDetail = {
@@ -256,7 +256,7 @@ export default function InvoiceDetailPage() {
                   alert("Nicht angemeldet");
                   return;
                 }
-                const url = `/api/invoices/${id}/html`;
+                const url = `${API_BASE}/invoices/${id}/html`;
                 const res = await fetch(url, {
                   headers: {
                     Authorization: `Bearer ${token}`,
@@ -292,7 +292,7 @@ export default function InvoiceDetailPage() {
                   alert("Nicht angemeldet");
                   return;
                 }
-                const url = `/api/invoices/${id}/html`;
+                const url = `${API_BASE}/invoices/${id}/html`;
                 const res = await fetch(url, {
                   headers: {
                     Authorization: `Bearer ${token}`,

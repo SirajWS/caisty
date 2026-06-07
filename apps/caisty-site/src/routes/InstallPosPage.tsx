@@ -132,10 +132,10 @@ const InstallPosPage: React.FC = () => {
           <p>
             Bis dahin erreichst du uns per Mail unter{" "}
             <a
-              href="mailto:support@caisty.local"
+              href="mailto:support@caisty.com"
               className="text-emerald-300 hover:text-emerald-200"
             >
-              support@caisty.local
+              support@caisty.com
             </a>
             .
           </p>

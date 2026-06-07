@@ -5,7 +5,7 @@
 // - Produktion: VITE_API_BASE_URL = https://api.caisty.com
 const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api";
 // trailing Slashes am Ende wegnehmen, damit wir sauber `${API_BASE}/...` machen können
-const API_BASE = RAW_API_BASE.replace(/\/+$/, "");
+export const API_BASE = RAW_API_BASE.replace(/\/+$/, "");
 
 const TOKEN_KEY = "caisty.admin.token";
 

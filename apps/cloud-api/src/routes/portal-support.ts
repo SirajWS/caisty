@@ -4,8 +4,9 @@ import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 
 import { notificationService } from "../billing/NotificationService.js";
-import { db } from "../db/client";
-import { customers } from "../db/schema";
+import { verifyPortalToken } from "../lib/portalJwt.js";
+import { db } from "../db/client.js";
+import { customers } from "../db/schema/customers.js";
 
 type CreateBody = {
   subject: string;
@@ -30,24 +31,7 @@ type StoredSupportMessage = PortalSupportMessage & {
 
 const SUPPORT_MESSAGES: StoredSupportMessage[] = [];
 
-/** JWT-Payload ohne Signaturprüfung dekodieren */
-function decodeJwtPayload(token: string): any | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const payload = parts[1];
-
-    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized + "===".slice((normalized.length + 3) % 4);
-
-    const json = Buffer.from(padded, "base64").toString("utf8");
-    return JSON.parse(json);
-  } catch {
-    return null;
-  }
-}
-
-// Holt ggf. Name/E-Mail aus der DB
+// Holt ggf. Name/E-Mail / orgId aus der DB
 async function findCustomerFromDb(id: string) {
   if (!id || id === "unknown") return null;
 
@@ -56,6 +40,7 @@ async function findCustomerFromDb(id: string) {
       id: customers.id,
       name: customers.name,
       email: customers.email,
+      orgId: customers.orgId,
     })
     .from(customers)
     .where(eq(customers.id, id))
@@ -70,6 +55,7 @@ async function getPortalCustomerContext(request: any) {
   const r: any = request;
 
   let id = "unknown" as string;
+  let orgId: string | null = null;
   let name: string | undefined;
   let email: string | undefined;
 
@@ -88,6 +74,8 @@ async function getPortalCustomerContext(request: any) {
       c.accountId ??
       "unknown";
 
+    orgId = c.orgId ?? c.org_id ?? null;
+
     name =
       c.name ??
       c.customerName ??
@@ -102,42 +90,32 @@ async function getPortalCustomerContext(request: any) {
     const auth = request.headers?.authorization;
     if (typeof auth === "string" && auth.startsWith("Bearer ")) {
       const token = auth.slice(7).trim();
-      const payload = decodeJwtPayload(token);
-      if (payload) {
-        id =
-          payload.customerId ??
-          payload.sub ??
-          payload.id ??
-          "unknown";
-
-        name =
-          payload.customerName ??
-          payload.name ??
-          payload.companyName ??
-          undefined;
-
-        email =
-          payload.email ??
-          payload.customerEmail ??
-          undefined;
+      try {
+        const payload = verifyPortalToken(token);
+        id = payload.customerId ?? "unknown";
+        orgId = payload.orgId ?? null;
+      } catch {
+        id = "unknown";
+        orgId = null;
       }
     }
   }
 
-  // Falls wir nur die ID haben, Name/E-Mail aus der DB nachziehen
-  if (id !== "unknown" && (!name || !email)) {
+  // Name/E-Mail/orgId aus der DB nachziehen wenn nötig
+  if (id !== "unknown") {
     try {
       const row = await findCustomerFromDb(id);
       if (row) {
         if (!name) name = row.name ?? name;
         if (!email) email = row.email ?? email;
+        if (!orgId && row.orgId) orgId = String(row.orgId);
       }
     } catch (err) {
       console.error("Failed to load customer for support message", err);
     }
   }
 
-  return { id, name, email };
+  return { id, name, email, orgId };
 }
 
 export async function registerPortalSupportRoutes(app: FastifyInstance) {
@@ -148,11 +126,35 @@ export async function registerPortalSupportRoutes(app: FastifyInstance) {
   // Neue Support-Nachricht
   app.post<{ Body: CreateBody }>(
     "/portal/support-messages",
-    async (request) => {
-      const { subject, message } = request.body;
-      const customer = await getPortalCustomerContext(request);
-      const now = new Date().toISOString();
+    async (request, reply) => {
+      const subject = String(request.body?.subject ?? "").trim();
+      const message = String(request.body?.message ?? "").trim();
+      if (!subject || !message) {
+        reply.code(400);
+        return {
+          ok: false,
+          error: "Betreff und Nachricht sind erforderlich.",
+        };
+      }
 
+      const customer = await getPortalCustomerContext(request);
+      if (customer.id === "unknown") {
+        reply.code(401);
+        return { ok: false, error: "Nicht angemeldet." };
+      }
+
+      const orgId = customer.orgId;
+      if (!orgId) {
+        reply.code(422);
+        return {
+          ok: false,
+          code: "MISSING_ORG",
+          error:
+            "Dein Konto ist keiner Organisation zugeordnet. Bitte kontaktiere support@caisty.com.",
+        };
+      }
+
+      const now = new Date().toISOString();
       const stored: StoredSupportMessage = {
         id: randomUUID(),
         customerId: customer.id,
@@ -166,18 +168,27 @@ export async function registerPortalSupportRoutes(app: FastifyInstance) {
         repliedAt: null,
       };
 
-      SUPPORT_MESSAGES.push(stored);
+      try {
+        await notificationService.notifySupportMessage({
+          orgId,
+          customerId: customer.id,
+          customerName: customer.name,
+          customerEmail: customer.email ?? "",
+          subject,
+          message,
+          supportMessageId: stored.id,
+        });
+      } catch (err) {
+        request.log.error({ err }, "portal support: notification insert failed");
+        reply.code(500);
+        return {
+          ok: false,
+          error:
+            "Die Nachricht konnte gerade nicht gesendet werden. Bitte versuche es später erneut.",
+        };
+      }
 
-      // Admin-Notification inkl. supportMessageId erzeugen (in DB speichern)
-      await notificationService.notifySupportMessage({
-        orgId: customer.orgId!,
-        customerId: customer.id,
-        customerName: customer.name,
-        customerEmail: customer.email,
-        subject,
-        message,
-        supportMessageId: stored.id,
-      });
+      SUPPORT_MESSAGES.push(stored);
 
       const {
         customerId: _cid,
@@ -185,7 +196,7 @@ export async function registerPortalSupportRoutes(app: FastifyInstance) {
         customerEmail: _ce,
         ...publicMsg
       } = stored;
-      return publicMsg;
+      return { ok: true, item: publicMsg };
     },
   );
 

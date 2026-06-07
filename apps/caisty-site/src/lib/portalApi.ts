@@ -506,6 +506,18 @@ export async function startPortalUpgrade(
 
 // ---------- Support / Kontakt aus Portal ----------
 
+function sanitizePortalClientError(message: string): string {
+  const m = message.trim();
+  if (
+    /postgres|relation |violates|null value|constraint|sqlstate|internal server error/i.test(
+      m,
+    )
+  ) {
+    return "Die Anfrage konnte nicht verarbeitet werden. Bitte versuche es später erneut.";
+  }
+  return m;
+}
+
 export interface PortalSupportMessage {
   id: string;
   subject: string;
@@ -546,15 +558,22 @@ export async function createPortalSupportMessage(input: {
     data = await res.json();
   }
 
-  if (!res.ok || (!data.ok && !data.message && !data.item)) {
-    throw new Error(
+  if (!res.ok || data.ok === false) {
+    const raw =
+      data.error ||
       data.message ||
-        data.error ||
-        "Nachricht konnte nicht gesendet werden.",
-    );
+      "Nachricht konnte nicht gesendet werden.";
+    throw new Error(sanitizePortalClientError(String(raw)));
   }
 
-  const msg: PortalSupportMessage = data.message || data.item;
+  const msg = (data.item ?? (data.id ? data : null)) as PortalSupportMessage | null;
+  if (!msg?.id) {
+    throw new Error(
+      sanitizePortalClientError(
+        "Unerwartete Antwort vom Server. Bitte versuche es erneut.",
+      ),
+    );
+  }
   return msg;
 }
 
@@ -583,9 +602,13 @@ export async function fetchPortalSupportMessages(): Promise<
 
   if (!res.ok) {
     throw new Error(
-      data.message ||
-        data.error ||
-        "Support-Anfragen konnten nicht geladen werden.",
+      sanitizePortalClientError(
+        String(
+          data.message ||
+            data.error ||
+            "Support-Anfragen konnten nicht geladen werden.",
+        ),
+      ),
     );
   }
 

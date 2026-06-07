@@ -467,22 +467,16 @@ export default function NotificationsPage() {
             />
           </div>
 
-          <div
-            style={{
-              marginTop: 12,
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: 8,
-            }}
-          >
+          <div className="mt-3 flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
             <button
               type="button"
+              className="w-full sm:w-auto"
               onClick={() => setSelected(null)}
               style={{
                 fontSize: 13,
                 borderRadius: 6,
                 border: "1px solid #d1d5db",
-                padding: "6px 14px",
+                padding: "10px 14px",
                 background: "#ffffff",
                 color: "#374151",
                 cursor: "pointer",
@@ -502,13 +496,14 @@ export default function NotificationsPage() {
             </button>
             <button
               type="button"
+              className="w-full sm:w-auto"
               onClick={handleSendReply}
               disabled={savingReply}
               style={{
                 fontSize: 13,
                 borderRadius: 6,
                 border: "none",
-                padding: "6px 16px",
+                padding: "10px 16px",
                 background: savingReply ? "#86efac" : "#22c55e",
                 color: "#ffffff",
                 fontWeight: 600,
