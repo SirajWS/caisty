@@ -11,31 +11,46 @@ import {
 } from "../lib/portalApi";
 import { usePortalOutlet } from "./PortalLayout";
 import { useTheme } from "../lib/theme";
-
-function formatDate(value: string | null | undefined): string {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString("de-DE");
-}
-
-function formatAmount(currency: string | null | undefined, amount: number): string {
-  try {
-    return new Intl.NumberFormat("de-DE", {
-      style: "currency",
-      currency: currency || "EUR",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${amount} ${currency ?? ""}`.trim();
-  }
-}
+import { useLanguage } from "../lib/LanguageContext";
+import { getPortalTranslations } from "../lib/translations";
+import { portalLocaleTag } from "../lib/portalLocale";
+import { pickPrimaryPortalLicense } from "../lib/portalLicensePick";
+import {
+  portalCardShell,
+  portalInvoiceStatusBadge,
+  portalLicenseStatusBadge,
+  portalTextLink,
+} from "../lib/portalUi";
 
 const PortalDashboard: React.FC = () => {
   const { customer } = usePortalOutlet();
+  const { language } = useLanguage();
+  const t = getPortalTranslations(language);
+  const locale = portalLocaleTag(language);
   const { theme } = useTheme();
   const isLight = theme === "light";
+
+  const dash = t.labels.dash;
+
+  function formatDate(value: string | null | undefined): string {
+    if (!value) return dash;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleString(locale);
+  }
+
+  function formatAmount(currency: string | null | undefined, amount: number): string {
+    try {
+      return new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: currency || "EUR",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(amount);
+    } catch {
+      return `${amount} ${currency ?? ""}`.trim();
+    }
+  }
 
   const [licenses, setLicenses] = React.useState<PortalLicense[]>([]);
   const [deviceCount, setDeviceCount] = React.useState(0);
@@ -59,12 +74,11 @@ const PortalDashboard: React.FC = () => {
 
         setLicenses(lics);
 
-        // Geräte nach Hardware-ID (deviceId / fingerprint / id) gruppieren
         const uniqueDeviceIds = new Set<string>();
         (devs as PortalDevice[]).forEach((d) => {
           const key =
-            (d as any).deviceId || // neues Feld aus /portal/devices
-            (d as any).fingerprint ||
+            (d as { deviceId?: string }).deviceId ||
+            (d as { fingerprint?: string }).fingerprint ||
             d.id;
           if (key) uniqueDeviceIds.add(key);
         });
@@ -77,7 +91,7 @@ const PortalDashboard: React.FC = () => {
         );
         setLatestInvoice(sorted[0] ?? null);
       } catch (err) {
-        console.error("Fehler beim Laden des Portal-Dashboards:", err);
+        console.error("Portal dashboard load failed:", err);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -88,60 +102,40 @@ const PortalDashboard: React.FC = () => {
     };
   }, []);
 
-  // aktivste / wichtigste Lizenz (zuerst "active", dann mit spätestem validUntil)
-  const activeLicense: PortalLicense | null = React.useMemo(() => {
-    if (!licenses.length) return null;
+  const activeLicense: PortalLicense | null = React.useMemo(
+    () => pickPrimaryPortalLicense(licenses),
+    [licenses],
+  );
 
-    const actives = licenses.filter(
-      (l) => (l.status ?? "").toLowerCase() === "active",
-    );
-
-    const pool = actives.length ? actives : licenses;
-    const sorted = [...pool].sort((a, b) => {
-      const ta = a.validUntil ? new Date(a.validUntil).getTime() : 0;
-      const tb = b.validUntil ? new Date(b.validUntil).getTime() : 0;
-      return tb - ta;
-    });
-
-    return sorted[0] ?? null;
-  }, [licenses]);
+  const welcomeTitle = t.dashboard.welcome.replace("{{name}}", customer.name);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <header className="space-y-1">
+      <header className="space-y-2">
         <h1
-          className={`text-2xl font-semibold tracking-tight ${
-            isLight ? "text-slate-900" : "text-slate-100"
+          className={`text-3xl sm:text-4xl font-semibold tracking-tight ${
+            isLight ? "text-[#0B1220]" : "text-white"
           }`}
         >
-          Willkommen, {customer.name}
+          {welcomeTitle}
         </h1>
         <p
-          className={`text-sm ${
-            isLight ? "text-slate-600" : "text-slate-300"
+          className={`text-sm sm:text-base max-w-2xl leading-relaxed ${
+            isLight ? "text-slate-600" : "text-slate-400"
           }`}
         >
-          Überblick über dein Caisty Konto – Lizenzen, Geräte und Rechnungen.
+          {t.dashboard.subtitle}
         </p>
       </header>
 
-      {/* KPI-Row */}
       <div className="grid gap-4 md:grid-cols-3">
-        {/* Aktive Lizenz */}
-        <section
-          className={`rounded-2xl border p-4 space-y-3 ${
-            isLight
-              ? "border-slate-200 bg-white"
-              : "border-slate-800 bg-slate-900/60"
-          }`}
-        >
+        <section className={`space-y-3 ${portalCardShell(isLight)}`}>
           <div
             className={`text-xs font-semibold ${
               isLight ? "text-slate-700" : "text-slate-300"
             }`}
           >
-            Aktive Lizenz
+            {t.dashboard.activeLicense}
           </div>
 
           {loading ? (
@@ -168,9 +162,7 @@ const PortalDashboard: React.FC = () => {
                 isLight ? "text-slate-600" : "text-slate-400"
               }`}
             >
-              Aktuell ist in deinem Konto noch keine Lizenz hinterlegt.
-              Sobald dir dein Anbieter einen Lizenzschlüssel zuweist,
-              erscheint er hier.
+              {t.dashboard.noLicenseBody}
             </p>
           ) : (
             <div className="space-y-2">
@@ -186,7 +178,7 @@ const PortalDashboard: React.FC = () => {
                   isLight ? "text-slate-700" : "text-slate-300"
                 }`}
               >
-                Plan:{" "}
+                {t.labels.plan}:{" "}
                 <span className="font-medium capitalize">
                   {activeLicense.plan}
                 </span>
@@ -195,15 +187,9 @@ const PortalDashboard: React.FC = () => {
                 <span
                   className={isLight ? "text-slate-700" : "text-slate-300"}
                 >
-                  Status:
+                  {t.labels.status}:
                 </span>
-                <span
-                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
-                    isLight
-                      ? "border-emerald-400 bg-emerald-50 text-emerald-600"
-                      : "border-emerald-500/60 bg-emerald-500/10 text-emerald-300"
-                  }`}
-                >
+                <span className={portalLicenseStatusBadge(activeLicense.status, isLight)}>
                   {activeLicense.status}
                 </span>
               </div>
@@ -212,30 +198,23 @@ const PortalDashboard: React.FC = () => {
                   isLight ? "text-slate-600" : "text-slate-400"
                 }`}
               >
-                Gültig bis:{" "}
+                {t.labels.validUntil}:{" "}
                 {activeLicense.validUntil
                   ? formatDate(activeLicense.validUntil)
-                  : "—"}
+                  : dash}
               </div>
             </div>
           )}
         </section>
 
-        {/* Verbundene Geräte */}
-        <section
-          className={`rounded-2xl border p-4 flex flex-col justify-between ${
-            isLight
-              ? "border-slate-200 bg-white"
-              : "border-slate-800 bg-slate-900/60"
-          }`}
-        >
+        <section className={`${portalCardShell(isLight)} flex flex-col justify-between`}>
           <div className="space-y-3">
             <div
               className={`text-xs font-semibold ${
                 isLight ? "text-slate-700" : "text-slate-300"
               }`}
             >
-              Verbundene Geräte
+              {t.dashboard.devicesTitle}
             </div>
 
             {loading ? (
@@ -245,7 +224,7 @@ const PortalDashboard: React.FC = () => {
                 }`}
               />
             ) : (
-              <div className="text-3xl font-semibold text-emerald-500">
+              <div className={`text-3xl font-semibold ${isLight ? "text-orange-600" : "text-orange-400"}`}>
                 {deviceCount}
               </div>
             )}
@@ -255,36 +234,25 @@ const PortalDashboard: React.FC = () => {
                 isLight ? "text-slate-600" : "text-slate-400"
               }`}
             >
-              Alle POS-Geräte, die aktuell mit deinen Lizenzen verbunden
-              sind (nach Hardware-ID gruppiert).
+              {t.dashboard.devicesHint}
             </p>
           </div>
 
           <div className="mt-3 text-xs">
-            <Link
-              to="/portal/devices"
-              className="text-emerald-500 hover:text-emerald-600"
-            >
-              Geräte ansehen →
+            <Link to="/portal/devices" className={`text-xs no-underline ${portalTextLink(isLight)}`}>
+              {t.dashboard.devicesLink}
             </Link>
           </div>
         </section>
 
-        {/* Letzte Rechnung */}
-        <section
-          className={`rounded-2xl border p-4 flex flex-col justify-between ${
-            isLight
-              ? "border-slate-200 bg-white"
-              : "border-slate-800 bg-slate-900/60"
-          }`}
-        >
+        <section className={`${portalCardShell(isLight)} flex flex-col justify-between`}>
           <div className="space-y-3">
             <div
               className={`text-xs font-semibold ${
                 isLight ? "text-slate-700" : "text-slate-300"
               }`}
             >
-              Letzte Rechnung
+              {t.dashboard.latestInvoice}
             </div>
 
             {loading ? (
@@ -311,7 +279,7 @@ const PortalDashboard: React.FC = () => {
                   isLight ? "text-slate-600" : "text-slate-400"
                 }`}
               >
-                Noch keine Rechnungen für dieses Konto.
+                {t.dashboard.noInvoices}
               </p>
             ) : (
               <div
@@ -327,7 +295,7 @@ const PortalDashboard: React.FC = () => {
                   {latestInvoice.number}
                 </div>
                 <div>
-                  Betrag:{" "}
+                  {t.dashboard.amountLabel}{" "}
                   <span className="font-medium">
                     {formatAmount(
                       latestInvoice.currency,
@@ -335,42 +303,31 @@ const PortalDashboard: React.FC = () => {
                     )}
                   </span>
                 </div>
-                <div>
-                  Status:{" "}
-                  <span className="font-medium">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={isLight ? "text-slate-700" : "text-slate-300"}>{t.labels.status}:</span>
+                  <span className={portalInvoiceStatusBadge(latestInvoice.status, isLight)}>
                     {latestInvoice.status}
                   </span>
                 </div>
                 <div
                   className={isLight ? "text-slate-600" : "text-slate-400"}
                 >
-                  Erstellt am: {formatDate(latestInvoice.createdAt)}
+                  {t.dashboard.createdAtLabel} {formatDate(latestInvoice.createdAt)}
                 </div>
               </div>
             )}
           </div>
 
           <div className="mt-3 text-xs">
-            <Link
-              to="/portal/invoices"
-              className="text-emerald-500 hover:text-emerald-600"
-            >
-              Rechnungen öffnen →
+            <Link to="/portal/invoices" className={`text-xs no-underline ${portalTextLink(isLight)}`}>
+              {t.dashboard.invoicesLink}
             </Link>
           </div>
         </section>
       </div>
 
-      {/* Zweite Zeile: Kurzübersicht + Nächste Schritte */}
       <div className="grid gap-4 md:grid-cols-2">
-        {/* Lizenzen-Kurzübersicht */}
-        <section
-          className={`rounded-2xl border p-4 space-y-3 ${
-            isLight
-              ? "border-slate-200 bg-white"
-              : "border-slate-800 bg-slate-900/60"
-          }`}
-        >
+        <section className={`space-y-3 ${portalCardShell(isLight)}`}>
           <div className="flex items-center justify-between gap-2">
             <div>
               <h2
@@ -378,22 +335,19 @@ const PortalDashboard: React.FC = () => {
                   isLight ? "text-slate-900" : "text-slate-100"
                 }`}
               >
-                Lizenzen (Kurzübersicht)
+                {t.dashboard.licensesTitle}
               </h2>
               <p
                 className={`text-xs ${
                   isLight ? "text-slate-600" : "text-slate-400"
                 }`}
               >
-                Schnellüberblick über deine Lizenzschlüssel.
+                {t.dashboard.licensesHint}
               </p>
             </div>
             {licenses.length > 0 && (
-              <Link
-                to="/portal/licenses"
-                className="text-[11px] text-emerald-500 hover:text-emerald-600"
-              >
-                Alle anzeigen →
+              <Link to="/portal/licenses" className={`text-[11px] no-underline ${portalTextLink(isLight)}`}>
+                {t.dashboard.showAll}
               </Link>
             )}
           </div>
@@ -417,8 +371,7 @@ const PortalDashboard: React.FC = () => {
                 isLight ? "text-slate-600" : "text-slate-400"
               }`}
             >
-              Noch keine Lizenzen im Portal sichtbar. Sobald dir dein
-              Anbieter eine Lizenz zuweist, erscheint sie hier.
+              {t.dashboard.noLicensesBody}
             </p>
           ) : (
             <div className="space-y-2 text-xs">
@@ -444,21 +397,13 @@ const PortalDashboard: React.FC = () => {
                         isLight ? "text-slate-600" : "text-slate-400"
                       }`}
                     >
-                      {lic.plan} • gültig bis{" "}
+                      {lic.plan} • {t.dashboard.validUntilShort}{" "}
                       {lic.validUntil
                         ? formatDate(lic.validUntil)
-                        : "—"}
+                        : dash}
                     </div>
                   </div>
-                  <span
-                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] ${
-                      isLight
-                        ? "border-emerald-400 bg-emerald-50 text-emerald-600"
-                        : "border-emerald-500/60 bg-emerald-500/10 text-emerald-300"
-                    }`}
-                  >
-                    {lic.status}
-                  </span>
+                  <span className={portalLicenseStatusBadge(lic.status, isLight)}>{lic.status}</span>
                 </div>
               ))}
               {licenses.length > 3 && (
@@ -467,27 +412,23 @@ const PortalDashboard: React.FC = () => {
                     isLight ? "text-slate-600" : "text-slate-400"
                   }`}
                 >
-                  + {licenses.length - 3} weitere Lizenz(en)
+                  {t.dashboard.moreLicenses.replace(
+                    "{{count}}",
+                    String(licenses.length - 3),
+                  )}
                 </div>
               )}
             </div>
           )}
         </section>
 
-        {/* Nächste Schritte */}
-        <section
-          className={`rounded-2xl border p-4 space-y-3 ${
-            isLight
-              ? "border-slate-200 bg-white"
-              : "border-slate-800 bg-slate-900/60"
-          }`}
-        >
+        <section className={`space-y-3 ${portalCardShell(isLight)}`}>
           <h2
             className={`text-sm font-semibold ${
               isLight ? "text-slate-900" : "text-slate-100"
             }`}
           >
-            Nächste Schritte
+            {t.dashboard.nextStepsTitle}
           </h2>
           <ol
             className={`space-y-2 text-xs list-decimal list-inside ${
@@ -495,33 +436,24 @@ const PortalDashboard: React.FC = () => {
             }`}
           >
             <li>
-              <Link
-                to="/portal/install"
-                className="text-emerald-500 hover:text-emerald-600 font-medium"
-              >
-                Caisty POS installieren
+              <Link to="/portal/install" className={`no-underline ${portalTextLink(isLight)}`}>
+                {t.dashboard.step1Link}
               </Link>{" "}
-              und mit deinem Lizenzschlüssel verbinden.
+              {t.dashboard.step1Suffix}
             </li>
             <li>
-              In der Ansicht{" "}
-              <Link
-                to="/portal/devices"
-                className="text-emerald-500 hover:text-emerald-600"
-              >
-                Geräte
-              </Link>{" "}
-              prüfen, ob dein Kassen-PC online ist.
-            </li>
-            <li>
-              Sobald Abrechnungen erstellt werden, erscheinen sie unter{" "}
-              <Link
-                to="/portal/invoices"
-                className="text-emerald-500 hover:text-emerald-600"
-              >
-                Rechnungen
+              {t.dashboard.step2Before}{" "}
+              <Link to="/portal/devices" className={`no-underline ${portalTextLink(isLight)}`}>
+                {t.dashboard.step2Link}
               </Link>
-              .
+              {t.dashboard.step2After}
+            </li>
+            <li>
+              {t.dashboard.step3Before}{" "}
+              <Link to="/portal/invoices" className={`no-underline ${portalTextLink(isLight)}`}>
+                {t.dashboard.step3Link}
+              </Link>
+              {t.dashboard.step3After}
             </li>
           </ol>
           <p
@@ -529,8 +461,7 @@ const PortalDashboard: React.FC = () => {
               isLight ? "text-slate-500" : "text-slate-500"
             }`}
           >
-            In späteren Versionen kommen hier Live-KPIs und letzte
-            Aktivitäten dazu.
+            {t.dashboard.footerHint}
           </p>
         </section>
       </div>

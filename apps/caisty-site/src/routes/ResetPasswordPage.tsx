@@ -4,8 +4,12 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { resetPassword, setStoredPortalToken } from "../lib/portalApi";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import { useLanguage } from "../lib/LanguageContext";
+import { translations } from "../lib/translations/index";
 
 export default function ResetPasswordPage() {
+  const { language } = useLanguage();
+  const t = translations[language].auth.resetPassword;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
@@ -18,26 +22,26 @@ export default function ResetPasswordPage() {
 
   React.useEffect(() => {
     if (!token) {
-      setError("Ungültiger Reset-Link. Bitte fordere einen neuen an.");
+      setError(translations[language].auth.resetPassword.errInvalidLink);
     }
-  }, [token]);
+  }, [token, language]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
     if (!token) {
-      setError("Ungültiger Reset-Link.");
+      setError(t.errInvalidLinkShort);
       return;
     }
 
     if (newPassword.length < 6) {
-      setError("Passwort muss mindestens 6 Zeichen lang sein.");
+      setError(t.errPasswordTooShort);
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError("Passwörter stimmen nicht überein.");
+      setError(t.errPasswordsMismatch);
       return;
     }
 
@@ -45,26 +49,20 @@ export default function ResetPasswordPage() {
 
     try {
       const result = await resetPassword(token, newPassword);
-      
+
       if (result.token) {
-        // Token speichern und automatisch einloggen
         setStoredPortalToken(result.token);
         setSuccess(true);
-        
-        // Kurze Verzögerung, dann zum Dashboard
+
         setTimeout(() => {
           navigate("/portal", { replace: true });
         }, 1500);
       } else {
-        setError("Passwort wurde zurückgesetzt, aber Login fehlgeschlagen. Bitte melde dich manuell an.");
+        setError(t.errResetNoLogin);
       }
     } catch (err) {
       console.error(err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Fehler beim Zurücksetzen des Passworts. Bitte erneut versuchen."
-      );
+      setError(err instanceof Error ? err.message : translations[language].auth.resetPassword.genericError);
     } finally {
       setSubmitting(false);
     }
@@ -90,12 +88,8 @@ export default function ResetPasswordPage() {
                 />
               </svg>
             </div>
-            <h1 className="text-lg font-semibold text-slate-100 mb-1">
-              Passwort erfolgreich zurückgesetzt
-            </h1>
-            <p className="text-xs text-slate-400">
-              Du wirst jetzt automatisch eingeloggt…
-            </p>
+            <h1 className="text-lg font-semibold text-slate-100 mb-1">{t.successTitle}</h1>
+            <p className="text-xs text-slate-400">{t.successRedirecting}</p>
           </div>
         </div>
       </div>
@@ -106,12 +100,8 @@ export default function ResetPasswordPage() {
     return (
       <div className="min-h-[calc(100vh-80px)] flex items-center justify-center py-8">
         <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900/70 px-6 py-6 shadow-xl shadow-black/40">
-          <h1 className="text-lg font-semibold text-slate-100 mb-1">
-            Ungültiger Reset-Link
-          </h1>
-          <p className="text-xs text-slate-400 mb-5">
-            Dieser Reset-Link ist ungültig oder abgelaufen. Bitte fordere einen neuen an.
-          </p>
+          <h1 className="text-lg font-semibold text-slate-100 mb-1">{t.invalidLinkPageTitle}</h1>
+          <p className="text-xs text-slate-400 mb-5">{t.invalidLinkPageBody}</p>
 
           {error && (
             <div className="mb-4 rounded-xl border border-red-500/60 bg-red-500/10 px-3 py-2 text-[11px] text-red-200">
@@ -124,13 +114,13 @@ export default function ResetPasswordPage() {
               to="/forgot-password"
               className="flex-1 text-center rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
             >
-              Neuen Link anfordern
+              {t.requestNewLink}
             </Link>
             <Link
               to="/login"
               className="flex-1 text-center rounded-lg border border-slate-700 bg-slate-800/50 px-4 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
             >
-              Zum Login
+              {t.goToLogin}
             </Link>
           </div>
         </div>
@@ -141,17 +131,13 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-[calc(100vh-80px)] flex items-center justify-center py-8">
       <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900/70 px-6 py-6 shadow-xl shadow-black/40">
-        <h1 className="text-lg font-semibold text-slate-100 mb-1">
-          Neues Passwort setzen
-        </h1>
-        <p className="text-xs text-slate-400 mb-5">
-          Gib dein neues Passwort ein. Es muss mindestens 6 Zeichen lang sein.
-        </p>
+        <h1 className="text-lg font-semibold text-slate-100 mb-1">{t.setTitle}</h1>
+        <p className="text-xs text-slate-400 mb-5">{t.setSubtitle}</p>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-1">
             <label className="text-xs text-slate-300" htmlFor="newPassword">
-              Neues Passwort
+              {t.newPasswordLabel}
             </label>
             <Input
               id="newPassword"
@@ -161,13 +147,13 @@ export default function ResetPasswordPage() {
               minLength={6}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Mindestens 6 Zeichen"
+              placeholder={t.newPasswordPlaceholder}
             />
           </div>
 
           <div className="space-y-1">
             <label className="text-xs text-slate-300" htmlFor="confirmPassword">
-              Passwort bestätigen
+              {t.confirmLabel}
             </label>
             <Input
               id="confirmPassword"
@@ -177,7 +163,7 @@ export default function ResetPasswordPage() {
               minLength={6}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Passwort wiederholen"
+              placeholder={t.confirmPlaceholder}
             />
           </div>
 
@@ -188,20 +174,16 @@ export default function ResetPasswordPage() {
           )}
 
           <Button type="submit" disabled={submitting} fullWidth>
-            {submitting ? "Wird gespeichert…" : "Passwort zurücksetzen"}
+            {submitting ? t.submitting : t.submit}
           </Button>
         </form>
 
         <div className="mt-4 flex justify-center">
-          <Link
-            to="/login"
-            className="text-sm text-emerald-400 hover:text-emerald-300"
-          >
-            ← Zurück zum Login
+          <Link to="/login" className="text-sm text-emerald-400 hover:text-emerald-300">
+            {t.backToLogin}
           </Link>
         </div>
       </div>
     </div>
   );
 }
-

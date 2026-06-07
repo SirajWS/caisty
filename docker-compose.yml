@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -9,7 +7,10 @@ services:
       POSTGRES_USER: caisty
       POSTGRES_PASSWORD: devpassword
     ports:
-      - "5432:5432"
+      # Damit cloud-api / Drizzle auf dem Host mit localhost:5432 verbinden kann
+      - "127.0.0.1:5432:5432"
+    expose:
+      - "5432"
     volumes:
       - caisty_pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -17,6 +18,34 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - caisty-internal
+
+  cloud-api:
+    image: node:22-alpine
+    container_name: caisty-cloud-api
+    working_dir: /app/apps/cloud-api
+    command: sh -c "npm install && npm run dev"
+    environment:
+      PORT: "3333"
+      NODE_ENV: "development"
+      DATABASE_URL: postgres://caisty:devpassword@postgres:5432/caisty
+      # Erforderlich für env.ts; nur für lokales Docker-Dev gedacht
+      JWT_SECRET: "dev-jwt-secret-change-in-production-min-32-chars!!"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3333:3333"
+    volumes:
+      - ./:/app
+    networks:
+      - caisty-internal
+      - default
 
 volumes:
   caisty_pg_data:
+
+networks:
+  caisty-internal:
+    internal: true

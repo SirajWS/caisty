@@ -7,6 +7,7 @@ export const pricing: Record<Language, {
   trial: {
     badge: string;
     title: string;
+    daysLabel: string;
     description: string;
     cta: string;
   };
@@ -15,6 +16,10 @@ export const pricing: Record<Language, {
     yearly: string;
     discount: string;
   };
+  priceMonthlySuffix: string;
+  priceYearlySuffix: string;
+  amountsNote: string;
+  tndBillingNote: string;
   plans: {
     starter: {
       title: string;
@@ -60,6 +65,7 @@ export const pricing: Record<Language, {
     trial: {
       badge: "TESTLIZENZ",
       title: "Du startest immer mit einer",
+      daysLabel: "3-Tage-Testlizenz",
       description:
         " (Funktionsumfang wie Starter, 1 Gerät). Keine Zahlungsdaten erforderlich – wenn dir Caisty gefällt, wählst du danach einfach Starter oder Pro.",
       cta: "Kostenlos starten",
@@ -69,6 +75,12 @@ export const pricing: Record<Language, {
       yearly: "Jährlich",
       discount: "(Rabatt)",
     },
+    priceMonthlySuffix: " / Monat",
+    priceYearlySuffix: " / Jahr",
+    amountsNote:
+      "Alle Beträge zzgl. MwSt. – finale Konditionen wählst du im Kundenportal.",
+    tndBillingNote:
+      "Hinweis: Die Abrechnung erfolgt aktuell in Euro per PayPal. Die TND-Preise dienen nur als Orientierung.",
     plans: {
       starter: {
         title: "Starter",
@@ -127,8 +139,9 @@ export const pricing: Record<Language, {
     trial: {
       badge: "TRIAL LICENSE",
       title: "You always start with a",
+      daysLabel: "3-day trial license",
       description:
-        "(Functionality like Starter, 1 device). No payment data required – if you like Caisty, you simply choose Starter or Pro afterwards.",
+        " (same scope as Starter, 1 device). No payment details required — if Caisty fits you, pick Starter or Pro afterwards.",
       cta: "Start free",
     },
     billing: {
@@ -136,6 +149,12 @@ export const pricing: Record<Language, {
       yearly: "Yearly",
       discount: "(Discount)",
     },
+    priceMonthlySuffix: " / month",
+    priceYearlySuffix: " / year",
+    amountsNote:
+      "All amounts exclude VAT where applicable. Final terms are chosen in the customer portal.",
+    tndBillingNote:
+      "Note: Billing is currently in euros via PayPal. TND prices are indicative only.",
     plans: {
       starter: {
         title: "Starter",
@@ -194,8 +213,9 @@ export const pricing: Record<Language, {
     trial: {
       badge: "LICENCE D'ESSAI",
       title: "Vous commencez toujours avec une",
+      daysLabel: "licence d'essai de 3 jours",
       description:
-        "(Fonctionnalité comme Starter, 1 appareil). Aucune donnée de paiement requise – si vous aimez Caisty, vous choisissez simplement Starter ou Pro ensuite.",
+        " (même périmètre que Starter, 1 appareil). Aucun moyen de paiement requis — si Caisty vous convient, choisissez Starter ou Pro ensuite.",
       cta: "Commencer gratuitement",
     },
     billing: {
@@ -203,6 +223,12 @@ export const pricing: Record<Language, {
       yearly: "Annuel",
       discount: "(Réduction)",
     },
+    priceMonthlySuffix: " / mois",
+    priceYearlySuffix: " / an",
+    amountsNote:
+      "Les montants s'entendent hors TVA le cas échéant. Les conditions finales sont définies dans le portail client.",
+    tndBillingNote:
+      "Remarque : la facturation se fait actuellement en euros via PayPal. Les prix en TND sont indicatifs.",
     plans: {
       starter: {
         title: "Starter",
@@ -261,8 +287,9 @@ export const pricing: Record<Language, {
     trial: {
       badge: "ترخيص تجريبي",
       title: "تبدأ دائماً بـ",
+      daysLabel: "ترخيص تجريبي لمدة 3 أيام",
       description:
-        "(وظائف مثل Starter، جهاز واحد). لا حاجة لبيانات الدفع – إذا أعجبك Caisty، تختار ببساطة Starter أو Pro بعد ذلك.",
+        " (نفس نطاق Starter، جهاز واحد). لا حاجة لبيانات الدفع — إذا ناسبك Caisty، اختر Starter أو Pro لاحقاً.",
       cta: "ابدأ مجاناً",
     },
     billing: {
@@ -270,6 +297,12 @@ export const pricing: Record<Language, {
       yearly: "سنوي",
       discount: "(خصم)",
     },
+    priceMonthlySuffix: " / شهر",
+    priceYearlySuffix: " / سنة",
+    amountsNote:
+      "جميع المبالغ بدون ضريبة القيمة المضافة حيث ينطبق ذلك. الشروط النهائية تُحدَّد في بوابة العملاء.",
+    tndBillingNote:
+      "ملاحظة: الفوترة حالياً باليورو عبر PayPal. أسعار TND للإرشاد فقط.",
     plans: {
       starter: {
         title: "Starter",

@@ -9,16 +9,23 @@ import {
 import { usePortalOutlet } from "./PortalLayout";
 import { PRICING, TRIAL_DAYS, formatPrice } from "../config/pricing";
 import { useTheme } from "../lib/theme";
-
-function formatDate(value: string | null | undefined): string {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("de-DE");
-}
+import { useLanguage } from "../lib/LanguageContext";
+import { getPortalTranslations } from "../lib/translations";
+import { portalLocaleTag } from "../lib/portalLocale";
+import { pickPrimaryPortalLicense } from "../lib/portalLicensePick";
+import {
+  portalCardShell,
+  portalLicenseStatusBadge,
+  portalPrimaryCta,
+  portalSecondaryCta,
+  portalTextLink,
+} from "../lib/portalUi";
 
 const PortalPlanBillingPage: React.FC = () => {
   const { customer } = usePortalOutlet();
+  const { language } = useLanguage();
+  const t = getPortalTranslations(language);
+  const locale = portalLocaleTag(language);
   const { theme } = useTheme();
   const isLight = theme === "light";
 
@@ -30,10 +37,16 @@ const PortalPlanBillingPage: React.FC = () => {
   );
   const [error, setError] = React.useState<string | null>(null);
 
-  // Preise immer in EUR anzeigen
   const starterPrice = PRICING["EUR"].starter.monthly;
   const proPrice = PRICING["EUR"].pro.monthly;
   const currencySymbol = "€";
+
+  function formatDate(value: string | null | undefined): string {
+    if (!value) return t.labels.dash;
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return t.labels.dash;
+    return d.toLocaleString(locale);
+  }
 
   React.useEffect(() => {
     let cancelled = false;
@@ -43,12 +56,11 @@ const PortalPlanBillingPage: React.FC = () => {
         setError(null);
         const lics = await fetchPortalLicenses();
         if (!cancelled) setLicenses(lics);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("load licenses failed", err);
         if (!cancelled) {
-          setError(
-            err?.message ?? "Lizenzen konnten nicht geladen werden.",
-          );
+          const msg = err instanceof Error ? err.message : null;
+          setError(msg || getPortalTranslations(language).plan.loadError);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -57,16 +69,12 @@ const PortalPlanBillingPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [language]);
 
-  const activeLicense: PortalLicense | null = React.useMemo(() => {
-    if (!licenses.length) return null;
-    return (
-      licenses.find(
-        (lic) => lic.status?.toLowerCase() === "active",
-      ) ?? licenses[0]
-    );
-  }, [licenses]);
+  const primaryLicense: PortalLicense | null = React.useMemo(
+    () => pickPrimaryPortalLicense(licenses),
+    [licenses],
+  );
 
   const hasTrialLicense = React.useMemo(
     () => licenses.some((l) => l.plan === "trial"),
@@ -79,9 +87,11 @@ const PortalPlanBillingPage: React.FC = () => {
       setBusyTrial(true);
       const lic = await createTrialLicense();
       setLicenses((prev) => [lic, ...prev]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("create trial failed", err);
-      setError(err?.message ?? "Testlizenz konnte nicht erstellt werden.");
+      setError(
+        err instanceof Error ? err.message : t.plan.trialCreateError,
+      );
     } finally {
       setBusyTrial(false);
     }
@@ -91,27 +101,30 @@ const PortalPlanBillingPage: React.FC = () => {
     try {
       setError(null);
       setBusyPlan(plan);
-      
-      // Weiterleitung zur Checkout-Seite mit Plan-Parameter
       window.location.href = `/portal/checkout?plan=${plan}`;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("upgrade failed", err);
-      setError(err?.message ?? "Upgrade konnte nicht gestartet werden.");
+      setError(
+        err instanceof Error ? err.message : t.plan.upgradeError,
+      );
     } finally {
       setBusyPlan(null);
     }
   }
 
+  const trialDaysLabel = t.plan.trialPriceSuffix.replace(
+    "{{days}}",
+    String(TRIAL_DAYS),
+  );
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <header className="space-y-1">
-        <h1 className={`text-2xl font-semibold tracking-tight ${isLight ? "text-slate-900" : "text-slate-50"}`}>
-          Plan &amp; Abrechnung
+        <h1 className={`text-3xl sm:text-4xl font-semibold tracking-tight ${isLight ? "text-[#0B1220]" : "text-white"}`}>
+          {t.plan.title}
         </h1>
         <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-300"}`}>
-          Hier siehst du deinen aktuellen Plan, die wichtigsten Details zu
-          deiner Lizenz und eine Vorschau der verfügbaren Pakete.
+          {t.plan.subtitle}
         </p>
       </header>
 
@@ -121,11 +134,10 @@ const PortalPlanBillingPage: React.FC = () => {
         </div>
       )}
 
-      {/* Aktueller Plan */}
-      <section className={`flex flex-col gap-4 rounded-2xl border p-4 md:flex-row md:items-start md:justify-between ${isLight ? "border-slate-200 bg-slate-50" : "border-slate-800 bg-slate-900/60"}`}>
+      <section className={`flex flex-col gap-4 md:flex-row md:items-start md:justify-between ${portalCardShell(isLight)}`}>
         <div className="space-y-2">
-          <div className={`text-xs font-semibold ${isLight ? "text-emerald-600" : "text-emerald-300"}`}>
-            DEIN AKTUELLER PLAN
+          <div className={`text-xs font-semibold tracking-wide uppercase ${isLight ? "text-orange-600" : "text-orange-400"}`}>
+            {t.plan.currentPlanLabel}
           </div>
 
           {loading ? (
@@ -133,79 +145,78 @@ const PortalPlanBillingPage: React.FC = () => {
               <div className={`h-4 w-40 rounded animate-pulse ${isLight ? "bg-slate-200" : "bg-slate-800"}`} />
               <div className={`h-3 w-24 rounded animate-pulse ${isLight ? "bg-slate-200" : "bg-slate-800"}`} />
             </div>
-          ) : !activeLicense ? (
+          ) : !primaryLicense ? (
             <div className={`text-xs ${isLight ? "text-slate-700" : "text-slate-200"}`}>
-              Noch keine aktive Lizenz. Du kannst{" "}
-              <span className="font-medium">unten eine Testlizenz</span>{" "}
-              starten oder später einen bezahlten Plan wählen.
+              {t.plan.noActiveBody}
             </div>
           ) : (
             <>
-              <div className={`flex items-center gap-2 text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>
-                {activeLicense.plan === "trial"
-                  ? "Trial"
-                  : activeLicense.plan === "starter"
+              <div className={`flex flex-wrap items-center gap-2 text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>
+                {primaryLicense.plan === "trial"
+                  ? t.plan.trialTitle
+                  : primaryLicense.plan === "starter"
                     ? "Starter"
                     : "Pro"}
-                <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${isLight ? "border-emerald-600/60 bg-emerald-50 text-emerald-700" : "border-emerald-500/60 bg-emerald-500/10 text-emerald-300"}`}>
-                  aktiv
+                <span
+                  className={portalLicenseStatusBadge(
+                    primaryLicense.status,
+                    isLight,
+                  )}
+                >
+                  {primaryLicense.status}
                 </span>
               </div>
               <div className={`text-xs ${isLight ? "text-slate-600" : "text-slate-300"}`}>
-                Lizenzschlüssel:{" "}
+                {t.plan.licenseKeyLabel}{" "}
                 <span className="font-mono text-[11px]">
-                  {activeLicense.key}
+                  {primaryLicense.key}
                 </span>
               </div>
               <div className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                Gültig bis: {formatDate(activeLicense.validUntil)}
+                {t.labels.validUntil}: {formatDate(primaryLicense.validUntil)}
               </div>
             </>
           )}
         </div>
 
         <div className={`mt-2 space-y-1 text-xs text-right md:mt-0 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-          <div>Konto-Inhaber: {customer.name}</div>
-          {activeLicense && (
+          <div>{t.plan.accountHolder} {customer.name}</div>
+          {primaryLicense && (
             <div>
-              Aktiver Lizenzschlüssel:{" "}
+              {t.plan.licenseKeyLabel}{" "}
               <span className="font-mono text-[11px]">
-                {activeLicense.key}
+                {primaryLicense.key}
               </span>
             </div>
           )}
           <div className={`text-[11px] ${isLight ? "text-slate-500" : "text-slate-500"}`}>
-            Zahlungsweise für Starter/Pro wird später direkt im Portal
-            verfügbar.
+            {t.plan.paymentNote}
           </div>
         </div>
       </section>
 
-      {/* Karten: Trial / Starter / Pro */}
       <section className="space-y-4">
         <h2 className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>
-          Pläne &amp; Lizenzen im Überblick
+          {t.plan.sectionTitle}
         </h2>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          {/* Trial */}
-          <div className={`flex flex-col justify-between rounded-2xl border p-4 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-950/60"}`}>
+        <div className="grid gap-5 md:grid-cols-3">
+          <div className={`flex flex-col justify-between ${portalCardShell(isLight)}`}>
             <div className="space-y-2">
               <div className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>
-                Trial
+                {t.plan.trialTitle}
               </div>
               <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                Zum Testen vor Ort, ohne Zahlungsdaten. Funktional identisch
-                mit Starter (1 Gerät), aber zeitlich begrenzt.
+                {t.plan.trialDesc}
               </p>
-              <div className={`mt-2 text-2xl font-semibold ${isLight ? "text-emerald-600" : "text-emerald-400"}`}>
+              <div className={`mt-2 text-2xl font-semibold ${isLight ? "text-orange-600" : "text-orange-400"}`}>
                 0&nbsp;{currencySymbol}
                 <span className={`text-xs font-normal ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                  &nbsp;für {TRIAL_DAYS} Tage
+                  &nbsp;{trialDaysLabel}
                 </span>
               </div>
               <div className={`mt-1 text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                1 aktives POS-Gerät · keine Zahlungsdaten nötig.
+                {t.plan.trialDeviceNote}
               </div>
             </div>
 
@@ -214,34 +225,43 @@ const PortalPlanBillingPage: React.FC = () => {
                 type="button"
                 onClick={handleCreateTrial}
                 disabled={busyTrial || hasTrialLicense}
-                className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-xs font-semibold text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className={`w-full ${hasTrialLicense || busyTrial ? portalSecondaryCta(isLight) : portalPrimaryCta()}`}
               >
                 {hasTrialLicense
-                  ? "Testlizenz bereits genutzt"
+                  ? t.plan.trialBtnUsed
                   : busyTrial
-                    ? "Testlizenz wird angelegt…"
-                    : "Testlizenz starten"}
+                    ? t.plan.trialBtnBusy
+                    : t.plan.trialBtn}
               </button>
               <p className={`mt-2 text-[11px] ${isLight ? "text-slate-500" : "text-slate-500"}`}>
-                Für jedes Konto kann nur eine Testlizenz angelegt werden.
+                {t.plan.trialHint}
               </p>
             </div>
           </div>
 
-          {/* Starter */}
-          <div className={`flex flex-col justify-between rounded-2xl border p-4 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-950/60"}`}>
+          <div
+            className={`flex flex-col justify-between ring-2 ring-orange-500/50 ${portalCardShell(isLight)}`}
+          >
             <div className="space-y-2">
-              <div className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>
-                Starter
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>
+                  Starter
+                </div>
+                <span
+                  className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+                    isLight ? "bg-orange-50 border-orange-200 text-orange-700" : "bg-orange-500/15 border-orange-500/40 text-orange-300"
+                  }`}
+                >
+                  {t.labels.recommended}
+                </span>
               </div>
               <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                Ideal für eine Filiale oder einen Standort. Lizenzverwaltung im
-                Kundenportal, Basis-Statistiken &amp; Export-Grundfunktionen.
+                {t.plan.starterDesc}
               </p>
-              <div className={`mt-2 text-2xl font-semibold ${isLight ? "text-emerald-600" : "text-emerald-400"}`}>
+              <div className={`mt-2 text-2xl font-semibold ${isLight ? "text-orange-600" : "text-orange-400"}`}>
                 {formatPrice(starterPrice, "EUR")}
                 <span className={`text-xs font-normal ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                  &nbsp;pro Monat
+                  &nbsp;{t.labels.perMonth}
                 </span>
               </div>
             </div>
@@ -251,34 +271,30 @@ const PortalPlanBillingPage: React.FC = () => {
                 type="button"
                 onClick={() => handleUpgradePlan("starter")}
                 disabled={busyPlan === "starter"}
-                className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-xs font-semibold text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className={`w-full ${portalPrimaryCta()}`}
               >
                 {busyPlan === "starter"
-                  ? "Weiterleitung zu PayPal…"
-                  : "Plan wählen"}
+                  ? t.plan.starterBtnBusy
+                  : t.plan.starterBtn}
               </button>
               <p className={`mt-2 text-[11px] ${isLight ? "text-slate-500" : "text-slate-500"}`}>
-                Self-Service-Kauf direkt hier im Portal. Abrechnung über
-                PayPal-Sandbox für Tests.
+                {t.plan.purchaseHint}
               </p>
             </div>
           </div>
 
-          {/* Pro */}
-          <div className={`flex flex-col justify-between rounded-2xl border p-4 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-950/60"}`}>
+          <div className={`flex flex-col justify-between ${portalCardShell(isLight)}`}>
             <div className="space-y-2">
               <div className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>
                 Pro
               </div>
               <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                Für Betriebe mit mehreren Kassen oder kleinen Filialketten.
-                Mehrere Geräte unter einer Lizenz, erweiterte Auswertungen
-                (geplant), priorisierter Support.
+                {t.plan.proDesc}
               </p>
-              <div className={`mt-2 text-2xl font-semibold ${isLight ? "text-emerald-600" : "text-emerald-400"}`}>
+              <div className={`mt-2 text-2xl font-semibold ${isLight ? "text-orange-600" : "text-orange-400"}`}>
                 {formatPrice(proPrice, "EUR")}
                 <span className={`text-xs font-normal ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                  &nbsp;pro Monat
+                  &nbsp;{t.labels.perMonth}
                 </span>
               </div>
             </div>
@@ -288,35 +304,30 @@ const PortalPlanBillingPage: React.FC = () => {
                 type="button"
                 onClick={() => handleUpgradePlan("pro")}
                 disabled={busyPlan === "pro"}
-                className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-xs font-semibold text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className={`w-full ${portalPrimaryCta()}`}
               >
                 {busyPlan === "pro"
-                  ? "Weiterleitung zu PayPal…"
-                  : "Plan wählen"}
+                  ? t.plan.starterBtnBusy
+                  : t.plan.starterBtn}
               </button>
               <p className={`mt-2 text-[11px] ${isLight ? "text-slate-500" : "text-slate-500"}`}>
-                Self-Service-Kauf direkt hier im Portal. Abrechnung über
-                PayPal-Sandbox für Tests.
+                {t.plan.purchaseHint}
               </p>
             </div>
           </div>
         </div>
 
         <p className={`text-[11px] ${isLight ? "text-slate-500" : "text-slate-500"}`}>
-          Die folgenden Informationen orientieren sich an der aktuellen
-          Preisliste. Alle Preise verstehen sich zzgl. MwSt.
+          {t.plan.vatFootnote}
         </p>
       </section>
 
-      <section className={`rounded-2xl border p-4 text-xs ${isLight ? "border-slate-200 bg-slate-50 text-slate-700" : "border-slate-800 bg-slate-900/60 text-slate-300"}`}>
-        Die eigentliche Abrechnung und Rechnungsdokumente findest du unter{" "}
-        <Link
-          to="/portal/invoices"
-          className={`hover:underline ${isLight ? "text-emerald-600 hover:text-emerald-700" : "text-emerald-300 hover:text-emerald-200"}`}
-        >
-          Rechnungen
+      <section className={`${portalCardShell(isLight)} text-xs ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+        {t.plan.invoicesLineStart}{" "}
+        <Link to="/portal/invoices" className={`hover:underline ${portalTextLink(isLight)}`}>
+          {t.layout.navInvoices}
         </Link>
-        . In dieser Version können Rechnungen noch manuell erzeugt werden.
+        {t.plan.invoicesLineEnd}
       </section>
     </div>
   );

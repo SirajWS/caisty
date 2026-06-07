@@ -337,3 +337,6 @@ export function getTranslation(lang: Language, key: string): string {
   return value ?? key;
 }
 
+/** Modular site + portal strings live in `./translations/index.ts`. This file is legacy landing copy; Vite resolves `lib/translations` here before the folder. */
+export { getPortalTranslations } from "./translations/index";
+

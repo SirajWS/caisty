@@ -1,185 +1,280 @@
 // apps/caisty-site/src/layouts/SiteLayout.tsx
+import { useState } from "react";
 import { Outlet, Link, NavLink } from "react-router-dom";
 import LanguageSelector from "../components/LanguageSelector";
 import CurrencySelector from "../components/CurrencySelector";
 import ThemeToggle from "../components/ThemeToggle";
 import { useTheme } from "../lib/theme";
+import { useLanguage } from "../lib/LanguageContext";
+import { translations } from "../lib/translations/index";
 
-function NavItem(props: { to: string; children: React.ReactNode }) {
-  const { theme } = useTheme();
-  const isLight = theme === "light";
+function NavTextLink(props: {
+  to: string;
+  children: React.ReactNode;
+  onClick?: () => void;
+  isLight: boolean;
+}) {
   return (
-    <NavLink
+    <Link
       to={props.to}
-      className={({ isActive }) =>
-        [
-          "text-sm",
-          isActive
-            ? "text-emerald-500"
-            : isLight
-            ? "text-slate-600 hover:text-slate-900"
-            : "text-slate-300 hover:text-slate-100",
-        ].join(" ")
-      }
+      onClick={props.onClick}
+      className={`text-sm font-medium no-underline transition-colors ${
+        props.isLight ? "text-slate-600 hover:text-[#0b1220]" : "text-slate-300 hover:text-white"
+      }`}
     >
       {props.children}
-    </NavLink>
+    </Link>
   );
 }
 
 export default function SiteLayout() {
   const { theme } = useTheme();
+  const { language } = useLanguage();
+  const t = translations[language].common;
   const isLight = theme === "light";
-  const baseBg = isLight ? "bg-slate-50 text-slate-900" : "bg-slate-950 text-slate-50";
-  const baseBorder = isLight ? "border-slate-200" : "border-slate-800";
-  const mutedText = isLight ? "text-slate-600" : "text-slate-300";
-  const strongText = isLight ? "text-slate-900" : "text-slate-100";
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const baseBg = isLight ? "bg-[#f8fafc] text-slate-900" : "bg-[#0b1220] text-slate-50";
+  const baseBorder = isLight ? "border-[#e2e8f0]" : "border-white/[0.08]";
+  const strongText = isLight ? "text-[#0b1220]" : "text-white";
+  const headerBg = isLight ? "bg-white/95" : "bg-[#0b1220]/95";
 
   const host = typeof window !== "undefined" ? window.location.hostname : "";
   const isTN = host === "tn.caisty.com";
 
+  const closeMobile = () => setMobileOpen(false);
+
   return (
     <div className={`min-h-screen flex flex-col ${baseBg}`}>
-      {/* Top-Bar */}
-      <header className={`border-b ${baseBorder} ${isLight ? "bg-white/85" : "bg-slate-950/80"} backdrop-blur`}>
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl bg-emerald-500/90 flex items-center justify-center text-slate-950 font-bold text-sm">
-              C
-            </div>
-            <div className="flex flex-col leading-tight">
-              <span className={`font-semibold text-sm ${strongText}`}>Caisty</span>
-              <span className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                POS &amp; Cloud Platform
-              </span>
-            </div>
-          </Link>
-
-          {/* Nav (nur für www / global) */}
-          {!isTN && (
-            <nav className="flex items-center gap-6">
-              <NavItem to="/">Produkt</NavItem>
-              <NavItem to="/pricing">Preise</NavItem>
-              {/* Später z.B. /portal */}
-            </nav>
-          )}
-
-          <div className="flex items-center gap-3">
-            {/* Currency nur für www/global */}
-            {!isTN && <CurrencySelector />}
-
-            <LanguageSelector />
-            <ThemeToggle />
-
-            <Link
-              to="/login"
-              className={`text-sm ${mutedText} hover:text-emerald-500`}
-            >
-              Login
+      <header
+        className={`sticky top-0 z-40 border-b ${baseBorder} ${headerBg} backdrop-blur-md`}
+      >
+        <div className="max-w-7xl mx-auto w-full min-w-0 px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between gap-3">
+            <Link to="/" className="flex min-w-0 items-center gap-2 shrink-0" onClick={closeMobile}>
+              <div
+                className="h-9 w-9 shrink-0 rounded-xl flex items-center justify-center text-white font-bold text-sm"
+                style={{ background: "linear-gradient(135deg, #f97316, #ea580c)" }}
+              >
+                C
+              </div>
+              <div className="flex min-w-0 flex-col leading-tight">
+                <span className={`font-semibold text-sm truncate ${strongText}`}>Caisty</span>
+                <span className={`text-xs truncate ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  {t.layout.tagline}
+                </span>
+              </div>
             </Link>
 
-            <Link
-              to="/register"
-              className="text-sm px-3 py-1.5 rounded-full bg-emerald-500 text-slate-950 font-medium hover:bg-emerald-400"
-            >
-              Kostenlos starten
-            </Link>
+            {!isTN && (
+              <nav
+                className={`hidden lg:flex items-center gap-8 ${isLight ? "text-slate-600" : "text-slate-300"}`}
+              >
+                <NavTextLink to="/#product" isLight={isLight}>
+                  {t.nav.product}
+                </NavTextLink>
+                <NavLink
+                  to="/pricing"
+                  className={({ isActive }) =>
+                    [
+                      "text-sm font-medium no-underline transition-colors",
+                      isActive
+                        ? "text-[#f97316]"
+                        : isLight
+                          ? "text-slate-600 hover:text-[#0b1220]"
+                          : "text-slate-300 hover:text-white",
+                    ].join(" ")
+                  }
+                >
+                  {t.nav.pricing}
+                </NavLink>
+                <NavTextLink to="/#payment" isLight={isLight}>
+                  {t.nav.payment}
+                </NavTextLink>
+                <NavTextLink to="/#fiscal" isLight={isLight}>
+                  {t.nav.fiscal}
+                </NavTextLink>
+              </nav>
+            )}
+
+            <div className="hidden lg:flex items-center gap-3 shrink-0">
+              <LanguageSelector />
+              <CurrencySelector />
+              <ThemeToggle />
+              {!isTN && (
+                <>
+                  <Link
+                    to="/login"
+                    className={`text-sm font-medium no-underline px-2 ${isLight ? "text-slate-600 hover:text-[#0b1220]" : "text-slate-300 hover:text-white"}`}
+                  >
+                    {t.buttons.login}
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="text-sm font-semibold no-underline rounded-full px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center bg-[#f97316] text-white hover:bg-[#ea580c] transition-colors shadow-sm"
+                  >
+                    {t.buttons.startFree}
+                  </Link>
+                </>
+              )}
+            </div>
+
+            {!isTN && (
+              <div className="flex lg:hidden items-center gap-2 shrink-0">
+                <Link
+                  to="/register"
+                  className="text-xs sm:text-sm font-semibold no-underline rounded-full px-3 py-2 min-h-[40px] inline-flex items-center bg-[#f97316] text-white hover:bg-[#ea580c]"
+                  onClick={closeMobile}
+                >
+                  {t.buttons.startFree}
+                </Link>
+                <button
+                  type="button"
+                  className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border ${isLight ? "border-slate-200 bg-white" : "border-white/10 bg-white/5"} ${strongText}`}
+                  aria-expanded={mobileOpen}
+                  aria-label={mobileOpen ? t.layout.menuClose : t.layout.menuOpen}
+                  onClick={() => setMobileOpen((o) => !o)}
+                >
+                  {mobileOpen ? (
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  ) : (
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
+
+        {mobileOpen && !isTN && (
+          <div
+            className={`lg:hidden border-t ${baseBorder} ${isLight ? "bg-white" : "bg-[#0b1220]"}`}
+          >
+            <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-1">
+              <NavTextLink to="/#product" isLight={isLight} onClick={closeMobile}>
+                {t.nav.product}
+              </NavTextLink>
+              <NavLink
+                to="/pricing"
+                onClick={closeMobile}
+                className={({ isActive }) =>
+                  `text-sm font-medium py-2 no-underline ${isActive ? "text-[#f97316]" : isLight ? "text-slate-700" : "text-slate-200"}`
+                }
+              >
+                {t.nav.pricing}
+              </NavLink>
+              <NavTextLink to="/#payment" isLight={isLight} onClick={closeMobile}>
+                {t.nav.payment}
+              </NavTextLink>
+              <NavTextLink to="/#fiscal" isLight={isLight} onClick={closeMobile}>
+                {t.nav.fiscal}
+              </NavTextLink>
+              <Link
+                to="/login"
+                onClick={closeMobile}
+                className={`text-sm font-medium py-2 no-underline ${isLight ? "text-slate-700" : "text-slate-200"}`}
+              >
+                {t.buttons.login}
+              </Link>
+              <Link
+                to="/register"
+                onClick={closeMobile}
+                className="text-sm font-semibold py-2 no-underline text-[#f97316]"
+              >
+                {t.buttons.startFree}
+              </Link>
+              <div className={`flex flex-wrap items-center gap-3 pt-4 mt-2 border-t ${baseBorder}`}>
+                <LanguageSelector />
+                <CurrencySelector />
+                <ThemeToggle />
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
-      {/* Seiteninhalt */}
-      <main className="flex-1">
-        <div className="max-w-6xl mx-auto px-4 py-12">
-          <Outlet />
-        </div>
+      <main className="flex-1 w-full min-w-0 overflow-x-hidden">
+        <Outlet />
       </main>
 
-      {/* Footer */}
-      <footer className={`border-t ${baseBorder} ${isLight ? "bg-white" : "bg-slate-950"}`}>
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="grid gap-8 md:grid-cols-3 mb-6">
-            {/* Adresse */}
-            <div className="space-y-2">
-              <h3 className={`text-sm font-semibold ${strongText} mb-2`}>Kontakt</h3>
-              <div className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"} space-y-1`}>
-                <p className={`font-semibold ${strongText}`}>Caisty</p>
-                <p>Musterstraße 123</p>
-                <p>12345 Musterstadt</p>
-                <p>Deutschland</p>
-                <p className="mt-2">
-                  <a href="mailto:info@caisty.com" className="text-emerald-500 hover:text-emerald-600 hover:underline">
-                    info@caisty.com
-                  </a>
-                </p>
-              </div>
+      <footer className={`border-t ${baseBorder} ${isLight ? "bg-white" : "bg-[#0b1220]"}`}>
+        <div className="max-w-7xl mx-auto w-full min-w-0 px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-3 min-w-0">
+              <h3 className={`text-sm font-bold tracking-tight ${strongText}`}>Caisty</h3>
+              <p className={`text-sm leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                {t.footer.brandTagline}
+              </p>
             </div>
-
-            {/* Links */}
-            <div className="space-y-2">
-              <h3 className={`text-sm font-semibold ${strongText} mb-2`}>Rechtliches</h3>
-              <div className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"} space-y-1`}>
-                <Link to="/terms" className={`block ${isLight ? "hover:text-emerald-600" : "hover:text-emerald-400"} transition-colors`}>
-                  Allgemeine Geschäftsbedingungen
+            <div className="space-y-3 min-w-0">
+              <h3 className={`text-sm font-bold ${strongText}`}>{t.footer.contactTitle}</h3>
+              <a
+                href="mailto:info@caisty.com"
+                className="text-sm text-[#f97316] hover:underline break-all"
+              >
+                info@caisty.com
+              </a>
+            </div>
+            <div className="space-y-3 min-w-0">
+              <h3 className={`text-sm font-bold ${strongText}`}>{t.footer.legalTitle}</h3>
+              <div className={`flex flex-col gap-2 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                <Link to="/terms" className="hover:text-[#f97316] transition-colors no-underline">
+                  {t.footer.terms}
                 </Link>
-                <Link to="/privacy" className={`block ${isLight ? "hover:text-emerald-600" : "hover:text-emerald-400"} transition-colors`}>
-                  Datenschutzerklärung
+                <Link to="/privacy" className="hover:text-[#f97316] transition-colors no-underline">
+                  {t.footer.privacy}
                 </Link>
-                <Link to="/imprint" className={`block ${isLight ? "hover:text-emerald-600" : "hover:text-emerald-400"} transition-colors`}>
-                  Impressum
+                <Link to="/imprint" className="hover:text-[#f97316] transition-colors no-underline">
+                  {t.footer.imprint}
                 </Link>
               </div>
             </div>
-
-            {/* Social Media */}
-            <div className="space-y-2">
-              <h3 className={`text-sm font-semibold ${strongText} mb-2`}>Folge uns</h3>
-              <div className="flex gap-3">
+            <div className="space-y-3 min-w-0">
+              <h3 className={`text-sm font-bold ${strongText}`}>{t.footer.followTitle}</h3>
+              <div className="flex flex-wrap gap-2">
                 <a
                   href="https://facebook.com/caisty"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`inline-flex items-center justify-center w-10 h-10 rounded-full border ${isLight ? "border-slate-200 bg-white hover:bg-slate-100" : "border-slate-700 bg-slate-900 hover:bg-slate-800"} hover:border-emerald-500/50 transition-colors`}
-                  aria-label="Facebook"
-                  title="Facebook"
+                  className={`text-sm px-3 py-1.5 rounded-lg border no-underline transition-colors ${
+                    isLight ? "border-slate-200 text-slate-700 hover:border-[#f97316]" : "border-white/10 text-slate-300 hover:border-[#f97316]"
+                  }`}
                 >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                  </svg>
+                  {t.footer.facebook}
                 </a>
                 <a
                   href="https://instagram.com/caisty"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`inline-flex items-center justify-center w-10 h-10 rounded-full border ${isLight ? "border-slate-200 bg-white hover:bg-slate-100" : "border-slate-700 bg-slate-900 hover:bg-slate-800"} hover:border-emerald-500/50 transition-colors`}
-                  aria-label="Instagram"
-                  title="Instagram"
+                  className={`text-sm px-3 py-1.5 rounded-lg border no-underline transition-colors ${
+                    isLight ? "border-slate-200 text-slate-700 hover:border-[#f97316]" : "border-white/10 text-slate-300 hover:border-[#f97316]"
+                  }`}
                 >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                  </svg>
+                  {t.footer.instagram}
                 </a>
                 <a
                   href="https://youtube.com/@caisty"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`inline-flex items-center justify-center w-10 h-10 rounded-full border ${isLight ? "border-slate-200 bg-white hover:bg-slate-100" : "border-slate-700 bg-slate-900 hover:bg-slate-800"} hover:border-emerald-500/50 transition-colors`}
-                  aria-label="YouTube"
-                  title="YouTube"
+                  className={`text-sm px-3 py-1.5 rounded-lg border no-underline transition-colors ${
+                    isLight ? "border-slate-200 text-slate-700 hover:border-[#f97316]" : "border-white/10 text-slate-300 hover:border-[#f97316]"
+                  }`}
                 >
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                  </svg>
+                  {t.footer.youtube}
                 </a>
               </div>
             </div>
           </div>
 
-          <div className={`border-t ${baseBorder} pt-6 flex flex-col sm:flex-row justify-between gap-3 text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-            <span>© {new Date().getFullYear()} Caisty – All rights reserved.</span>
-            <span className={`${isLight ? "text-slate-500" : "text-slate-500"} italic`}>
-              Hinweis: Firmendaten sind Platzhalter und müssen nach Firmgründung aktualisiert werden.
-            </span>
+          <div
+            className={`mt-10 pt-8 border-t ${baseBorder} flex flex-col gap-3 text-xs sm:text-sm ${isLight ? "text-slate-500" : "text-slate-500"}`}
+          >
+            <span>{t.footer.copyright}</span>
+            <span className="leading-relaxed max-w-3xl">{t.footer.companyNote}</span>
           </div>
         </div>
       </footer>

@@ -16,7 +16,7 @@ import PortalLayout from "./routes/PortalLayout";
 import PortalDashboard from "./routes/PortalDashboard";
 import PortalLicensesPage from "./routes/PortalLicensesPage";
 import PortalDevicesPage from "./routes/PortalDevicesPage";
-import PortalInvoicesPage from "./routes/portal/PortalInvoicesPage";
+import PortalInvoicesPage from "./routes/PortalInvoicesPage";
 import PortalInvoiceDetailPage from "./routes/PortalInvoiceDetailPage";
 import PortalAccountPage from "./routes/PortalAccountPage";
 import PortalInstallPage from "./routes/PortalInstallPage";

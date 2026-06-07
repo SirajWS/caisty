@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useCurrency } from "../lib/useCurrency";
 import { useTheme } from "../lib/theme";
+import { useLanguage } from "../lib/LanguageContext";
 import type { Currency } from "../config/pricing";
 
 const currencies: { code: Currency; name: string; symbol: string }[] = [
@@ -11,6 +12,7 @@ const currencies: { code: Currency; name: string; symbol: string }[] = [
 
 export default function CurrencySelector() {
   const { currency, setCurrency } = useCurrency();
+  const { language } = useLanguage();
   const { theme } = useTheme();
   const isLight = theme === "light";
   const [isOpen, setIsOpen] = useState(false);
@@ -60,7 +62,9 @@ export default function CurrencySelector() {
 
       {isOpen && (
         <div
-          className={`absolute right-0 mt-2 w-48 rounded-lg border shadow-xl z-50 overflow-hidden ${
+          className={`absolute mt-2 w-48 rounded-lg border shadow-xl z-50 overflow-hidden ${
+            language === "ar" ? "start-0" : "end-0"
+          } ${
             isLight
               ? "border-slate-300 bg-white"
               : "border-slate-700 bg-slate-900"
@@ -73,7 +77,7 @@ export default function CurrencySelector() {
                 setCurrency(curr.code);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+              className={`w-full text-start px-4 py-2 text-sm transition-colors ${
                 currency === curr.code
                   ? isLight
                     ? "bg-emerald-50 text-emerald-600"

@@ -1,12 +1,14 @@
 // apps/cloud-api/src/routes/portal-trial-license.ts
 import type { FastifyInstance, FastifyRequest } from "fastify";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "../db/client.js";
+import { customers } from "../db/schema/customers.js";
 import { licenses } from "../db/schema/licenses.js";
 import { licenseEvents } from "../db/schema/licenseEvents.js";
 import { notificationService } from "../billing/NotificationService.js";
 import { generateLicenseKey } from "../lib/licenseKey.js";
+import { hasUsablePaidLicenseForCustomer } from "../lib/hasUsablePaidLicense.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 
 const TRIAL_DAYS = Number(process.env.TRIAL_DAYS || "3");
@@ -83,26 +85,15 @@ export async function registerPortalTrialLicenseRoutes(app: FastifyInstance) {
         };
       }
 
-      // 2) Hat Kunde bereits einen aktiven bezahlten Plan?
-      const existingPaid = await db
-        .select({ id: licenses.id })
-        .from(licenses)
-        .where(
-          and(
-            eq(licenses.customerId, customerId),
-            eq(licenses.status, "active"),
-            ne(licenses.plan, "trial"),
-          ),
-        )
-        .limit(1);
-
-      if (existingPaid.length > 0) {
+      // 2) Gültige Starter-/Pro-Lizenz? (gleiche Regel wie Portal-Checkout — nicht nur "status active")
+      const hasPaid = await hasUsablePaidLicenseForCustomer(String(customerId));
+      if (hasPaid) {
         reply.code(409);
         return {
           ok: false,
           reason: "active_plan_exists",
           message:
-            "Für dieses Konto existiert bereits ein aktiver, bezahlter Plan.",
+            "Für dieses Konto existiert bereits eine gültige Starter- oder Pro-Lizenz.",
         };
       }
 

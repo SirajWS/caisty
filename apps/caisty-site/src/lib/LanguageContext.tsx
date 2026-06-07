@@ -1,40 +1,52 @@
 // apps/caisty-site/src/lib/LanguageContext.tsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 import type { Language } from "./translations/types";
+import { isLanguage } from "./translations/types";
+
+const TN_HOST = "tn.caisty.com";
+
+function readInitialLanguage(): Language {
+  if (typeof window === "undefined") {
+    return "en";
+  }
+  const saved = localStorage.getItem("caisty.language");
+  const normalized = saved?.toLowerCase();
+  if (normalized && isLanguage(normalized)) {
+    return normalized;
+  }
+  // Tunesien-Subdomain: Standard Arabisch
+  if (window.location.hostname === TN_HOST) {
+    return "ar";
+  }
+  const browserLang = navigator.language.split("-")[0].toLowerCase();
+  if (isLanguage(browserLang)) {
+    return browserLang;
+  }
+  return "en";
+}
 
 const LanguageContext = createContext<{
   language: Language;
   setLanguage: (lang: Language) => void;
 }>({
-  language: "de",
+  language: "en",
   setLanguage: () => {},
 });
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    // Lade gespeicherte Sprache aus localStorage oder Browser-Sprache
-    const saved = localStorage.getItem("caisty.language") as Language | null;
-    if (saved && ["de", "en", "fr", "ar"].includes(saved)) {
-      return saved;
-    }
-    // Browser-Sprache erkennen
-    const browserLang = navigator.language.split("-")[0];
-    if (["de", "en", "fr", "ar"].includes(browserLang)) {
-      return browserLang as Language;
-    }
-    return "de"; // Default
-  });
+  const [language, setLanguageState] = useState<Language>(readInitialLanguage);
 
   const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-    localStorage.setItem("caisty.language", lang);
+    const next: Language = isLanguage(lang) ? lang : "en";
+    setLanguageState(next);
+    localStorage.setItem("caisty.language", next);
     // RTL für Arabisch setzen
-    if (lang === "ar") {
+    if (next === "ar") {
       document.documentElement.dir = "rtl";
       document.documentElement.lang = "ar";
     } else {
       document.documentElement.dir = "ltr";
-      document.documentElement.lang = lang;
+      document.documentElement.lang = next;
     }
   };
 

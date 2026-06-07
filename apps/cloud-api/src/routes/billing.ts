@@ -16,6 +16,7 @@ import { and, eq, ne } from "drizzle-orm";
 import { addDays, addMonths } from "date-fns";
 import { generateLicenseKey } from "../lib/licenseKey.js";
 import { getPlanPrice, type Currency } from "../config/pricing.js";
+import { hasUsablePaidLicenseForCustomer } from "../lib/hasUsablePaidLicense.js";
 
 interface PortalJwtPayload {
   customerId: string;
@@ -93,26 +94,35 @@ export async function registerBillingRoutes(app: FastifyInstance) {
       const period = body.planId.includes("yearly") ? "yearly" : "monthly";
       const currency = (body.currency ?? "EUR") as Currency;
 
-      // Check for existing active subscription
-      const [existingActive] = await db
-        .select()
-        .from(subscriptions)
-        .where(
-          and(
-            eq(subscriptions.customerId, payload.customerId),
-            eq(subscriptions.status as any, "active"),
-          ),
-        )
-        .limit(1);
-
-      if (existingActive) {
+      // Block only when there is a still-valid paid license (Starter/Pro).
+      // A stale "active" subscription row without a usable license must not block checkout.
+      const hasPaid = await hasUsablePaidLicenseForCustomer(
+        String(payload.customerId),
+      );
+      if (hasPaid) {
         reply.code(400);
         return {
           ok: false,
           error: "active_subscription_exists",
-          message: "Für dieses Konto existiert bereits ein aktiver Plan.",
+          message:
+            "Für dieses Konto existiert bereits eine gültige Starter- oder Pro-Lizenz.",
         };
       }
+
+      // No usable paid license: clear orphan "active" subscription rows (e.g. licenses
+      // removed in admin while subscriptions stayed active). Prevents duplicate active subs.
+      await db
+        .update(subscriptions as any)
+        .set({
+          status: "cancelled",
+          canceledAt: new Date(),
+        } as any)
+        .where(
+          and(
+            eq(subscriptions.customerId as any, payload.customerId),
+            eq(subscriptions.status as any, "active"),
+          ),
+        );
 
       // Cleanup pending subscriptions
       await db

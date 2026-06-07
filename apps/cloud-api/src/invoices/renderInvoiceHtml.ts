@@ -65,12 +65,12 @@ export function renderInvoiceHtml(
       align-items: flex-start;
       margin-bottom: 40px;
       padding-bottom: 20px;
-      border-bottom: 2px solid #22c55e;
+      border-bottom: 2px solid #f97316;
     }
     .logo {
       font-size: 28px;
       font-weight: 700;
-      color: #22c55e;
+      color: #f97316;
       letter-spacing: -0.5px;
     }
     .invoice-meta {
@@ -159,7 +159,7 @@ export function renderInvoiceHtml(
       text-align: right;
       margin-top: 20px;
       padding-top: 20px;
-      border-top: 2px solid #22c55e;
+      border-top: 2px solid #f97316;
     }
     .total-amount-label {
       font-size: 14px;
@@ -169,7 +169,7 @@ export function renderInvoiceHtml(
     .total-amount-value {
       font-size: 32px;
       font-weight: 700;
-      color: #22c55e;
+      color: #0b1220;
     }
     .footer {
       margin-top: 60px;

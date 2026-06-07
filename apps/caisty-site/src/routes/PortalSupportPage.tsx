@@ -5,12 +5,10 @@ import {
   type PortalSupportMessage,
 } from "../lib/portalApi";
 import { useTheme } from "../lib/theme";
-
-function formatDate(value: string | null | undefined) {
-  if (!value) return "";
-  const d = new Date(value);
-  return d.toLocaleString();
-}
+import { useLanguage } from "../lib/LanguageContext";
+import { getPortalTranslations } from "../lib/translations";
+import { portalLocaleTag } from "../lib/portalLocale";
+import { portalCardShell, portalPrimaryCta } from "../lib/portalUi";
 
 export default function PortalSupportPage() {
   const [subject, setSubject] = useState("");
@@ -22,15 +20,23 @@ export default function PortalSupportPage() {
   const [messages, setMessages] = useState<PortalSupportMessage[]>([]);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const { theme } = useTheme();
+  const { language } = useLanguage();
+  const t = getPortalTranslations(language);
+  const locale = portalLocaleTag(language);
   const isLight = theme === "light";
+
+  function formatDate(value: string | null | undefined) {
+    if (!value) return "";
+    const d = new Date(value);
+    return d.toLocaleString(locale);
+  }
 
   async function loadMessages() {
     try {
       setIsLoadingList(true);
       const items = await fetchPortalSupportMessages();
-      // neueste zuerst
       setMessages(items.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
     } finally {
       setIsLoadingList(false);
@@ -47,7 +53,7 @@ export default function PortalSupportPage() {
     setSuccess(null);
 
     if (!subject.trim() || !message.trim()) {
-      setError("Bitte Betreff und Nachricht ausfüllen.");
+      setError(t.support.validationError);
       return;
     }
 
@@ -57,15 +63,13 @@ export default function PortalSupportPage() {
         subject: subject.trim(),
         message: message.trim(),
       });
-      setSuccess(
-        "Deine Nachricht wurde gesendet. Wir melden uns so schnell wie möglich.",
-      );
+      setSuccess(t.support.successMessage);
       setSubject("");
       setMessage("");
       await loadMessages();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || "Fehler beim Senden der Nachricht.");
+      setError(err instanceof Error ? err.message : t.support.sendError);
     } finally {
       setIsSubmitting(false);
     }
@@ -74,15 +78,13 @@ export default function PortalSupportPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className={`text-2xl font-semibold tracking-tight ${isLight ? "text-slate-900" : "text-slate-50"}`}>Support & Kontakt</h1>
+        <h1 className={`text-3xl font-semibold tracking-tight ${isLight ? "text-[#0B1220]" : "text-white"}`}>{t.support.title}</h1>
         <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-300"}`}>
-          Schick uns eine Nachricht, wenn du Hilfe brauchst oder Fragen zu deinem
-          Konto hast.
+          {t.support.subtitle}
         </p>
       </header>
 
-      {/* Formular */}
-      <div className={`rounded-2xl border p-6 ${isLight ? "border-slate-200 bg-white shadow-sm" : "border-slate-800 bg-slate-900/60"}`}>
+      <div className={portalCardShell(isLight)}>
         {error && (
           <div className={`mb-4 rounded-xl border px-3 py-2 text-xs ${isLight ? "border-rose-300 bg-rose-50 text-rose-800" : "border-rose-500/60 bg-rose-500/10 text-rose-200"}`}>
             {error}
@@ -96,24 +98,24 @@ export default function PortalSupportPage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
-            <label className={`text-xs ${isLight ? "text-slate-700" : "text-slate-300"}`}>Betreff</label>
+            <label className={`text-xs ${isLight ? "text-slate-700" : "text-slate-300"}`}>{t.support.subjectLabel}</label>
             <input
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              placeholder="z. B. Frage zur Testlizenz oder Rechnung"
-              className={`rounded-lg border px-3 py-2 text-sm outline-none focus:border-emerald-500 ${isLight ? "border-slate-300 bg-white text-slate-900" : "border-slate-800 bg-slate-950/60 text-slate-100"}`}
+              placeholder={t.support.subjectPlaceholder}
+              className={`rounded-xl border px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 ${isLight ? "border-slate-300 bg-white text-slate-900" : "border-slate-800 bg-[#0f172a] text-slate-100"}`}
             />
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className={`text-xs ${isLight ? "text-slate-700" : "text-slate-300"}`}>Nachricht</label>
+            <label className={`text-xs ${isLight ? "text-slate-700" : "text-slate-300"}`}>{t.support.messageLabel}</label>
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={5}
-              placeholder="Beschreibe kurz dein Anliegen – je genauer, desto besser können wir helfen."
-              className={`rounded-lg border px-3 py-2 text-sm resize-vertical outline-none focus:border-emerald-500 ${isLight ? "border-slate-300 bg-white text-slate-900" : "border-slate-800 bg-slate-950/60 text-slate-100"}`}
+              placeholder={t.support.messagePlaceholder}
+              className={`rounded-xl border px-3 py-2 text-sm resize-y outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500/30 ${isLight ? "border-slate-300 bg-white text-slate-900" : "border-slate-800 bg-[#0f172a] text-slate-100"}`}
             />
           </div>
 
@@ -121,25 +123,24 @@ export default function PortalSupportPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+              className={`${portalPrimaryCta()} disabled:opacity-60`}
             >
-              {isSubmitting ? "Wird gesendet..." : "Nachricht senden"}
+              {isSubmitting ? t.support.submitting : t.support.send}
             </button>
           </div>
         </form>
       </div>
 
-      {/* Liste bisheriger Anfragen */}
-      <div className={`rounded-2xl border p-5 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/60"}`}>
-        <h2 className={`text-sm font-semibold mb-3 ${isLight ? "text-slate-900" : "text-slate-100"}`}>Deine Anfragen</h2>
+      <div className={portalCardShell(isLight)}>
+        <h2 className={`text-sm font-semibold mb-3 ${isLight ? "text-slate-900" : "text-slate-100"}`}>{t.support.requestsTitle}</h2>
 
         {isLoadingList ? (
           <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-            Lade deine bisherigen Anfragen …
+            {t.support.loadingList}
           </p>
         ) : messages.length === 0 ? (
           <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-            Du hast noch keine Support-Anfragen gestellt.
+            {t.support.emptyList}
           </p>
         ) : (
           <div className="flex flex-col gap-3">
@@ -161,7 +162,7 @@ export default function PortalSupportPage() {
                 </div>
 
                 <div className={`mt-2 text-[11px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                  Status:{" "}
+                  {t.support.statusLabel}{" "}
                   <span className="capitalize">
                     {m.status}
                   </span>
@@ -170,7 +171,7 @@ export default function PortalSupportPage() {
                 {m.replyText && (
                   <div className={`mt-2 rounded-lg border p-2.5 text-xs ${isLight ? "border-blue-200 bg-blue-50" : "border-blue-500/40 bg-blue-500/15"}`}>
                     <div className={`text-[11px] mb-1 ${isLight ? "text-blue-700" : "text-blue-300"}`}>
-                      Antwort vom Support{" "}
+                      {t.support.replyTitle}{" "}
                       {m.repliedAt ? `(${formatDate(m.repliedAt)})` : ""}
                     </div>
                     <div className={`whitespace-pre-wrap ${isLight ? "text-blue-900" : "text-blue-100"}`}>{m.replyText}</div>

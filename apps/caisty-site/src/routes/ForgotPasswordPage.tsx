@@ -4,8 +4,12 @@ import { Link } from "react-router-dom";
 import { requestPasswordReset } from "../lib/portalApi";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import { useLanguage } from "../lib/LanguageContext";
+import { translations } from "../lib/translations/index";
 
 export default function ForgotPasswordPage() {
+  const { language } = useLanguage();
+  const t = translations[language].auth.forgotPassword;
   const [email, setEmail] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -20,8 +24,7 @@ export default function ForgotPasswordPage() {
     try {
       const result = await requestPasswordReset(email);
       setSuccess(true);
-      
-      // Zeige Reset-Link an (wenn vorhanden - normalerweise nur in Development)
+
       if (result.resetLink) {
         setResetLink(result.resetLink);
         console.log("Reset-Link erhalten:", result.resetLink);
@@ -30,11 +33,7 @@ export default function ForgotPasswordPage() {
       }
     } catch (err) {
       console.error(err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Fehler beim Anfordern des Reset-Links. Bitte erneut versuchen."
-      );
+      setError(err instanceof Error ? err.message : translations[language].auth.forgotPassword.genericError);
     } finally {
       setSubmitting(false);
     }
@@ -44,17 +43,13 @@ export default function ForgotPasswordPage() {
     return (
       <div className="min-h-[calc(100vh-80px)] flex items-center justify-center py-8">
         <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900/70 px-6 py-6 shadow-xl shadow-black/40">
-          <h1 className="text-lg font-semibold text-slate-100 mb-1">
-            Reset-Link angefordert
-          </h1>
-          <p className="text-xs text-slate-400 mb-5">
-            Wenn ein Konto mit dieser E-Mail existiert, wurde ein Reset-Link gesendet.
-          </p>
+          <h1 className="text-lg font-semibold text-slate-100 mb-1">{t.successTitle}</h1>
+          <p className="text-xs text-slate-400 mb-5">{t.successBody}</p>
 
           {resetLink && (
             <div className="mb-5 p-3 rounded-lg bg-slate-800/50 border border-slate-700">
               <p className="text-xs text-slate-400 mb-2">
-                <strong className="text-slate-300">Development-Modus:</strong> Reset-Link:
+                <strong className="text-slate-300">{t.devModeLabel}</strong> {t.devModeIntro}
               </p>
               <a
                 href={resetLink}
@@ -68,20 +63,13 @@ export default function ForgotPasswordPage() {
           )}
 
           <div className="space-y-3">
-            <p className="text-xs text-slate-300">
-              Prüfe dein E-Mail-Postfach und klicke auf den Link, um dein Passwort zurückzusetzen.
-            </p>
-            <p className="text-xs text-slate-400">
-              Der Link ist 1 Stunde gültig.
-            </p>
+            <p className="text-xs text-slate-300">{t.successCheckEmail}</p>
+            <p className="text-xs text-slate-400">{t.successValidFor}</p>
           </div>
 
           <div className="mt-6 flex justify-center">
-            <Link
-              to="/login"
-              className="text-sm text-emerald-400 hover:text-emerald-300"
-            >
-              ← Zurück zum Login
+            <Link to="/login" className="text-sm text-emerald-400 hover:text-emerald-300">
+              {t.backToLogin}
             </Link>
           </div>
         </div>
@@ -92,17 +80,13 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-[calc(100vh-80px)] flex items-center justify-center py-8">
       <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900/70 px-6 py-6 shadow-xl shadow-black/40">
-        <h1 className="text-lg font-semibold text-slate-100 mb-1">
-          Passwort zurücksetzen
-        </h1>
-        <p className="text-xs text-slate-400 mb-5">
-          Gib deine E-Mail-Adresse ein. Wir senden dir einen Link zum Zurücksetzen deines Passworts.
-        </p>
+        <h1 className="text-lg font-semibold text-slate-100 mb-1">{t.title}</h1>
+        <p className="text-xs text-slate-400 mb-5">{t.subtitle}</p>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-1">
             <label className="text-xs text-slate-300" htmlFor="email">
-              E-Mail
+              {t.emailLabel}
             </label>
             <Input
               id="email"
@@ -111,7 +95,7 @@ export default function ForgotPasswordPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="deine@email.de"
+              placeholder={t.emailPlaceholder}
             />
           </div>
 
@@ -122,20 +106,16 @@ export default function ForgotPasswordPage() {
           )}
 
           <Button type="submit" disabled={submitting} fullWidth>
-            {submitting ? "Wird gesendet…" : "Reset-Link anfordern"}
+            {submitting ? t.submitting : t.submit}
           </Button>
         </form>
 
         <div className="mt-4 flex justify-center">
-          <Link
-            to="/login"
-            className="text-sm text-emerald-400 hover:text-emerald-300"
-          >
-            ← Zurück zum Login
+          <Link to="/login" className="text-sm text-emerald-400 hover:text-emerald-300">
+            {t.backToLogin}
           </Link>
         </div>
       </div>
     </div>
   );
 }
-

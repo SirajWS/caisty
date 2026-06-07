@@ -68,7 +68,9 @@ export default function LanguageSelector() {
 
       {isOpen && (
         <div
-          className={`absolute right-0 mt-2 w-48 rounded-lg border shadow-xl z-50 overflow-hidden ${
+          className={`absolute mt-2 w-48 rounded-lg border shadow-xl z-50 overflow-hidden ${
+            language === "ar" ? "start-0" : "end-0"
+          } ${
             isLight
               ? "border-slate-300 bg-white"
               : "border-slate-700 bg-slate-900"
@@ -81,7 +83,7 @@ export default function LanguageSelector() {
                 setLanguage(lang.code);
                 setIsOpen(false);
               }}
-              className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+              className={`w-full text-start px-4 py-2.5 text-sm transition-colors ${
                 language === lang.code
                   ? isLight
                     ? "bg-emerald-50 text-emerald-600"

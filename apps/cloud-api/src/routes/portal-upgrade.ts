@@ -13,6 +13,7 @@ import { notificationService } from "../billing/NotificationService.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 import { generateLicenseKey } from "../lib/licenseKey.js";
 import { getPlanPrice, type Currency } from "../config/pricing.js";
+import { hasUsablePaidLicenseForCustomer } from "../lib/hasUsablePaidLicense.js";
 
 // Node-Fetch Alias (damit TypeScript nicht meckert)
 const nodeFetch: any = (globalThis as any).fetch;
@@ -184,32 +185,45 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
         };
       }
 
-      // --- Check: Gibt es schon eine aktive Subscription? ---
+      // --- Check: gültige Starter-/Pro-Lizenz? (Subscription allein reicht nicht) ---
+      let hasPaid = false;
       try {
-        const [existingActive] = await db
-          .select()
-          .from(subscriptions)
-          .where(
-            and(
-              eq(subscriptions.customerId, customerId),
-              eq(subscriptions.status as any, "active"),
-            ),
-          )
-          .limit(1);
-
-        if (existingActive) {
-          reply.code(400);
-          return {
-            ok: false,
-            reason: "active_plan_exists",
-            message:
-              "Für dieses Konto existiert bereits ein aktiver Starter/Pro-Plan.",
-          };
-        }
+        hasPaid = await hasUsablePaidLicenseForCustomer(String(customerId));
       } catch (err) {
         app.log.error(
           { err, customerId },
-          "Failed to check existing active subscriptions",
+          "Failed to check existing usable paid licenses",
+        );
+      }
+
+      if (hasPaid) {
+        reply.code(400);
+        return {
+          ok: false,
+          reason: "active_plan_exists",
+          message:
+            "Für dieses Konto existiert bereits eine gültige Starter- oder Pro-Lizenz.",
+        };
+      }
+
+      // Keine nutzbare Lizenz: verwaiste "active"-Subscriptions bereinigen
+      try {
+        await db
+          .update(subscriptions as any)
+          .set({
+            status: "cancelled",
+            canceledAt: new Date(),
+          } as any)
+          .where(
+            and(
+              eq(subscriptions.customerId as any, customerId as any),
+              eq(subscriptions.status as any, "active"),
+            ),
+          );
+      } catch (err) {
+        app.log.error(
+          { err, customerId },
+          "Failed to cancel orphan active subscriptions before upgrade",
         );
       }
 

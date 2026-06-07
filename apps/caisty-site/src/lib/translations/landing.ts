@@ -1,17 +1,23 @@
-// Landing Page Übersetzungen
+// Landing Page Übersetzungen — Reihenfolge Sprachen: en, fr, de, ar
 import type { Language } from "./types";
 
-export const landing: Record<Language, {
+export type LandingCopy = {
   hero: {
     badge: string;
     title: string;
-    titleHighlight: string;
     description: string;
-    ctaPricing: string;
-    ctaStart: string;
-    trialNote: string;
-    trialDays: string;
-    trialNote2: string;
+    ctaPrimary: string;
+    ctaSecondary: string;
+    trialTrust: string;
+  };
+  preview: {
+    title: string;
+    caption: string;
+    items: string[];
+    liveBadge: string;
+    demoBadge: string;
+    devicesOnline: string;
+    quote: string;
   };
   why: {
     title: string;
@@ -23,39 +29,6 @@ export const landing: Record<Language, {
     feature3Title: string;
     feature3Text: string;
   };
-  plans: {
-    title: string;
-    description: string;
-    trial: {
-      name: string;
-      badge: string;
-      note: string;
-      detail1: string;
-      detail2: string;
-      detail3: string;
-    };
-    starter: {
-      name: string;
-      badge: string;
-      price: string;
-      subPrice: string;
-      note: string;
-      detail1: string;
-      detail2: string;
-      detail3: string;
-    };
-    pro: {
-      name: string;
-      badge: string;
-      price: string;
-      subPrice: string;
-      note: string;
-      detail1: string;
-      detail2: string;
-      detail3: string;
-    };
-    note: string;
-  };
   forWhom: {
     title: string;
     target1Title: string;
@@ -65,242 +38,207 @@ export const landing: Record<Language, {
     target3Title: string;
     target3Text: string;
   };
-  install: {
+  plans: {
     title: string;
-    description: string;
-    step1: string;
-    step2: string;
-    step3: string;
+    intro: string;
+    trial: {
+      name: string;
+      badge: string;
+      priceLine: string;
+      subline: string;
+      features: string[];
+    };
+    starter: {
+      name: string;
+      badge: string;
+      recommended: string;
+      priceLine: string;
+      subline: string;
+      features: string[];
+    };
+    pro: {
+      name: string;
+      badge: string;
+      priceLine: string;
+      subline: string;
+      features: string[];
+    };
     note: string;
-    noteHighlight: string;
-    noteEnd: string;
-  };
-  fiscal: {
-    title: string;
-    paragraph1: string;
-    modeName: string;
-    comingSoon: string;
-    paragraph2: string;
-    countries: string[];
-    paragraph3: string;
-    strictRequirement: string;
-    paragraph4: string;
-    paragraph5: string;
   };
   payment: {
     title: string;
     description: string;
-    paypal: {
-      title: string;
-      description: string;
-    };
-    stripe: {
-      title: string;
-      description: string;
-      cards: string;
-    };
-    secure: string;
+    paypal: { title: string; description: string };
+    stripe: { title: string; description: string };
+    footnote: string;
   };
-}> = {
-  de: {
-    hero: {
-      badge: "POS & Cloud-Konto für moderne Gastro & Shops",
-      title: "Eine Kasse, ein Portal –",
-      titleHighlight: "alles im Blick.",
-      description:
-        "Caisty verbindet schnelles Kassieren am POS mit einem klaren Cloud-Portal: Lizenzen verwalten, Geräte im Blick behalten und Rechnungen zentral abrufen.",
-      ctaPricing: "Preise ansehen",
-      ctaStart: "Kostenlos starten",
-      trialNote: "Starte mit einer",
-      trialDays: "Tage-Testlizenz",
-      trialNote2: "ohne Zahlungsdaten. Danach kannst du jederzeit auf Starter oder Pro wechseln. Die Installation von Caisty POS erfolgt später direkt aus dem Kundenportal.",
-    },
-    why: {
-      title: "Warum Caisty?",
-      description:
-        "Caisty ist für Betreiber, die keine Lust auf komplizierte Backoffice-Systeme haben, sondern schnell starten wollen – mit klarer Struktur für Lizenzen, Geräte und Abrechnung.",
-      feature1Title: "Schnell startklar",
-      feature1Text: "Installer laden, Lizenz verbinden, loskassieren – ohne wochenlange Einrichtung.",
-      feature2Title: "Volle Übersicht",
-      feature2Text: "Im Portal siehst du jederzeit, welche Lizenzen aktiv sind und welche Geräte verbunden sind.",
-      feature3Title: "Fair & transparent",
-      feature3Text: "Klare Pläne ohne versteckte Gebühren. Ideal, um klein zu starten und später zu wachsen.",
-    },
-    plans: {
-      title: "Pläne & Lizenzen",
-      description:
-        "Teste Caisty zuerst kostenlos und entscheide dann, ob du mit Starter oder Pro weitermachst. Du kannst monatlich zahlen oder mit einem Jahresplan sparen.",
-      trial: {
-        name: "Trial",
-        badge: "Kostenlos testen",
-        note: "Tage, 1 Gerät",
-        detail1: "Voller Funktionsumfang wie Starter",
-        detail2: "Keine Zahlungsdaten nötig",
-        detail3: "Ideal zum Ausprobieren im Live-Betrieb",
-      },
-      starter: {
-        name: "Starter",
-        badge: "Für eine Kasse",
-        price: "€ / Monat",
-        subPrice: "oder € / Jahr",
-        note: "Gerät inklusive",
-        detail1: "Perfekt für einen Standort",
-        detail2: "Basis-Reporting & Portalzugang",
-        detail3: "Upgrade auf Pro jederzeit möglich",
-      },
-      pro: {
-        name: "Pro",
-        badge: "Mehrere Geräte",
-        price: "€ / Monat",
-        subPrice: "oder € / Jahr",
-        note: "Geräte inklusive",
-        detail1: "Ideal für 2–3 Kassen oder Filialen",
-        detail2: "Alle Starter-Funktionen",
-        detail3: "Mehrere Geräte unter einer Lizenz",
-      },
-      note: "Alle Preise zzgl. MwSt. – die genaue Abrechnung (monatlich oder jährlich) wählst du später direkt im Kundenportal. Dort kannst du auch jederzeit zwischen Starter und Pro wechseln.",
-    },
-    forWhom: {
-      title: "Für wen ist Caisty?",
-      target1Title: "Take-Away & Street-Food",
-      target1Text: "Schnelle Bestellungen, wenige Knöpfe, fokussiert auf Tempo.",
-      target2Title: "Bars & Cafés",
-      target2Text: "Einfache Artikelstrukturen, flexible Preisupdates und Tagesabrechnungen.",
-      target3Title: "Kleine Shops",
-      target3Text: "Kasse, Belege und Basis-Reporting in einem System – ohne Overkill.",
-    },
-    install: {
-      title: "In wenigen Minuten vom Download zur einsatzbereiten Kasse.",
-      description:
-        "Die eigentliche Installation von Caisty POS läuft komplett über dein Kundenportal. Dort bekommst du den Installer, deinen Lizenzschlüssel und eine Schritt-für-Schritt-Anleitung.",
-      step1: "Portalzugang anlegen und Lizenz erhalten.",
-      step2: "Installer für dein Betriebssystem aus dem Portal herunterladen.",
-      step3: "Auf dem Kassen-PC installieren und Lizenzschlüssel eingeben – fertig.",
-      note: "Die detaillierte Installationsseite siehst du nach dem Login unter",
-      noteHighlight: '"Caisty POS installieren"',
-      noteEnd: "im Kundenportal.",
-    },
-    fiscal: {
-      title: "Fiskal-Info & internationale Nutzung",
-      paragraph1: "Caisty bietet aktuell einen",
-      modeName: "\"Kein Fiskalmodul / generische Belege\"",
-      comingSoon: "\"in Kürze verfügbar\"",
-      paragraph2: "Modus und zeigt mehrere Fiskalpakete als (TSE, RKSV, NF525, SAF-T, TicketBAI, myDATA …). Du kannst die Kasse bereits in vielen nicht-fiskalisierten Ländern nutzen, zum Beispiel:",
-      countries: [
-        "Niederlande (EUR)",
-        "Irland (EUR)",
-        "Schweiz (CHF)",
-        "Vereinigtes Königreich (GBP)",
-        "Tschechische Republik (CZK)",
-        "Tunesien (TND)",
-        "Marokko (MAD)",
-        "Algerien (DZD)",
-        "Libyen (LYD)",
-      ],
-      paragraph3: "In Ländern mit einer",
-      strictRequirement: "strikten Fiskalisierungspflicht",
-      paragraph4: "– zum Beispiel Deutschland, Österreich, Italien, Frankreich, Spanien, Portugal und andere – ist oft ein zertifiziertes Fiskalgerät oder zertifizierte Software vorgeschrieben. Solange das passende Caisty-Fiskalpaket nur als angezeigt wird, nutzt du den generischen Modus auf eigene Verantwortung. Kläre immer mit deinem lokalen Steuerberater oder der Behörde, ob dieser Modus für dein Geschäft erlaubt ist.",
-      paragraph5: "Caisty hilft dir technisch (Belege, Journale, Exporte), ersetzt aber keine Rechtsberatung oder offizielle Registrierung bei Steuerbehörden.",
-    },
-    payment: {
-      title: "Sichere Zahlungsmethoden",
-      description: "Wir unterstützen verschiedene Zahlungsmethoden für deine Abrechnung. Du kannst zwischen PayPal und Kreditkarte (über Stripe) wählen.",
-      paypal: {
-        title: "PayPal",
-        description: "Zahle bequem mit deinem PayPal-Konto. Schnell, sicher und weltweit akzeptiert.",
-      },
-      stripe: {
-        title: "Kreditkarte (Stripe)",
-        description: "Zahle mit Visa oder Mastercard direkt per Kreditkarte. Alle Transaktionen werden sicher über Stripe verarbeitet.",
-        cards: "Visa & Mastercard",
-      },
-      secure: "Alle Zahlungen werden verschlüsselt und sicher verarbeitet. Wir speichern keine Kreditkartendaten auf unseren Servern.",
-    },
-  },
+  install: {
+    title: string;
+    description: string;
+    steps: string[];
+    noteBefore: string;
+    noteHighlight: string;
+    noteAfter: string;
+    mockTitle: string;
+    previewBadge: string;
+    platformWin: string;
+    platformLinux: string;
+    platformMac: string;
+    downloadHint: string;
+    smallDownload: string;
+    smallInstall: string;
+    smallLicense: string;
+  };
+  fiscal: {
+    title: string;
+    lead: string;
+    countries: string[];
+    strict: string;
+    disclaimer: string;
+  };
+  demo: {
+    sectionTitle: string;
+    videoAria: string;
+    closeLabel: string;
+    clickOutside: string;
+    shotDashboard: string;
+    shotPos: string;
+    shotPortal: string;
+  };
+};
+
+export const landing: Record<Language, LandingCopy> = {
   en: {
     hero: {
-      badge: "POS & Cloud Account for Modern Restaurants & Shops",
-      title: "One POS, one portal –",
-      titleHighlight: "everything in view.",
+      badge: "POS & cloud portal for modern businesses",
+      title: "Modern POS software for restaurants, cafés and small shops.",
       description:
-        "Caisty connects fast checkout at the POS with a clear cloud portal: manage licenses, keep an eye on devices, and access invoices centrally.",
-      ctaPricing: "View pricing",
-      ctaStart: "Start free",
-      trialNote: "Start with a",
-      trialDays: "day trial license",
-      trialNote2: "without payment details. You can switch to Starter or Pro at any time. Caisty POS installation happens later directly from the customer portal.",
+        "Caisty connects your checkout, devices, licenses and invoices in one simple cloud portal — built for fast daily operations.",
+      ctaPrimary: "Start free",
+      ctaSecondary: "View pricing",
+      trialTrust: "Start with a free 3-day trial. No payment details required.",
+    },
+    preview: {
+      title: "Caisty Cloud Portal",
+      caption: "Example view",
+      items: [
+        "Active license",
+        "Connected devices",
+        "Invoices",
+        "Customer portal",
+        "POS installer",
+      ],
+      liveBadge: "Live portal",
+      demoBadge: "Demo",
+      devicesOnline: "2 online · 1 offline",
+      quote: "“We wanted a till that just works — and a portal we actually understand.” — example bistro",
     },
     why: {
-      title: "Why Caisty?",
+      title: "Why choose Caisty?",
       description:
-        "Caisty is for operators who don't want complicated back-office systems but want to get started quickly – with a clear structure for licenses, devices, and billing.",
-      feature1Title: "Quick to start",
-      feature1Text: "Download installer, connect license, start selling – without weeks of setup.",
-      feature2Title: "Full overview",
-      feature2Text: "In the portal, you can always see which licenses are active and which devices are connected.",
-      feature3Title: "Fair & transparent",
-      feature3Text: "Clear plans without hidden fees. Ideal for starting small and growing later.",
+        "Caisty is built for business owners who want a fast checkout system without complicated back-office software.",
+      feature1Title: "Fast to start",
+      feature1Text:
+        "Create your account, activate your license and connect your device without a long setup process.",
+      feature2Title: "Clear overview",
+      feature2Text: "See active licenses, connected devices and invoices from one simple portal.",
+      feature3Title: "Simple pricing",
+      feature3Text: "Start small and upgrade later when your business grows.",
+    },
+    forWhom: {
+      title: "Built for daily business",
+      target1Title: "Take-away & street food",
+      target1Text: "Fast orders, simple workflows and a POS experience focused on speed.",
+      target2Title: "Bars & cafés",
+      target2Text: "Flexible products, clear daily reports and easy device management.",
+      target3Title: "Small shops",
+      target3Text: "Checkout, receipts and basic reporting in one simple system.",
     },
     plans: {
-      title: "Plans & Licenses",
-      description:
-        "Try Caisty for free first, then decide whether to continue with Starter or Pro. You can pay monthly or save with an annual plan.",
+      title: "Plans that fit your business",
+      intro: "Start with a free trial and upgrade when you are ready.",
       trial: {
         name: "Trial",
         badge: "Try for free",
-        note: "days, 1 device",
-        detail1: "Full feature set like Starter",
-        detail2: "No payment details required",
-        detail3: "Ideal for testing in live operation",
+        priceLine: "0 €",
+        subline: "3 days, 1 device",
+        features: [
+          "Full Starter features",
+          "No payment details required",
+          "Ideal for testing Caisty in real use",
+        ],
       },
       starter: {
         name: "Starter",
-        badge: "For one POS",
-        price: "€ / month",
-        subPrice: "or € / year",
-        note: "device included",
-        detail1: "Perfect for one location",
-        detail2: "Basic reporting & portal access",
-        detail3: "Upgrade to Pro anytime",
+        badge: "1 device",
+        recommended: "Recommended",
+        priceLine: "9.99 € / month",
+        subline: "1 device included",
+        features: [
+          "Perfect for one location",
+          "Cloud portal access",
+          "Basic reporting",
+          "License management",
+          "Upgrade to Pro anytime",
+        ],
       },
       pro: {
         name: "Pro",
-        badge: "Multiple devices",
-        price: "€ / month",
-        subPrice: "or € / year",
-        note: "devices included",
-        detail1: "Ideal for 2–3 POS or branches",
-        detail2: "All Starter features",
-        detail3: "Multiple devices under one license",
+        badge: "Multi-device",
+        priceLine: "19.99 € / month",
+        subline: "3 devices included",
+        features: [
+          "All Starter features",
+          "Multiple devices under one license",
+          "Better for several checkouts or small branches",
+          "Priority-ready structure for future features",
+        ],
       },
-      note: "All prices plus VAT – you choose the exact billing (monthly or annual) later directly in the customer portal. You can also switch between Starter and Pro at any time.",
+      note:
+        "All prices are shown excluding VAT where applicable. Monthly and yearly billing can be added in the customer portal.",
     },
-    forWhom: {
-      title: "Who is Caisty for?",
-      target1Title: "Take-Away & Street Food",
-      target1Text: "Fast orders, few buttons, focused on speed.",
-      target2Title: "Bars & Cafés",
-      target2Text: "Simple item structures, flexible price updates, and daily reports.",
-      target3Title: "Small Shops",
-      target3Text: "POS, receipts, and basic reporting in one system – without overkill.",
+    payment: {
+      title: "Secure payment methods",
+      description: "Caisty supports simple and secure payment options for your subscription.",
+      paypal: {
+        title: "PayPal",
+        description: "Pay easily with your PayPal account.",
+      },
+      stripe: {
+        title: "Credit card via Stripe",
+        description: "Pay by Visa or Mastercard. Transactions are processed securely through Stripe.",
+      },
+      footnote: "SEPA direct debit and invoice payment can be added later.",
     },
     install: {
-      title: "From download to ready-to-use POS in just a few minutes.",
+      title: "From download to checkout in minutes",
       description:
-        "The actual installation of Caisty POS runs entirely through your customer portal. There you get the installer, your license key, and a step-by-step guide.",
-      step1: "Create portal access and receive license.",
-      step2: "Download installer for your operating system from the portal.",
-      step3: "Install on the POS PC and enter license key – done.",
-      note: "You can see the detailed installation page after login under",
-      noteHighlight: '"Install Caisty POS"',
-      noteEnd: "in the customer portal.",
+        "The Caisty POS installer will be available inside the customer portal. Customers can download the installer, connect their license key and start using the POS system.",
+      steps: [
+        "Create account and receive license",
+        "Download installer from customer portal",
+        "Install Caisty POS on your checkout device",
+        "Connect your license key",
+        "Start selling",
+      ],
+      noteBefore: "The detailed install page appears after sign-in under",
+      noteHighlight: "Install Caisty POS",
+      noteAfter: "in the customer portal.",
+      mockTitle: "Customer portal · Install",
+      previewBadge: "Preview",
+      platformWin: "Windows",
+      platformLinux: "Linux soon",
+      platformMac: "macOS soon",
+      downloadHint:
+        "Download details appear in the portal after login — not on this public marketing page.",
+      smallDownload: "Download",
+      smallInstall: "Install",
+      smallLicense: "Connect license",
     },
     fiscal: {
-      title: "Fiscal info & international use",
-      paragraph1: "Caisty currently offers a",
-      modeName: "\"No fiscal engine / generic receipts\"",
-      comingSoon: "\"coming soon\"",
-      paragraph2: "mode and shows several fiscal packs as (TSE, RKSV, NF525, SAF-T, TicketBAI, myDATA …). You can already use the POS in many non-fiscal countries, for example:",
+      title: "Fiscal information and international use",
+      lead:
+        "Caisty currently provides a generic POS mode without certified fiscalization. This mode can be used only where local law allows it. Examples of supported generic mode (non-exhaustive):",
       countries: [
         "Netherlands (EUR)",
         "Ireland (EUR)",
@@ -312,110 +250,155 @@ export const landing: Record<Language, {
         "Algeria (DZD)",
         "Libya (LYD)",
       ],
-      paragraph3: "In countries with a",
-      strictRequirement: "strict fiscalization requirement",
-      paragraph4: "– for example Germany, Austria, Italy, France, Spain, Portugal and others – a certified fiscal device or certified software is often mandatory. As long as the matching Caisty fiscal pack is only shown as, you are using the generic mode at your own responsibility. Always confirm with your local tax advisor or authority whether this mode is allowed for your business.",
-      paragraph5: "Caisty helps you technically (receipts, journals, exports), but it does not replace legal advice or official registration with tax authorities.",
+      strict:
+        "In countries with strict fiscal requirements, such as Germany, Austria, Italy, France, Spain or Portugal, certified fiscal hardware or certified software may be required. Caisty must only be used in these markets once the required fiscal module is available and legally approved. Always confirm local requirements with your tax advisor or local authority.",
+      disclaimer:
+        "Caisty helps with receipts, journals and exports, but does not replace legal or tax advice.",
     },
-    payment: {
-      title: "Secure Payment Methods",
-      description: "We support various payment methods for your billing. You can choose between PayPal and credit card (via Stripe).",
-      paypal: {
-        title: "PayPal",
-        description: "Pay conveniently with your PayPal account. Fast, secure, and accepted worldwide.",
-      },
-      stripe: {
-        title: "Credit Card (Stripe)",
-        description: "Pay with Visa or Mastercard directly via credit card. All transactions are securely processed through Stripe.",
-        cards: "Visa & Mastercard",
-      },
-      secure: "All payments are encrypted and securely processed. We do not store credit card data on our servers.",
+    demo: {
+      sectionTitle: "Product preview",
+      videoAria: "Play product video",
+      closeLabel: "Close",
+      clickOutside: "Click outside the image to close",
+      shotDashboard: "Dashboard",
+      shotPos: "POS",
+      shotPortal: "Customer portal",
     },
   },
   fr: {
     hero: {
-      badge: "Compte POS & Cloud pour Restaurants & Boutiques Modernes",
-      title: "Une caisse, un portail –",
-      titleHighlight: "tout en vue.",
+      badge: "POS & portail cloud pour les entreprises modernes",
+      title: "Logiciel de caisse moderne pour restaurants, cafés et petits commerces.",
       description:
-        "Caisty connecte la caisse rapide au POS avec un portail cloud clair : gérez les licences, gardez un œil sur les appareils et accédez aux factures de manière centralisée.",
-      ctaPricing: "Voir les prix",
-      ctaStart: "Commencer gratuitement",
-      trialNote: "Commencez avec une",
-      trialDays: "licence d'essai de jours",
-      trialNote2: "sans données de paiement. Vous pouvez passer à Starter ou Pro à tout moment. L'installation de Caisty POS se fait plus tard directement depuis le portail client.",
+        "Caisty relie votre encaissement, vos appareils, vos licences et vos factures dans un portail cloud simple — pensé pour les opérations quotidiennes rapides.",
+      ctaPrimary: "Commencer gratuitement",
+      ctaSecondary: "Voir les tarifs",
+      trialTrust: "Commencez avec un essai gratuit de 3 jours. Aucun moyen de paiement requis.",
+    },
+    preview: {
+      title: "Portail cloud Caisty",
+      caption: "Vue d’exemple",
+      items: [
+        "Licence active",
+        "Appareils connectés",
+        "Factures",
+        "Portail client",
+        "Installateur POS",
+      ],
+      liveBadge: "Portail en direct",
+      demoBadge: "Démo",
+      devicesOnline: "2 en ligne · 1 hors ligne",
+      quote:
+        "« Nous voulions une caisse qui fonctionne — et un portail qu’on comprend vraiment. » — bistrot fictif",
     },
     why: {
-      title: "Pourquoi Caisty?",
+      title: "Pourquoi choisir Caisty ?",
       description:
-        "Caisty est pour les opérateurs qui ne veulent pas de systèmes de back-office compliqués mais qui veulent démarrer rapidement – avec une structure claire pour les licences, les appareils et la facturation.",
+        "Caisty s’adresse aux commerçants qui veulent un encaissement rapide sans logiciel de back-office compliqué.",
       feature1Title: "Démarrage rapide",
-      feature1Text: "Téléchargez l'installateur, connectez la licence, commencez à vendre – sans semaines de configuration.",
-      feature2Title: "Vue d'ensemble complète",
-      feature2Text: "Dans le portail, vous pouvez toujours voir quelles licences sont actives et quels appareils sont connectés.",
-      feature3Title: "Équitable et transparent",
-      feature3Text: "Plans clairs sans frais cachés. Idéal pour commencer petit et grandir plus tard.",
+      feature1Text:
+        "Créez votre compte, activez votre licence et connectez votre appareil sans longue phase de configuration.",
+      feature2Title: "Vue claire",
+      feature2Text:
+        "Consultez licences actives, appareils connectés et factures depuis un seul portail simple.",
+      feature3Title: "Tarification simple",
+      feature3Text: "Commencez petit et passez à l’offre supérieure quand votre activité grandit.",
+    },
+    forWhom: {
+      title: "Pensé pour le quotidien",
+      target1Title: "À emporter & street food",
+      target1Text: "Commandes rapides, parcours simples et expérience POS axée sur la vitesse.",
+      target2Title: "Bars & cafés",
+      target2Text: "Produits flexibles, rapports du jour clairs et gestion d’appareils facile.",
+      target3Title: "Petits commerces",
+      target3Text: "Encaissement, tickets et reporting de base dans un système simple.",
     },
     plans: {
-      title: "Plans & Licences",
-      description:
-        "Essayez Caisty gratuitement d'abord, puis décidez si vous voulez continuer avec Starter ou Pro. Vous pouvez payer mensuellement ou économiser avec un plan annuel.",
+      title: "Des offres adaptées à votre activité",
+      intro: "Commencez par un essai gratuit et passez à une offre payante quand vous êtes prêt.",
       trial: {
         name: "Essai",
-        badge: "Essayer gratuitement",
-        note: "jours, 1 appareil",
-        detail1: "Ensemble de fonctionnalités complet comme Starter",
-        detail2: "Aucune donnée de paiement requise",
-        detail3: "Idéal pour tester en exploitation",
+        badge: "Gratuit",
+        priceLine: "0 €",
+        subline: "3 jours, 1 appareil",
+        features: [
+          "Fonctionnalités Starter complètes",
+          "Aucun moyen de paiement requis",
+          "Idéal pour tester Caisty en conditions réelles",
+        ],
       },
       starter: {
         name: "Starter",
-        badge: "Pour une caisse",
-        price: "€ / mois",
-        subPrice: "ou € / an",
-        note: "appareil inclus",
-        detail1: "Parfait pour un emplacement",
-        detail2: "Rapports de base et accès au portail",
-        detail3: "Passer à Pro à tout moment",
+        badge: "1 appareil",
+        recommended: "Recommandé",
+        priceLine: "9,99 € / mois",
+        subline: "1 appareil inclus",
+        features: [
+          "Parfait pour un seul lieu",
+          "Accès au portail cloud",
+          "Reporting de base",
+          "Gestion des licences",
+          "Passage à Pro à tout moment",
+        ],
       },
       pro: {
         name: "Pro",
-        badge: "Plusieurs appareils",
-        price: "€ / mois",
-        subPrice: "ou € / an",
-        note: "appareils inclus",
-        detail1: "Idéal pour 2–3 caisses ou succursales",
-        detail2: "Toutes les fonctionnalités Starter",
-        detail3: "Plusieurs appareils sous une licence",
+        badge: "Multi-appareils",
+        priceLine: "19,99 € / mois",
+        subline: "3 appareils inclus",
+        features: [
+          "Toutes les fonctionnalités Starter",
+          "Plusieurs appareils sous une même licence",
+          "Adapté à plusieurs caisses ou petites succursales",
+          "Structure prête pour des fonctionnalités futures prioritaires",
+        ],
       },
-      note: "Tous les prix TVA comprise – vous choisissez la facturation exacte (mensuelle ou annuelle) plus tard directement dans le portail client. Vous pouvez également passer entre Starter et Pro à tout moment.",
+      note:
+        "Les prix s’entendent hors TVA le cas échéant. La facturation mensuelle ou annuelle pourra être gérée dans le portail client.",
     },
-    forWhom: {
-      title: "Pour qui est Caisty?",
-      target1Title: "Take-Away & Street Food",
-      target1Text: "Commandes rapides, quelques boutons, axé sur la vitesse.",
-      target2Title: "Bars & Cafés",
-      target2Text: "Structures d'articles simples, mises à jour de prix flexibles et rapports quotidiens.",
-      target3Title: "Petites Boutiques",
-      target3Text: "POS, reçus et rapports de base dans un système – sans excès.",
+    payment: {
+      title: "Moyens de paiement sécurisés",
+      description: "Caisty propose des options de paiement simples et sécurisées pour votre abonnement.",
+      paypal: {
+        title: "PayPal",
+        description: "Payez facilement avec votre compte PayPal.",
+      },
+      stripe: {
+        title: "Carte bancaire via Stripe",
+        description:
+          "Payez par Visa ou Mastercard. Les transactions sont traitées en toute sécurité via Stripe.",
+      },
+      footnote: "Le prélèvement SEPA et le paiement sur facture pourront être ajoutés ultérieurement.",
     },
     install: {
-      title: "Du téléchargement à la caisse prête à l'emploi en quelques minutes.",
+      title: "Du téléchargement à la vente en quelques minutes",
       description:
-        "L'installation réelle de Caisty POS se fait entièrement via votre portail client. Là, vous obtenez l'installateur, votre clé de licence et un guide étape par étape.",
-      step1: "Créer l'accès au portail et recevoir la licence.",
-      step2: "Télécharger l'installateur pour votre système d'exploitation depuis le portail.",
-      step3: "Installer sur le PC de caisse et entrer la clé de licence – terminé.",
-      note: "Vous pouvez voir la page d'installation détaillée après connexion sous",
-      noteHighlight: '"Installer Caisty POS"',
-      noteEnd: "dans le portail client.",
+        "L’installateur Caisty POS sera disponible dans le portail client. Téléchargez-le, reliez votre clé de licence et utilisez le POS.",
+      steps: [
+        "Créer un compte et recevoir la licence",
+        "Télécharger l’installateur depuis le portail client",
+        "Installer Caisty POS sur votre caisse",
+        "Connecter votre clé de licence",
+        "Commencer à vendre",
+      ],
+      noteBefore: "La page d’installation détaillée est visible après connexion sous",
+      noteHighlight: "Installer Caisty POS",
+      noteAfter: "dans le portail client.",
+      mockTitle: "Portail client · Installation",
+      previewBadge: "Aperçu",
+      platformWin: "Windows",
+      platformLinux: "Linux bientôt",
+      platformMac: "macOS bientôt",
+      downloadHint:
+        "Les détails de téléchargement apparaissent dans le portail après connexion — pas sur ce site marketing.",
+      smallDownload: "Téléchargement",
+      smallInstall: "Installation",
+      smallLicense: "Licence",
     },
     fiscal: {
-      title: "Info fiscale & utilisation internationale",
-      paragraph1: "Caisty propose actuellement un",
-      modeName: "\"Pas de moteur fiscal / reçus génériques\"",
-      comingSoon: "\"bientôt disponible\"",
-      paragraph2: "mode et affiche plusieurs packs fiscaux comme (TSE, RKSV, NF525, SAF-T, TicketBAI, myDATA …). Vous pouvez déjà utiliser le POS dans de nombreux pays non fiscaux, par exemple :",
+      title: "Informations fiscales et usage international",
+      lead:
+        "Caisty propose actuellement un mode POS générique sans fiscalisation certifiée. Ce mode n’est utilisable que là où la loi locale l’autorise. Exemples (liste non exhaustive) :",
       countries: [
         "Pays-Bas (EUR)",
         "Irlande (EUR)",
@@ -427,140 +410,334 @@ export const landing: Record<Language, {
         "Algérie (DZD)",
         "Libye (LYD)",
       ],
-      paragraph3: "Dans les pays avec une",
-      strictRequirement: "exigence de fiscalisation stricte",
-      paragraph4: "– par exemple l'Allemagne, l'Autriche, l'Italie, la France, l'Espagne, le Portugal et d'autres – un dispositif fiscal certifié ou un logiciel certifié est souvent obligatoire. Tant que le pack fiscal Caisty correspondant n'est affiché que comme, vous utilisez le mode générique à vos propres risques. Confirmez toujours avec votre conseiller fiscal local ou l'autorité si ce mode est autorisé pour votre entreprise.",
-      paragraph5: "Caisty vous aide techniquement (reçus, journaux, exports), mais ne remplace pas les conseils juridiques ou l'enregistrement officiel auprès des autorités fiscales.",
+      strict:
+        "Dans les pays à obligations fiscales strictes (Allemagne, Autriche, Italie, France, Espagne, Portugal, etc.), un matériel ou un logiciel certifié peut être obligatoire. N’utilisez Caisty dans ces marchés qu’une fois le module fiscal requis disponible et légalement validé. Vérifiez toujours les exigences locales avec un conseiller fiscal ou l’administration compétente.",
+      disclaimer:
+        "Caisty aide pour les tickets, journaux et exports, mais ne remplace pas un conseil juridique ou fiscal.",
+    },
+    demo: {
+      sectionTitle: "Aperçu produit",
+      videoAria: "Lire la vidéo produit",
+      closeLabel: "Fermer",
+      clickOutside: "Cliquez en dehors de l’image pour fermer",
+      shotDashboard: "Tableau de bord",
+      shotPos: "POS",
+      shotPortal: "Portail client",
+    },
+  },
+  de: {
+    hero: {
+      badge: "POS & Cloud-Portal für moderne Betriebe",
+      title: "Moderne POS-Software für Restaurants, Cafés und kleine Läden.",
+      description:
+        "Caisty verbindet Kasse, Geräte, Lizenzen und Rechnungen in einem klaren Cloud-Portal — für schnelle Abläufe im Alltag.",
+      ctaPrimary: "Kostenlos starten",
+      ctaSecondary: "Preise ansehen",
+      trialTrust: "Starte mit einer kostenlosen 3-Tage-Testphase. Keine Zahlungsdaten nötig.",
+    },
+    preview: {
+      title: "Caisty Cloud-Portal",
+      caption: "Beispielansicht",
+      items: [
+        "Aktive Lizenz",
+        "Verbundene Geräte",
+        "Rechnungen",
+        "Kundenportal",
+        "POS-Installer",
+      ],
+      liveBadge: "Live-Portal",
+      demoBadge: "Demo",
+      devicesOnline: "2 online · 1 offline",
+      quote:
+        "„Wir wollten eine Kasse, die einfach läuft – und ein Portal, das wir verstehen.“ – fiktives Bistro",
+    },
+    why: {
+      title: "Warum Caisty?",
+      description:
+        "Caisty richtet sich an Betreiberinnen und Betreiber, die schnell kassieren wollen – ohne komplizierte Backoffice-Software.",
+      feature1Title: "Schnell startklar",
+      feature1Text:
+        "Konto anlegen, Lizenz aktivieren, Gerät verbinden – ohne lange Einrichtungsphase.",
+      feature2Title: "Klare Übersicht",
+      feature2Text:
+        "Aktive Lizenzen, verbundene Geräte und Rechnungen in einem einfachen Portal.",
+      feature3Title: "Einfache Preise",
+      feature3Text: "Klein starten und später upgraden, wenn Ihr Geschäft wächst.",
+    },
+    forWhom: {
+      title: "Für den täglichen Betrieb gemacht",
+      target1Title: "Take-away & Street Food",
+      target1Text: "Schnelle Bestellungen, einfache Abläufe und POS mit Fokus auf Tempo.",
+      target2Title: "Bars & Cafés",
+      target2Text: "Flexible Artikel, klare Tagesauswertungen und einfache Geräteverwaltung.",
+      target3Title: "Kleine Läden",
+      target3Text: "Kasse, Belege und Basis-Reporting in einem schlanken System.",
+    },
+    plans: {
+      title: "Pläne, die zu Ihrem Betrieb passen",
+      intro: "Starten Sie mit einer kostenlosen Testphase und upgraden Sie, wenn Sie bereit sind.",
+      trial: {
+        name: "Trial",
+        badge: "Kostenlos testen",
+        priceLine: "0 €",
+        subline: "3 Tage, 1 Gerät",
+        features: [
+          "Voller Starter-Funktionsumfang",
+          "Keine Zahlungsdaten erforderlich",
+          "Ideal zum Testen im echten Einsatz",
+        ],
+      },
+      starter: {
+        name: "Starter",
+        badge: "1 Gerät",
+        recommended: "Empfohlen",
+        priceLine: "9,99 € / Monat",
+        subline: "1 Gerät inklusive",
+        features: [
+          "Perfekt für einen Standort",
+          "Zugang zum Cloud-Portal",
+          "Basis-Reporting",
+          "Lizenzverwaltung",
+          "Upgrade auf Pro jederzeit möglich",
+        ],
+      },
+      pro: {
+        name: "Pro",
+        badge: "Mehrere Geräte",
+        priceLine: "19,99 € / Monat",
+        subline: "3 Geräte inklusive",
+        features: [
+          "Alle Starter-Funktionen",
+          "Mehrere Geräte unter einer Lizenz",
+          "Geeignet für mehrere Kassen oder kleine Filialen",
+          "Struktur priorisiert für künftige Funktionen",
+        ],
+      },
+      note:
+        "Alle Preise zzgl. USt., soweit anwendbar. Monats- und Jahresabrechnung können im Kundenportal ergänzt werden.",
     },
     payment: {
-      title: "Méthodes de paiement sécurisées",
-      description: "Nous prenons en charge diverses méthodes de paiement pour votre facturation. Vous pouvez choisir entre PayPal et carte de crédit (via Stripe).",
+      title: "Sichere Zahlungsmethoden",
+      description: "Caisty unterstützt einfache und sichere Zahlungsoptionen für Ihr Abonnement.",
       paypal: {
         title: "PayPal",
-        description: "Payez facilement avec votre compte PayPal. Rapide, sécurisé et accepté dans le monde entier.",
+        description: "Zahlen Sie bequem mit Ihrem PayPal-Konto.",
       },
       stripe: {
-        title: "Carte de crédit (Stripe)",
-        description: "Payez avec Visa ou Mastercard directement par carte de crédit. Toutes les transactions sont traitées en toute sécurité via Stripe.",
-        cards: "Visa & Mastercard",
+        title: "Kreditkarte über Stripe",
+        description:
+          "Zahlung mit Visa oder Mastercard. Transaktionen werden sicher über Stripe abgewickelt.",
       },
-      secure: "Tous les paiements sont cryptés et traités en toute sécurité. Nous ne stockons pas les données de carte de crédit sur nos serveurs.",
+      footnote: "SEPA-Lastschrift und Rechnungskauf können später ergänzt werden.",
+    },
+    install: {
+      title: "Vom Download zur Kasse in wenigen Minuten",
+      description:
+        "Der Caisty-POS-Installer wird im Kundenportal bereitgestellt. Installer herunterladen, Lizenzschlüssel verbinden und loslegen.",
+      steps: [
+        "Konto anlegen und Lizenz erhalten",
+        "Installer aus dem Kundenportal herunterladen",
+        "Caisty POS auf dem Kassengerät installieren",
+        "Lizenzschlüssel verbinden",
+        "Verkauf starten",
+      ],
+      noteBefore: "Die ausführliche Installationsseite findest du nach dem Login unter",
+      noteHighlight: "Caisty POS installieren",
+      noteAfter: "im Kundenportal.",
+      mockTitle: "Kundenportal · Installation",
+      previewBadge: "Vorschau",
+      platformWin: "Windows",
+      platformLinux: "Linux bald",
+      platformMac: "macOS bald",
+      downloadHint:
+        "Download-Details erscheinen nach Login im Portal — nicht auf dieser öffentlichen Website.",
+      smallDownload: "Download",
+      smallInstall: "Installation",
+      smallLicense: "Lizenz verbinden",
+    },
+    fiscal: {
+      title: "Fiskalinformationen und internationale Nutzung",
+      lead:
+        "Caisty bietet derzeit einen generischen POS-Modus ohne zertifizierte Fiskalisierung. Dieser Modus darf nur genutzt werden, wo das lokale Recht es erlaubt. Beispiele für unterstützten generischen Modus (nicht abschließend):",
+      countries: [
+        "Niederlande (EUR)",
+        "Irland (EUR)",
+        "Schweiz (CHF)",
+        "Vereinigtes Königreich (GBP)",
+        "Tschechische Republik (CZK)",
+        "Tunesien (TND)",
+        "Marokko (MAD)",
+        "Algerien (DZD)",
+        "Libyen (LYD)",
+      ],
+      strict:
+        "In Ländern mit strengen fiskalen Anforderungen (z. B. Deutschland, Österreich, Italien, Frankreich, Spanien, Portugal) können zertifizierte Hardware oder zertifizierte Software vorgeschrieben sein. Nutzen Sie Caisty in diesen Märkten erst, wenn das erforderliche Fiskalmodul verfügbar und rechtlich zugelassen ist. Klären Sie Anforderungen immer mit Steuerberatung oder Behörde.",
+      disclaimer:
+        "Caisty unterstützt bei Belegen, Journalen und Exporten, ersetzt aber keine Rechts- oder Steuerberatung.",
+    },
+    demo: {
+      sectionTitle: "Produktvorschau",
+      videoAria: "Produktvideo abspielen",
+      closeLabel: "Schließen",
+      clickOutside: "Zum Schließen außerhalb des Bildes klicken",
+      shotDashboard: "Dashboard",
+      shotPos: "POS",
+      shotPortal: "Kundenportal",
     },
   },
   ar: {
     hero: {
-      badge: "حساب نقاط البيع والسحابة للمطاعم والمتاجر الحديثة",
-      title: "نقطة بيع واحدة، بوابة واحدة –",
-      titleHighlight: "كل شيء في متناول اليد.",
+      badge: "نقاط بيع وبوابة سحابية للأعمال الحديثة",
+      title: "برنامج نقاط بيع حديث للمطاعم والمقاهي والمتاجر الصغيرة.",
       description:
-        "يربط Caisty الدفع السريع في نقاط البيع مع بوابة سحابية واضحة: إدارة التراخيص، مراقبة الأجهزة، والوصول المركزي للفواتير.",
-      ctaPricing: "عرض الأسعار",
-      ctaStart: "ابدأ مجاناً",
-      trialNote: "ابدأ بترخيص تجريبي لمدة",
-      trialDays: "يوم",
-      trialNote2: "بدون بيانات الدفع. يمكنك التبديل إلى Starter أو Pro في أي وقت. يتم تثبيت Caisty POS لاحقاً مباشرة من بوابة العملاء.",
+        "يربط Caisty نقطة الدفع والأجهزة والتراخيص والفواتير في بوابة سحابية بسيطة — مصممة للعمل اليومي السريع.",
+      ctaPrimary: "ابدأ مجاناً",
+      ctaSecondary: "عرض الأسعار",
+      trialTrust: "ابدأ بتجربة مجانية لمدة 3 أيام. دون بيانات دفع.",
+    },
+    preview: {
+      title: "بوابة Caisty السحابية",
+      caption: "عرض توضيحي",
+      items: [
+        "ترخيص نشط",
+        "أجهزة متصلة",
+        "فواتير",
+        "بوابة العملاء",
+        "مثبت نقاط البيع",
+      ],
+      liveBadge: "بوابة مباشرة",
+      demoBadge: "تجريبي",
+      devicesOnline: "2 متصل · 1 غير متصل",
+      quote: "« أردنا صندوقاً يعمل ببساطة — وبوابة نفهمها. » — مقهى افتراضي",
     },
     why: {
-      title: "لماذا Caisty?",
+      title: "لماذا Caisty؟",
       description:
-        "Caisty للمشغلين الذين لا يريدون أنظمة مكتب خلفي معقدة ولكن يريدون البدء بسرعة – مع هيكل واضح للتراخيص والأجهزة والفوترة.",
+        "صُمم Caisty لأصحاب الأعمال الذين يريدون نقطة دفع سريعة دون برامج خلفية معقدة.",
       feature1Title: "بدء سريع",
-      feature1Text: "تحميل المثبت، ربط الترخيص، البدء في البيع – بدون أسابيع من الإعداد.",
-      feature2Title: "نظرة عامة كاملة",
-      feature2Text: "في البوابة، يمكنك دائماً رؤية التراخيص النشطة والأجهزة المتصلة.",
-      feature3Title: "عادل وشفاف",
-      feature3Text: "خطط واضحة بدون رسوم مخفية. مثالي للبدء صغيراً والنمو لاحقاً.",
+      feature1Text: "أنشئ حسابك، فعّل الترخيص وصِل جهازك دون إعداد طويل.",
+      feature2Title: "نظرة واضحة",
+      feature2Text: "اطلع على التراخيص النشطة والأجهزة المتصلة والفواتير من بوابة واحدة بسيطة.",
+      feature3Title: "تسعير بسيط",
+      feature3Text: "ابدأ صغيراً وقم بالترقية لاحقاً عند نمو عملك.",
+    },
+    forWhom: {
+      title: "مصمم للعمل اليومي",
+      target1Title: "الوجبات الجاهزة والطعام الشارعي",
+      target1Text: "طلبات سريعة وتدفقات بسيطة وتجربة نقاط بيع تركز على السرعة.",
+      target2Title: "الحانات والمقاهي",
+      target2Text: "منتجات مرنة وتقارير يومية واضحة وإدارة سهلة للأجهزة.",
+      target3Title: "متاجر صغيرة",
+      target3Text: "الدفع والإيصالات والتقارير الأساسية في نظام واحد بسيط.",
     },
     plans: {
-      title: "الخطط والتراخيص",
-      description:
-        "جرب Caisty مجاناً أولاً، ثم قرر ما إذا كنت تريد المتابعة مع Starter أو Pro. يمكنك الدفع شهرياً أو التوفير مع خطة سنوية.",
+      title: "خطط تناسب عملك",
+      intro: "ابدأ بتجربة مجانية وقم بالترقية عندما تكون جاهزاً.",
       trial: {
         name: "تجريبي",
-        badge: "جرب مجاناً",
-        note: "أيام، جهاز واحد",
-        detail1: "مجموعة ميزات كاملة مثل Starter",
-        detail2: "لا حاجة لبيانات الدفع",
-        detail3: "مثالي للاختبار في التشغيل المباشر",
+        badge: "مجاني",
+        priceLine: "0 €",
+        subline: "3 أيام، جهاز واحد",
+        features: [
+          "جميع ميزات Starter",
+          "دون بيانات دفع",
+          "مثالي لاختبار Caisty عملياً",
+        ],
       },
       starter: {
         name: "Starter",
-        badge: "لنقطة بيع واحدة",
-        price: "€ / شهر",
-        subPrice: "أو € / سنة",
-        note: "جهاز مشمول",
-        detail1: "مثالي لموقع واحد",
-        detail2: "تقارير أساسية ووصول للبوابة",
-        detail3: "الترقية إلى Pro في أي وقت",
+        badge: "جهاز واحد",
+        recommended: "موصى به",
+        priceLine: "9.99 € / شهر",
+        subline: "جهاز واحد مشمول",
+        features: [
+          "مثالي لموقع واحد",
+          "الوصول إلى البوابة السحابية",
+          "تقارير أساسية",
+          "إدارة التراخيص",
+          "الترقية إلى Pro في أي وقت",
+        ],
       },
       pro: {
         name: "Pro",
         badge: "أجهزة متعددة",
-        price: "€ / شهر",
-        subPrice: "أو € / سنة",
-        note: "أجهزة مشمولة",
-        detail1: "مثالي لـ 2–3 نقاط بيع أو فروع",
-        detail2: "جميع ميزات Starter",
-        detail3: "أجهزة متعددة تحت ترخيص واحد",
+        priceLine: "19.99 € / شهر",
+        subline: "3 أجهزة مشمولة",
+        features: [
+          "جميع ميزات Starter",
+          "عدة أجهزة تحت ترخيص واحد",
+          "أنسب لعدة صناديق أو فروع صغيرة",
+          "هيكل جاهز أولويةً للميزات المستقبلية",
+        ],
       },
-      note: "جميع الأسعار بالإضافة إلى ضريبة القيمة المضافة – تختار الفوترة الدقيقة (شهرية أو سنوية) لاحقاً مباشرة في بوابة العملاء. يمكنك أيضاً التبديل بين Starter و Pro في أي وقت.",
+      note:
+        "جميع الأسعار بدون ضريبة القيمة المضافة حيث ينطبق ذلك. يمكن إضافة الفوترة الشهرية أو السنوية في بوابة العملاء.",
     },
-    forWhom: {
-      title: "لمن Caisty?",
-      target1Title: "الوجبات الجاهزة والطعام الشارع",
-      target1Text: "طلبات سريعة، أزرار قليلة، تركز على السرعة.",
-      target2Title: "الحانات والمقاهي",
-      target2Text: "هياكل عناصر بسيطة، تحديثات أسعار مرنة وتقارير يومية.",
-      target3Title: "المتاجر الصغيرة",
-      target3Text: "نقطة بيع، إيصالات وتقارير أساسية في نظام واحد – بدون تعقيد.",
+    payment: {
+      title: "طرق دفع آمنة",
+      description: "يدعم Caisty خيارات دفع بسيطة وآمنة لاشتراكك.",
+      paypal: {
+        title: "PayPal",
+        description: "ادفع بسهولة عبر حساب PayPal.",
+      },
+      stripe: {
+        title: "بطاقة ائتمان عبر Stripe",
+        description: "الدفع بـ Visa أو Mastercard. تتم المعاملات بأمان عبر Stripe.",
+      },
+      footnote: "يمكن إضافة الخصم المباشر SEPA والدفع بالفاتورة لاحقاً.",
     },
     install: {
-      title: "من التحميل إلى نقطة البيع الجاهزة للاستخدام في دقائق قليلة.",
+      title: "من التحميل إلى البيع في دقائق",
       description:
-        "يتم تثبيت Caisty POS بالكامل من خلال بوابة العملاء. هناك تحصل على المثبت ومفتاح الترخيص ودليل خطوة بخطوة.",
-      step1: "إنشاء وصول للبوابة والحصول على الترخيص.",
-      step2: "تحميل المثبت لنظام التشغيل من البوابة.",
-      step3: "التثبيت على كمبيوتر نقطة البيع وإدخال مفتاح الترخيص – انتهى.",
-      note: "يمكنك رؤية صفحة التثبيت التفصيلية بعد تسجيل الدخول تحت",
-      noteHighlight: '"تثبيت Caisty POS"',
-      noteEnd: "في بوابة العملاء.",
+        "سيُتاح مثبت Caisty POS داخل بوابة العملاء. حمّل المثبت، اربط مفتاح الترخيص وابدأ استخدام نقاط البيع.",
+      steps: [
+        "إنشاء حساب والحصول على الترخيص",
+        "تحميل المثبت من بوابة العملاء",
+        "تثبيت Caisty POS على جهاز الكاشير",
+        "ربط مفتاح الترخيص",
+        "ابدأ البيع",
+      ],
+      noteBefore: "صفحة التثبيت التفصيلية تظهر بعد تسجيل الدخول تحت",
+      noteHighlight: "تثبيت Caisty POS",
+      noteAfter: "في بوابة العملاء.",
+      mockTitle: "بوابة العملاء · التثبيت",
+      previewBadge: "معاينة",
+      platformWin: "Windows",
+      platformLinux: "Linux قريباً",
+      platformMac: "macOS قريباً",
+      downloadHint: "تفاصيل التحميل تظهر في البوابة بعد تسجيل الدخول — وليس على هذا الموقع العلني.",
+      smallDownload: "تحميل",
+      smallInstall: "تثبيت",
+      smallLicense: "ربط الترخيص",
     },
     fiscal: {
       title: "معلومات ضريبية واستخدام دولي",
-      paragraph1: "يقدم Caisty حالياً وضع",
-      modeName: "\"لا محرك ضريبي / إيصالات عامة\"",
-      comingSoon: "\"قريباً\"",
-      paragraph2: "ويظهر عدة حزم ضريبية كـ (TSE, RKSV, NF525, SAF-T, TicketBAI, myDATA …). يمكنك بالفعل استخدام نقاط البيع في العديد من البلدان غير الضريبية، على سبيل المثال:",
+      lead:
+        "يوفر Caisty حالياً وضع نقاط بيع عاماً دون تخصيص ضريبي معتمد. يُستخدم هذا الوضع فقط حيث يسمح القانون المحلي. أمثلة على الوضع العام (غير شاملة):",
       countries: [
         "هولندا (EUR)",
         "أيرلندا (EUR)",
         "سويسرا (CHF)",
         "المملكة المتحدة (GBP)",
-        "جمهورية التشيك (CZK)",
+        "التشيك (CZK)",
         "تونس (TND)",
         "المغرب (MAD)",
         "الجزائر (DZD)",
         "ليبيا (LYD)",
       ],
-      paragraph3: "في البلدان ذات",
-      strictRequirement: "متطلبات ضريبية صارمة",
-      paragraph4: "– على سبيل المثال ألمانيا، النمسا، إيطاليا، فرنسا، إسبانيا، البرتغال وغيرها – غالباً ما يكون مطلوباً جهاز ضريبي معتمد أو برنامج معتمد. طالما أن حزمة Caisty الضريبية المطابقة تظهر فقط كـ، فأنت تستخدم الوضع العام على مسؤوليتك الخاصة. تأكد دائماً من مستشارك الضريبي المحلي أو السلطة ما إذا كان هذا الوضع مسموحاً لعملك.",
-      paragraph5: "يساعدك Caisty تقنياً (الإيصالات، السجلات، التصدير)، لكنه لا يحل محل المشورة القانونية أو التسجيل الرسمي لدى السلطات الضريبية.",
+      strict:
+        "في البلدان ذات متطلبات ضريبية صارمة مثل ألمانيا والنمسا وإيطاليا وفرنسا وإسبانيا والبرتغال قد تُطلب أجهزة أو برمجيات معتمدة. لا تستخدم Caisty في هذه الأسواق إلا بعد توفر الوحدة الضريبية المطلوبة والموافقة القانونية. تأكد دائماً من المتطلبات مع مستشارك الضريبي أو الجهة المختصة.",
+      disclaimer:
+        "يساعد Caisty على الإيصالات والدفاتر والتصدير، ولا يغني عن استشارة قانونية أو ضريبية.",
     },
-    payment: {
-      title: "طرق الدفع الآمنة",
-      description: "ندعم طرق دفع مختلفة للفوترة. يمكنك الاختيار بين PayPal وبطاقة الائتمان (عبر Stripe).",
-      paypal: {
-        title: "PayPal",
-        description: "ادفع بسهولة باستخدام حساب PayPal الخاص بك. سريع وآمن ومقبول عالمياً.",
-      },
-      stripe: {
-        title: "بطاقة الائتمان (Stripe)",
-        description: "ادفع باستخدام Visa أو Mastercard مباشرة عبر بطاقة الائتمان. تتم معالجة جميع المعاملات بأمان من خلال Stripe.",
-        cards: "Visa & Mastercard",
-      },
-      secure: "يتم تشفير جميع المدفوعات ومعالجتها بأمان. لا نقوم بتخزين بيانات بطاقة الائتمان على خوادمنا.",
+    demo: {
+      sectionTitle: "معاينة المنتج",
+      videoAria: "تشغيل فيديو المنتج",
+      closeLabel: "إغلاق",
+      clickOutside: "انقر خارج الصورة للإغلاق",
+      shotDashboard: "لوحة التحكم",
+      shotPos: "نقاط البيع",
+      shotPortal: "بوابة العملاء",
     },
   },
 };
-

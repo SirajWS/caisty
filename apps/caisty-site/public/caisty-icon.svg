@@ -4,17 +4,14 @@
   viewBox="0 0 256 256"
   xmlns="http://www.w3.org/2000/svg"
 >
-  <!-- Grüner runder Hintergrund -->
   <rect
     x="0"
     y="0"
     width="256"
     height="256"
     rx="64"
-    fill="#10B981"
+    fill="#F97316"
   />
-
-  <!-- Dunkles "C" -->
   <path
     d="M172 88
        C160 72 143 64 128 64
@@ -22,7 +19,7 @@
        C76 145 99 168 128 168
        C143 168 160 160 172 144"
     fill="none"
-    stroke="#020617"
+    stroke="#ffffff"
     stroke-width="20"
     stroke-linecap="round"
     stroke-linejoin="round"

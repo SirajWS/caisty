@@ -10,6 +10,25 @@ import crypto from "node:crypto";
 import { addHours } from "date-fns";
 import { env } from "../config/env.js";
 
+/** Sinnvolle Textausgabe auch bei AggregateError / leerem message (z. B. DB-Verbindung). */
+function formatLoginError(err: unknown): string {
+  if (err instanceof AggregateError) {
+    const parts = err.errors.map((e) =>
+      e instanceof Error ? (e.message?.trim() || e.name) : String(e),
+    ).filter(Boolean);
+    if (parts.length) return parts.join("; ");
+    if (err.message?.trim()) return err.message.trim();
+    return "AggregateError (Details siehe Server-Log)";
+  }
+  if (err instanceof Error) {
+    const m = err.message?.trim();
+    if (m) return m;
+    return err.name || "Unbekannter Fehler";
+  }
+  const s = String(err);
+  return s && s !== "[object Object]" ? s : "Unbekannter Fehler";
+}
+
 // Helper: Token generieren und hashen
 function generateToken(): string {
   return crypto.randomBytes(32).toString("hex");
@@ -99,9 +118,15 @@ export async function registerAdminAuthRoutes(app: FastifyInstance) {
         },
       };
     } catch (err) {
-      app.log.error({ err, email }, "Error in admin login");
+      const message = formatLoginError(err);
+      app.log.error({ err, email, message }, "Error in admin login");
       reply.code(500);
-      return { ok: false, error: "Fehler beim Login" };
+      // In Entwicklung den Fehler anzeigen, um Debugging zu erleichtern
+      const isDev = env.NODE_ENV === "development";
+      return {
+        ok: false,
+        error: isDev ? `Fehler beim Login: ${message}` : "Fehler beim Login",
+      };
     }
   });
 

@@ -2,23 +2,27 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getStoredPortalToken } from "../lib/portalApi";
+import { useLanguage } from "../lib/LanguageContext";
+import { getPortalTranslations } from "../lib/translations";
 
 export default function PortalCheckoutSuccessPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { language } = useLanguage();
+  const t = getPortalTranslations(language);
   const [status, setStatus] = useState<"processing" | "success" | "error">("processing");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = searchParams.get("token"); // PayPal order ID
-    const sessionId = searchParams.get("session_id"); // Stripe session ID
-    const invoiceId = searchParams.get("invoiceId"); // Invoice ID from URL (optional)
+    const tc = getPortalTranslations(language).checkoutSuccess;
+    const token = searchParams.get("token");
+    const sessionId = searchParams.get("session_id");
+    const invoiceId = searchParams.get("invoiceId");
 
-    // Determine provider based on which parameter is present
     const provider = sessionId ? "stripe" : token ? "paypal" : null;
 
     if (!provider) {
-      setError("Fehlender Zahlungstoken. Bitte kontaktiere den Support.");
+      setError(tc.missingToken);
       setStatus("error");
       return;
     }
@@ -26,16 +30,15 @@ export default function PortalCheckoutSuccessPage() {
     async function capturePayment() {
       const portalToken = getStoredPortalToken();
       if (!portalToken) {
-        setError("Nicht angemeldet. Bitte melde dich erneut an.");
+        setError(tc.notSignedIn);
         navigate("/login");
         return;
       }
 
-      const API_BASE = import.meta.env.VITE_CLOUD_API_URL || 
+      const API_BASE = import.meta.env.VITE_CLOUD_API_URL ||
         (import.meta.env.DEV ? "http://localhost:3333" : "https://api.caisty.com");
 
       try {
-        // invoiceId is optional - backend will extract it from provider metadata
         const captureRes = await fetch(`${API_BASE}/api/billing/capture`, {
           method: "POST",
           headers: {
@@ -44,13 +47,13 @@ export default function PortalCheckoutSuccessPage() {
           },
           body: JSON.stringify({
             ...(provider === "stripe" ? { sessionId } : { orderId: token }),
-            invoiceId: invoiceId || undefined, // Optional fallback
-            provider, // Explicit provider
+            invoiceId: invoiceId || undefined,
+            provider,
           }),
         });
 
         if (captureRes.status === 401) {
-          setError("Nicht angemeldet. Bitte melde dich erneut an.");
+          setError(tc.notSignedIn);
           navigate("/login");
           return;
         }
@@ -58,40 +61,40 @@ export default function PortalCheckoutSuccessPage() {
         const captureData = await captureRes.json();
 
         if (!captureRes.ok || !captureData.ok) {
-          throw new Error(captureData.message ?? "Zahlung konnte nicht verarbeitet werden.");
+          throw new Error(captureData.message ?? tc.captureFailed);
         }
 
-        // Success - clear pending invoice
         sessionStorage.removeItem("pendingInvoiceId");
         setStatus("success");
 
-        // Redirect to dashboard after 2 seconds
         setTimeout(() => {
           navigate("/portal", { replace: true });
         }, 2000);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Capture failed", err);
-        setError(err?.message ?? "Zahlung konnte nicht verarbeitet werden.");
+        setError(
+          err instanceof Error ? err.message : tc.captureFailed,
+        );
         setStatus("error");
       }
     }
 
     capturePayment();
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, language]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-100">
-      <div className="rounded-xl border border-slate-700 bg-slate-900 px-8 py-6 shadow-lg max-w-md w-full">
+    <div className="min-h-screen flex items-center justify-center bg-[#0B1220] text-slate-100 px-4">
+      <div className="rounded-[22px] border border-white/[0.08] bg-[#111827] px-8 py-8 shadow-xl max-w-md w-full">
         {status === "processing" && (
           <>
             <div className="flex items-center justify-center mb-4">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-2 border-orange-500 border-t-transparent" />
             </div>
             <h2 className="text-xl font-semibold text-center mb-2">
-              Zahlung wird verarbeitet...
+              {t.checkoutSuccess.processingTitle}
             </h2>
             <p className="text-sm text-slate-400 text-center">
-              Bitte warte einen Moment, während wir deine Zahlung bestätigen.
+              {t.checkoutSuccess.processingBody}
             </p>
           </>
         )}
@@ -116,13 +119,13 @@ export default function PortalCheckoutSuccessPage() {
               </div>
             </div>
             <h2 className="text-xl font-semibold text-center mb-2 text-emerald-400">
-              Zahlung erfolgreich!
+              {t.checkoutSuccess.successTitle}
             </h2>
             <p className="text-sm text-slate-400 text-center mb-4">
-              Deine Zahlung wurde erfolgreich verarbeitet. Du wirst gleich zum Dashboard weitergeleitet.
+              {t.checkoutSuccess.successBody}
             </p>
             <p className="text-xs text-slate-500 text-center">
-              Deine Lizenz und Rechnung wurden erstellt.
+              {t.checkoutSuccess.successNote}
             </p>
           </>
         )}
@@ -147,23 +150,25 @@ export default function PortalCheckoutSuccessPage() {
               </div>
             </div>
             <h2 className="text-xl font-semibold text-center mb-2 text-red-400">
-              Fehler bei der Zahlung
+              {t.checkoutSuccess.errorTitle}
             </h2>
             <p className="text-sm text-slate-400 text-center mb-4">
-              {error || "Die Zahlung konnte nicht verarbeitet werden."}
+              {error || t.checkoutSuccess.errorGeneric}
             </p>
             <div className="flex gap-3">
               <button
+                type="button"
                 onClick={() => navigate("/portal/plan")}
                 className="flex-1 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 transition-colors"
               >
-                Zurück zu Plänen
+                {t.checkoutSuccess.backPlans}
               </button>
               <button
+                type="button"
                 onClick={() => navigate("/portal")}
-                className="flex-1 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors"
+                className="flex-1 rounded-full bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-600 transition-colors"
               >
-                Zum Dashboard
+                {t.checkoutSuccess.toDashboard}
               </button>
             </div>
           </>
@@ -172,4 +177,3 @@ export default function PortalCheckoutSuccessPage() {
     </div>
   );
 }
-

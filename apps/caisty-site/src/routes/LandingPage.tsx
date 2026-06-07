@@ -1,725 +1,494 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { TRIAL_DAYS, MAX_DEVICES } from "../config/pricing";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
 import { useTheme } from "../lib/theme";
 
 export default function LandingPage() {
   const { language } = useLanguage();
+  const location = useLocation();
   const { theme } = useTheme();
   const isLight = theme === "light";
   const t = translations[language].landing;
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const pageBg = isLight ? "bg-slate-50 text-slate-900" : "bg-slate-950 text-slate-50";
+  const landingRef = useRef<HTMLDivElement>(null);
 
-  // Screenshot-Galerie (Platzhalter - du kannst später echte Bilder hinzufügen)
   const screenshots = [
-    { id: 1, src: "/screenshots/dashboard.png", alt: "Dashboard", title: "Dashboard" },
-    { id: 2, src: "/screenshots/pos.png", alt: "POS Interface", title: "POS Interface" },
-    { id: 3, src: "/screenshots/portal.png", alt: "Kundenportal", title: "Kundenportal" },
+    { id: 1, src: "/screenshots/dashboard.png", alt: t.demo.shotDashboard, title: t.demo.shotDashboard },
+    { id: 2, src: "/screenshots/pos.png", alt: t.demo.shotPos, title: t.demo.shotPos },
+    { id: 3, src: "/screenshots/portal.png", alt: t.demo.shotPortal, title: t.demo.shotPortal },
   ];
 
+  useEffect(() => {
+    const hash = location.hash.replace(/^#/, "");
+    if (!hash) return;
+    const el = document.getElementById(hash);
+    if (el) {
+      window.requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }, [location.hash, location.pathname]);
+
+  useEffect(() => {
+    const root = landingRef.current;
+    if (!root) return;
+    const els = root.querySelectorAll(".lp-reveal, .lp-reveal-stagger");
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) e.target.classList.add("visible");
+        });
+      },
+      { threshold: 0.06, rootMargin: "0px 0px -40px 0px" },
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [language, theme]);
+
+  const sectionShell = "w-full max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8";
 
   return (
-    <div className={`min-h-screen ${pageBg}`}>
-      {/* Hero */}
-      <section className="max-w-5xl mx-auto px-4 pb-16">
-        <div
-          className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium mb-6 ${
-            isLight
-              ? "border-emerald-300 bg-emerald-50 text-emerald-600"
-              : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-          }`}
-        >
-          {t.hero.badge}
-        </div>
-
-        <div className="grid gap-10 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] items-center">
-          {/* Text-Spalte */}
-          <div className="space-y-6">
-            <h1
-              className={`text-3xl sm:text-4xl md:text-5xl font-semibold leading-tight ${
-                isLight ? "text-slate-900" : "text-slate-50"
-              }`}
-            >
-              {t.hero.title}{" "}
-              <span className="text-emerald-500">{t.hero.titleHighlight}</span>
-            </h1>
-            <p
-              className={`text-sm sm:text-base max-w-xl ${
-                isLight ? "text-slate-600" : "text-slate-300"
-              }`}
-            >
-              {t.hero.description}
-            </p>
-
-            <div className="flex flex-wrap gap-3 text-sm">
-              <Link
-                to="/pricing"
-                className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-5 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors"
-              >
-                {t.hero.ctaPricing}
-              </Link>
-              <Link
-                to="/register"
-                className={`inline-flex items-center justify-center rounded-full border px-5 py-2 text-sm font-medium transition-colors ${
-                  isLight
-                    ? "border-slate-300 text-slate-700 hover:bg-slate-50"
-                    : "border-slate-700 text-slate-100 hover:bg-slate-800"
-                }`}
-              >
-                {t.hero.ctaStart}
-              </Link>
-            </div>
-
-            <p
-              className={`text-[11px] max-w-md ${
-                isLight ? "text-slate-600" : "text-slate-500"
-              }`}
-            >
-              {t.hero.trialNote}{" "}
-              <span
-                className={`font-semibold ${
-                  isLight ? "text-slate-700" : "text-slate-300"
-                }`}
-              >
-                {TRIAL_DAYS}-{t.hero.trialDays}
-              </span>{" "}
-              {t.hero.trialNote2}
-            </p>
-          </div>
-
-          {/* Dashboard-Mock */}
+    <div
+      ref={landingRef}
+      className={`landing-page min-h-screen w-full max-w-[100vw] overflow-x-clip ${isLight ? "landing-page--light" : ""}`}
+    >
+      {/* Hero + product */}
+      <section id="product" className="relative overflow-x-clip scroll-mt-20">
+        <div className="lp-hero-glow" aria-hidden />
+        <div className={`${sectionShell} relative z-[1] pt-10 pb-12 sm:pt-14 sm:pb-16`}>
           <div
-            className={`rounded-3xl border p-4 shadow-xl ${
-              isLight
-                ? "border-slate-200 bg-white shadow-emerald-200/40"
-                : "border-slate-800 bg-slate-900/70 shadow-emerald-900/40"
+            className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold tracking-wide ${
+              isLight ? "border-slate-200 bg-white text-slate-700 shadow-sm" : "border-white/10 bg-white/[0.06] text-slate-200"
             }`}
           >
-            <div className="flex items-center justify-between mb-3">
-              <div
-                className={`text-[11px] uppercase tracking-wide ${
-                  isLight ? "text-slate-500" : "text-slate-400"
-                }`}
-              >
-                Beispiel-Ansicht
+            <span
+              className="lp-badge-pulse-dot h-1.5 w-1.5 rounded-full shrink-0"
+              style={{ backgroundColor: "var(--color-accent)" }}
+            />
+            {t.hero.badge}
+          </div>
+
+          <div className="grid gap-10 lg:gap-14 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] items-start mt-8 w-full min-w-0">
+            <div className="space-y-6 min-w-0">
+              <div className="lp-hero-title-block lp-font-heading">
+                <h1 className="lp-title-h1">{t.hero.title}</h1>
+                <p className="mt-4 text-base sm:text-lg leading-relaxed text-[var(--color-text-muted)] max-w-xl">
+                  {t.hero.description}
+                </p>
               </div>
-              <div
-                className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] ${
-                  isLight
-                    ? "bg-slate-100 text-slate-700"
-                    : "bg-slate-800 text-slate-300"
-                }`}
-              >
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                Live-Portal
+
+              <div className="lp-hero-cta flex flex-col sm:flex-row flex-wrap gap-3 w-full min-w-0">
+                <Link to="/register" className="lp-cta-primary no-underline text-center justify-center w-full sm:w-auto">
+                  {t.hero.ctaPrimary}
+                </Link>
+                <Link to="/pricing" className="lp-cta-secondary no-underline text-center justify-center w-full sm:w-auto">
+                  {t.hero.ctaSecondary}
+                </Link>
               </div>
+
+              <p className="lp-hero-trial text-sm max-w-xl leading-relaxed text-[var(--color-text-subtle)]">
+                {t.hero.trialTrust}
+              </p>
             </div>
 
-            <div
-              className={`rounded-2xl border p-4 space-y-3 ${
-                isLight
-                  ? "border-slate-200 bg-slate-50"
-                  : "border-slate-800 bg-slate-950/80"
-              }`}
-            >
+            <div className="lp-mock-card-enter w-full min-w-0">
               <div
-                className={`text-xs font-semibold ${
-                  isLight ? "text-slate-900" : "text-slate-200"
+                className={`rounded-2xl p-5 sm:p-6 border shadow-lg ${
+                  isLight ? "border-slate-200 bg-white" : "lp-glass-mock shadow-[0_24px_80px_rgba(0,0,0,0.35)]"
                 }`}
               >
-                Caisty Portal – Dashboard
-              </div>
-              <div className="grid gap-3 md:grid-cols-2 text-[11px]">
-                <div
-                  className={`rounded-xl border p-3 space-y-1 ${
-                    isLight
-                      ? "border-slate-200 bg-white"
-                      : "border-slate-800 bg-slate-900/80"
-                  }`}
-                >
-                  <div
-                    className={`text-[11px] ${
-                      isLight ? "text-slate-600" : "text-slate-400"
-                    }`}
-                  >
-                    Aktive Lizenz
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-subtle)]">
+                    {t.preview.caption}
                   </div>
                   <div
-                    className={`font-mono text-[11px] ${
-                      isLight ? "text-slate-900" : "text-slate-100"
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+                      isLight ? "bg-slate-100 text-slate-700" : "bg-white/[0.08] text-slate-200"
                     }`}
                   >
-                    CSTY-XXXX-XXXX-XXXX
-                  </div>
-                  <div
-                    className={`flex items-center justify-between text-[11px] ${
-                      isLight ? "text-slate-600" : "text-slate-400"
-                    }`}
-                  >
-                    <span>Starter · 1 Gerät</span>
-                    <span>gültig bis 31.12.2025</span>
+                    <span className="h-2 w-2 rounded-full shrink-0 bg-[#f97316]" />
+                    {t.preview.liveBadge}
                   </div>
                 </div>
+
                 <div
-                  className={`rounded-xl border p-3 space-y-2 ${
-                    isLight
-                      ? "border-slate-200 bg-white"
-                      : "border-slate-800 bg-slate-900/80"
+                  className={`rounded-xl border p-4 sm:p-5 space-y-4 ${
+                    isLight ? "border-slate-200 bg-slate-50" : "border-white/[0.08] bg-black/30"
                   }`}
                 >
-                  <div
-                    className={`flex items-center justify-between text-[11px] ${
-                      isLight ? "text-slate-600" : "text-slate-400"
-                    }`}
-                  >
-                    <span>Verbundene Geräte</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] ${
-                        isLight
-                          ? "bg-slate-100 text-slate-700"
-                          : "bg-slate-800 text-slate-300"
+                  <div className="text-sm font-bold text-[var(--color-text-primary)] lp-font-heading">{t.preview.title}</div>
+                  <ul className="grid gap-2 sm:grid-cols-2 text-sm text-[var(--color-text-primary)]">
+                    {t.preview.items.map((item) => (
+                      <li
+                        key={item}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${
+                          isLight ? "border-slate-200 bg-white" : "border-white/10 bg-white/[0.04]"
+                        }`}
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#f97316] shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="grid gap-3 sm:grid-cols-2 text-xs sm:text-sm">
+                    <div
+                      className={`rounded-xl border p-3 sm:p-4 space-y-1 ${
+                        isLight ? "border-slate-200 bg-white" : "border-white/10 bg-white/[0.04]"
                       }`}
                     >
-                      Demo
-                    </span>
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-subtle)]">
+                        {t.preview.items[0]}
+                      </div>
+                      <div className="font-mono text-xs text-[var(--color-text-primary)]">CSTY-XXXX-XXXX-XXXX</div>
+                    </div>
+                    <div
+                      className={`rounded-xl border p-3 sm:p-4 space-y-2 ${
+                        isLight ? "border-slate-200 bg-white" : "border-white/10 bg-white/[0.04]"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between text-[11px] text-[var(--color-text-subtle)]">
+                        <span>{t.preview.items[1]}</span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            isLight ? "bg-slate-100 text-slate-700" : "bg-white/10 text-slate-200"
+                          }`}
+                        >
+                          {t.preview.demoBadge}
+                        </span>
+                      </div>
+                      <div className="lp-stat-devices lp-font-heading">3</div>
+                      <div className="text-[11px] text-[var(--color-text-subtle)]">{t.preview.devicesOnline}</div>
+                    </div>
                   </div>
-                  <div className="text-2xl font-semibold text-emerald-500">
-                    3
-                  </div>
+
                   <div
-                    className={`text-[11px] ${
-                      isLight ? "text-slate-600" : "text-slate-400"
+                    className={`rounded-xl border border-dashed p-3 text-xs sm:text-sm leading-relaxed ${
+                      isLight ? "border-slate-200 bg-white text-slate-600" : "border-white/10 text-slate-400"
                     }`}
                   >
-                    2 online · 1 offline
+                    {t.preview.quote}
                   </div>
                 </div>
               </div>
-
-              <div
-                className={`mt-2 rounded-xl border border-dashed p-3 text-[11px] ${
-                  isLight
-                    ? "border-slate-200 bg-slate-50 text-slate-600"
-                    : "border-slate-800 bg-slate-900/60 text-slate-400"
-                }`}
-              >
-                „Wir wollten eine Kasse, die einfach läuft – und ein Portal,
-                das wir verstehen." – fiktives Bistro
-              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Warum Caisty? */}
-      <section className="max-w-5xl mx-auto px-4 pb-10 space-y-6">
-        <div className="space-y-4">
-          <h2
-            className={`text-xl font-semibold ${
-              isLight ? "text-slate-900" : "text-slate-50"
-            }`}
-          >
-            {t.why.title}
-          </h2>
-          <p
-            className={`text-base leading-relaxed max-w-2xl ${
-              isLight
-                ? "text-slate-700"
-                : "text-slate-200"
-            }`}
-          >
-            {t.why.description}
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3 text-sm">
-          <FeatureCard
-            title={t.why.feature1Title}
-            text={t.why.feature1Text}
-          />
-          <FeatureCard
-            title={t.why.feature2Title}
-            text={t.why.feature2Text}
-          />
-          <FeatureCard
-            title={t.why.feature3Title}
-            text={t.why.feature3Text}
-          />
-        </div>
-      </section>
-
-      {/* Pläne & Lizenzen */}
-      <section className="max-w-5xl mx-auto px-4 pb-12 space-y-5">
-        <div className="space-y-4">
-          <h2
-            className={`text-xl font-semibold ${
-              isLight ? "text-slate-900" : "text-slate-50"
-            }`}
-          >
-            {t.plans.title}
-          </h2>
-          <p
-            className={`text-base leading-relaxed max-w-2xl ${
-              isLight
-                ? "text-slate-700"
-                : "text-slate-200"
-            }`}
-          >
-            {t.plans.description}
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3 text-sm">
-          <PlanCard
-            name={t.plans.trial.name}
-            badge={t.plans.trial.badge}
-            price="0 €"
-            note={`${TRIAL_DAYS} ${t.plans.trial.note}`}
-            details={[
-              t.plans.trial.detail1,
-              t.plans.trial.detail2,
-              t.plans.trial.detail3,
-            ]}
-          />
-          <PlanCard
-            name={t.plans.starter.name}
-            badge={t.plans.starter.badge}
-            price="19,99 €"
-            subPrice={t.plans.starter.subPrice.replace("€", "19,99 €")}
-            note={`${MAX_DEVICES.starter} ${t.plans.starter.note}`}
-            highlight
-            details={[
-              t.plans.starter.detail1,
-              t.plans.starter.detail2,
-              t.plans.starter.detail3,
-            ]}
-          />
-          <PlanCard
-            name={t.plans.pro.name}
-            badge={t.plans.pro.badge}
-            price="29,99 €"
-            subPrice={t.plans.pro.subPrice.replace("€", "29,99 €")}
-            note={`${MAX_DEVICES.pro} ${t.plans.pro.note}`}
-            details={[
-              t.plans.pro.detail1,
-              t.plans.pro.detail2,
-              t.plans.pro.detail3,
-            ]}
-          />
-        </div>
-
-        <p className="text-[11px] text-slate-500">
-          {t.plans.note}
-        </p>
-      </section>
-
-      {/* Zahlungsmethoden */}
-      <section className="max-w-5xl mx-auto px-4 pb-12 space-y-5">
-        <div className="space-y-4">
-          <h2
-            className={`text-xl font-semibold ${
-              isLight ? "text-slate-900" : "text-slate-50"
-            }`}
-          >
-            {t.payment.title}
-          </h2>
-          <p
-            className={`text-base leading-relaxed max-w-2xl ${
-              isLight
-                ? "text-slate-700"
-                : "text-slate-200"
-            }`}
-          >
-            {t.payment.description}
-          </p>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2 text-sm">
-          <PaymentMethodCard
-            title={t.payment.paypal.title}
-            description={t.payment.paypal.description}
-            icon="PayPal"
-          />
-          <PaymentMethodCard
-            title={t.payment.stripe.title}
-            description={t.payment.stripe.description}
-            icon="Stripe"
-            cards={t.payment.stripe.cards}
-          />
-        </div>
-
-        <p className={`text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-          {t.payment.secure}
-        </p>
-      </section>
-
-      {/* Für wen ist Caisty? */}
-      <section className="max-w-5xl mx-auto px-4 pb-12 space-y-4">
-        <h2 className="text-xl font-semibold">{t.forWhom.title}</h2>
-        <div className="grid gap-4 md:grid-cols-3 text-sm">
-          <FeatureCard
-            title={t.forWhom.target1Title}
-            text={t.forWhom.target1Text}
-          />
-          <FeatureCard
-            title={t.forWhom.target2Title}
-            text={t.forWhom.target2Text}
-          />
-          <FeatureCard
-            title={t.forWhom.target3Title}
-            text={t.forWhom.target3Text}
-          />
-        </div>
-      </section>
-
-      {/* Installations-Vorschau */}
-      <section className="max-w-5xl mx-auto px-4 pb-16">
-        <div
-          className={`rounded-3xl border p-5 md:p-7 grid gap-6 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] items-center ${
-            isLight
-              ? "border-slate-200 bg-white"
-              : "border-slate-800 bg-slate-900/70"
-          }`}
-        >
-          {/* Textseite */}
-          <div className="space-y-3">
-            <h2
-              className={`text-lg font-semibold ${
-                isLight ? "text-slate-900" : "text-slate-100"
-              }`}
-            >
-              {t.install.title}
-            </h2>
-            <p
-              className={`text-sm ${
-                isLight ? "text-slate-600" : "text-slate-300"
-              }`}
-            >
-              {t.install.description}
-            </p>
-
-            <ol
-              className={`space-y-2 text-sm ${
-                isLight ? "text-slate-700" : "text-slate-200"
-              }`}
-            >
-              <li>
-                <span
-                  className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold mr-2 ${
-                    isLight
-                      ? "bg-emerald-100 text-emerald-600"
-                      : "bg-emerald-500/10 text-emerald-300"
-                  }`}
-                >
-                  1
-                </span>
-                {t.install.step1}
-              </li>
-              <li>
-                <span
-                  className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold mr-2 ${
-                    isLight
-                      ? "bg-emerald-100 text-emerald-600"
-                      : "bg-emerald-500/10 text-emerald-300"
-                  }`}
-                >
-                  2
-                </span>
-                {t.install.step2}
-              </li>
-              <li>
-                <span
-                  className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold mr-2 ${
-                    isLight
-                      ? "bg-emerald-100 text-emerald-600"
-                      : "bg-emerald-500/10 text-emerald-300"
-                  }`}
-                >
-                  3
-                </span>
-                {t.install.step3}
-              </li>
-            </ol>
-
-            <p
-              className={`text-[11px] ${
-                isLight ? "text-slate-600" : "text-slate-500"
-              }`}
-            >
-              {t.install.note}{" "}
-              <span
-                className={`font-semibold ${
-                  isLight ? "text-slate-700" : "text-slate-300"
-                }`}
-              >
-                {t.install.noteHighlight}
-              </span>{" "}
-              {t.install.noteEnd}
-            </p>
+      {/* Why */}
+      <section className={`${sectionShell} py-16 sm:py-24`}>
+        <div className="lp-reveal space-y-4">
+          <div className="flex items-start gap-3">
+            <span className="lp-section-accent" aria-hidden />
+            <div className="space-y-3 min-w-0">
+              <h2 className="lp-section-h2">{t.why.title}</h2>
+              <p className="lp-section-desc max-w-2xl">{t.why.description}</p>
+            </div>
           </div>
+        </div>
+        <div className="lp-reveal lp-reveal-stagger grid gap-5 sm:grid-cols-2 lg:grid-cols-3 mt-10 text-sm">
+          <div className="lp-reveal-item">
+            <FeatureCard title={t.why.feature1Title} text={t.why.feature1Text} />
+          </div>
+          <div className="lp-reveal-item">
+            <FeatureCard title={t.why.feature2Title} text={t.why.feature2Text} />
+          </div>
+          <div className="lp-reveal-item sm:col-span-2 lg:col-span-1">
+            <FeatureCard title={t.why.feature3Title} text={t.why.feature3Text} />
+          </div>
+        </div>
+      </section>
 
-          {/* „Bild" / Preview-Kachel */}
-          <div className="relative">
-            <div
-              className={`absolute -inset-1 rounded-3xl blur-xl ${
-                isLight ? "bg-emerald-100/50" : "bg-emerald-500/10"
-              }`}
+      {/* For whom */}
+      <section className={`${sectionShell} py-16 sm:py-24`}>
+        <div className="lp-reveal flex items-start gap-3 mb-10">
+          <span className="lp-section-accent" aria-hidden />
+          <h2 className="lp-section-h2">{t.forWhom.title}</h2>
+        </div>
+        <div className="lp-reveal lp-reveal-stagger grid gap-5 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+          <div className="lp-reveal-item">
+            <FeatureCard title={t.forWhom.target1Title} text={t.forWhom.target1Text} />
+          </div>
+          <div className="lp-reveal-item">
+            <FeatureCard title={t.forWhom.target2Title} text={t.forWhom.target2Text} />
+          </div>
+          <div className="lp-reveal-item sm:col-span-2 lg:col-span-1">
+            <FeatureCard title={t.forWhom.target3Title} text={t.forWhom.target3Text} />
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing (marketing summary — detail on /pricing) */}
+      <section id="pricing" className={`${sectionShell} py-16 sm:py-24 scroll-mt-20`}>
+        <div className="lp-reveal space-y-4">
+          <div className="flex items-start gap-3">
+            <span className="lp-section-accent" aria-hidden />
+            <div className="space-y-3 min-w-0">
+              <h2 className="lp-section-h2">{t.plans.title}</h2>
+              <p className="lp-section-desc max-w-2xl">{t.plans.intro}</p>
+            </div>
+          </div>
+        </div>
+        <div className="lp-reveal lp-reveal-stagger grid gap-5 lg:grid-cols-3 mt-10">
+          <div className="lp-reveal-item w-full min-w-0">
+            <PlanCard
+              name={t.plans.trial.name}
+              badge={t.plans.trial.badge}
+              priceLine={t.plans.trial.priceLine}
+              subline={t.plans.trial.subline}
+              features={t.plans.trial.features}
             />
-            <div
-              className={`relative rounded-2xl border p-4 shadow-lg space-y-3 ${
-                isLight
-                  ? "border-slate-200 bg-gradient-to-b from-slate-50 to-white shadow-emerald-200/40"
-                  : "border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 shadow-emerald-900/40"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <div
-                  className={`text-[11px] ${
-                    isLight ? "text-slate-600" : "text-slate-400"
-                  }`}
-                >
-                  Kundenportal · Installationsseite
-                </div>
-                <div className="flex gap-1">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                  <span className="h-2 w-2 rounded-full bg-amber-400" />
-                  <span className="h-2 w-2 rounded-full bg-rose-400" />
-                </div>
-              </div>
+          </div>
+          <div className="lp-reveal-item w-full min-w-0">
+            <PlanCard
+              name={t.plans.starter.name}
+              badge={t.plans.starter.badge}
+              recommended={t.plans.starter.recommended}
+              priceLine={t.plans.starter.priceLine}
+              subline={t.plans.starter.subline}
+              features={t.plans.starter.features}
+              highlight
+            />
+          </div>
+          <div className="lp-reveal-item w-full min-w-0">
+            <PlanCard
+              name={t.plans.pro.name}
+              badge={t.plans.pro.badge}
+              priceLine={t.plans.pro.priceLine}
+              subline={t.plans.pro.subline}
+              features={t.plans.pro.features}
+            />
+          </div>
+        </div>
+        <p className="mt-8 text-xs sm:text-sm leading-relaxed text-[var(--color-text-subtle)] max-w-3xl">{t.plans.note}</p>
+      </section>
 
+      {/* Payment */}
+      <section id="payment" className={`${sectionShell} py-16 sm:py-24 scroll-mt-20`}>
+        <div className="lp-reveal space-y-4">
+          <div className="flex items-start gap-3">
+            <span className="lp-section-accent" aria-hidden />
+            <div className="space-y-3 min-w-0">
+              <h2 className="lp-section-h2">{t.payment.title}</h2>
+              <p className="lp-section-desc max-w-2xl">{t.payment.description}</p>
+            </div>
+          </div>
+        </div>
+        <div className="lp-reveal lp-reveal-stagger grid gap-5 md:grid-cols-2 mt-10">
+          <div className="lp-reveal-item w-full min-w-0">
+            <PaymentMethodCard
+              title={t.payment.paypal.title}
+              description={t.payment.paypal.description}
+              icon="PayPal"
+            />
+          </div>
+          <div className="lp-reveal-item w-full min-w-0">
+            <PaymentMethodCard
+              title={t.payment.stripe.title}
+              description={t.payment.stripe.description}
+              icon="Stripe"
+            />
+          </div>
+        </div>
+        <p className="mt-8 text-xs sm:text-sm text-[var(--color-text-subtle)] max-w-3xl">{t.payment.footnote}</p>
+      </section>
+
+      {/* Install */}
+      <section className={`${sectionShell} py-16 sm:py-24`}>
+        <div
+          className={`lp-reveal rounded-2xl border p-6 sm:p-10 grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] items-start lp-surface-card ${
+            isLight ? "bg-white shadow-sm" : ""
+          }`}
+        >
+          <div className="space-y-6 min-w-0">
+            <div className="flex items-start gap-3">
+              <span className="lp-section-accent mt-1" aria-hidden />
+              <div className="space-y-3 min-w-0">
+                <h2 className="lp-section-h2 text-xl sm:text-2xl">{t.install.title}</h2>
+                <p className="text-sm sm:text-base leading-relaxed text-[var(--color-text-muted)] max-w-xl">{t.install.description}</p>
+              </div>
+            </div>
+
+            <div className="relative ps-10 space-y-0 isolate">
+              <div className="lp-timeline-line" aria-hidden />
+              <ol className="space-y-5 text-sm sm:text-base text-[var(--color-text-primary)]">
+                {t.install.steps.map((step, i) => (
+                  <li key={i} className="flex gap-3 items-start min-w-0">
+                    <span className="lp-step-circle shrink-0">{i + 1}</span>
+                    <span className="pt-0.5 min-w-0">{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            <p className="text-xs sm:text-sm text-[var(--color-text-subtle)] max-w-xl ps-10 sm:ps-10">
+              {t.install.noteBefore}{" "}
+              <span className="font-semibold text-[var(--color-text-primary)]">{t.install.noteHighlight}</span>{" "}
+              {t.install.noteAfter}
+            </p>
+          </div>
+
+          <div className="relative w-full min-w-0">
+            <div
+              className={`rounded-2xl border p-5 sm:p-6 space-y-4 ${isLight ? "border-slate-200 bg-slate-50" : "border-white/10 bg-[#0f172a]/80"}`}
+            >
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-[var(--color-text-subtle)]">
+                  {t.install.mockTitle}
+                </div>
+                <span className="rounded-full border border-[#f97316]/40 bg-[#f97316]/10 text-[#f97316] text-[10px] font-semibold px-2 py-0.5">
+                  {t.install.previewBadge}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <StepPill label={t.install.platformWin} active />
+                <StepPill label={t.install.platformLinux} />
+                <StepPill label={t.install.platformMac} />
+              </div>
+              <div className="grid gap-2 grid-cols-1 sm:grid-cols-3">
+                <SmallStep title={t.install.smallDownload} number={1} />
+                <SmallStep title={t.install.smallInstall} number={2} />
+                <SmallStep title={t.install.smallLicense} number={3} />
+              </div>
               <div
-                className={`rounded-xl border p-3 space-y-2 text-[11px] ${
-                  isLight
-                    ? "border-slate-200 bg-slate-50 text-slate-700"
-                    : "border-slate-800 bg-slate-900/80 text-slate-300"
+                className={`rounded-xl border border-dashed px-3 py-3 text-xs leading-relaxed ${
+                  isLight ? "border-slate-200 bg-white text-slate-600" : "border-white/10 text-slate-400"
                 }`}
               >
-                <div className="flex justify-between items-center">
-                  <span
-                    className={`font-semibold ${
-                      isLight ? "text-slate-900" : "text-slate-100"
-                    }`}
-                  >
-                    Caisty POS installieren
-                  </span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 ${
-                      isLight
-                        ? "bg-emerald-100 text-emerald-600"
-                        : "bg-emerald-500/10 text-emerald-300"
-                    }`}
-                  >
-                    Vorschau
-                  </span>
-                </div>
-
-                <div className="grid gap-2 sm:grid-cols-3 mt-1">
-                  <StepPill label="Windows" active />
-                  <StepPill label="Linux (bald)" />
-                  <StepPill label="macOS (bald)" />
-                </div>
-
-                <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                  <SmallStep title="Download" number={1} />
-                  <SmallStep title="Installation" number={2} />
-                  <SmallStep title="Lizenz verbinden" number={3} />
-                </div>
-
-                <div
-                  className={`mt-3 h-10 rounded-xl border border-dashed flex items-center justify-center text-[11px] ${
-                    isLight
-                      ? "border-slate-300 bg-slate-100 text-slate-600"
-                      : "border-slate-700 bg-slate-900/80 text-slate-500"
-                  }`}
-                >
-                  Download-Button &amp; Details erscheinen später direkt im
-                  Portal – nicht auf der öffentlichen Website.
-                </div>
+                {t.install.downloadHint}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Fiscal info / international use */}
-      <section className="max-w-5xl mx-auto px-4 pb-12">
-        <div
-          className={`rounded-3xl border p-5 space-y-3 text-xs sm:text-sm ${
-            isLight
-              ? "border-slate-200 bg-white text-slate-700"
-              : "border-slate-800 bg-slate-900/70 text-slate-300"
-          }`}
-        >
-          <h2
-            className={`text-sm sm:text-base font-semibold ${
-              isLight ? "text-slate-900" : "text-slate-100"
-            }`}
-          >
-            {t.fiscal.title}
-          </h2>
-          <p>
-            {t.fiscal.paragraph1}{" "}
-            <span className="font-semibold">
-              {t.fiscal.modeName}
-            </span>{" "}
-            {t.fiscal.paragraph2.split("(TSE")[0]}
-            <span className="font-semibold">{t.fiscal.comingSoon}</span> (TSE, RKSV,
-            NF525, SAF-T, TicketBAI, myDATA …). {t.fiscal.paragraph2.includes("(TSE") ? t.fiscal.paragraph2.split("(TSE")[1] : ""}
-          </p>
-          <ul className="list-disc list-inside space-y-1">
-            {t.fiscal.countries.map((country, idx) => (
-              <li key={idx}>{country}</li>
+      {/* Fiscal */}
+      <section id="fiscal" className={`${sectionShell} py-16 sm:py-24 scroll-mt-20`}>
+        <div className={`lp-reveal lp-fiscal-box border p-6 sm:p-8 space-y-4 text-sm leading-relaxed ${isLight ? "border-slate-200" : "border-white/10"}`}>
+          <h2 className="lp-font-heading text-base sm:text-lg font-bold text-[var(--color-text-primary)]">{t.fiscal.title}</h2>
+          <p className="text-[var(--color-text-muted)]">{t.fiscal.lead}</p>
+          <ul className="list-disc ps-5 space-y-1.5 text-[var(--color-text-muted)]">
+            {t.fiscal.countries.map((c) => (
+              <li key={c}>{c}</li>
             ))}
           </ul>
-          <p>
-            {t.fiscal.paragraph3}{" "}
-            <span className="font-semibold">{t.fiscal.strictRequirement}</span>{" "}
-            {t.fiscal.paragraph4}
-          </p>
-          <p>
-            {t.fiscal.paragraph5}
-          </p>
+          <p className="text-[var(--color-text-muted)]">{t.fiscal.strict}</p>
+          <p className="text-[var(--color-text-muted)] font-medium">{t.fiscal.disclaimer}</p>
         </div>
       </section>
 
-      {/* Video-Box und Screenshots ganz unten */}
-      <section className="max-w-5xl mx-auto px-4 pb-20 pt-12">
-        {/* Video-Box */}
-        <div
-          className={`rounded-3xl border overflow-hidden shadow-xl ${
-            isLight
-              ? "border-slate-200 bg-white shadow-emerald-200/40"
-              : "border-slate-800 bg-slate-900/70 shadow-emerald-900/40"
-          }`}
-        >
-          <div className="aspect-video bg-slate-900 flex items-center justify-center relative">
-            {/* Platzhalter für Video - du kannst hier ein <video> oder iframe einfügen */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <button
-                className={`rounded-full p-4 ${
-                  isLight
-                    ? "bg-white/90 text-slate-900 hover:bg-white"
-                    : "bg-slate-800/90 text-slate-100 hover:bg-slate-800"
-                } transition-all hover:scale-110`}
-                aria-label="Video abspielen"
-              >
-                <svg
-                  className="w-12 h-12"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
+      {/* Demo / preview */}
+      <section className={`${sectionShell} py-16 sm:py-24 pb-24`}>
+        <div className="lp-reveal mb-6 flex items-start gap-3">
+          <span className="lp-section-accent" aria-hidden />
+          <h2 className="lp-section-h2">{t.demo.sectionTitle}</h2>
+        </div>
+        <div className={`lp-reveal max-w-3xl mx-auto w-full rounded-2xl border overflow-hidden lp-surface-card ${isLight ? "shadow-md" : ""}`}>
+          <div className="aspect-video lp-video-shell flex items-center justify-center relative overflow-hidden max-h-[320px] sm:max-h-none">
+            <div className="absolute inset-0 lp-shimmer opacity-30" aria-hidden />
+            <div className="absolute inset-0 flex items-center justify-center z-[1]">
+              <div className="relative w-16 h-16 sm:w-[72px] sm:h-[72px] flex items-center justify-center">
+                <span className="lp-play-ring" />
+                <button
+                  type="button"
+                  className={`relative z-[2] rounded-full p-3 sm:p-4 transition-transform hover:scale-105 ${
+                    isLight ? "bg-white text-slate-900 shadow-lg" : "bg-white/10 text-white border border-white/10"
+                  }`}
+                  aria-label={t.demo.videoAria}
                 >
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              </button>
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </button>
+              </div>
             </div>
-            {/* Optional: Video-Thumbnail als Hintergrund */}
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 to-slate-900/80" />
           </div>
         </div>
 
-        {/* 3 Screenshots direkt unter dem Video */}
-        <div className="grid grid-cols-3 gap-4 mt-6">
+        <div className="lp-reveal lp-reveal-stagger grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mt-8 w-full min-w-0">
           {screenshots.map((screenshot) => (
-            <button
-              key={screenshot.id}
-              onClick={() => setSelectedImage(screenshot.src)}
-              className={`group rounded-xl border overflow-hidden transition-all hover:scale-105 relative ${
-                isLight
-                  ? "border-slate-200 bg-white hover:border-emerald-300"
-                  : "border-slate-800 bg-slate-900/70 hover:border-emerald-500/50"
-              }`}
-            >
-              <div className="aspect-video bg-slate-800 flex items-center justify-center relative">
-                {/* Platzhalter für Bild */}
-                <span
-                  className={`text-xs transition-opacity ${
-                    isLight ? "text-slate-400" : "text-slate-500"
-                  }`}
-                >
-                  {screenshot.title}
-                </span>
-                {/* Hover-Overlay */}
-                <div className="absolute inset-0 bg-emerald-500/0 group-hover:bg-emerald-500/10 transition-colors flex items-center justify-center">
-                  <svg
-                    className="w-8 h-8 text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </button>
+            <div key={screenshot.id} className="lp-reveal-item w-full min-w-0">
+              <ScreenshotThumb screenshot={screenshot} isLight={isLight} onOpen={() => setSelectedImage(screenshot.src)} />
+            </div>
           ))}
         </div>
       </section>
 
-      {/* Screenshot/Image Modal */}
       {selectedImage && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+          className="lp-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedImage(null)}
+          role="presentation"
         >
-          <div className="relative max-w-5xl w-full">
+          <div className="relative max-w-5xl w-full min-w-0">
             <button
-              className="absolute -top-12 right-0 text-white hover:text-slate-300 transition-colors z-10"
+              type="button"
+              className="absolute -top-10 end-0 text-white hover:text-slate-300 transition-colors z-10"
               onClick={() => setSelectedImage(null)}
-              aria-label="Schließen"
+              aria-label={t.demo.closeLabel}
             >
-              <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <div
-              className={`rounded-xl border overflow-hidden ${
-                isLight
-                  ? "border-slate-300 bg-white"
-                  : "border-slate-700 bg-slate-900"
-              }`}
-            >
+            <div className={`lp-modal-panel rounded-xl border overflow-hidden ${isLight ? "border-slate-300 bg-white" : "border-slate-700 bg-slate-900"}`}>
               <img
                 src={selectedImage}
-                alt="Bild"
+                alt=""
                 className="w-full h-auto max-h-[80vh] object-contain"
                 onClick={(e) => e.stopPropagation()}
                 onError={(e) => {
-                  // Fallback wenn Bild nicht geladen werden kann
                   const target = e.target as HTMLImageElement;
                   target.style.display = "none";
-                  const parent = target.parentElement;
-                  if (parent) {
-                    parent.innerHTML = `
-                      <div class="p-20 text-center ${
-                        isLight ? "text-slate-600" : "text-slate-400"
-                      }">
-                        <p class="text-sm">Bild wird geladen...</p>
-                        <p class="text-xs mt-2">Pfad: ${selectedImage}</p>
-                      </div>
-                    `;
-                  }
                 }}
               />
             </div>
-            <p
-              className={`text-center mt-4 text-sm ${
-                isLight ? "text-slate-300" : "text-slate-500"
-              }`}
-            >
-              Klicke außerhalb des Bildes zum Schließen
-            </p>
+            <p className={`text-center mt-4 text-xs sm:text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>{t.demo.clickOutside}</p>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+function ScreenshotThumb(props: {
+  screenshot: { id: number; src: string; alt: string; title: string };
+  isLight: boolean;
+  onOpen: () => void;
+}) {
+  const [failed, setFailed] = useState(false);
+  const { screenshot, isLight, onOpen } = props;
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={`lp-shot-thumb group w-full min-w-0 text-start rounded-2xl border overflow-hidden relative ${
+        isLight ? "border-slate-200 bg-white" : "border-white/10 bg-[#0f172a]"
+      }`}
+    >
+      <div className="aspect-video relative overflow-hidden bg-[#0b1220]">
+        <div className="absolute inset-0 lp-shimmer opacity-25" aria-hidden />
+        {!failed ? (
+          <img
+            src={screenshot.src}
+            alt={screenshot.alt}
+            className="relative z-[1] w-full h-full object-cover"
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <div className="absolute inset-0 z-[2] flex flex-col items-center justify-center gap-2 p-4 text-center">
+            <span className={`text-xs font-semibold ${isLight ? "text-slate-600" : "text-slate-400"}`}>{screenshot.title}</span>
+          </div>
+        )}
+        <div className="absolute inset-0 z-[3] bg-[#f97316]/0 group-hover:bg-[#f97316]/10 transition-colors flex items-center justify-center pointer-events-none">
+          <svg className="w-7 h-7 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+          </svg>
+        </div>
+      </div>
+    </button>
   );
 }
 
@@ -727,63 +496,68 @@ function FeatureCard(props: { title: string; text: string }) {
   const { theme } = useTheme();
   const isLight = theme === "light";
   return (
-    <div className={`rounded-2xl border p-4 space-y-2 ${isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/70"}`}>
-      <div className={`text-sm font-medium ${isLight ? "text-slate-900" : "text-slate-100"}`}>{props.title}</div>
-      <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-300"}`}>{props.text}</p>
+    <div className={`lp-surface-card lp-card-over p-6 sm:p-7 space-y-3 h-full ${isLight ? "bg-white shadow-sm" : ""}`}>
+      <div className="relative z-[1] text-sm font-bold text-[var(--color-text-primary)] lp-font-heading">{props.title}</div>
+      <p className={`relative z-[1] text-sm leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>{props.text}</p>
     </div>
   );
 }
 
-function PaymentMethodCard(props: {
-  title: string;
-  description: string;
-  icon: "PayPal" | "Stripe";
-  cards?: string;
-}) {
+function PayPalLogo({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 101 32" fill="none" aria-hidden>
+      <path
+        fill="#003087"
+        d="M12.2 4.2h7.4c4.1 0 6.7 2.5 6.7 6.4 0 4.4-3.4 7.4-8.6 7.4h-4.9L12.2 4.2zm4.1 10.3h2.1c2.4 0 3.8-1.3 3.8-3.4 0-2-1.3-3.1-3.6-3.1h-1.5l-.8 6.5z"
+      />
+      <path
+        fill="#009CDE"
+        d="M23.8 4.2h7.3c4 0 6.5 2.4 6.5 6.2 0 4.2-3.2 7.1-8.1 7.1h-4.8l-.9-13.3zm4 10.1h2c2.3 0 3.6-1.2 3.6-3.2 0-1.9-1.2-2.9-3.4-2.9h-1.4l-.8 6.1z"
+      />
+      <path
+        fill="#012169"
+        d="M38.5 8.5h3.2l-.5 3.4h2.9c2.8 0 4.3 1.2 4.3 3.5 0 2.6-2 4.1-5.5 4.1h-4.6l1.2-11zm.7 8.1h1.6c1.4 0 2.1-.6 2.1-1.6 0-1-.7-1.5-2-1.5h-1.1l-.6 3.1z"
+      />
+      <path
+        fill="#FFC439"
+        d="M52.1 8.5h3.1l-.2 1.6c.9-1.1 2.3-1.8 4-1.8 2.6 0 4.1 1.6 4.1 4.2 0 3.3-2.4 5.6-5.8 5.6-1.2 0-2.1-.3-2.7-.8l-.3 2.8h-3.1l1.9-11.6zm2.4 5.6c0 1.2.8 2 2.1 2 1.5 0 2.4-1.1 2.4-2.6 0-1.1-.6-1.8-1.7-1.8-1.4 0-2.4 1-2.8 2.4z"
+      />
+    </svg>
+  );
+}
+
+function StripeLogo({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 120 50" fill="none" aria-hidden>
+      <path
+        fill="#635BFF"
+        d="M11.4 20.4c0-1.9-1.1-3.3-3.2-3.3-1.6 0-2.8.8-3.6 1.4l-0.6-2.4c0.9-0.7 2.6-1.5 4.8-1.5 3.7 0 5.8 2 5.8 5.6v10.1H12l-0.2-1.4h-0.1c-1.1 1-2.5 1.7-4 1.7-2.5 0-4.2-1.7-4.2-4.2 0-2.8 2.5-4.4 6.6-4.8v-0.3c0-1.5-0.8-2.3-2.4-2.3-1.2 0-2.3.4-3.2 1l-0.6-2.1c1.1-0.6 2.5-1.2 4.3-1.2 3.2 0 5 1.7 5 5.3v6.8c0 1.6 0.1 3.1 0.3 4.2h-3.1l-0.3-2.1zM9.8 31.2c1.2 0 2.1-0.5 2.9-1.3v-3.5c-2.8 0.3-4.1 1.2-4.1 2.6 0 1.3 0.7 2.2 1.2 2.2z"
+      />
+      <path
+        fill="#635BFF"
+        d="M24.2 16.6h3.4l2.3 12.8c0.4 2 0.6 3.8 0.8 5.2h0.1c0.2-1.3 0.5-3.1 1-5.1l1.8-8.5h3.1l1.8 8.5c0.5 2.1 0.8 3.8 1 5.1h0.1c0.2-1.4 0.4-3.2 0.8-5.2l2.2-12.8h3.2l-4.1 21.4h-3.9l-1.7-8.1c-0.4-2-0.7-3.8-0.9-5.5h-0.1c-0.2 1.7-0.5 3.5-0.9 5.5l-1.7 8.1h-3.8l-4.2-21.4z"
+      />
+      <path
+        fill="#635BFF"
+        d="M52.8 16.2c4.1 0 6.3 2.9 6.3 7.4 0 5-2.8 8-7.3 8-4.1 0-6.3-2.9-6.3-7.3 0-5.1 2.8-8.1 7.3-8.1zm-0.1 11.8c0 2.6 0.9 4.1 2.6 4.1 1.8 0 2.6-1.8 2.6-4.6 0-2.4-0.8-4-2.6-4-1.7 0-2.6 1.6-2.6 4.5z"
+      />
+      <path fill="#635BFF" d="M62.4 16.6h3.1l0.3 2.8h0.1c1.1-2 2.8-3.2 4.9-3.2 1 0 1.7 0.2 2.2 0.4l-0.7 3.1c-0.6-0.2-1.2-0.3-2-0.3-2.2 0-3.8 1.6-4.3 4.2l-1.7 9.4h-3.4l3.5-16.4z" />
+    </svg>
+  );
+}
+
+function PaymentMethodCard(props: { title: string; description: string; icon: "PayPal" | "Stripe" }) {
   const { theme } = useTheme();
   const isLight = theme === "light";
   return (
-    <div
-      className={`rounded-2xl border p-4 space-y-3 ${
-        isLight
-          ? "border-slate-200 bg-white"
-          : "border-slate-800 bg-slate-900/70"
-      }`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <div
-          className={`text-sm font-semibold ${
-            isLight ? "text-slate-900" : "text-slate-100"
-          }`}
-        >
-          {props.title}
-        </div>
-        {props.icon === "PayPal" && (
-          <div className="text-xs font-semibold text-[#0070ba]">PayPal</div>
-        )}
-        {props.icon === "Stripe" && (
-          <div className="text-xs font-semibold text-[#635bff]">Stripe</div>
-        )}
+    <div className={`lp-surface-card lp-card-over p-6 sm:p-7 space-y-4 flex flex-col h-full ${isLight ? "bg-white shadow-sm" : ""}`}>
+      <div className="relative z-[1] h-8 shrink-0 flex items-center">
+        {props.icon === "PayPal" ? <PayPalLogo className="h-8 w-[88px] max-w-none" /> : <StripeLogo className="h-8 w-[96px] max-w-none" />}
       </div>
-      <p
-        className={`text-xs leading-relaxed ${
-          isLight ? "text-slate-600" : "text-slate-300"
-        }`}
-      >
-        {props.description}
-      </p>
-      {props.cards && (
-        <div
-          className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[10px] ${
-            isLight
-              ? "border-slate-200 bg-slate-50 text-slate-700"
-              : "border-slate-700 bg-slate-900 text-slate-300"
-          }`}
-        >
-          <span>💳</span>
-          <span>{props.cards}</span>
-        </div>
-      )}
+      <div className="relative z-[1] space-y-2">
+        <div className="text-sm font-bold text-[var(--color-text-primary)] lp-font-heading">{props.title}</div>
+        <p className={`text-sm leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>{props.description}</p>
+      </div>
     </div>
   );
 }
@@ -791,45 +565,51 @@ function PaymentMethodCard(props: {
 function PlanCard(props: {
   name: string;
   badge: string;
-  price: string;
-  subPrice?: string;
-  note?: string;
+  priceLine: string;
+  subline: string;
+  features: string[];
   highlight?: boolean;
-  details?: string[];
+  recommended?: string;
 }) {
   const { theme } = useTheme();
   const isLight = theme === "light";
-  const base =
-    "rounded-2xl border p-4 space-y-3 text-xs sm:text-sm";
-  const style = props.highlight
-    ? isLight ? "border-emerald-300 shadow-lg shadow-emerald-200/40 bg-white" : "border-emerald-500/70 shadow-lg shadow-emerald-900/40 bg-slate-900/70"
-    : isLight ? "border-slate-200 bg-white" : "border-slate-800 bg-slate-900/70";
-
+  const highlight = props.highlight ? "lp-plan-highlight" : "";
   return (
-    <div className={`${base} ${style}`}>
-      <div className="flex items-center justify-between gap-2">
-        <div className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>
-          {props.name}
+    <div
+      className={`lp-surface-card lp-card-over p-6 sm:p-7 space-y-4 text-sm h-full w-full min-w-0 ${highlight} ${
+        isLight ? "bg-white shadow-sm" : ""
+      }`}
+    >
+      <div className="relative z-[1] flex flex-wrap items-center justify-between gap-2">
+        <div className="text-sm font-bold text-[var(--color-text-primary)] lp-font-heading">{props.name}</div>
+        <div className="flex flex-wrap items-center gap-2 justify-end">
+          {props.recommended && (
+            <span className="rounded-full bg-[#f97316] text-white text-[10px] font-bold uppercase tracking-wide px-2.5 py-0.5">
+              {props.recommended}
+            </span>
+          )}
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
+              isLight ? "border-slate-200 bg-slate-50 text-slate-600" : "border-white/10 bg-white/[0.06] text-slate-300"
+            }`}
+          >
+            {props.badge}
+          </span>
         </div>
-        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] ${isLight ? "border-slate-200 bg-slate-50 text-slate-700" : "border-slate-700 bg-slate-900 text-slate-300"}`}>
-          {props.badge}
-        </span>
       </div>
-      <div className="space-y-1">
-        <div className="text-lg font-semibold text-emerald-400">
-          {props.price}
-        </div>
-        {props.subPrice && (
-          <div className={`text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"}`}>{props.subPrice}</div>
-        )}
-        {props.note && (
-          <div className={`text-[11px] ${isLight ? "text-slate-700" : "text-slate-300"}`}>{props.note}</div>
-        )}
+      <div className="relative z-[1] space-y-1">
+        <div className="lp-plan-price lp-font-heading">{props.priceLine}</div>
+        <div className="text-xs sm:text-sm text-[var(--color-text-muted)]">{props.subline}</div>
       </div>
-      {props.details && props.details.length > 0 && (
-        <ul className={`mt-2 space-y-1 text-[11px] ${isLight ? "text-slate-700" : "text-slate-300"}`}>
-          {props.details.map((d, i) => (
-            <li key={i}>• {d}</li>
+      {props.features.length > 0 && (
+        <ul className="relative z-[1] mt-2 space-y-2 text-xs sm:text-sm text-[var(--color-text-muted)]">
+          {props.features.map((d) => (
+            <li key={d} className="flex gap-2 items-start">
+              <span className="text-[#f97316] shrink-0 mt-0.5" aria-hidden>
+                ✓
+              </span>
+              <span>{d}</span>
+            </li>
           ))}
         </ul>
       )}
@@ -843,14 +623,14 @@ function StepPill({ label, active }: { label: string; active?: boolean }) {
   return (
     <div
       className={[
-        "inline-flex items-center justify-center rounded-full border px-3 py-1 text-[11px]",
+        "inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-xs font-medium",
         active
           ? isLight
-            ? "border-emerald-500/60 bg-emerald-50 text-emerald-600"
-            : "border-emerald-500/60 bg-emerald-500/10 text-emerald-200"
+            ? "border-[#f97316]/50 bg-orange-50 text-[#c2410c]"
+            : "border-[#f97316]/50 bg-[#f97316]/15 text-orange-200"
           : isLight
-          ? "border-slate-300 bg-slate-100 text-slate-600"
-          : "border-slate-700 bg-slate-900 text-slate-400",
+            ? "border-slate-200 bg-slate-100 text-slate-600"
+            : "border-white/10 bg-white/[0.04] text-slate-500",
       ].join(" ")}
     >
       {label}
@@ -862,32 +642,16 @@ function SmallStep({ title, number }: { title: string; number: number }) {
   const { theme } = useTheme();
   const isLight = theme === "light";
   return (
-    <div
-      className={`rounded-xl border p-3 space-y-2 ${
-        isLight
-          ? "border-slate-200 bg-slate-50"
-          : "border-slate-800 bg-slate-900/80"
-      }`}
-    >
+    <div className={`rounded-xl border p-3 space-y-2 min-w-0 ${isLight ? "border-slate-200 bg-white" : "border-white/10 bg-white/[0.04]"}`}>
       <div
-        className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold ${
-          isLight
-            ? "bg-emerald-100 text-emerald-600"
-            : "bg-emerald-500/15 text-emerald-300"
+        className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold ${
+          isLight ? "bg-orange-100 text-[#c2410c]" : "bg-[#f97316]/20 text-orange-200"
         }`}
       >
         {number}
       </div>
-      <div
-        className={`text-[11px] font-semibold ${
-          isLight ? "text-slate-900" : "text-slate-100"
-        }`}
-      >
-        {title}
-      </div>
-      <div
-        className={`h-2 rounded ${isLight ? "bg-slate-200" : "bg-slate-800"}`}
-      />
+      <div className="text-[11px] font-semibold text-[var(--color-text-primary)] lp-font-heading leading-snug">{title}</div>
+      <div className={`h-1.5 rounded ${isLight ? "bg-slate-200" : "bg-white/10"}`} />
     </div>
   );
 }

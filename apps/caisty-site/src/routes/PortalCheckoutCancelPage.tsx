@@ -1,15 +1,17 @@
 // apps/caisty-site/src/routes/PortalCheckoutCancelPage.tsx
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "../lib/LanguageContext";
+import { getPortalTranslations } from "../lib/translations";
 
 export default function PortalCheckoutCancelPage() {
   const navigate = useNavigate();
+  const { language } = useLanguage();
+  const t = getPortalTranslations(language);
 
   useEffect(() => {
-    // Clear pending invoice
     sessionStorage.removeItem("pendingInvoiceId");
-    
-    // Redirect to plan page after 2 seconds
+
     const timer = setTimeout(() => {
       navigate("/portal/plan", { replace: true });
     }, 2000);
@@ -38,19 +40,19 @@ export default function PortalCheckoutCancelPage() {
           </div>
         </div>
         <h2 className="text-xl font-semibold text-center mb-2 text-yellow-400">
-          Zahlung abgebrochen
+          {t.checkoutCancel.title}
         </h2>
         <p className="text-sm text-slate-400 text-center mb-4">
-          Die Zahlung wurde abgebrochen. Du wirst gleich zurück zu den Plänen weitergeleitet.
+          {t.checkoutCancel.body}
         </p>
         <button
+          type="button"
           onClick={() => navigate("/portal/plan")}
-          className="w-full rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition-colors"
+          className="w-full rounded-full bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 transition-colors"
         >
-          Zu den Plänen
+          {t.checkoutCancel.toPlans}
         </button>
       </div>
     </div>
   );
 }
-
