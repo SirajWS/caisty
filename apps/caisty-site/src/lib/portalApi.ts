@@ -294,6 +294,13 @@ export interface PortalDevice {
   licenseKey: string | null;
 }
 
+export interface PortalInvoiceAmountBreakdown {
+  netCents: number;
+  taxCents: number;
+  grossCents: number;
+  vatRatePercent: number;
+}
+
 export interface PortalInvoice {
   id: string;
   number: string;
@@ -305,6 +312,8 @@ export interface PortalInvoice {
   periodStart: string | null;
   periodEnd: string | null;
   plan?: string | null;
+  /** Present from invoice detail API: matches checkout-style net / VAT / gross. */
+  amountBreakdown?: PortalInvoiceAmountBreakdown | null;
 }
 
 // Detail-Typ für einzelne Rechnung

@@ -163,7 +163,7 @@ export const portalDe: PortalTranslations = {
     errorLoad: "Fehler beim Laden der Rechnung.",
     noId: "Keine Rechnungs-ID angegeben.",
     invoiceNumber: "RECHNUNGSNUMMER",
-    amount: "BETRAG",
+    amount: "GESAMT (INKL. MWST.)",
     status: "STATUS",
     issuedAt: "AUSGESTELLT AM",
     dueAt: "FÄLLIG AM",
@@ -173,6 +173,7 @@ export const portalDe: PortalTranslations = {
     printPdf: "Als PDF drucken",
     notSignedIn: "Nicht angemeldet",
     errorPrefix: "Fehler:",
+    vatWithPercent: "MwSt. ({{pct}} %)",
   },
   support: {
     title: "Support & Kontakt",

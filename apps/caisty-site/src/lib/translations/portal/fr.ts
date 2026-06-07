@@ -164,7 +164,7 @@ export const portalFr: PortalTranslations = {
     errorLoad: "Impossible de charger la facture.",
     noId: "Aucun identifiant de facture fourni.",
     invoiceNumber: "NUMÉRO DE FACTURE",
-    amount: "MONTANT",
+    amount: "TOTAL (TVA INCLUSE)",
     status: "STATUT",
     issuedAt: "ÉMISE LE",
     dueAt: "ÉCHÉANCE",
@@ -174,6 +174,7 @@ export const portalFr: PortalTranslations = {
     printPdf: "Imprimer en PDF",
     notSignedIn: "Non connecté",
     errorPrefix: "Erreur :",
+    vatWithPercent: "TVA ({{pct}} %)",
   },
   support: {
     title: "Support & contact",

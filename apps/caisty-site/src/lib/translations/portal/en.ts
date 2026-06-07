@@ -163,7 +163,7 @@ export const portalEn = {
     errorLoad: "Could not load invoice.",
     noId: "No invoice ID provided.",
     invoiceNumber: "INVOICE NUMBER",
-    amount: "AMOUNT",
+    amount: "TOTAL (INCL. VAT)",
     status: "STATUS",
     issuedAt: "ISSUED ON",
     dueAt: "DUE ON",
@@ -173,6 +173,7 @@ export const portalEn = {
     printPdf: "Print as PDF",
     notSignedIn: "Not signed in",
     errorPrefix: "Error:",
+    vatWithPercent: "VAT ({{pct}}%)",
   },
   support: {
     title: "Support & contact",

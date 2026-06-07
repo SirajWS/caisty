@@ -8,6 +8,7 @@ import { customers } from "../db/schema/customers.js";
 import { subscriptions } from "../db/schema/subscriptions.js";
 import { orgs } from "../db/schema/orgs.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
+import { portalInvoiceDisplayBreakdown } from "../lib/portalInvoiceDisplayAmount.js";
 
 interface PortalJwtPayload {
   customerId: string;
@@ -75,13 +76,33 @@ export async function registerPortalInvoiceRoutes(app: FastifyInstance) {
         return { ok: false, message: "Forbidden" };
       }
 
+      const invForCalc = {
+        status: inv.status,
+        amountCents: inv.amountCents,
+        amountGrossCents: inv.amountGrossCents,
+        amountNetCents: inv.amountNetCents,
+        amountTaxCents: inv.amountTaxCents,
+        planName: inv.planName,
+        currency: inv.currency,
+      };
+      const breakdown = portalInvoiceDisplayBreakdown(
+        invForCalc,
+        sub?.plan ?? null,
+      );
+
       return {
         ok: true,
         invoice: {
           id: String(inv.id),
           number: String(inv.number),
           status: String(inv.status),
-          amountCents: Number(inv.amountCents),
+          amountCents: breakdown.grossCents,
+          amountBreakdown: {
+            netCents: breakdown.netCents,
+            taxCents: breakdown.taxCents,
+            grossCents: breakdown.grossCents,
+            vatRatePercent: Math.round(breakdown.vatRate * 100),
+          },
           currency: String(inv.currency ?? "EUR"),
           createdAt: inv.createdAt ? new Date(inv.createdAt).toISOString() : new Date().toISOString(),
           dueAt: inv.dueAt ? new Date(inv.dueAt).toISOString() : null,
@@ -123,45 +144,50 @@ export async function registerPortalInvoiceRoutes(app: FastifyInstance) {
 
       const { id } = request.params;
 
-      const [row] = await db
-        .select({
-          inv: invoices,
-          customer: customers,
-        })
-        .from(invoices)
-        .leftJoin(customers, eq(invoices.customerId, customers.id))
-        .where(eq(invoices.id, id))
-        .limit(1);
-
-      if (!row || !row.inv) {
-        reply.code(404).type("text/plain").send("Invoice not found");
-        return;
-      }
-
-      const inv = row.inv as any;
-
-      if (inv.customerId !== payload.customerId) {
-        reply.code(403).type("text/plain").send("Forbidden");
-        return;
-      }
-
-      // Verwende renderInvoiceHtml für professionelles Template
       const { getInvoiceWithCustomerAndOrg } = await import("../services/invoiceService.js");
       const invoiceData = await getInvoiceWithCustomerAndOrg(id);
-      
+
       if (!invoiceData) {
         reply.code(404).type("text/plain").send("Invoice not found");
         return;
       }
 
-      // Prüfe nochmal, dass Invoice zum eingeloggten Customer gehört
       if (invoiceData.customer.id !== payload.customerId) {
         reply.code(403).type("text/plain").send("Forbidden");
         return;
       }
 
+      let subscriptionPlan: string | null = null;
+      const subId = invoiceData.invoice.subscriptionId;
+      if (subId) {
+        const [subRow] = await db
+          .select({ plan: subscriptions.plan })
+          .from(subscriptions)
+          .where(eq(subscriptions.id, subId))
+          .limit(1);
+        subscriptionPlan = subRow?.plan ? String(subRow.plan) : null;
+      }
+
+      const invForCalc = {
+        status: inv.status,
+        amountCents: inv.amountCents,
+        amountGrossCents: inv.amountGrossCents,
+        amountNetCents: inv.amountNetCents,
+        amountTaxCents: inv.amountTaxCents,
+        planName: inv.planName,
+        currency: inv.currency,
+      };
+      const breakdown = portalInvoiceDisplayBreakdown(
+        invForCalc,
+        subscriptionPlan,
+      );
+
       const { renderInvoiceHtml } = await import("../invoices/renderInvoiceHtml.js");
-      const html = renderInvoiceHtml(invoiceData);
+      const html = renderInvoiceHtml({
+        ...invoiceData,
+        invoice: { ...invoiceData.invoice, amountCents: breakdown.grossCents },
+        amountBreakdown: breakdown,
+      });
 
       reply.type("text/html").send(html);
     },

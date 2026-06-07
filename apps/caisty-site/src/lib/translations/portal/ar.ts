@@ -162,7 +162,7 @@ export const portalAr: PortalTranslations = {
     errorLoad: "تعذّر تحميل الفاتورة.",
     noId: "لم يُرسل رقم الفاتورة.",
     invoiceNumber: "رقم الفاتورة",
-    amount: "المبلغ",
+    amount: "الإجمالي (شامل الضريبة)",
     status: "الحالة",
     issuedAt: "تاريخ الإصدار",
     dueAt: "تاريخ الاستحقاق",
@@ -172,6 +172,7 @@ export const portalAr: PortalTranslations = {
     printPdf: "طباعة PDF",
     notSignedIn: "غير مسجّل الدخول",
     errorPrefix: "خطأ:",
+    vatWithPercent: "ضريبة القيمة المضافة ({{pct}}٪)",
   },
   support: {
     title: "الدعم والاتصال",

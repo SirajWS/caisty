@@ -1,6 +1,11 @@
 // apps/api/src/invoices/renderInvoice.ts
 
 import type { InvoiceWithCustomerAndOrg } from "../services/invoiceService.js";
+import { portalInvoiceDisplayBreakdown } from "../lib/portalInvoiceDisplayAmount.js";
+
+function fmtCents(cents: number): string {
+  return (Number(cents) / 100).toFixed(2);
+}
 
 /**
  * Professionelles HTML-A4 Template für Invoice-Anzeige/Druck.
@@ -11,7 +16,26 @@ export function renderInvoiceHtml(
 ): string {
   const { invoice, customer, org } = data;
 
-  const amount = (Number(invoice.amountCents) / 100).toFixed(2);
+  const breakdown =
+    data.amountBreakdown ??
+    portalInvoiceDisplayBreakdown(
+      {
+        status: invoice.status,
+        amountCents: invoice.amountCents,
+        amountGrossCents: invoice.amountGrossCents,
+        amountNetCents: invoice.amountNetCents,
+        amountTaxCents: invoice.amountTaxCents,
+        planName: invoice.planName,
+        currency: invoice.currency,
+      },
+      null,
+    );
+
+  const netStr = fmtCents(breakdown.netCents);
+  const taxStr = fmtCents(breakdown.taxCents);
+  const grossStr = fmtCents(breakdown.grossCents);
+  const vatPct = Math.round(breakdown.vatRate * 100);
+  const cur = invoice.currency ?? "EUR";
   const issuedAt = invoice.issuedAt
     ? new Date(invoice.issuedAt).toLocaleDateString("de-DE", {
         year: "numeric",
@@ -241,24 +265,28 @@ export function renderInvoiceHtml(
     <thead>
       <tr>
         <th>Beschreibung</th>
-        <th class="text-right">Betrag</th>
+        <th class="text-right">Betrag (netto)</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         <td>${invoice.planName ? `Caisty ${invoice.planName} Lizenz` : "Caisty POS Lizenz"} – Monatliche Abrechnung</td>
-        <td class="text-right">${amount} ${invoice.currency ?? "EUR"}</td>
+        <td class="text-right">${netStr} ${cur}</td>
+      </tr>
+      <tr>
+        <td>Umsatzsteuer (${vatPct} %)</td>
+        <td class="text-right">${taxStr} ${cur}</td>
       </tr>
       <tr class="total-row">
-        <td>Gesamtbetrag</td>
-        <td class="text-right">${amount} ${invoice.currency ?? "EUR"}</td>
+        <td>Gesamtbetrag (inkl. USt.)</td>
+        <td class="text-right">${grossStr} ${cur}</td>
       </tr>
     </tbody>
   </table>
 
   <div class="total-amount">
-    <div class="total-amount-label">Zu zahlender Betrag</div>
-    <div class="total-amount-value">${amount} ${invoice.currency ?? "EUR"}</div>
+    <div class="total-amount-label">Zu zahlender Betrag (inkl. ${vatPct} % USt.)</div>
+    <div class="total-amount-value">${grossStr} ${cur}</div>
   </div>
 
   <div class="footer">

@@ -6,6 +6,8 @@ import { customers } from "../db/schema/customers.js";
 import { orgs } from "../db/schema/orgs.js";
 import { eq } from "drizzle-orm";
 
+import type { PortalInvoiceAmountBreakdown } from "../lib/portalInvoiceDisplayAmount.js";
+
 export type InvoiceRecord = typeof invoices.$inferSelect;
 export type CustomerRecord = typeof customers.$inferSelect;
 export type OrgRecord = typeof orgs.$inferSelect;
@@ -14,6 +16,8 @@ export interface InvoiceWithCustomerAndOrg {
   invoice: InvoiceRecord;
   customer: CustomerRecord;
   org: OrgRecord | null;
+  /** When set, HTML uses these lines for net/VAT/gross (portal & aligned views). */
+  amountBreakdown?: PortalInvoiceAmountBreakdown | null;
 }
 
 /**

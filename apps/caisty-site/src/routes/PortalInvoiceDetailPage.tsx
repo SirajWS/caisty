@@ -138,6 +138,24 @@ const PortalInvoiceDetailPage: React.FC = () => {
                 <div className={`text-lg font-semibold mt-1 ${isLight ? "text-slate-900" : "text-slate-50"}`}>
                   {formatAmount(inv.amountCents, inv.currency)}
                 </div>
+                {inv.amountBreakdown ? (
+                  <dl className={`mt-3 space-y-2 text-sm border-t pt-3 ${isLight ? "border-slate-200 text-slate-700" : "border-slate-600 text-slate-300"}`}>
+                    <div className="flex justify-between gap-4">
+                      <dt>{t.labels.subtotal}</dt>
+                      <dd className="tabular-nums">{formatAmount(inv.amountBreakdown.netCents, inv.currency)}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt>
+                        {t.invoiceDetail.vatWithPercent.replace(
+                          /\{\{pct\}\}/g,
+                          String(inv.amountBreakdown.vatRatePercent),
+                        )}
+                      </dt>
+                      <dd className="tabular-nums">{formatAmount(inv.amountBreakdown.taxCents, inv.currency)}</dd>
+                    </div>
+                    <p className={`text-xs mt-2 ${isLight ? "text-slate-500" : "text-slate-400"}`}>{t.labels.incVat}</p>
+                  </dl>
+                ) : null}
               </div>
               <div>
                 <div className={`text-xs uppercase font-semibold tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>

@@ -3,8 +3,10 @@ import { db } from "../db/client.js";
 import { licenses } from "../db/schema/licenses.js";
 import { devices } from "../db/schema/devices.js";
 import { invoices } from "../db/schema/invoices.js";
+import { subscriptions } from "../db/schema/subscriptions.js";
 import { desc, eq } from "drizzle-orm";
 import { verifyPortalToken } from "../lib/portalJwt.js";
+import { portalInvoiceDisplayBreakdown } from "../lib/portalInvoiceDisplayAmount.js";
 
 interface PortalJwtPayload {
   customerId: string;
@@ -98,22 +100,34 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
 
     try {
       const rows = await db
-        .select({ inv: invoices })
+        .select({ inv: invoices, sub: subscriptions })
         .from(invoices)
+        .leftJoin(subscriptions, eq(invoices.subscriptionId, subscriptions.id))
         .where(eq(invoices.customerId, payload.customerId))
         .orderBy(desc(invoices.createdAt));
 
       return rows.map((r: any) => {
         const inv = r.inv as any;
+        const sub = r.sub as any;
         if (!inv) {
           return null;
         }
-        // amountCents zurückgeben, damit Frontend durch 100 teilen kann
-        const amountCents = inv.amountCents ?? 0;
+        const bd = portalInvoiceDisplayBreakdown(
+          {
+            status: inv.status,
+            amountCents: inv.amountCents,
+            amountGrossCents: inv.amountGrossCents,
+            amountNetCents: inv.amountNetCents,
+            amountTaxCents: inv.amountTaxCents,
+            planName: inv.planName,
+            currency: inv.currency,
+          },
+          sub?.plan ?? null,
+        );
         return {
           id: String(inv.id),
           number: String(inv.number ?? ""),
-          amountCents: Number(amountCents),
+          amountCents: Number(bd.grossCents),
           currency: String(inv.currency ?? "EUR"),
           status: String(inv.status ?? "open"),
           periodStart: null, // periodFrom existiert nicht im Schema
