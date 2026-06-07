@@ -15,7 +15,7 @@ import { payments } from "../db/schema/payments.js";
 import { and, eq, ne } from "drizzle-orm";
 import { addDays, addMonths } from "date-fns";
 import { generateLicenseKey } from "../lib/licenseKey.js";
-import { getPlanPrice, type Currency } from "../config/pricing.js";
+import { type Currency, grossPlanAmountCents } from "../config/pricing.js";
 import { hasUsablePaidLicenseForCustomer } from "../lib/hasUsablePaidLicense.js";
 
 interface PortalJwtPayload {
@@ -135,9 +135,8 @@ export async function registerBillingRoutes(app: FastifyInstance) {
           ),
         );
 
-      // Create subscription
-      const price = getPlanPrice(plan, currency, period);
-      const priceCents = Math.round(price * 100);
+      // Create subscription (price = gross charged incl. VAT, matches portal checkout & PayPal)
+      const priceCents = grossPlanAmountCents(plan, currency, period);
       const now = new Date();
       const currentPeriodEnd = period === "yearly" ? addMonths(now, 12) : addMonths(now, 1);
 

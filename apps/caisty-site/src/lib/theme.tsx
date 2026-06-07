@@ -13,11 +13,10 @@ const THEME_KEY = "caisty_theme";
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 function getInitialTheme(): Theme {
-  if (typeof window === "undefined") return "light";
+  if (typeof window === "undefined") return "dark";
   const stored = localStorage.getItem(THEME_KEY);
   if (stored === "dark" || stored === "light") return stored;
-  // Light ist Standard
-  return "light";
+  return "dark";
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {

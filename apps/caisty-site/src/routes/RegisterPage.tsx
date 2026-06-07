@@ -55,10 +55,11 @@ export default function RegisterPage() {
   }
 
   const inputBase =
-    "w-full rounded-[10px] border px-[14px] py-2.5 text-sm text-white transition-all duration-200 ease-out outline-none focus:border-orange-500 focus:shadow-[0_0_0_3px_rgba(249,115,22,0.15)]";
-  const inputDark = "border-white/[0.08] bg-white/[0.04] placeholder:text-slate-500";
+    "w-full rounded-[10px] border px-[14px] py-2.5 text-sm transition-all duration-200 ease-out outline-none focus:border-orange-500 focus:shadow-[0_0_0_3px_rgba(249,115,22,0.15)]";
+  const inputDark =
+    "border-white/[0.08] bg-white/[0.04] text-white placeholder:text-slate-500";
   const inputLight =
-    "border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus:border-orange-500";
+    "border-slate-200 bg-slate-50 text-[#0f172a] placeholder:text-[#64748b] focus:border-orange-500";
 
   return (
     <div

@@ -75,9 +75,9 @@ export class PayPalProvider implements PaymentProvider {
     const currency = (req.currency ?? "EUR") as "EUR" | "TND";
 
     // Get price from pricing config
-    const { getPlanPrice } = await import("../../../config/pricing.js");
-    const price = getPlanPrice(planId, currency, period);
-    const priceStr = price.toFixed(2);
+    const { grossPlanAmountCents } = await import("../../../config/pricing.js");
+    const grossCents = grossPlanAmountCents(planId, currency, period);
+    const priceStr = (grossCents / 100).toFixed(2);
 
     const orderRes = await fetch(`${this.baseUrl}/v2/checkout/orders`, {
       method: "POST",

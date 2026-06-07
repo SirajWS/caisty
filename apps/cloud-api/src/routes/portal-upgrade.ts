@@ -12,7 +12,7 @@ import { licenseEvents } from "../db/schema/licenseEvents.js";
 import { notificationService } from "../billing/NotificationService.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 import { generateLicenseKey } from "../lib/licenseKey.js";
-import { getPlanPrice, type Currency } from "../config/pricing.js";
+import { type Currency, grossPlanAmountCents } from "../config/pricing.js";
 import { hasUsablePaidLicenseForCustomer } from "../lib/hasUsablePaidLicense.js";
 
 // Node-Fetch Alias (damit TypeScript nicht meckert)
@@ -96,22 +96,6 @@ type StartUpgradeResponse = {
   // nur fürs Debug im Dev-Modus
   details?: string;
 };
-
-type PlanPricing = {
-  monthlyAmount: number;
-  description: string;
-};
-
-// Preise aus zentraler Konfiguration (EUR als Standard, kann später erweitert werden)
-function getPlanPricing(plan: "starter" | "pro", currency: Currency = "EUR"): PlanPricing {
-  const monthlyAmount = getPlanPrice(plan, currency, "monthly");
-  return {
-    monthlyAmount,
-    description: plan === "starter" 
-      ? "Starter – 1 aktives POS-Gerät"
-      : "Pro – bis zu 3 aktive POS-Geräte",
-  };
-}
 
 // sehr einfache, aber robuste Invoice-Nummern-Generierung
 async function generateInvoiceNumber(): Promise<string> {
@@ -260,12 +244,11 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
       // Bestimme Währung basierend auf Customer oder Standard EUR
       // TODO: Später kann die Währung aus Customer-Daten oder Request kommen
       const currency: Currency = "EUR"; // Standard, kann später erweitert werden
-      const pricing = getPlanPricing(plan, currency);
       const now = new Date();
 
       try {
         // 1) Subscription – erstmal pending
-        const monthlyPriceCents = Math.round(pricing.monthlyAmount * 100);
+        const monthlyPriceCents = grossPlanAmountCents(plan, currency, "monthly");
         const currentPeriodEnd = addMonths(now, 1);
 
         const [sub] = await db
@@ -367,7 +350,7 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
           invoice: {
             id: String(inv.id),
             number: String(inv.number),
-            amount: pricing.monthlyAmount,
+            amount: monthlyPriceCents / 100,
             currency: String(inv.currency ?? "EUR"),
             status: String(inv.status),
             issuedAt: issuedAt.toISOString(),
