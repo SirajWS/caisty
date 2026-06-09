@@ -39,10 +39,13 @@ const PORTAL_BASE_URL = (() => {
     }
     return hardcoded;
   }
-  // Production: Verwende ENV-Wert
+  // Production: Verwende ENV-Wert; niemals localhost erzwingen (OAuth-Redirects!)
   const url = ENV.PORTAL_BASE_URL;
   if (url.includes("5175") || url.includes("admin")) {
-    console.error("❌ CRITICAL: PORTAL_BASE_URL zeigt auf Admin-Port! Force-Setze auf 5173");
+    console.error("❌ CRITICAL: PORTAL_BASE_URL zeigt auf Admin/5175 — OAuth würde ins Leere laufen");
+    if (process.env.NODE_ENV === "production") {
+      return "https://www.caisty.com";
+    }
     return "http://localhost:5173";
   }
   return url;

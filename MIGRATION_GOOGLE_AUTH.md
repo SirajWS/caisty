@@ -54,8 +54,8 @@ GOOGLE_CLIENT_SECRET=dein-client-secret
 # OAuth Redirect URI (muss in Google Console registriert sein)
 GOOGLE_REDIRECT_URI=http://localhost:3333/portal/auth/google/callback
 
-# Portal Base URL (für Redirects nach Login)
-PORTAL_BASE_URL=http://localhost:5175
+# Portal Base URL (für Redirects nach Login — **Kundenportal**, Port 5173 lokal)
+PORTAL_BASE_URL=http://localhost:5173
 ```
 
 **Wichtig:** Nach Änderungen an `.env` muss der Server neu gestartet werden!
@@ -69,7 +69,7 @@ PORTAL_BASE_URL=http://localhost:5175
 5. Erstelle **OAuth 2.0 Client ID**
 6. **Authorized redirect URIs** hinzufügen:
    - Development: `http://localhost:3333/portal/auth/google/callback`
-   - Production: `https://deine-domain.com/portal/auth/google/callback`
+   - Production: `https://api.caisty.com/portal/auth/google/callback`
 7. Kopiere **Client ID** und **Client Secret** in `.env`
 
 ## 🚀 Funktionalität

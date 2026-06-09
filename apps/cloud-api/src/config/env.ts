@@ -34,6 +34,10 @@ export const ENV = {
     if (envUrl && (envUrl.includes("5175") || envUrl.includes("admin"))) {
       console.error("❌ ERROR: PORTAL_BASE_URL in .env zeigt auf Admin-Port!");
       console.error("   Aktueller Wert:", envUrl);
+      if (process.env.NODE_ENV === "production") {
+        console.error("   Production: Setze auf https://www.caisty.com (Portal-Frontend)");
+        return "https://www.caisty.com";
+      }
       console.error("   FORCE: Setze auf http://localhost:5173");
       console.error("   Bitte ändere PORTAL_BASE_URL in .env zu: http://localhost:5173");
       // IMMER überschreiben, damit es funktioniert
@@ -49,6 +53,10 @@ export const ENV = {
     // Zusätzliche Sicherheit: Prüfe nochmal das Ergebnis
     if (url.includes("5175") || url.includes("admin")) {
       console.error("❌ WARNUNG: PORTAL_BASE_URL enthält immer noch 5175/admin!");
+      if (process.env.NODE_ENV === "production") {
+        console.error("   Production: Force https://www.caisty.com");
+        return "https://www.caisty.com";
+      }
       console.error("   Force-Setze auf http://localhost:5173");
       return "http://localhost:5173";
     }
