@@ -312,7 +312,10 @@ export async function registerPortalSupportRoutes(app: FastifyInstance) {
         return { ok: false, error: "Nicht angemeldet." };
       }
 
-      const resolvedOrgId = customer.orgId;
+      const resolvedOrgId =
+        customer.orgId && String(customer.orgId).trim().length > 0
+          ? String(customer.orgId).trim()
+          : null;
       const now = new Date().toISOString();
       const stored: StoredSupportMessage = {
         id: randomUUID(),
@@ -327,72 +330,122 @@ export async function registerPortalSupportRoutes(app: FastifyInstance) {
         repliedAt: null,
       };
 
-      // 1) In-Memory zuerst (Admin-Antworten / Legacy)
+      // 1) In-Memory zuerst — ab hier gilt die Nachricht als gespeichert; Folgefehler dürfen die Antwort nicht kaputt machen
       SUPPORT_MESSAGES.push(stored);
 
-      // 2) Persist in DB (org_id NOT NULL → Sentinel wenn keine echte Org)
-      const dbOrgId = resolvedOrgId ?? NO_ORG_SENTINEL;
-      const dbEmail = (customer.email ?? "").trim() || "portal+unknown@caisty.invalid";
-      try {
-        await db.insert(supportMessages).values({
-          id: stored.id,
-          orgId: dbOrgId,
-          customerId: String(customer.id),
-          email: dbEmail,
-          subject,
-          message,
-        });
-      } catch (err) {
-        request.log.warn({ err, id: stored.id }, "support message: DB insert failed (in-memory copy exists)");
-      }
+      let notificationCreated = false;
+      let notificationError: string | null = null;
 
-      request.log.info(
-        {
-          customerId: customer.id,
-          resolvedOrgId: resolvedOrgId ?? null,
-          orgIdSource: customer.orgIdSource,
-          supportMessageId: stored.id,
-        },
-        "portal support: message created",
-      );
-
-      // 3) Notification nur bei gültiger orgId — Fehler niemals als 500 an den Kunden
-      if (resolvedOrgId) {
+      const runAfterSave = async () => {
+        // 2) DB (optional; Fehler nur loggen)
+        const dbOrgId = resolvedOrgId ?? NO_ORG_SENTINEL;
+        const dbEmail = (customer.email ?? "").trim() || "portal+unknown@caisty.invalid";
         try {
-          await notificationService.notifySupportMessage({
-            orgId: resolvedOrgId,
-            customerId: customer.id,
-            customerName: customer.name,
-            customerEmail: customer.email ?? "",
+          await db.insert(supportMessages).values({
+            id: stored.id,
+            orgId: dbOrgId,
+            customerId: String(customer.id),
+            email: dbEmail,
             subject,
             message,
-            supportMessageId: stored.id,
           });
         } catch (err) {
-          request.log.error(
-            { err, customerId: customer.id, resolvedOrgId, orgIdSource: customer.orgIdSource },
-            "portal support: notification insert failed (message was still saved)",
+          request.log.warn({ err, id: stored.id }, "support message: DB insert failed (in-memory copy exists)");
+        }
+
+        // 3) Notification nur bei gültiger orgId
+        if (resolvedOrgId) {
+          try {
+            const notifRow = await notificationService.notifySupportMessage({
+              orgId: resolvedOrgId,
+              customerId: customer.id,
+              customerName: customer.name,
+              customerEmail: customer.email ?? "",
+              subject,
+              message,
+              supportMessageId: stored.id,
+            });
+            notificationCreated = !!notifRow;
+          } catch (err) {
+            notificationError =
+              err instanceof Error ? err.message : typeof err === "string" ? err : "unknown_error";
+            request.log.error(
+              {
+                err,
+                customerId: customer.id,
+                resolvedOrgId,
+                orgIdSource: customer.orgIdSource,
+                supportMessageId: stored.id,
+              },
+              "portal support: notification insert failed (message was still saved)",
+            );
+          }
+        } else {
+          request.log.warn(
+            {
+              customerId: customer.id,
+              resolvedOrgId: null,
+              orgIdSource: customer.orgIdSource,
+              supportMessageId: stored.id,
+            },
+            "Support message created without notification because orgId is missing",
           );
         }
-      } else {
-        request.log.warn(
+      };
+
+      try {
+        await runAfterSave();
+      } catch (err) {
+        notificationError =
+          err instanceof Error ? err.message : typeof err === "string" ? err : "unexpected_after_save";
+        request.log.error(
           {
+            err,
             customerId: customer.id,
-            resolvedOrgId: null,
-            orgIdSource: customer.orgIdSource,
             supportMessageId: stored.id,
+            resolvedOrgId: resolvedOrgId ?? null,
+            orgIdSource: customer.orgIdSource,
           },
-          "Support message created without notification because orgId is missing",
+          "portal support: unexpected error after in-memory save (continuing with 201)",
         );
       }
 
-      const {
-        customerId: _cid,
-        customerName: _cn,
-        customerEmail: _ce,
-        ...publicMsg
-      } = stored;
-      return { ok: true, item: publicMsg };
+      try {
+        request.log.info(
+          {
+            supportMessageId: stored.id,
+            customerId: customer.id,
+            resolvedOrgId: resolvedOrgId ?? null,
+            orgIdSource: customer.orgIdSource,
+            notificationCreated,
+            notificationError,
+          },
+          "portal support: POST complete",
+        );
+      } catch (logErr) {
+        request.log.warn({ logErr }, "portal support: summary log failed (ignored)");
+      }
+
+      // Explizit serialisierbare Payload — kein implizites Return, das serialisieren könnte
+      const publicItem: PortalSupportMessage = {
+        id: stored.id,
+        subject: stored.subject,
+        message: stored.message,
+        status: stored.status,
+        createdAt: stored.createdAt,
+        replyText: stored.replyText,
+        repliedAt: stored.repliedAt,
+      };
+
+      return reply.code(201).send({
+        ok: true,
+        item: publicItem,
+        meta: {
+          notificationCreated,
+          notificationSkipped: !resolvedOrgId,
+          ...(notificationError ? { notificationError } : {}),
+        },
+      });
     },
   );
 
