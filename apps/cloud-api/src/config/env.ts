@@ -1,5 +1,24 @@
 // apps/cloud-api/src/config/env.ts
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+/** Verzeichnis `apps/cloud-api/` — unabhängig vom process.cwd() (wichtig für Production / systemd / Docker). */
+const packageRoot = path.resolve(__dirname, "../..");
+
+// 1) Optional: .env im aktuellen Arbeitsverzeichnis (z. B. Monorepo-Root)
+dotenv.config({ path: path.join(process.cwd(), ".env") });
+// 2) Immer: `apps/cloud-api/.env` neben diesem Package — überschreibt bei Konflikten (override)
+const packageEnvResult = dotenv.config({
+  path: path.join(packageRoot, ".env"),
+  override: true,
+});
+if (packageEnvResult.error) {
+  console.warn("[env] apps/cloud-api/.env:", packageEnvResult.error.message);
+} else if (packageEnvResult.parsed) {
+  console.info("[env] Loaded", path.join(packageRoot, ".env"));
+}
 
 function required(name: string): string {
   const value = process.env[name];

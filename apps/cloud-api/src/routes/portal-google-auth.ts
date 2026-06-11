@@ -144,7 +144,8 @@ export async function registerPortalGoogleAuthRoutes(app: FastifyInstance) {
       return { 
         error: "Google OAuth not configured",
         message: "Bitte setze GOOGLE_CLIENT_ID und GOOGLE_CLIENT_SECRET in der .env Datei. Siehe MIGRATION_GOOGLE_AUTH.md für Details.",
-        hint: "Stelle sicher, dass die .env Datei in apps/cloud-api/.env liegt und der Server neu gestartet wurde."
+        hint:
+          "Die API lädt `apps/cloud-api/.env` relativ zum cloud-api-Paket (nicht nur aus process.cwd). GOOGLE_CLIENT_ID und GOOGLE_CLIENT_SECRET müssen gesetzt sein; danach Server neu starten.",
       };
     }
 
