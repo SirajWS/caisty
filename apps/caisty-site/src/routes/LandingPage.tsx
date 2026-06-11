@@ -5,6 +5,7 @@ import { translations } from "../lib/translations/index";
 import { landingTn } from "../lib/translations/landingTn";
 import { getSiteMarket } from "../lib/siteMarket";
 import { useTheme } from "../lib/theme";
+import { applyCaistyPosProductMeta, applyCompanySiteMeta } from "../lib/siteDocumentMeta";
 
 export default function LandingPage() {
   const { language } = useLanguage();
@@ -21,6 +22,11 @@ export default function LandingPage() {
     { id: 2, src: "/screenshots/pos.png", alt: t.demo.shotPos, title: t.demo.shotPos },
     { id: 3, src: "/screenshots/portal.png", alt: t.demo.shotPortal, title: t.demo.shotPortal },
   ];
+
+  useEffect(() => {
+    applyCaistyPosProductMeta();
+    return () => applyCompanySiteMeta();
+  }, []);
 
   useEffect(() => {
     const hash = location.hash.replace(/^#/, "");

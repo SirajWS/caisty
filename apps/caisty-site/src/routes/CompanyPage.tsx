@@ -7,6 +7,7 @@ import { getSiteMarket } from "../lib/siteMarket";
 import { useTheme } from "../lib/theme";
 import { TechStackCardGrid } from "../components/TechStackCardGrid";
 import { POS_LANDING_PATH } from "../config/marketingRoutes";
+import { applyCompanySiteMeta } from "../lib/siteDocumentMeta";
 
 const sectionShell = "w-full max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8";
 
@@ -21,11 +22,8 @@ export default function CompanyPage() {
   const productHomeHref = isTN ? `${POS_LANDING_PATH}#features` : `${POS_LANDING_PATH}#product`;
 
   useEffect(() => {
-    document.title = `${t.hero.badge} | Caisty`;
-    return () => {
-      document.title = "Caisty";
-    };
-  }, [t.hero.badge]);
+    applyCompanySiteMeta();
+  }, []);
 
   return (
     <div

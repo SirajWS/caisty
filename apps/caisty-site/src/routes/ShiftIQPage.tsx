@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
 import { useTheme } from "../lib/theme";
+import { applyCompanySiteMeta } from "../lib/siteDocumentMeta";
 
 const shell = "w-full max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8";
 
@@ -14,7 +15,7 @@ export default function ShiftIQPage() {
   useEffect(() => {
     document.title = `${t.documentTitle} | Caisty`;
     return () => {
-      document.title = "Caisty";
+      applyCompanySiteMeta();
     };
   }, [t.documentTitle]);
 
