@@ -1,96 +1,54 @@
-# 🔍 Debug: Google OAuth ENV-Variablen prüfen
+# Debug: Google OAuth ENV-Variablen prüfen
 
-## Problem: "Google OAuth not configured" erscheint weiterhin
+## Problem: "Google OAuth not configured" oder 500 bei `/portal/auth/google`
 
-Wenn die Fehlermeldung weiterhin erscheint, prüfe folgendes:
+Die **echten** Werte kommen **nur** aus `apps/cloud-api/.env` (bzw. Server-Umgebung) — **nicht** aus dem Anwendungscode. Ohne `GOOGLE_CLIENT_ID` und `GOOGLE_CLIENT_SECRET` antwortet die Route mit **500** und JSON-Hinweis statt Redirect zu Google.
 
-## ✅ Checkliste
+## Checkliste
 
-### 1. `.env` Datei existiert und liegt im richtigen Verzeichnis?
+### 1. `.env` liegt unter `apps/cloud-api/.env`
 
-**Pfad:** `C:\Users\T460\Desktop\caisty\apps\cloud-api\.env`
+Nicht nur im Repo-Root (außer ihr ladet sie explizit anders).
 
-Die Datei muss **genau** hier liegen, nicht im Root-Verzeichnis!
+### 2. Variablen (Beispiel — Platzhalter ersetzen)
 
-### 2. `.env` Datei enthält die richtigen Zeilen?
-
-Öffne `apps/cloud-api/.env` und prüfe, ob folgende Zeilen vorhanden sind:
+**Lokal:**
 
 ```env
-GOOGLE_CLIENT_ID=1050646575618-q3914dm02c3nptcerj0ihd7u58mu58v1.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
+GOOGLE_CLIENT_ID=DEINE_CLIENT_ID.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=DEIN_CLIENT_SECRET
 GOOGLE_REDIRECT_URI=http://127.0.0.1:3333/portal/auth/google/callback
-PORTAL_BASE_URL=http://localhost:5175
+PORTAL_BASE_URL=http://localhost:5173
 ```
 
-**Wichtig:**
-- ✅ Keine Leerzeichen vor/nach `=`
-- ✅ Keine Anführungszeichen um die Werte
-- ✅ Keine Kommentare am Ende der Zeilen (z.B. `# comment`)
-- ✅ Jede Variable auf einer eigenen Zeile
-
-### 3. Server wurde neu gestartet?
-
-**Nach JEDER Änderung an `.env` muss der Server neu gestartet werden!**
-
-1. Stoppe: `Ctrl + C` im Terminal
-2. Starte neu: `pnpm dev`
-
-### 4. Server-Logs prüfen
-
-Wenn du den Server startest, solltest du in den Logs sehen:
-- `Cloud API listening on http://127.0.0.1:3333`
-
-Wenn du dann `/portal/auth/google` aufrufst, siehst du in den Logs:
-- `Google OAuth config check` mit den Werten
-
-### 5. Manuelle Prüfung
-
-Falls es immer noch nicht funktioniert, teste manuell:
-
-1. Öffne ein neues Terminal
-2. Führe aus:
-   ```bash
-   cd apps/cloud-api
-   node -e "require('dotenv/config'); console.log('CLIENT_ID:', process.env.GOOGLE_CLIENT_ID);"
-   ```
-3. Du solltest deine Client ID sehen
-
-## 🐛 Häufige Fehler
-
-### Fehler 1: `.env` im falschen Verzeichnis
-- ❌ `C:\Users\T460\Desktop\caisty\.env` (falsch)
-- ✅ `C:\Users\T460\Desktop\caisty\apps\cloud-api\.env` (richtig)
-
-### Fehler 2: Leerzeichen in `.env`
-- ❌ `GOOGLE_CLIENT_ID = 1050646575618...` (falsch - Leerzeichen)
-- ✅ `GOOGLE_CLIENT_ID=1050646575618...` (richtig)
-
-### Fehler 3: Server nicht neu gestartet
-- Nach `.env` Änderungen **IMMER** Server neu starten!
-
-### Fehler 4: Falsche Dateiendung
-- ❌ `.env.txt` (falsch)
-- ✅ `.env` (richtig - keine Endung!)
-
-## 📝 Beispiel `.env` Datei
+**Production (API unter `https://api.caisty.com`):**
 
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/caisty
-JWT_SECRET=your-secret-key-here
-PORT=3333
-NODE_ENV=development
-
-GOOGLE_CLIENT_ID=1050646575618-q3914dm02c3nptcerj0ihd7u58mu58v1.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=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
-GOOGLE_REDIRECT_URI=http://127.0.0.1:3333/portal/auth/google/callback
-PORTAL_BASE_URL=http://localhost:5175
+GOOGLE_CLIENT_ID=DEINE_CLIENT_ID.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=DEIN_CLIENT_SECRET
+GOOGLE_REDIRECT_URI=https://api.caisty.com/portal/auth/google/callback
+PORTAL_BASE_URL=https://www.caisty.com
 ```
 
-## ✅ Wenn alles korrekt ist
+Die **Redirect URI** muss in der **Google Cloud Console** unter „Authorized redirect URIs“ **exakt** so eingetragen sein wie `GOOGLE_REDIRECT_URI`.
 
-Nach dem Neustart des Servers:
-1. Öffne `http://localhost:5175/login`
-2. Klicke "Mit Google anmelden"
-3. Du solltest zu Google weitergeleitet werden! 🎉
+**Wichtig:** Keine Leerzeichen um `=`, keine Anführungszeichen um die Werte, Server nach Änderung **neu starten**.
 
+### 3. Manuell prüfen
+
+```bash
+cd apps/cloud-api
+node -e "require('dotenv/config'); console.log('CLIENT_ID set:', !!process.env.GOOGLE_CLIENT_ID);"
+```
+
+### 4. Erwartung bei funktionierendem Setup
+
+```bash
+curl -I "https://api.caisty.com/portal/auth/google"
+# HTTP/1.1 302
+# location: https://accounts.google.com/...
+```
+
+## Sicherheit
+
+**Niemals** echte `GOOGLE_CLIENT_SECRET`-Werte in Git committen. Wenn ein Secret je in einem Repo gelandet ist: in der Google Console **neues Secret** erzeugen und das alte widerrufen.
