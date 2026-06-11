@@ -205,7 +205,7 @@ export default function SiteLayout() {
                       }
                     >
                       Tarifs
-                    </NavTextLink>
+                    </NavLink>
                     <NavTextLink to="/#faq" isLight={isLight} onClick={closeMobile}>
                       FAQ
                     </NavTextLink>
