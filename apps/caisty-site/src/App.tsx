@@ -10,6 +10,8 @@ import ResetPasswordPage from "./routes/ResetPasswordPage";
 import TermsPage from "./routes/TermsPage";
 import PrivacyPage from "./routes/PrivacyPage";
 import ImprintPage from "./routes/ImprintPage";
+import CompanyPage from "./routes/CompanyPage";
+import ShiftIQPage from "./routes/ShiftIQPage";
 
 import PortalLayout from "./routes/PortalLayout";
 import PortalDashboard from "./routes/PortalDashboard";
@@ -35,6 +37,8 @@ export default function App() {
         <Route element={<SiteLayout />}>
           <Route path="/" element={<LandingPage />} />
           <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/company" element={<CompanyPage />} />
+          <Route path="/shiftiq" element={<ShiftIQPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />

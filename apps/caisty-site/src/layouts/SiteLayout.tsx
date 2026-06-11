@@ -1,32 +1,16 @@
 // apps/caisty-site/src/layouts/SiteLayout.tsx
 import { useState } from "react";
-import { Outlet, Link, NavLink } from "react-router-dom";
+import { Outlet, Link, NavLink, useLocation } from "react-router-dom";
 import LanguageSelector from "../components/LanguageSelector";
-import CurrencySelector from "../components/CurrencySelector";
 import ThemeToggle from "../components/ThemeToggle";
+import { DesktopProductNavDropdown, MobileProductNavGroup } from "../components/ProductNavDropdown";
+import MarketingPreFooter from "../components/MarketingPreFooter";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
+import { FOOTER_TECH_STRIP } from "../lib/translations/common";
+import { ICON_COLORS } from "../components/TechStackCardGrid";
 import { tunisiaWhatsappUrl } from "../config/marketContact";
-
-function NavTextLink(props: {
-  to: string;
-  children: React.ReactNode;
-  onClick?: () => void;
-  isLight: boolean;
-}) {
-  return (
-    <Link
-      to={props.to}
-      onClick={props.onClick}
-      className={`text-sm font-medium no-underline transition-colors ${
-        props.isLight ? "text-slate-600 hover:text-[#0b1220]" : "text-slate-300 hover:text-white"
-      }`}
-    >
-      {props.children}
-    </Link>
-  );
-}
 
 export default function SiteLayout() {
   const { theme } = useTheme();
@@ -46,7 +30,19 @@ export default function SiteLayout() {
 
   const closeMobile = () => setMobileOpen(false);
 
-  const tnRegisterLabel = "Essai gratuit";
+  const { pathname } = useLocation();
+  /** Product / company story lives on `/company` only — avoid duplicating under `/shiftiq`, `/company`, auth, legal. */
+  const showMarketingPreFooter = pathname === "/" || pathname === "/pricing";
+
+  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    [
+      "text-sm font-medium no-underline transition-colors",
+      isActive
+        ? "text-[#f97316]"
+        : isLight
+          ? "text-slate-600 hover:text-[#0b1220]"
+          : "text-slate-300 hover:text-white",
+    ].join(" ");
 
   return (
     <div className={`min-h-screen flex flex-col w-full min-w-0 ${baseBg}`}>
@@ -55,95 +51,34 @@ export default function SiteLayout() {
       >
         <div className="max-w-6xl mx-auto w-full min-w-0 px-4 sm:px-5 py-3">
           <div className="flex items-center justify-between gap-3 min-w-0">
-            <Link to="/" className="flex min-w-0 items-center gap-2.5 shrink-0" onClick={closeMobile}>
+            <Link to="/company" className="flex min-w-0 items-center gap-2.5 shrink-0 no-underline" onClick={closeMobile}>
               <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white shadow-sm">
                 C
               </span>
-              <div className="flex min-w-0 flex-col leading-tight">
-                <span className={`text-sm font-semibold tracking-tight truncate ${strongText}`}>Caisty</span>
-                <span className={`text-[11px] truncate ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                  {isTN ? "Caisty POS — Tunisie" : t.layout.tagline}
+              <span className="flex min-w-0 flex-col leading-tight">
+                <span className={`text-sm font-semibold tracking-tight truncate ${strongText}`}>{t.layout.headerBrand}</span>
+                <span className={`text-[11px] font-medium truncate ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  {t.layout.headerSubtitle}
                 </span>
-              </div>
+              </span>
             </Link>
 
-            {isTN ? (
-              <nav
-                className={`hidden lg:flex items-center gap-8 ${isLight ? "text-slate-600" : "text-slate-300"}`}
-              >
-                <NavTextLink to="/#features" isLight={isLight}>
-                  Fonctionnalités
-                </NavTextLink>
-                <NavLink
-                  to="/pricing"
-                  className={({ isActive }) =>
-                    [
-                      "text-sm font-medium no-underline transition-colors",
-                      isActive
-                        ? "text-[#f97316]"
-                        : isLight
-                          ? "text-slate-600 hover:text-[#0b1220]"
-                          : "text-slate-300 hover:text-white",
-                    ].join(" ")
-                  }
-                >
-                  Tarifs
-                </NavLink>
-                <NavTextLink to="/#faq" isLight={isLight}>
-                  FAQ
-                </NavTextLink>
-              </nav>
-            ) : (
-              <nav
-                className={`hidden lg:flex items-center gap-8 ${isLight ? "text-slate-600" : "text-slate-300"}`}
-              >
-                <NavTextLink to="/#product" isLight={isLight}>
-                  {t.nav.product}
-                </NavTextLink>
-                <NavLink
-                  to="/pricing"
-                  className={({ isActive }) =>
-                    [
-                      "text-sm font-medium no-underline transition-colors",
-                      isActive
-                        ? "text-[#f97316]"
-                        : isLight
-                          ? "text-slate-600 hover:text-[#0b1220]"
-                          : "text-slate-300 hover:text-white",
-                    ].join(" ")
-                  }
-                >
-                  {t.nav.pricing}
-                </NavLink>
-                <NavTextLink to="/#payment" isLight={isLight}>
-                  {t.nav.payment}
-                </NavTextLink>
-                <NavTextLink to="/#fiscal" isLight={isLight}>
-                  {t.nav.fiscal}
-                </NavTextLink>
-              </nav>
-            )}
+            <nav
+              className={`hidden lg:flex items-center gap-8 ${isLight ? "text-slate-600" : "text-slate-300"}`}
+            >
+              <NavLink to="/company" className={navLinkClass}>
+                {t.nav.company}
+              </NavLink>
+              <DesktopProductNavDropdown
+                navProductLabel={t.nav.product}
+                productMenu={t.productMenu}
+                isLight={isLight}
+              />
+            </nav>
 
             <div className="hidden lg:flex items-center gap-3 shrink-0">
-              {!isTN && (
-                <>
-                  <LanguageSelector />
-                  <CurrencySelector />
-                </>
-              )}
+              {!isTN && <LanguageSelector />}
               <ThemeToggle />
-              <Link
-                to="/login"
-                className={`text-sm font-medium no-underline px-2 ${isLight ? "text-slate-600 hover:text-[#0b1220]" : "text-slate-300 hover:text-white"}`}
-              >
-                {isTN ? "Connexion" : t.buttons.login}
-              </Link>
-              <Link
-                to="/register"
-                className="text-sm font-semibold no-underline rounded-full px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center bg-[#f97316] text-white hover:bg-[#ea580c] transition-colors shadow-sm"
-              >
-                {isTN ? tnRegisterLabel : t.buttons.startFree}
-              </Link>
               {isTN && waUrl && (
                 <a
                   href={waUrl}
@@ -183,62 +118,24 @@ export default function SiteLayout() {
           <div
             className={`lg:hidden border-t ${baseBorder} ${isLight ? "bg-white" : "bg-[#0b1220]"}`}
           >
-            <div className="max-w-6xl mx-auto px-4 sm:px-5 pb-4 pt-3 space-y-4">
-              <Link
-                to="/register"
-                onClick={closeMobile}
-                className="flex w-full min-h-[48px] items-center justify-center rounded-full bg-[#f97316] px-4 py-3 text-sm font-semibold text-white no-underline shadow-sm transition-colors hover:bg-[#ea580c]"
-              >
-                {isTN ? tnRegisterLabel : t.buttons.startFree}
-              </Link>
+            <div className="max-w-6xl mx-auto px-4 sm:px-5 pb-4 pt-3 space-y-3">
               <div className="flex flex-col gap-1">
-                {isTN ? (
-                  <>
-                    <NavTextLink to="/#features" isLight={isLight} onClick={closeMobile}>
-                      Fonctionnalités
-                    </NavTextLink>
-                    <NavLink
-                      to="/pricing"
-                      onClick={closeMobile}
-                      className={({ isActive }) =>
-                        `text-sm font-medium py-2 no-underline ${isActive ? "text-[#f97316]" : isLight ? "text-slate-700" : "text-slate-200"}`
-                      }
-                    >
-                      Tarifs
-                    </NavLink>
-                    <NavTextLink to="/#faq" isLight={isLight} onClick={closeMobile}>
-                      FAQ
-                    </NavTextLink>
-                  </>
-                ) : (
-                  <>
-                    <NavTextLink to="/#product" isLight={isLight} onClick={closeMobile}>
-                      {t.nav.product}
-                    </NavTextLink>
-                    <NavLink
-                      to="/pricing"
-                      onClick={closeMobile}
-                      className={({ isActive }) =>
-                        `text-sm font-medium py-2 no-underline ${isActive ? "text-[#f97316]" : isLight ? "text-slate-700" : "text-slate-200"}`
-                      }
-                    >
-                      {t.nav.pricing}
-                    </NavLink>
-                    <NavTextLink to="/#payment" isLight={isLight} onClick={closeMobile}>
-                      {t.nav.payment}
-                    </NavTextLink>
-                    <NavTextLink to="/#fiscal" isLight={isLight} onClick={closeMobile}>
-                      {t.nav.fiscal}
-                    </NavTextLink>
-                  </>
-                )}
-                <Link
-                  to="/login"
+                <NavLink
+                  to="/company"
                   onClick={closeMobile}
-                  className={`text-sm font-medium py-2 no-underline ${isLight ? "text-slate-700" : "text-slate-200"}`}
+                  className={({ isActive }) =>
+                    `text-sm font-medium py-2 no-underline ${isActive ? "text-[#f97316]" : isLight ? "text-slate-700" : "text-slate-200"}`
+                  }
                 >
-                  {isTN ? "Connexion" : t.buttons.login}
-                </Link>
+                  {t.nav.company}
+                </NavLink>
+                <MobileProductNavGroup
+                  navProductLabel={t.nav.product}
+                  productMenu={t.productMenu}
+                  isLight={isLight}
+                  mobileMenuOpen={mobileOpen}
+                  onCloseMobile={closeMobile}
+                />
                 {isTN && waUrl && (
                   <a
                     href={waUrl}
@@ -251,13 +148,8 @@ export default function SiteLayout() {
                   </a>
                 )}
               </div>
-              <div className={`flex flex-wrap items-center gap-3 pt-4 mt-2 border-t ${baseBorder}`}>
-                {!isTN && (
-                  <>
-                    <LanguageSelector />
-                    <CurrencySelector />
-                  </>
-                )}
+              <div className={`flex flex-wrap items-center gap-3 pt-3 border-t ${baseBorder}`}>
+                {!isTN && <LanguageSelector />}
                 <ThemeToggle />
               </div>
             </div>
@@ -269,26 +161,55 @@ export default function SiteLayout() {
         <Outlet />
       </main>
 
+      {showMarketingPreFooter ? <MarketingPreFooter /> : null}
+
       <footer className={`border-t ${baseBorder} ${isLight ? "bg-white" : "bg-[#0b1220]"}`}>
-        <div className="max-w-7xl mx-auto w-full min-w-0 px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-3 min-w-0">
-              <h3 className={`text-sm font-bold tracking-tight ${strongText}`}>Caisty</h3>
-              <p className={`text-sm leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                {t.footer.brandTagline}
+        <div className="max-w-6xl mx-auto w-full min-w-0 px-4 sm:px-6 lg:px-8 py-12 lg:py-14">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5 lg:gap-12">
+            <div className="sm:col-span-2 lg:col-span-2 space-y-4 min-w-0">
+              <h2 className={`text-lg font-bold tracking-tight ${strongText}`}>{t.footer.companyBrand}</h2>
+              <p className={`text-sm font-semibold ${isLight ? "text-slate-800" : "text-slate-100"}`}>{t.footer.companyTagline}</p>
+              <p className={`text-sm leading-relaxed max-w-lg ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                {t.footer.companyIntro}
               </p>
+              <div className="pt-1">
+                <h3 className={`text-xs font-bold uppercase tracking-wider mb-2 ${isLight ? "text-slate-500" : "text-slate-500"}`}>
+                  {t.footer.productsHeading}
+                </h3>
+                <div className="space-y-3 text-sm">
+                  <div>
+                    <Link to="/#product" className="font-semibold text-[#f97316] hover:underline no-underline">
+                      {t.footer.productPosName}
+                    </Link>
+                    <p className={`mt-0.5 text-xs leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                      {t.footer.productPosBlurb}
+                    </p>
+                  </div>
+                  <div>
+                    <Link to="/shiftiq" className="font-semibold text-[#f97316] hover:underline no-underline">
+                      {t.footer.productShiftiqName}
+                    </Link>
+                    <span className="text-xs font-normal text-slate-500 ms-1">{t.footer.productShiftiqSuffix}</span>
+                    <p className={`mt-0.5 text-xs leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                      {t.footer.productShiftiqBlurb}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="space-y-3 min-w-0">
-              <h3 className={`text-sm font-bold ${strongText}`}>{t.footer.contactTitle}</h3>
-              <a
-                href="mailto:info@caisty.com"
-                className="text-sm text-[#f97316] hover:underline break-all"
-              >
-                info@caisty.com
-              </a>
+              <h3 className={`text-xs font-bold uppercase tracking-wide ${strongText}`}>{t.footer.colCompany}</h3>
+              <nav className={`flex flex-col gap-2 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                <Link to="/company" className="hover:text-[#f97316] transition-colors no-underline">
+                  {t.footer.linkCompany}
+                </Link>
+                <a href="mailto:info@caisty.com" className="hover:text-[#f97316] transition-colors no-underline break-all">
+                  {t.footer.linkContact}
+                </a>
+              </nav>
             </div>
             <div className="space-y-3 min-w-0">
-              <h3 className={`text-sm font-bold ${strongText}`}>{t.footer.legalTitle}</h3>
+              <h3 className={`text-xs font-bold uppercase tracking-wide ${strongText}`}>{t.footer.colLegal}</h3>
               <div className={`flex flex-col gap-2 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
                 <Link to="/terms" className="hover:text-[#f97316] transition-colors no-underline">
                   {t.footer.terms}
@@ -302,15 +223,13 @@ export default function SiteLayout() {
               </div>
             </div>
             <div className="space-y-3 min-w-0">
-              <h3 className={`text-sm font-bold ${strongText}`}>{t.footer.followTitle}</h3>
-              <div className="flex flex-wrap gap-2">
+              <h3 className={`text-xs font-bold uppercase tracking-wide ${strongText}`}>{t.footer.followTitle}</h3>
+              <div className="flex flex-col gap-2 text-sm">
                 <a
                   href="https://facebook.com/caisty"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`text-sm px-3 py-1.5 rounded-lg border no-underline transition-colors ${
-                    isLight ? "border-slate-200 text-slate-700 hover:border-[#f97316]" : "border-white/10 text-slate-300 hover:border-[#f97316]"
-                  }`}
+                  className={`no-underline transition-colors hover:text-[#f97316] ${isLight ? "text-slate-600" : "text-slate-400"}`}
                 >
                   {t.footer.facebook}
                 </a>
@@ -318,9 +237,7 @@ export default function SiteLayout() {
                   href="https://instagram.com/caisty"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`text-sm px-3 py-1.5 rounded-lg border no-underline transition-colors ${
-                    isLight ? "border-slate-200 text-slate-700 hover:border-[#f97316]" : "border-white/10 text-slate-300 hover:border-[#f97316]"
-                  }`}
+                  className={`no-underline transition-colors hover:text-[#f97316] ${isLight ? "text-slate-600" : "text-slate-400"}`}
                 >
                   {t.footer.instagram}
                 </a>
@@ -328,19 +245,42 @@ export default function SiteLayout() {
                   href="https://youtube.com/@caisty"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`text-sm px-3 py-1.5 rounded-lg border no-underline transition-colors ${
-                    isLight ? "border-slate-200 text-slate-700 hover:border-[#f97316]" : "border-white/10 text-slate-300 hover:border-[#f97316]"
-                  }`}
+                  className={`no-underline transition-colors hover:text-[#f97316] ${isLight ? "text-slate-600" : "text-slate-400"}`}
                 >
                   {t.footer.youtube}
                 </a>
               </div>
             </div>
           </div>
-
           <div
-            className={`mt-10 pt-8 border-t ${baseBorder} flex flex-col gap-3 text-xs sm:text-sm ${isLight ? "text-slate-500" : "text-slate-500"}`}
+            className={`mt-10 pt-8 border-t ${baseBorder} flex flex-col gap-4 text-xs sm:text-sm ${isLight ? "text-slate-500" : "text-slate-500"}`}
           >
+            <div className="flex flex-wrap items-center gap-2 gap-y-2" aria-hidden>
+              {FOOTER_TECH_STRIP.map((item) => {
+                const hex = ICON_COLORS[item.slug] ?? "64748B";
+                return (
+                  <span
+                    key={item.slug}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 ${
+                      isLight ? "border-slate-200/90 bg-slate-50" : "border-white/10 bg-white/[0.04]"
+                    }`}
+                    title={item.label}
+                  >
+                    <img
+                      src={`https://cdn.simpleicons.org/${item.slug}/${hex}`}
+                      alt=""
+                      width={16}
+                      height={16}
+                      className="h-4 w-4 shrink-0 opacity-90"
+                      loading="lazy"
+                    />
+                    <span className={`text-[10px] font-semibold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                      {item.label}
+                    </span>
+                  </span>
+                );
+              })}
+            </div>
             <span>{t.footer.copyright}</span>
             <span className="leading-relaxed max-w-3xl">{t.footer.companyNote}</span>
           </div>
