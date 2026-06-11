@@ -103,7 +103,7 @@ export async function sendEmail(options: {
 }
 
 /**
- * Sendet eine Password-Reset-E-Mail für Portal-Kunden
+ * Sends a password-reset email for portal customers.
  */
 export async function sendPasswordResetEmail(
   email: string,
@@ -127,34 +127,53 @@ export async function sendPasswordResetEmail(
   <div class="container">
     <div class="header">
       <h1>Caisty Portal</h1>
-      <p>Passwort zurücksetzen</p>
+      <p>Reset your password</p>
     </div>
     <div class="content">
-      <p>Hallo,</p>
-      <p>du hast eine Anfrage zum Zurücksetzen deines Passworts gestellt.</p>
-      <p>Klicke auf den folgenden Button, um ein neues Passwort zu setzen:</p>
+      <p>Hello,</p>
+      <p>We received a request to reset the password for your Caisty Portal account.</p>
+      <p>Click the button below to choose a new password:</p>
       <p style="text-align: center;">
-        <a href="${resetLink}" class="button">Passwort zurücksetzen</a>
+        <a href="${resetLink}" class="button">Reset password</a>
       </p>
-      <p>Oder kopiere diesen Link in deinen Browser:</p>
+      <p>Or copy and paste this link into your browser:</p>
       <p style="word-break: break-all; color: #64748b; font-size: 12px;">${resetLink}</p>
-      <p><strong>Wichtig:</strong> Dieser Link ist nur 1 Stunde gültig und kann nur einmal verwendet werden.</p>
-      <p>Wenn du diese Anfrage nicht gestellt hast, ignoriere diese E-Mail einfach.</p>
-      <p>Viele Grüße,<br>Dein Caisty Team</p>
+      <p><strong>Important note:</strong> This link is valid for 1 hour and can only be used once.</p>
+      <p><strong>Security note:</strong> If you did not request a password reset, you can safely ignore this email.</p>
     </div>
     <div class="footer">
-      <p>Caisty POS & Cloud Platform</p>
-      <p>Bei Fragen: support@caisty.com</p>
+      <p>Caisty Portal</p>
+      <p>Questions: support@caisty.com</p>
     </div>
   </div>
 </body>
 </html>
   `;
 
+  const text = [
+    "Hello,",
+    "",
+    "We received a request to reset the password for your Caisty Portal account.",
+    "",
+    "Click the link below to choose a new password:",
+    resetLink,
+    "",
+    "Or copy and paste this link into your browser:",
+    resetLink,
+    "",
+    "Important note: This link is valid for 1 hour and can only be used once.",
+    "",
+    "Security note: If you did not request a password reset, you can safely ignore this email.",
+    "",
+    "Caisty Portal",
+    "Questions: support@caisty.com",
+  ].join("\n");
+
   await sendEmail({
     to: email,
-    subject: "Passwort zurücksetzen - Caisty Portal",
+    subject: "Reset your password - Caisty Portal",
     html,
+    text,
   });
 }
 

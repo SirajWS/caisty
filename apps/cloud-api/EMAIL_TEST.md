@@ -54,7 +54,7 @@ Im Server-Terminal solltest du folgende Logs sehen:
 [EMAIL] 🔧 Konfiguriere SMTP: smtp.zoho.eu:587 (User: admin@caisty.com)
 [EMAIL] 📧 Versende E-Mail an siraj@caisty.com...
 [EMAIL] Von: Caisty Support <support@caisty.com>
-[EMAIL] Betreff: Passwort zurücksetzen - Caisty Portal
+[EMAIL] Betreff: Reset your password - Caisty Portal
 [EMAIL] ✅ E-Mail erfolgreich gesendet an siraj@caisty.com
 [EMAIL] Message-ID: <...>
 [EMAIL] Response: 250 Message queued for delivery
