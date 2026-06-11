@@ -1,6 +1,6 @@
 // apps/cloud-api/src/routes/portal-password-reset.ts
 import type { FastifyInstance } from "fastify";
-import { eq, and, gt, isNull } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { db } from "../db/client.js";
@@ -74,15 +74,11 @@ export async function registerPortalPasswordResetRoutes(app: FastifyInstance) {
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 1);
 
-      // Alte, nicht verwendete Tokens für diesen Customer löschen
+      // Alle noch nicht verwendeten Tokens dieses Kunden entfernen (nur ein aktiver Reset)
       await db
         .delete(passwordResets)
         .where(
-          and(
-            eq(passwordResets.customerId, customer.id),
-            isNull(passwordResets.usedAt),
-            gt(passwordResets.expiresAt, new Date()) // Noch nicht abgelaufen
-          )
+          and(eq(passwordResets.customerId, customer.id), isNull(passwordResets.usedAt)),
         );
 
       // Neuen Reset-Token speichern
@@ -99,11 +95,26 @@ export async function registerPortalPasswordResetRoutes(app: FastifyInstance) {
       try {
         const { sendPasswordResetEmail } = await import("../lib/email.js");
         await sendPasswordResetEmail(customer.email, resetLink);
-        app.log.info({ email, customerId: customer.id }, "Password reset email sent");
-      } catch (emailError) {
-        app.log.error({ err: emailError, email }, "Failed to send password reset email");
-        // E-Mail-Fehler sollte den Request nicht abbrechen, aber wir loggen es
-        // In Development: Link trotzdem zurückgeben
+        app.log.info(
+          { email, customerId: customer.id, resetEmail: "sent", portalBaseUrl: PORTAL_BASE_URL },
+          "Password reset: email sent successfully",
+        );
+      } catch (emailError: unknown) {
+        const errMsg = emailError instanceof Error ? emailError.message : String(emailError);
+        const smtpNotConfigured =
+          errMsg.includes("SMTP_USER") ||
+          errMsg.includes("SMTP_PASSWORD") ||
+          errMsg.includes("nicht gesetzt");
+        app.log.error(
+          {
+            email,
+            customerId: customer.id,
+            resetEmail: smtpNotConfigured ? "skipped_smtp_not_configured" : "send_failed",
+            // Keine SMTP-Passwörter / keine langen SMTP-Antworten ins Log
+            detail: smtpNotConfigured ? "configure SMTP_USER and SMTP_PASSWORD" : errMsg.slice(0, 200),
+          },
+          "Password reset: email NOT sent (user still sees generic success message)",
+        );
         if (ENV.NODE_ENV === "development") {
           app.log.warn({ resetLink }, "Email sending failed, but returning link in development");
         }

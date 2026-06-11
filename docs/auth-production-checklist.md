@@ -107,3 +107,35 @@ Google startet mit **voller Navigation** zu `https://api.caisty.com/portal/auth/
 3. Google: `GET https://api.caisty.com/portal/auth/google?state=login` → 302 zu Google (nicht JSON-Fehler).
 4. Nach Google: Landung auf `https://www.caisty.com/portal/login/success?token=...` → Redirect nach `/portal`.
 5. Forgot Password: E-Mail-Link beginnt mit `https://www.caisty.com/reset-password?token=...`.
+
+## 9. Forgot Password / Reset Password (Production)
+
+**Frontend**
+
+- Route **„Passwort vergessen“:** `/forgot-password` → `ForgotPasswordPage.tsx`
+- Route **Neues Passwort:** `/reset-password?token=...` → `ResetPasswordPage.tsx` (Token aus Query)
+- API-Aufrufe (alle über `API_BASE` in `portalApi.ts`, kein `/api`-Prefix):
+  - `POST ${API_BASE}/portal/auth/forgot-password` mit `{ email }`
+  - `POST ${API_BASE}/portal/auth/reset-password` mit `{ token, newPassword }`
+
+**Backend** (`portal-password-reset.ts`)
+
+- Forgot: User per E-Mail suchen; bei unbekannter E-Mail oder reinem Google-Konto **gleiche** Erfolgsmeldung (keine Enumeration).
+- Token: 64-Byte-Hex, in DB nur **SHA-256-Hash**; Gültigkeit **1 Stunde**; nach erfolgreichem Reset **`usedAt`** gesetzt.
+- Reset-Link: `{PORTAL_BASE_URL}/reset-password?token={rawToken}` — `PORTAL_BASE_URL` muss Production `https://www.caisty.com` sein.
+
+**E-Mail (häufigste Ursache „geht nicht“ in Production)**
+
+- `sendPasswordResetEmail` → `email.ts`: ohne **`SMTP_USER`** und **`SMTP_PASSWORD`** wirft der Versand — wird gefangen, Response bleibt `ok: true`, Nutzer sieht Erfolg, **aber keine Mail**.
+- Logs (nach Fix): `resetEmail: "sent"` oder `"skipped_smtp_not_configured"` / `"send_failed"`.
+
+**Benötigte SMTP-ENV** (cloud-api): `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, optional `SMTP_FROM`.
+
+**Tests**
+
+1. `POST /portal/auth/forgot-password` → 200, Body `ok: true`.
+2. API-Log: `Password reset: email sent successfully` **oder** klare Meldung zu SMTP.
+3. Link in Mail öffnen → `/reset-password?token=...` auf www.
+4. Neues Passwort setzen → `POST /portal/auth/reset-password` → optional JWT in Response → Frontend speichert Token und navigiert zu `/portal`.
+5. Login mit neuem Passwort.
+
