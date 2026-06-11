@@ -5,28 +5,30 @@ import type { TranslationSchema } from "./types";
 const landingLocales = {
   en: {
     hero: {
-      badge: "POS & cloud portal for modern businesses",
+      badge: "Caisty POS — restaurants, cafés & retail",
       title: "Modern POS software for restaurants, cafés and small shops.",
       description:
-        "Caisty connects your checkout, devices, licenses and invoices in one simple cloud portal — built for fast daily operations.",
+        "Fast checkout, tables, orders and receipt printers — plus a clear cloud portal for licenses, devices and invoices when you need them.",
       ctaPrimary: "Start free",
       ctaSecondary: "View pricing",
       trialTrust: "Start with a free 3-day trial. No payment details required.",
     },
     preview: {
-      title: "Caisty Cloud Portal",
-      caption: "Example view",
+      title: "Checkout on the floor",
+      caption: "POS-first",
       items: [
-        "Active license",
-        "Connected devices",
-        "Invoices",
-        "Customer portal",
-        "POS installer",
+        "Fast touchscreen sales",
+        "Tables & orders",
+        "Kitchen / bar printing",
+        "ESC/POS receipts",
+        "End-of-day sales report",
+        "Cloud: licenses & devices",
       ],
-      liveBadge: "Live portal",
+      liveBadge: "Live session",
       demoBadge: "Demo",
-      devicesOnline: "2 online · 1 offline",
-      quote: "“We wanted a till that just works — and a portal we actually understand.” — example bistro",
+      devicesOnline: "2 terminals · 1 printer online",
+      quote:
+        "“We needed a till that keeps up at lunch — the portal is there when we close the day.” — example bistro",
     },
     why: {
       title: "Why choose Caisty?",
@@ -39,6 +41,8 @@ const landingLocales = {
       feature2Text: "See active licenses, connected devices and invoices from one simple portal.",
       feature3Title: "Simple pricing",
       feature3Text: "Start small and upgrade later when your business grows.",
+      feature4Title: "Staff-ready",
+      feature4Text: "Straightforward permissions and daily workflows so teams stay fast at the counter.",
     },
     forWhom: {
       title: "Built for daily business",
@@ -151,40 +155,72 @@ const landingLocales = {
         "Caisty helps with receipts, journals and exports, but does not replace legal or tax advice.",
     },
     demo: {
-      sectionTitle: "Product preview",
+      sectionTitle: "POS screenshots",
       videoAria: "Play product video",
       closeLabel: "Close",
       clickOutside: "Click outside the image to close",
-      shotDashboard: "Dashboard",
-      shotPos: "POS",
+      shotDashboard: "Back office",
+      shotPos: "POS checkout",
       shotPortal: "Customer portal",
+    },
+    portalBand: {
+      title: "Customer portal (included)",
+      description:
+        "Licenses, devices, invoices and installers live in one hub — less admin, more time on the floor.",
+      bullets: [
+        "Trials, upgrades and license keys",
+        "Device overview and installs",
+        "Invoices and payment methods",
+      ],
+    },
+    faq: {
+      title: "FAQ",
+      items: [
+        {
+          q: "Is Caisty POS or only a cloud portal?",
+          a: "POS-first: checkout, orders, tables and printers. The cloud portal supports licenses, devices and billing.",
+        },
+        {
+          q: "Can I start without payment details?",
+          a: "Yes. The trial is free for three days with full Starter functionality on one device.",
+        },
+        {
+          q: "Where do I download the POS app?",
+          a: "After sign-up, open the customer portal and go to Install Caisty POS for the official installer.",
+        },
+        {
+          q: "Does Caisty replace certified fiscal hardware?",
+          a: "Caisty provides a generic POS mode. Confirm local fiscal rules with your advisor before going live.",
+        },
+      ],
     },
   },
   fr: {
     hero: {
-      badge: "POS & portail cloud pour les entreprises modernes",
+      badge: "Caisty POS — restaurants, cafés & commerce",
       title: "Logiciel de caisse moderne pour restaurants, cafés et petits commerces.",
       description:
-        "Caisty relie votre encaissement, vos appareils, vos licences et vos factures dans un portail cloud simple — pensé pour les opérations quotidiennes rapides.",
+        "Encaissement rapide, tables, commandes et tickets ESC/POS — avec un portail cloud clair pour licences, appareils et factures.",
       ctaPrimary: "Commencer gratuitement",
       ctaSecondary: "Voir les tarifs",
       trialTrust: "Commencez avec un essai gratuit de 3 jours. Aucun moyen de paiement requis.",
     },
     preview: {
-      title: "Portail cloud Caisty",
-      caption: "Vue d’exemple",
+      title: "À la caisse",
+      caption: "Priorité POS",
       items: [
-        "Licence active",
-        "Appareils connectés",
-        "Factures",
-        "Portail client",
-        "Installateur POS",
+        "Ventes tactiles rapides",
+        "Tables & commandes",
+        "Impression cuisine / bar",
+        "Tickets ESC/POS",
+        "Rapport de fin de journée",
+        "Cloud : licences & appareils",
       ],
-      liveBadge: "Portail en direct",
+      liveBadge: "Session en direct",
       demoBadge: "Démo",
-      devicesOnline: "2 en ligne · 1 hors ligne",
+      devicesOnline: "2 terminaux · 1 imprimante en ligne",
       quote:
-        "« Nous voulions une caisse qui fonctionne — et un portail qu’on comprend vraiment. » — bistrot fictif",
+        "« Il nous fallait une caisse qui tienne le service — le portail suit quand on clôt la journée. » — bistrot fictif",
     },
     why: {
       title: "Pourquoi choisir Caisty ?",
@@ -198,6 +234,8 @@ const landingLocales = {
         "Consultez licences actives, appareils connectés et factures depuis un seul portail simple.",
       feature3Title: "Tarification simple",
       feature3Text: "Commencez petit et passez à l’offre supérieure quand votre activité grandit.",
+      feature4Title: "Prêt pour les équipes",
+      feature4Text: "Droits simples et routines du quotidien pour garder le rythme au comptoir.",
     },
     forWhom: {
       title: "Pensé pour le quotidien",
@@ -311,40 +349,72 @@ const landingLocales = {
         "Caisty aide pour les tickets, journaux et exports, mais ne remplace pas un conseil juridique ou fiscal.",
     },
     demo: {
-      sectionTitle: "Aperçu produit",
+      sectionTitle: "Captures POS",
       videoAria: "Lire la vidéo produit",
       closeLabel: "Fermer",
       clickOutside: "Cliquez en dehors de l’image pour fermer",
-      shotDashboard: "Tableau de bord",
-      shotPos: "POS",
+      shotDashboard: "Back-office",
+      shotPos: "Caisse POS",
       shotPortal: "Portail client",
+    },
+    portalBand: {
+      title: "Portail client (inclus)",
+      description:
+        "Licences, appareils, factures et installateurs au même endroit — moins d’admin, plus de temps en salle.",
+      bullets: [
+        "Essais, mises à niveau et clés de licence",
+        "Vue appareils et installations",
+        "Factures et moyens de paiement",
+      ],
+    },
+    faq: {
+      title: "FAQ",
+      items: [
+        {
+          q: "Caisty, c’est un POS ou seulement un portail cloud ?",
+          a: "Priorité POS : caisse, commandes, tables et imprimantes. Le portail cloud gère licences, appareils et facturation.",
+        },
+        {
+          q: "Puis-je commencer sans carte bancaire ?",
+          a: "Oui. L’essai est gratuit 3 jours avec les fonctions Starter sur un appareil.",
+        },
+        {
+          q: "Où télécharger l’application POS ?",
+          a: "Après inscription, ouvrez le portail client puis « Installer Caisty POS » pour l’installateur officiel.",
+        },
+        {
+          q: "Caisty remplace-t-il un matériel fiscal certifié ?",
+          a: "Caisty propose un mode POS générique. Vérifiez toujours la réglementation locale avec un conseiller.",
+        },
+      ],
     },
   },
   de: {
     hero: {
-      badge: "POS & Cloud-Portal für moderne Betriebe",
+      badge: "Caisty POS — Gastronomie & Einzelhandel",
       title: "Moderne POS-Software für Restaurants, Cafés und kleine Läden.",
       description:
-        "Caisty verbindet Kasse, Geräte, Lizenzen und Rechnungen in einem klaren Cloud-Portal — für schnelle Abläufe im Alltag.",
+        "Schnelle Kasse, Tische, Bestellungen und Belegdrucker — plus ein klares Cloud-Portal für Lizenzen, Geräte und Rechnungen.",
       ctaPrimary: "Kostenlos starten",
       ctaSecondary: "Preise ansehen",
       trialTrust: "Starte mit einer kostenlosen 3-Tage-Testphase. Keine Zahlungsdaten nötig.",
     },
     preview: {
-      title: "Caisty Cloud-Portal",
-      caption: "Beispielansicht",
+      title: "Direkt an der Kasse",
+      caption: "POS zuerst",
       items: [
-        "Aktive Lizenz",
-        "Verbundene Geräte",
-        "Rechnungen",
-        "Kundenportal",
-        "POS-Installer",
+        "Schneller Touchscreen-Verkauf",
+        "Tische & Bestellungen",
+        "Küchen- / Bar-Druck",
+        "ESC/POS-Belege",
+        "Tagesabschluss-Verkauf",
+        "Cloud: Lizenzen & Geräte",
       ],
-      liveBadge: "Live-Portal",
+      liveBadge: "Live-Session",
       demoBadge: "Demo",
-      devicesOnline: "2 online · 1 offline",
+      devicesOnline: "2 Kassen · 1 Drucker online",
       quote:
-        "„Wir wollten eine Kasse, die einfach läuft – und ein Portal, das wir verstehen.“ – fiktives Bistro",
+        "„Wir brauchten eine Kasse, die zur Rushhour mitkommt — das Portal holen wir beim Tagesabschluss.“ – fiktives Bistro",
     },
     why: {
       title: "Warum Caisty?",
@@ -358,6 +428,8 @@ const landingLocales = {
         "Aktive Lizenzen, verbundene Geräte und Rechnungen in einem einfachen Portal.",
       feature3Title: "Einfache Preise",
       feature3Text: "Klein starten und später upgraden, wenn Ihr Geschäft wächst.",
+      feature4Title: "Team-tauglich",
+      feature4Text: "Klare Berechtigungen und Abläufe, damit die Schicht schnell bleibt.",
     },
     forWhom: {
       title: "Für den täglichen Betrieb gemacht",
@@ -471,39 +543,71 @@ const landingLocales = {
         "Caisty unterstützt bei Belegen, Journalen und Exporten, ersetzt aber keine Rechts- oder Steuerberatung.",
     },
     demo: {
-      sectionTitle: "Produktvorschau",
+      sectionTitle: "POS-Screenshots",
       videoAria: "Produktvideo abspielen",
       closeLabel: "Schließen",
       clickOutside: "Zum Schließen außerhalb des Bildes klicken",
-      shotDashboard: "Dashboard",
-      shotPos: "POS",
+      shotDashboard: "Backoffice",
+      shotPos: "POS-Kasse",
       shotPortal: "Kundenportal",
+    },
+    portalBand: {
+      title: "Kundenportal (inklusive)",
+      description:
+        "Lizenzen, Geräte, Rechnungen und Installer an einem Ort — weniger Verwaltung, mehr Zeit im Service.",
+      bullets: [
+        "Tests, Upgrades und Lizenzschlüssel",
+        "Geräteübersicht und Installationen",
+        "Rechnungen und Zahlungsarten",
+      ],
+    },
+    faq: {
+      title: "FAQ",
+      items: [
+        {
+          q: "Ist Caisty POS oder nur ein Cloud-Portal?",
+          a: "POS zuerst: Kasse, Bestellungen, Tische und Drucker. Das Cloud-Portal unterstützt Lizenzen, Geräte und Abrechnung.",
+        },
+        {
+          q: "Kann ich ohne Zahlungsdaten starten?",
+          a: "Ja. Die Testphase ist drei Tage kostenlos mit vollem Starter-Funktionsumfang auf einem Gerät.",
+        },
+        {
+          q: "Wo lade ich die POS-App herunter?",
+          a: "Nach der Registrierung findest du im Kundenportal unter „Caisty POS installieren“ den offiziellen Installer.",
+        },
+        {
+          q: "Ersetzt Caisty zertifizierte Fiskal-Hardware?",
+          a: "Caisty bietet einen generischen POS-Modus. Kläre lokale Fiskalvorschriften immer mit deiner Beratung.",
+        },
+      ],
     },
   },
   ar: {
     hero: {
-      badge: "نقاط بيع وبوابة سحابية للأعمال الحديثة",
+      badge: "Caisty POS — مطاعم ومقاهٍ وتجزئة",
       title: "برنامج نقاط بيع حديث للمطاعم والمقاهي والمتاجر الصغيرة.",
       description:
-        "يربط Caisty نقطة الدفع والأجهزة والتراخيص والفواتير في بوابة سحابية بسيطة — مصممة للعمل اليومي السريع.",
+        "دفع سريع وطاولات وطلبات وطابعات إيصالات — مع بوابة سحابية واضحة للتراخيص والأجهزة والفواتير عند الحاجة.",
       ctaPrimary: "ابدأ مجاناً",
       ctaSecondary: "عرض الأسعار",
       trialTrust: "ابدأ بتجربة مجانية لمدة 3 أيام. دون بيانات دفع.",
     },
     preview: {
-      title: "بوابة Caisty السحابية",
-      caption: "عرض توضيحي",
+      title: "عند نقطة البيع",
+      caption: "الأولوية للـ POS",
       items: [
-        "ترخيص نشط",
-        "أجهزة متصلة",
-        "فواتير",
-        "بوابة العملاء",
-        "مثبت نقاط البيع",
+        "بيع سريع بالشاشة اللمسية",
+        "طاولات وطلبات",
+        "طباعة مطبخ / بار",
+        "إيصالات ESC/POS",
+        "تقرير مبيعات نهاية اليوم",
+        "سحابة: تراخيص وأجهزة",
       ],
-      liveBadge: "بوابة مباشرة",
+      liveBadge: "جلسة مباشرة",
       demoBadge: "تجريبي",
-      devicesOnline: "2 متصل · 1 غير متصل",
-      quote: "« أردنا صندوقاً يعمل ببساطة — وبوابة نفهمها. » — مقهى افتراضي",
+      devicesOnline: "جهازان · طابعة واحدة متصلة",
+      quote: "« نحتاج صندوقاً يتحمل زحمة الغداء — البوابة عند إغلاق اليوم. » — مقهى افتراضي",
     },
     why: {
       title: "لماذا Caisty؟",
@@ -515,6 +619,8 @@ const landingLocales = {
       feature2Text: "اطلع على التراخيص النشطة والأجهزة المتصلة والفواتير من بوابة واحدة بسيطة.",
       feature3Title: "تسعير بسيط",
       feature3Text: "ابدأ صغيراً وقم بالترقية لاحقاً عند نمو عملك.",
+      feature4Title: "جاهز للطاقم",
+      feature4Text: "صلاحيات واضحة وسير عمل يومي للحفاظ على السرعة عند الكاشير.",
     },
     forWhom: {
       title: "مصمم للعمل اليومي",
@@ -626,13 +732,43 @@ const landingLocales = {
         "يساعد Caisty على الإيصالات والدفاتر والتصدير، ولا يغني عن استشارة قانونية أو ضريبية.",
     },
     demo: {
-      sectionTitle: "معاينة المنتج",
+      sectionTitle: "لقطات POS",
       videoAria: "تشغيل فيديو المنتج",
       closeLabel: "إغلاق",
       clickOutside: "انقر خارج الصورة للإغلاق",
-      shotDashboard: "لوحة التحكم",
-      shotPos: "نقاط البيع",
+      shotDashboard: "الإدارة",
+      shotPos: "شاشة الكاشير",
       shotPortal: "بوابة العملاء",
+    },
+    portalBand: {
+      title: "بوابة العملاء (مشمولة)",
+      description: "التراخيص والأجهزة والفواتير والمثبتات في مكان واحد — إدارة أقل ووقت أكثر في الصالة.",
+      bullets: [
+        "تجارب وترقيات ومفاتيح ترخيص",
+        "نظرة عامة على الأجهزة والتثبيت",
+        "الفواتير وطرق الدفع",
+      ],
+    },
+    faq: {
+      title: "الأسئلة الشائعة",
+      items: [
+        {
+          q: "هل Caisty نقاط بيع أم بوابة سحابية فقط؟",
+          a: "الأولوية للـ POS: الكاشير والطلبات والطاولات والطابعات. تدعم البوابة السحابية التراخيص والأجهزة والفوترة.",
+        },
+        {
+          q: "هل أبدأ دون بيانات دفع؟",
+          a: "نعم. التجربة مجانية 3 أيام مع ميزات Starter على جهاز واحد.",
+        },
+        {
+          q: "أين أحمّل تطبيق نقاط البيع؟",
+          a: "بعد التسجيل، افتح بوابة العملاء ثم «تثبيت Caisty POS» للمثبت الرسمي.",
+        },
+        {
+          q: "هل يستبدل Caisty أجهزة تخصيص ضريبي معتمدة؟",
+          a: "يوفر Caisty وضع POS عاماً. تأكد دائماً من القواعد المحلية مع مستشارك.",
+        },
+      ],
     },
   },
 };

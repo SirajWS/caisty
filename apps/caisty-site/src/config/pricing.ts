@@ -40,12 +40,12 @@ export const PRICING: Record<Currency, {
   },
   TND: {
     starter: {
-      monthly: 39,
-      yearly: 398, // ~15% Rabatt: 39 * 12 * 0.85
+      monthly: 29,
+      yearly: 296, // ~15% Rabatt vs. 12× monthly
     },
     pro: {
-      monthly: 99,
-      yearly: 1010, // ~15% Rabatt: 99 * 12 * 0.85
+      monthly: 49,
+      yearly: 500, // ~15% Rabatt vs. 12× monthly
     },
     trial: {
       monthly: 0,

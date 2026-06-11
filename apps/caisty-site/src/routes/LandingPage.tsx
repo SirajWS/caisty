@@ -2,14 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
+import { landingTn } from "../lib/translations/landingTn";
+import { getSiteMarket } from "../lib/siteMarket";
 import { useTheme } from "../lib/theme";
 
 export default function LandingPage() {
   const { language } = useLanguage();
   const location = useLocation();
   const { theme } = useTheme();
+  const market = getSiteMarket();
   const isLight = theme === "light";
-  const t = translations[language].landing;
+  const t = market === "tn" ? landingTn : translations[language].landing;
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const landingRef = useRef<HTMLDivElement>(null);
 
@@ -44,7 +47,7 @@ export default function LandingPage() {
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, [language, theme]);
+  }, [language, theme, market]);
 
   const sectionShell = "w-full max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8";
 
@@ -82,9 +85,18 @@ export default function LandingPage() {
                 <Link to="/register" className="lp-cta-primary no-underline text-center justify-center w-full sm:w-auto">
                   {t.hero.ctaPrimary}
                 </Link>
-                <Link to="/pricing" className="lp-cta-secondary no-underline text-center justify-center w-full sm:w-auto">
-                  {t.hero.ctaSecondary}
-                </Link>
+                {market === "tn" ? (
+                  <a
+                    href="mailto:info@caisty.com?subject=D%C3%A9mo%20Caisty%20POS"
+                    className="lp-cta-secondary no-underline text-center justify-center w-full sm:w-auto"
+                  >
+                    {t.hero.ctaSecondary}
+                  </a>
+                ) : (
+                  <Link to="/pricing" className="lp-cta-secondary no-underline text-center justify-center w-full sm:w-auto">
+                    {t.hero.ctaSecondary}
+                  </Link>
+                )}
               </div>
 
               <p className="lp-hero-trial text-sm max-w-xl leading-relaxed text-[var(--color-text-subtle)]">
@@ -178,7 +190,7 @@ export default function LandingPage() {
       </section>
 
       {/* Why */}
-      <section className={`${sectionShell} py-16 sm:py-24`}>
+      <section id="features" className={`${sectionShell} py-16 sm:py-24 scroll-mt-20`}>
         <div className="lp-reveal space-y-4">
           <div className="flex items-start gap-3">
             <span className="lp-section-accent" aria-hidden />
@@ -188,15 +200,18 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-        <div className="lp-reveal lp-reveal-stagger grid gap-5 sm:grid-cols-2 lg:grid-cols-3 mt-10 text-sm">
+        <div className="lp-reveal lp-reveal-stagger grid gap-5 sm:grid-cols-2 lg:grid-cols-4 mt-10 text-sm">
           <div className="lp-reveal-item">
             <FeatureCard title={t.why.feature1Title} text={t.why.feature1Text} />
           </div>
           <div className="lp-reveal-item">
             <FeatureCard title={t.why.feature2Title} text={t.why.feature2Text} />
           </div>
-          <div className="lp-reveal-item sm:col-span-2 lg:col-span-1">
+          <div className="lp-reveal-item">
             <FeatureCard title={t.why.feature3Title} text={t.why.feature3Text} />
+          </div>
+          <div className="lp-reveal-item">
+            <FeatureCard title={t.why.feature4Title} text={t.why.feature4Text} />
           </div>
         </div>
       </section>
@@ -217,6 +232,72 @@ export default function LandingPage() {
           <div className="lp-reveal-item sm:col-span-2 lg:col-span-1">
             <FeatureCard title={t.forWhom.target3Title} text={t.forWhom.target3Text} />
           </div>
+        </div>
+      </section>
+
+      {/* Customer portal (supporting product) */}
+      <section id="portal" className={`${sectionShell} py-16 sm:py-24 scroll-mt-20`}>
+        <div
+          className={`lp-reveal rounded-2xl border p-6 sm:p-10 space-y-6 lp-surface-card max-w-3xl ${
+            isLight ? "bg-white shadow-sm" : ""
+          }`}
+        >
+          <div className="space-y-4 min-w-0">
+            <div className="flex items-start gap-3">
+              <span className="lp-section-accent mt-1" aria-hidden />
+              <div className="space-y-3 min-w-0">
+                <h2 className="lp-section-h2 text-xl sm:text-2xl">{t.portalBand.title}</h2>
+                <p className="text-sm sm:text-base leading-relaxed text-[var(--color-text-muted)] max-w-2xl">{t.portalBand.description}</p>
+              </div>
+            </div>
+            <ul className="space-y-3 text-sm text-[var(--color-text-muted)] max-w-2xl ps-1 sm:ps-2">
+              {t.portalBand.bullets.map((b) => (
+                <li key={b} className="flex gap-2 items-start">
+                  <span className="text-[#f97316] shrink-0 mt-0.5" aria-hidden>
+                    ✓
+                  </span>
+                  <span>{b}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Demo / POS screenshots */}
+      <section id="screenshots" className={`${sectionShell} py-16 sm:py-24 scroll-mt-20`}>
+        <div className="lp-reveal mb-6 flex items-start gap-3">
+          <span className="lp-section-accent" aria-hidden />
+          <h2 className="lp-section-h2">{t.demo.sectionTitle}</h2>
+        </div>
+        <div className={`lp-reveal max-w-3xl mx-auto w-full rounded-2xl border overflow-hidden lp-surface-card ${isLight ? "shadow-md" : ""}`}>
+          <div className="aspect-video lp-video-shell flex items-center justify-center relative overflow-hidden max-h-[320px] sm:max-h-none">
+            <div className="absolute inset-0 lp-shimmer opacity-30" aria-hidden />
+            <div className="absolute inset-0 flex items-center justify-center z-[1]">
+              <div className="relative w-16 h-16 sm:w-[72px] sm:h-[72px] flex items-center justify-center">
+                <span className="lp-play-ring" />
+                <button
+                  type="button"
+                  className={`relative z-[2] rounded-full p-3 sm:p-4 transition-transform hover:scale-105 ${
+                    isLight ? "bg-white text-slate-900 shadow-lg" : "bg-white/10 text-white border border-white/10"
+                  }`}
+                  aria-label={t.demo.videoAria}
+                >
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="lp-reveal lp-reveal-stagger grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mt-8 w-full min-w-0">
+          {screenshots.map((screenshot) => (
+            <div key={screenshot.id} className="lp-reveal-item w-full min-w-0">
+              <ScreenshotThumb screenshot={screenshot} isLight={isLight} onOpen={() => setSelectedImage(screenshot.src)} />
+            </div>
+          ))}
         </div>
       </section>
 
@@ -364,6 +445,34 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* FAQ */}
+      <section id="faq" className={`${sectionShell} py-16 sm:py-24 scroll-mt-20`}>
+        <div className="lp-reveal space-y-4 mb-8">
+          <div className="flex items-start gap-3">
+            <span className="lp-section-accent" aria-hidden />
+            <h2 className="lp-section-h2">{t.faq.title}</h2>
+          </div>
+        </div>
+        <div className="lp-reveal grid gap-3 max-w-3xl">
+          {t.faq.items.map((item) => (
+            <details
+              key={item.q}
+              className={`group rounded-xl border overflow-hidden ${isLight ? "border-slate-200 bg-white" : "border-white/10 bg-[#0f172a]/60"}`}
+            >
+              <summary className="cursor-pointer list-none flex items-center justify-between gap-3 px-4 py-3.5 text-sm font-semibold text-[var(--color-text-primary)] lp-font-heading [&::-webkit-details-marker]:hidden">
+                <span>{item.q}</span>
+                <span className="text-[#f97316] text-lg leading-none group-open:rotate-180 transition-transform">▾</span>
+              </summary>
+              <div
+                className={`px-4 pb-4 text-sm leading-relaxed text-[var(--color-text-muted)] border-t ${isLight ? "border-slate-100" : "border-white/5"} pt-3`}
+              >
+                {item.a}
+              </div>
+            </details>
+          ))}
+        </div>
+      </section>
+
       {/* Fiscal */}
       <section id="fiscal" className={`${sectionShell} py-16 sm:py-24 scroll-mt-20`}>
         <div className={`lp-reveal lp-fiscal-box border p-6 sm:p-8 space-y-4 text-sm leading-relaxed ${isLight ? "border-slate-200" : "border-white/10"}`}>
@@ -376,43 +485,6 @@ export default function LandingPage() {
           </ul>
           <p className="text-[var(--color-text-muted)]">{t.fiscal.strict}</p>
           <p className="text-[var(--color-text-muted)] font-medium">{t.fiscal.disclaimer}</p>
-        </div>
-      </section>
-
-      {/* Demo / preview */}
-      <section className={`${sectionShell} py-16 sm:py-24 pb-24`}>
-        <div className="lp-reveal mb-6 flex items-start gap-3">
-          <span className="lp-section-accent" aria-hidden />
-          <h2 className="lp-section-h2">{t.demo.sectionTitle}</h2>
-        </div>
-        <div className={`lp-reveal max-w-3xl mx-auto w-full rounded-2xl border overflow-hidden lp-surface-card ${isLight ? "shadow-md" : ""}`}>
-          <div className="aspect-video lp-video-shell flex items-center justify-center relative overflow-hidden max-h-[320px] sm:max-h-none">
-            <div className="absolute inset-0 lp-shimmer opacity-30" aria-hidden />
-            <div className="absolute inset-0 flex items-center justify-center z-[1]">
-              <div className="relative w-16 h-16 sm:w-[72px] sm:h-[72px] flex items-center justify-center">
-                <span className="lp-play-ring" />
-                <button
-                  type="button"
-                  className={`relative z-[2] rounded-full p-3 sm:p-4 transition-transform hover:scale-105 ${
-                    isLight ? "bg-white text-slate-900 shadow-lg" : "bg-white/10 text-white border border-white/10"
-                  }`}
-                  aria-label={t.demo.videoAria}
-                >
-                  <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="lp-reveal lp-reveal-stagger grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mt-8 w-full min-w-0">
-          {screenshots.map((screenshot) => (
-            <div key={screenshot.id} className="lp-reveal-item w-full min-w-0">
-              <ScreenshotThumb screenshot={screenshot} isLight={isLight} onOpen={() => setSelectedImage(screenshot.src)} />
-            </div>
-          ))}
         </div>
       </section>
 

@@ -3,16 +3,25 @@ import type { Currency } from "../config/pricing";
 
 const CURRENCY_STORAGE_KEY = "caisty_currency";
 
+const TN_HOST = "tn.caisty.com";
+
+function isTunisiaHost(): boolean {
+  return typeof window !== "undefined" && window.location.hostname === TN_HOST;
+}
+
 // Auto-Detection basierend auf Browser-Sprache
 function detectCurrency(): Currency {
   if (typeof window === "undefined") return "EUR";
-  
+
+  if (isTunisiaHost()) {
+    return "TND";
+  }
+
   const stored = localStorage.getItem(CURRENCY_STORAGE_KEY);
   if (stored === "EUR" || stored === "TND") {
     return stored;
   }
 
-  // Standard: Immer EUR (Auto-Detection deaktiviert)
   return "EUR";
 }
 
@@ -23,16 +32,19 @@ export function useCurrency() {
   });
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(CURRENCY_STORAGE_KEY);
-      // Wenn TND gespeichert ist, auf EUR zurücksetzen
-      if (stored === "TND") {
-        localStorage.setItem(CURRENCY_STORAGE_KEY, "EUR");
-        setCurrency("EUR");
-      } else if (stored === "EUR") {
-        setCurrency("EUR");
-      }
-      // Wenn nichts gespeichert ist, bleibt EUR (Standard)
+    if (typeof window === "undefined") return;
+    if (isTunisiaHost()) {
+      localStorage.setItem(CURRENCY_STORAGE_KEY, "TND");
+      setCurrency("TND");
+      return;
+    }
+    const stored = localStorage.getItem(CURRENCY_STORAGE_KEY);
+    // Global site: normalisiere alte TND-Speicherung zurück auf EUR (Abrechnung EUR)
+    if (stored === "TND") {
+      localStorage.setItem(CURRENCY_STORAGE_KEY, "EUR");
+      setCurrency("EUR");
+    } else if (stored === "EUR") {
+      setCurrency("EUR");
     }
   }, []);
 

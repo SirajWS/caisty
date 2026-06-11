@@ -2,7 +2,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import SiteLayout from "./layouts/SiteLayout";
 import LandingPage from "./routes/LandingPage";
-import LandingPageTN from "./routes/LandingPageTN";
 import PricingPage from "./routes/PricingPage";
 import LoginPage from "./routes/LoginPage";
 import RegisterPage from "./routes/RegisterPage";
@@ -29,15 +28,12 @@ import PortalSupportPage from "./routes/PortalSupportPage";
 import PortalUpgradeResultPage from "./routes/PortalUpgradeResultPage";
 
 export default function App() {
-  const host = typeof window !== "undefined" ? window.location.hostname : "";
-  const isTN = host === "tn.caisty.com";
-
   return (
     <BrowserRouter>
       <Routes>
         {/* Marketing-Site */}
         <Route element={<SiteLayout />}>
-          <Route path="/" element={isTN ? <LandingPageTN /> : <LandingPage />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/pricing" element={<PricingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />

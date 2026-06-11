@@ -7,6 +7,7 @@ import ThemeToggle from "../components/ThemeToggle";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
+import { tunisiaWhatsappUrl } from "../config/marketContact";
 
 function NavTextLink(props: {
   to: string;
@@ -41,8 +42,11 @@ export default function SiteLayout() {
 
   const host = typeof window !== "undefined" ? window.location.hostname : "";
   const isTN = host === "tn.caisty.com";
+  const waUrl = typeof window !== "undefined" ? tunisiaWhatsappUrl() : null;
 
   const closeMobile = () => setMobileOpen(false);
+
+  const tnRegisterLabel = "Essai gratuit";
 
   return (
     <div className={`min-h-screen flex flex-col w-full min-w-0 ${baseBg}`}>
@@ -58,12 +62,38 @@ export default function SiteLayout() {
               <div className="flex min-w-0 flex-col leading-tight">
                 <span className={`text-sm font-semibold tracking-tight truncate ${strongText}`}>Caisty</span>
                 <span className={`text-[11px] truncate ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                  {t.layout.tagline}
+                  {isTN ? "Caisty POS — Tunisie" : t.layout.tagline}
                 </span>
               </div>
             </Link>
 
-            {!isTN && (
+            {isTN ? (
+              <nav
+                className={`hidden lg:flex items-center gap-8 ${isLight ? "text-slate-600" : "text-slate-300"}`}
+              >
+                <NavTextLink to="/#features" isLight={isLight}>
+                  Fonctionnalités
+                </NavTextLink>
+                <NavLink
+                  to="/pricing"
+                  className={({ isActive }) =>
+                    [
+                      "text-sm font-medium no-underline transition-colors",
+                      isActive
+                        ? "text-[#f97316]"
+                        : isLight
+                          ? "text-slate-600 hover:text-[#0b1220]"
+                          : "text-slate-300 hover:text-white",
+                    ].join(" ")
+                  }
+                >
+                  Tarifs
+                </NavLink>
+                <NavTextLink to="/#faq" isLight={isLight}>
+                  FAQ
+                </NavTextLink>
+              </nav>
+            ) : (
               <nav
                 className={`hidden lg:flex items-center gap-8 ${isLight ? "text-slate-600" : "text-slate-300"}`}
               >
@@ -95,53 +125,61 @@ export default function SiteLayout() {
             )}
 
             <div className="hidden lg:flex items-center gap-3 shrink-0">
-              <LanguageSelector />
-              <CurrencySelector />
-              <ThemeToggle />
               {!isTN && (
                 <>
-                  <Link
-                    to="/login"
-                    className={`text-sm font-medium no-underline px-2 ${isLight ? "text-slate-600 hover:text-[#0b1220]" : "text-slate-300 hover:text-white"}`}
-                  >
-                    {t.buttons.login}
-                  </Link>
-                  <Link
-                    to="/register"
-                    className="text-sm font-semibold no-underline rounded-full px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center bg-[#f97316] text-white hover:bg-[#ea580c] transition-colors shadow-sm"
-                  >
-                    {t.buttons.startFree}
-                  </Link>
+                  <LanguageSelector />
+                  <CurrencySelector />
                 </>
+              )}
+              <ThemeToggle />
+              <Link
+                to="/login"
+                className={`text-sm font-medium no-underline px-2 ${isLight ? "text-slate-600 hover:text-[#0b1220]" : "text-slate-300 hover:text-white"}`}
+              >
+                {isTN ? "Connexion" : t.buttons.login}
+              </Link>
+              <Link
+                to="/register"
+                className="text-sm font-semibold no-underline rounded-full px-4 py-2.5 min-h-[44px] inline-flex items-center justify-center bg-[#f97316] text-white hover:bg-[#ea580c] transition-colors shadow-sm"
+              >
+                {isTN ? tnRegisterLabel : t.buttons.startFree}
+              </Link>
+              {isTN && waUrl && (
+                <a
+                  href={waUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`text-xs font-medium no-underline ${isLight ? "text-slate-500 hover:text-[#0b1220]" : "text-slate-400 hover:text-white"}`}
+                >
+                  WhatsApp
+                </a>
               )}
             </div>
 
-            {!isTN && (
-              <button
-                type="button"
-                className={`lg:hidden inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
-                  isLight
-                    ? "border-slate-300 bg-white text-slate-800"
-                    : "border-white/15 bg-white/[0.04] text-slate-100"
-                }`}
-                aria-expanded={mobileOpen}
-                aria-label={mobileOpen ? t.layout.menuClose : t.layout.menuOpen}
-                onClick={() => setMobileOpen((o) => !o)}
-              >
-                <span className="sr-only">{mobileOpen ? t.layout.menuClose : t.layout.menuOpen}</span>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-                  {mobileOpen ? (
-                    <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
-                  ) : (
-                    <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" strokeLinejoin="round" />
-                  )}
-                </svg>
-              </button>
-            )}
+            <button
+              type="button"
+              className={`lg:hidden inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
+                isLight
+                  ? "border-slate-300 bg-white text-slate-800"
+                  : "border-white/15 bg-white/[0.04] text-slate-100"
+              }`}
+              aria-expanded={mobileOpen}
+              aria-label={mobileOpen ? t.layout.menuClose : t.layout.menuOpen}
+              onClick={() => setMobileOpen((o) => !o)}
+            >
+              <span className="sr-only">{mobileOpen ? t.layout.menuClose : t.layout.menuOpen}</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                {mobileOpen ? (
+                  <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                ) : (
+                  <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" strokeLinejoin="round" />
+                )}
+              </svg>
+            </button>
           </div>
         </div>
 
-        {mobileOpen && !isTN && (
+        {mobileOpen && (
           <div
             className={`lg:hidden border-t ${baseBorder} ${isLight ? "bg-white" : "bg-[#0b1220]"}`}
           >
@@ -151,38 +189,75 @@ export default function SiteLayout() {
                 onClick={closeMobile}
                 className="flex w-full min-h-[48px] items-center justify-center rounded-full bg-[#f97316] px-4 py-3 text-sm font-semibold text-white no-underline shadow-sm transition-colors hover:bg-[#ea580c]"
               >
-                {t.buttons.startFree}
+                {isTN ? tnRegisterLabel : t.buttons.startFree}
               </Link>
               <div className="flex flex-col gap-1">
-                <NavTextLink to="/#product" isLight={isLight} onClick={closeMobile}>
-                  {t.nav.product}
-                </NavTextLink>
-                <NavLink
-                  to="/pricing"
-                  onClick={closeMobile}
-                  className={({ isActive }) =>
-                    `text-sm font-medium py-2 no-underline ${isActive ? "text-[#f97316]" : isLight ? "text-slate-700" : "text-slate-200"}`
-                  }
-                >
-                  {t.nav.pricing}
-                </NavLink>
-                <NavTextLink to="/#payment" isLight={isLight} onClick={closeMobile}>
-                  {t.nav.payment}
-                </NavTextLink>
-                <NavTextLink to="/#fiscal" isLight={isLight} onClick={closeMobile}>
-                  {t.nav.fiscal}
-                </NavTextLink>
+                {isTN ? (
+                  <>
+                    <NavTextLink to="/#features" isLight={isLight} onClick={closeMobile}>
+                      Fonctionnalités
+                    </NavTextLink>
+                    <NavLink
+                      to="/pricing"
+                      onClick={closeMobile}
+                      className={({ isActive }) =>
+                        `text-sm font-medium py-2 no-underline ${isActive ? "text-[#f97316]" : isLight ? "text-slate-700" : "text-slate-200"}`
+                      }
+                    >
+                      Tarifs
+                    </NavTextLink>
+                    <NavTextLink to="/#faq" isLight={isLight} onClick={closeMobile}>
+                      FAQ
+                    </NavTextLink>
+                  </>
+                ) : (
+                  <>
+                    <NavTextLink to="/#product" isLight={isLight} onClick={closeMobile}>
+                      {t.nav.product}
+                    </NavTextLink>
+                    <NavLink
+                      to="/pricing"
+                      onClick={closeMobile}
+                      className={({ isActive }) =>
+                        `text-sm font-medium py-2 no-underline ${isActive ? "text-[#f97316]" : isLight ? "text-slate-700" : "text-slate-200"}`
+                      }
+                    >
+                      {t.nav.pricing}
+                    </NavLink>
+                    <NavTextLink to="/#payment" isLight={isLight} onClick={closeMobile}>
+                      {t.nav.payment}
+                    </NavTextLink>
+                    <NavTextLink to="/#fiscal" isLight={isLight} onClick={closeMobile}>
+                      {t.nav.fiscal}
+                    </NavTextLink>
+                  </>
+                )}
                 <Link
                   to="/login"
                   onClick={closeMobile}
                   className={`text-sm font-medium py-2 no-underline ${isLight ? "text-slate-700" : "text-slate-200"}`}
                 >
-                  {t.buttons.login}
+                  {isTN ? "Connexion" : t.buttons.login}
                 </Link>
+                {isTN && waUrl && (
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={closeMobile}
+                    className={`text-sm font-medium py-2 no-underline ${isLight ? "text-slate-700" : "text-slate-200"}`}
+                  >
+                    WhatsApp
+                  </a>
+                )}
               </div>
               <div className={`flex flex-wrap items-center gap-3 pt-4 mt-2 border-t ${baseBorder}`}>
-                <LanguageSelector />
-                <CurrencySelector />
+                {!isTN && (
+                  <>
+                    <LanguageSelector />
+                    <CurrencySelector />
+                  </>
+                )}
                 <ThemeToggle />
               </div>
             </div>

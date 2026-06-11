@@ -9,14 +9,14 @@ function readInitialLanguage(): Language {
   if (typeof window === "undefined") {
     return "en";
   }
+  // Tunisia subdomain: French-only marketing site
+  if (window.location.hostname === TN_HOST) {
+    return "fr";
+  }
   const saved = localStorage.getItem("caisty.language");
   const normalized = saved?.toLowerCase();
   if (normalized && isLanguage(normalized)) {
     return normalized;
-  }
-  // Tunesien-Subdomain: Standard Arabisch
-  if (window.location.hostname === TN_HOST) {
-    return "ar";
   }
   const browserLang = navigator.language.split("-")[0].toLowerCase();
   if (isLanguage(browserLang)) {
@@ -37,7 +37,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<Language>(readInitialLanguage);
 
   const setLanguage = (lang: Language) => {
-    const next: Language = isLanguage(lang) ? lang : "en";
+    const tnOnly =
+      typeof window !== "undefined" && window.location.hostname === TN_HOST;
+    const next: Language = tnOnly ? "fr" : isLanguage(lang) ? lang : "en";
     setLanguageState(next);
     localStorage.setItem("caisty.language", next);
     // RTL für Arabisch setzen
