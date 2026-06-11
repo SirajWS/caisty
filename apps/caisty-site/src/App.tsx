@@ -1,5 +1,5 @@
 // apps/caisty-site/src/App.tsx
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import SiteLayout from "./layouts/SiteLayout";
 import LandingPage from "./routes/LandingPage";
 import PricingPage from "./routes/PricingPage";
@@ -13,6 +13,7 @@ import ImprintPage from "./routes/ImprintPage";
 import CompanyPage from "./routes/CompanyPage";
 import ShiftIQPage from "./routes/ShiftIQPage";
 
+import { COMPANY_HOME, POS_LANDING_PATH } from "./config/marketingRoutes";
 import PortalLayout from "./routes/PortalLayout";
 import PortalDashboard from "./routes/PortalDashboard";
 import PortalLicensesPage from "./routes/PortalLicensesPage";
@@ -35,9 +36,11 @@ export default function App() {
       <Routes>
         {/* Marketing-Site */}
         <Route element={<SiteLayout />}>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<CompanyPage />} />
+          <Route path="/company" element={<Navigate to={COMPANY_HOME} replace />} />
+          <Route path="/caisty-pos" element={<LandingPage />} />
+          <Route path="/product" element={<Navigate to={POS_LANDING_PATH} replace />} />
           <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/company" element={<CompanyPage />} />
           <Route path="/shiftiq" element={<ShiftIQPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />

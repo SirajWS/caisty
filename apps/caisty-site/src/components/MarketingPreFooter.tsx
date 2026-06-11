@@ -3,6 +3,7 @@ import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
 import { TechStackCardGrid } from "./TechStackCardGrid";
+import { POS_LANDING_PATH } from "../config/marketingRoutes";
 
 export default function MarketingPreFooter() {
   const { theme } = useTheme();
@@ -52,7 +53,7 @@ export default function MarketingPreFooter() {
                 ))}
               </ul>
               <Link
-                to="/#product"
+                to={`${POS_LANDING_PATH}#product`}
                 className={`inline-flex min-h-[44px] w-full items-center justify-center rounded-full border text-sm font-semibold no-underline transition-colors sm:w-auto sm:px-6 ${
                   isLight
                     ? "border-slate-200 bg-slate-50 text-slate-900 hover:border-[#f97316] hover:bg-orange-50 hover:text-[#c2410c]"

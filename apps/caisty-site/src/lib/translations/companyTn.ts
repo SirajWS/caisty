@@ -1,4 +1,4 @@
-// Tunisia subdomain — French only (tn.caisty.com/company)
+// Tunisia subdomain — French only (tn.caisty.com)
 import type { CompanyCopy } from "./company";
 import { TECH_STACK_ICONS } from "./common";
 

@@ -11,6 +11,7 @@ import { translations } from "../lib/translations/index";
 import { FOOTER_TECH_STRIP } from "../lib/translations/common";
 import { ICON_COLORS } from "../components/TechStackCardGrid";
 import { tunisiaWhatsappUrl } from "../config/marketContact";
+import { COMPANY_HOME, POS_LANDING_PATH } from "../config/marketingRoutes";
 
 export default function SiteLayout() {
   const { theme } = useTheme();
@@ -31,8 +32,8 @@ export default function SiteLayout() {
   const closeMobile = () => setMobileOpen(false);
 
   const { pathname } = useLocation();
-  /** Product / company story lives on `/company` only — avoid duplicating under `/shiftiq`, `/company`, auth, legal. */
-  const showMarketingPreFooter = pathname === "/" || pathname === "/pricing";
+  /** POS marketing band: only on Caisty POS landing and standalone pricing. */
+  const showMarketingPreFooter = pathname === POS_LANDING_PATH || pathname === "/pricing";
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     [
@@ -51,7 +52,7 @@ export default function SiteLayout() {
       >
         <div className="max-w-6xl mx-auto w-full min-w-0 px-4 sm:px-5 py-3">
           <div className="flex items-center justify-between gap-3 min-w-0">
-            <Link to="/company" className="flex min-w-0 items-center gap-2.5 shrink-0 no-underline" onClick={closeMobile}>
+            <Link to={COMPANY_HOME} className="flex min-w-0 items-center gap-2.5 shrink-0 no-underline" onClick={closeMobile}>
               <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white shadow-sm">
                 C
               </span>
@@ -66,7 +67,7 @@ export default function SiteLayout() {
             <nav
               className={`hidden lg:flex items-center gap-8 ${isLight ? "text-slate-600" : "text-slate-300"}`}
             >
-              <NavLink to="/company" className={navLinkClass}>
+              <NavLink to={COMPANY_HOME} end className={navLinkClass}>
                 {t.nav.company}
               </NavLink>
               <DesktopProductNavDropdown
@@ -121,7 +122,8 @@ export default function SiteLayout() {
             <div className="max-w-6xl mx-auto px-4 sm:px-5 pb-4 pt-3 space-y-3">
               <div className="flex flex-col gap-1">
                 <NavLink
-                  to="/company"
+                  to={COMPANY_HOME}
+                  end
                   onClick={closeMobile}
                   className={({ isActive }) =>
                     `text-sm font-medium py-2 no-underline ${isActive ? "text-[#f97316]" : isLight ? "text-slate-700" : "text-slate-200"}`
@@ -178,7 +180,7 @@ export default function SiteLayout() {
                 </h3>
                 <div className="space-y-3 text-sm">
                   <div>
-                    <Link to="/#product" className="font-semibold text-[#f97316] hover:underline no-underline">
+                    <Link to={`${POS_LANDING_PATH}#product`} className="font-semibold text-[#f97316] hover:underline no-underline">
                       {t.footer.productPosName}
                     </Link>
                     <p className={`mt-0.5 text-xs leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
@@ -200,7 +202,7 @@ export default function SiteLayout() {
             <div className="space-y-3 min-w-0">
               <h3 className={`text-xs font-bold uppercase tracking-wide ${strongText}`}>{t.footer.colCompany}</h3>
               <nav className={`flex flex-col gap-2 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                <Link to="/company" className="hover:text-[#f97316] transition-colors no-underline">
+                <Link to={COMPANY_HOME} className="hover:text-[#f97316] transition-colors no-underline">
                   {t.footer.linkCompany}
                 </Link>
                 <a href="mailto:info@caisty.com" className="hover:text-[#f97316] transition-colors no-underline break-all">

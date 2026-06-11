@@ -6,6 +6,7 @@ import { companyTn } from "../lib/translations/companyTn";
 import { getSiteMarket } from "../lib/siteMarket";
 import { useTheme } from "../lib/theme";
 import { TechStackCardGrid } from "../components/TechStackCardGrid";
+import { POS_LANDING_PATH } from "../config/marketingRoutes";
 
 const sectionShell = "w-full max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8";
 
@@ -17,7 +18,7 @@ export default function CompanyPage() {
   const isLight = theme === "light";
   const t = isTN ? companyTn : translations[language].company;
   const tc = translations[language].common;
-  const productHomeHref = isTN ? "/#features" : "/#product";
+  const productHomeHref = isTN ? `${POS_LANDING_PATH}#features` : `${POS_LANDING_PATH}#product`;
 
   useEffect(() => {
     document.title = `${t.hero.badge} | Caisty`;
@@ -103,7 +104,7 @@ export default function CompanyPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <div id="caisty-pos" className="scroll-mt-28 lg:scroll-mt-32 min-w-0">
             <ProductCardLink
-              to="/"
+              to={POS_LANDING_PATH}
               isLight={isLight}
               name={t.products.pos.name}
               description={t.products.pos.description}
@@ -204,7 +205,7 @@ export default function CompanyPage() {
           </div>
         </div>
         <p className="mt-10 text-xs text-[var(--color-text-subtle)] max-w-2xl">
-          <Link to="/" className="text-[#f97316] hover:underline font-medium no-underline">
+          <Link to={POS_LANDING_PATH} className="text-[#f97316] hover:underline font-medium no-underline">
             Caisty POS
           </Link>
           {" · "}

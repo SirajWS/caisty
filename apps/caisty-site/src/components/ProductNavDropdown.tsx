@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { CommonTranslations } from "../lib/translations/common";
+import { POS_LANDING_PATH } from "../config/marketingRoutes";
 
 type ProductMenuCopy = CommonTranslations["productMenu"];
 
@@ -28,10 +29,10 @@ const pill =
 function DesktopMegaPanel(props: { productMenu: ProductMenuCopy; onPick?: () => void }) {
   const m = props.productMenu;
   const navLinks: { to: string; label: string }[] = [
-    { to: "/", label: m.posOverview },
+    { to: POS_LANDING_PATH, label: m.posOverview },
     { to: "/pricing", label: m.posPricing },
-    { to: "/#payment", label: m.posPayment },
-    { to: "/#fiscal", label: m.posFiscal },
+    { to: `${POS_LANDING_PATH}#payment`, label: m.posPayment },
+    { to: `${POS_LANDING_PATH}#fiscal`, label: m.posFiscal },
   ];
 
   return (
@@ -279,16 +280,16 @@ export function MobileProductNavGroup(props: {
               </Link>
             </div>
             <div className="mt-2 grid grid-cols-2 gap-1">
-              <Link to="/" onClick={props.onCloseMobile} className={p}>
+              <Link to={POS_LANDING_PATH} onClick={props.onCloseMobile} className={p}>
                 {m.posOverview}
               </Link>
               <Link to="/pricing" onClick={props.onCloseMobile} className={p}>
                 {m.posPricing}
               </Link>
-              <Link to="/#payment" onClick={props.onCloseMobile} className={p}>
+              <Link to={`${POS_LANDING_PATH}#payment`} onClick={props.onCloseMobile} className={p}>
                 {m.posPayment}
               </Link>
-              <Link to="/#fiscal" onClick={props.onCloseMobile} className={p}>
+              <Link to={`${POS_LANDING_PATH}#fiscal`} onClick={props.onCloseMobile} className={p}>
                 {m.posFiscal}
               </Link>
             </div>
