@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
@@ -6,6 +6,8 @@ import { TechStackCardGrid } from "./TechStackCardGrid";
 import { POS_LANDING_PATH } from "../config/marketingRoutes";
 
 export default function MarketingPreFooter() {
+  const { pathname } = useLocation();
+  const showProductSection = pathname !== POS_LANDING_PATH;
   const { theme } = useTheme();
   const { language } = useLanguage();
   const t = translations[language].common;
@@ -26,6 +28,8 @@ export default function MarketingPreFooter() {
   return (
     <div className={`border-t ${shell}`}>
       <div className="max-w-6xl mx-auto w-full min-w-0 px-4 sm:px-6 lg:px-8 py-14 sm:py-16 space-y-16 sm:space-y-20">
+        {showProductSection ? (
+        <>
         {/* Our products */}
         <section aria-labelledby="prefooter-products-heading">
           <div className="flex items-start gap-3 mb-6">
@@ -96,6 +100,8 @@ export default function MarketingPreFooter() {
             </div>
           </div>
         </section>
+        </>
+        ) : null}
 
         {/* Trust */}
         <section aria-labelledby="prefooter-trust-heading">

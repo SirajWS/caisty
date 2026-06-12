@@ -6,21 +6,26 @@ export const landingTn: LandingCopy = {
     badge: "Caisty POS · Tunisie",
     title: "Une caisse moderne pour cafés, restaurants et commerces en Tunisie.",
     description:
-      "Encaissez rapidement, gérez vos produits, imprimez vos tickets et suivez vos ventes en temps réel — avec un portail cloud pour licences, appareils et facturation.",
+      "Encaissez rapidement, gérez produits, stocks, commandes et tables depuis une interface tactile — avec rapports utiles et un portail cloud pour licences, appareils et facturation.",
     ctaPrimary: "Commencer gratuitement",
     ctaSecondary: "Demander une démo",
     trialTrust: "Essai gratuit 3 jours. Sans engagement. Passez à Starter ou Pro quand vous êtes prêt.",
+    tagline: "Rapide. Moderne. Fiable.",
+    taglineLead:
+      "La simplicité d’une caisse classique — avec le cloud pour licences, appareils et croissance quand vous en avez besoin.",
   },
   preview: {
-    title: "Au comptoir",
+    title: "Tout-en-un au comptoir",
     caption: "Priorité caisse",
     items: [
-      "Caisse tactile rapide",
+      "Caisse tactile moderne",
+      "Connexion PIN caissiers & admins",
       "Commandes & tables",
-      "Impression cuisine / bar",
-      "Tickets ESC/POS",
-      "Suivi des ventes",
-      "Portail : licences & appareils",
+      "File d’attente & tickets",
+      "Produits, catégories & clôture du jour",
+      "Stocks, inventaire & pertes / gaspillage",
+      "Interface multilingue · thèmes clair & sombre",
+      "Cloud, licences & hors ligne avec synchro auto",
     ],
     liveBadge: "Session active",
     demoBadge: "Démo",
@@ -31,7 +36,7 @@ export const landingTn: LandingCopy = {
   why: {
     title: "Pourquoi Caisty en Tunisie ?",
     description:
-      "Une solution POS moderne, fiable et pensée pour les cafés, restaurants et commerces — avec un portail cloud clair pour l’administratif.",
+      "Une solution POS moderne et fiable — simple à prendre en main, avec des fonctions pro et un portail cloud clair pour l’administratif.",
     feature1Title: "Caisse tactile rapide",
     feature1Text: "Interface fluide pour encaisser vite, même aux heures de pointe.",
     feature2Title: "Impression tickets ESC/POS",
@@ -40,6 +45,12 @@ export const landingTn: LandingCopy = {
     feature3Text: "Suivez vos produits et évitez les ruptures avec des mouvements simples.",
     feature4Title: "Rapports de ventes",
     feature4Text: "Vue en temps réel sur vos ventes pour décider vite, chaque jour.",
+    feature5Title: "Pertes & écarts",
+    feature5Text:
+      "Suivez gaspillage et écarts pour que le quotidien reste visible — pas noyé dans des fichiers à côté de la caisse.",
+    feature6Title: "Caisse hors ligne",
+    feature6Text:
+      "Continuez à encaisser si la connexion faiblit ; synchronisation automatique au retour du réseau.",
   },
   forWhom: {
     title: "Pour qui ?",
@@ -49,6 +60,9 @@ export const landingTn: LandingCopy = {
     target2Text: "Commandes, tables et flux de caisse adaptés au service sur place et à emporter.",
     target3Title: "Commerces de proximité",
     target3Text: "Encaissement, inventaire léger et rapports pour piloter votre point de vente.",
+    target4Title: "Fast-food & boulangeries",
+    target4Text:
+      "Comptoirs à fort débit et assortiments variés — même interface réactive, moins de temps de formation.",
   },
   plans: {
     title: "Tarifs (TND)",
@@ -163,6 +177,7 @@ export const landingTn: LandingCopy = {
       "Essais, mises à niveau et clés de licence",
       "Vue des appareils et téléchargements",
       "Factures et moyens de paiement",
+      "Évolue d’une caisse à plusieurs appareils et points de vente",
     ],
   },
   howItWorksProbe: {
@@ -199,6 +214,16 @@ export const landingTn: LandingCopy = {
       { feature: "Interface multilingue", legacy: "Souvent limitée", caisty: "Large couverture" },
       { feature: "Multi-devises", legacy: "Souvent limité", caisty: "Pris en charge" },
       { feature: "Interface tactile moderne", legacy: "Générations mixtes", caisty: "Pensée pour le comptoir" },
+      {
+        feature: "Stocks, inventaire & pertes",
+        legacy: "Souvent un autre outil",
+        caisty: "Intégré aux flux quotidiens",
+      },
+      {
+        feature: "Sessions hors ligne & synchro",
+        legacy: "Inégal ou manuel",
+        caisty: "Retour en ligne : rattrapage automatique",
+      },
     ],
   },
   faq: {
@@ -219,6 +244,14 @@ export const landingTn: LandingCopy = {
       {
         q: "Comment demander une démo ?",
         a: "Utilisez le bouton « Demander une démo » ou écrivez à info@caisty.com — nous répondons rapidement.",
+      },
+      {
+        q: "Caisty fonctionne-t-il hors ligne ?",
+        a: "Oui — poursuivez la vente si la connexion est instable, puis synchronisez au retour du réseau.",
+      },
+      {
+        q: "Puis-je suivre stocks et pertes ?",
+        a: "Oui : mouvements de stock et pertes sont pensés pour l’exploitation au quotidien, avec les ventes et rapports.",
       },
     ],
   },

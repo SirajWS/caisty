@@ -134,10 +134,15 @@ export default function LandingPage() {
                   )}
                 </div>
 
-                <p className="lp-hero-trial text-sm max-w-xl leading-relaxed text-[var(--color-text-subtle)]">
-                  {t.hero.trialTrust}
-                </p>
+              <p className="lp-hero-trial text-sm max-w-xl leading-relaxed text-[var(--color-text-subtle)]">
+                {t.hero.trialTrust}
+              </p>
+
+              <div className="pt-2 space-y-2 max-w-xl">
+                <p className="text-sm font-semibold tracking-wide text-[#f97316] lp-font-heading">{t.hero.tagline}</p>
+                <p className="text-sm leading-relaxed text-[var(--color-text-muted)]">{t.hero.taglineLead}</p>
               </div>
+            </div>
 
               <div className="lp-mock-card-enter w-full min-w-0">
                 <div
@@ -259,7 +264,7 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-        <div className="lp-reveal lp-reveal-stagger grid gap-5 sm:grid-cols-2 lg:grid-cols-4 mt-10 text-sm">
+        <div className="lp-reveal lp-reveal-stagger grid gap-5 sm:grid-cols-2 lg:grid-cols-3 mt-10 text-sm">
           <div className="lp-reveal-item">
             <FeatureCard title={t.why.feature1Title} text={t.why.feature1Text} />
           </div>
@@ -272,6 +277,12 @@ export default function LandingPage() {
           <div className="lp-reveal-item">
             <FeatureCard title={t.why.feature4Title} text={t.why.feature4Text} />
           </div>
+          <div className="lp-reveal-item">
+            <FeatureCard title={t.why.feature5Title} text={t.why.feature5Text} />
+          </div>
+          <div className="lp-reveal-item">
+            <FeatureCard title={t.why.feature6Title} text={t.why.feature6Text} />
+          </div>
         </div>
       </section>
 
@@ -281,15 +292,18 @@ export default function LandingPage() {
           <span className="lp-section-accent" aria-hidden />
           <h2 className="lp-section-h2">{t.forWhom.title}</h2>
         </div>
-        <div className="lp-reveal lp-reveal-stagger grid gap-5 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+        <div className="lp-reveal lp-reveal-stagger grid gap-5 sm:grid-cols-2 lg:grid-cols-4 text-sm">
           <div className="lp-reveal-item">
             <FeatureCard title={t.forWhom.target1Title} text={t.forWhom.target1Text} />
           </div>
           <div className="lp-reveal-item">
             <FeatureCard title={t.forWhom.target2Title} text={t.forWhom.target2Text} />
           </div>
-          <div className="lp-reveal-item sm:col-span-2 lg:col-span-1">
+          <div className="lp-reveal-item">
             <FeatureCard title={t.forWhom.target3Title} text={t.forWhom.target3Text} />
+          </div>
+          <div className="lp-reveal-item">
+            <FeatureCard title={t.forWhom.target4Title} text={t.forWhom.target4Text} />
           </div>
         </div>
       </section>

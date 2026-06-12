@@ -32,7 +32,7 @@ export default function SiteLayout() {
   const closeMobile = () => setMobileOpen(false);
 
   const { pathname } = useLocation();
-  /** POS marketing band: only on Caisty POS landing and standalone pricing. */
+  /** Pre-footer trust + tech band on POS landing and pricing; product cards hidden on POS (see MarketingPreFooter). */
   const showMarketingPreFooter = pathname === POS_LANDING_PATH || pathname === "/pricing";
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>

@@ -8,21 +8,26 @@ const landingLocales = {
       badge: "Caisty POS — restaurants, cafés & retail",
       title: "Modern POS software for restaurants, cafés and small shops.",
       description:
-        "Fast checkout, tables, orders and receipt printers — plus a clear cloud portal for licenses, devices and invoices when you need them.",
+        "Run sales, orders, tables, inventory, reporting and staff workflows from one touchscreen-first interface—professional depth without the enterprise stack. Optimised for fast training; plus a clear cloud portal for licenses, devices and invoices when you need them.",
       ctaPrimary: "Start free",
       ctaSecondary: "View pricing",
       trialTrust: "Start with a free 3-day trial. No payment details required.",
+      tagline: "Fast. Modern. Reliable.",
+      taglineLead:
+        "The simplicity of a classic till—with modern cloud tools so you can focus on customers and growth.",
     },
     preview: {
-      title: "Checkout on the floor",
+      title: "Everything in one solution",
       caption: "POS-first",
       items: [
-        "Fast touchscreen sales",
-        "Tables & orders",
-        "Kitchen / bar printing",
-        "ESC/POS receipts",
-        "End-of-day sales report",
-        "Cloud: licenses & devices",
+        "Modern touchscreen POS",
+        "PIN login for cashiers & admins",
+        "Table management & orders",
+        "Queue & ticket system",
+        "Products, categories & daily close",
+        "Inventory, stock & waste / loss",
+        "Multi-language UI · dark & light themes",
+        "Cloud, licenses & offline with automatic sync",
       ],
       liveBadge: "Live session",
       demoBadge: "Demo",
@@ -33,7 +38,7 @@ const landingLocales = {
     why: {
       title: "Why choose Caisty?",
       description:
-        "Caisty is built for business owners who want a fast checkout system without complicated back-office software.",
+        "Caisty pairs ease of use with capabilities you often only see in much more expensive stacks—built for real service pressure, with offline-friendly operation and intelligent sync when you reconnect.",
       feature1Title: "Fast to start",
       feature1Text:
         "Create your account, activate your license and connect your device without a long setup process.",
@@ -43,6 +48,12 @@ const landingLocales = {
       feature3Text: "Start small and upgrade later when your business grows.",
       feature4Title: "Staff-ready",
       feature4Text: "Straightforward permissions and daily workflows so teams stay fast at the counter.",
+      feature5Title: "Inventory & loss control",
+      feature5Text:
+        "Track stock movements and waste so everyday shrinkage is visible—not buried in a separate spreadsheet.",
+      feature6Title: "Offline-first checkout",
+      feature6Text:
+        "Keep selling when connectivity is weak or down; changes sync automatically once you are back online.",
     },
     forWhom: {
       title: "Built for daily business",
@@ -52,6 +63,9 @@ const landingLocales = {
       target2Text: "Flexible products, clear daily reports and easy device management.",
       target3Title: "Small shops",
       target3Text: "Checkout, receipts and basic reporting in one simple system.",
+      target4Title: "Fast food & bakeries",
+      target4Text:
+        "High-volume counters and bakery-style assortments—same responsive UI for crews, less training overhead.",
     },
     plans: {
       title: "Plans that fit your business",
@@ -179,6 +193,7 @@ const landingLocales = {
         "Trials, upgrades and license keys",
         "Device overview and installs",
         "Invoices and payment methods",
+        "Designed to scale from one counter to multiple sites and devices",
       ],
     },
     howItWorksProbe: {
@@ -215,6 +230,16 @@ const landingLocales = {
         { feature: "Multi-language POS UI", legacy: "Often limited", caisty: "Broad language coverage" },
         { feature: "Multi-currency support", legacy: "Often limited", caisty: "Supported for operations" },
         { feature: "Modern touch-first UI", legacy: "Mixed generations", caisty: "Designed for counter speed" },
+        {
+          feature: "Inventory, stock & waste/loss",
+          legacy: "Often a separate tool",
+          caisty: "Part of day-to-day POS flows",
+        },
+        {
+          feature: "Offline sessions with sync",
+          legacy: "Uneven or manual",
+          caisty: "Resume online; data catches up automatically",
+        },
       ],
     },
     faq: {
@@ -236,6 +261,14 @@ const landingLocales = {
           q: "Does Caisty replace certified fiscal hardware?",
           a: "Caisty provides a generic POS mode. Confirm local fiscal rules with your advisor before going live.",
         },
+        {
+          q: "Does Caisty work offline?",
+          a: "Yes—continue checkout when connectivity is weak or unavailable, then sync when the link returns.",
+        },
+        {
+          q: "Can I manage stock and waste in Caisty?",
+          a: "Stock and waste/loss tracking is built for operational use alongside sales, orders and reporting.",
+        },
       ],
     },
   },
@@ -244,21 +277,26 @@ const landingLocales = {
       badge: "Caisty POS — restaurants, cafés & commerce",
       title: "Logiciel de caisse moderne pour restaurants, cafés et petits commerces.",
       description:
-        "Encaissement rapide, tables, commandes et tickets ESC/POS — avec un portail cloud clair pour licences, appareils et factures.",
+        "Gérez ventes, commandes, tables, inventaire, rapports et équipes depuis une interface tactile unique—des fonctions pro sans la complexité d’une suite enterprise. Idéal pour une prise en main rapide ; plus un portail cloud clair pour licences, appareils et factures.",
       ctaPrimary: "Commencer gratuitement",
       ctaSecondary: "Voir les tarifs",
       trialTrust: "Commencez avec un essai gratuit de 3 jours. Aucun moyen de paiement requis.",
+      tagline: "Rapide. Moderne. Fiable.",
+      taglineLead:
+        "La simplicité d’une caisse classique — avec le cloud pour licences, appareils et croissance quand vous en avez besoin.",
     },
     preview: {
-      title: "À la caisse",
+      title: "Tout-en-un",
       caption: "Priorité POS",
       items: [
-        "Ventes tactiles rapides",
+        "Caisse tactile moderne",
+        "Connexion PIN caissiers & admins",
         "Tables & commandes",
-        "Impression cuisine / bar",
-        "Tickets ESC/POS",
-        "Rapport de fin de journée",
-        "Cloud : licences & appareils",
+        "File d’attente & tickets",
+        "Produits, catégories & clôture du jour",
+        "Stocks, inventaire & pertes / gaspillage",
+        "Interface multilingue · thèmes clair & sombre",
+        "Cloud, licences & hors ligne avec synchro auto",
       ],
       liveBadge: "Session en direct",
       demoBadge: "Démo",
@@ -269,7 +307,7 @@ const landingLocales = {
     why: {
       title: "Pourquoi choisir Caisty ?",
       description:
-        "Caisty s’adresse aux commerçants qui veulent un encaissement rapide sans logiciel de back-office compliqué.",
+        "Caisty allie simplicité d’usage et fonctions qu’on trouve souvent dans des solutions bien plus chères—pensé pour le rush du service, avec mode hors ligne et synchro intelligente au retour du réseau.",
       feature1Title: "Démarrage rapide",
       feature1Text:
         "Créez votre compte, activez votre licence et connectez votre appareil sans longue phase de configuration.",
@@ -280,6 +318,12 @@ const landingLocales = {
       feature3Text: "Commencez petit et passez à l’offre supérieure quand votre activité grandit.",
       feature4Title: "Prêt pour les équipes",
       feature4Text: "Droits simples et routines du quotidien pour garder le rythme au comptoir.",
+      feature5Title: "Stocks & pertes",
+      feature5Text:
+        "Suivez mouvements de stock et gaspillage pour que les écarts du quotidien restent visibles — pas noyés dans un tableur.",
+      feature6Title: "Caisse hors ligne",
+      feature6Text:
+        "Continuez à encaisser si la connexion faiblit ou tombe ; les données se synchronisent quand le réseau revient.",
     },
     forWhom: {
       title: "Pensé pour le quotidien",
@@ -289,6 +333,9 @@ const landingLocales = {
       target2Text: "Produits flexibles, rapports du jour clairs et gestion d’appareils facile.",
       target3Title: "Petits commerces",
       target3Text: "Encaissement, tickets et reporting de base dans un système simple.",
+      target4Title: "Fast-food & boulangeries",
+      target4Text:
+        "Comptoirs à fort débit et assortiments type boulangerie—même interface réactive, moins de temps de formation.",
     },
     plans: {
       title: "Des offres adaptées à votre activité",
@@ -417,6 +464,7 @@ const landingLocales = {
         "Essais, mises à niveau et clés de licence",
         "Vue appareils et installations",
         "Factures et moyens de paiement",
+        "Évolue d’une caisse à plusieurs sites et appareils",
       ],
     },
     howItWorksProbe: {
@@ -453,6 +501,16 @@ const landingLocales = {
         { feature: "Interface POS multilingue", legacy: "Souvent limitée", caisty: "Large couverture" },
         { feature: "Multi-devises", legacy: "Souvent limité", caisty: "Pris en charge pour l’exploitation" },
         { feature: "Interface tactile moderne", legacy: "Générations mixtes", caisty: "Pensée pour la vitesse au comptoir" },
+        {
+          feature: "Stocks, inventaire & pertes",
+          legacy: "Souvent un autre outil",
+          caisty: "Intégré aux flux POS du quotidien",
+        },
+        {
+          feature: "Sessions hors ligne & synchro",
+          legacy: "Inégal ou manuel",
+          caisty: "Retour en ligne : rattrapage automatique",
+        },
       ],
     },
     faq: {
@@ -474,6 +532,14 @@ const landingLocales = {
           q: "Caisty remplace-t-il un matériel fiscal certifié ?",
           a: "Caisty propose un mode POS générique. Vérifiez toujours la réglementation locale avec un conseiller.",
         },
+        {
+          q: "Caisty fonctionne-t-il hors ligne ?",
+          a: "Oui — poursuivez la vente si la connexion est faible ou coupée, puis synchronisez au retour du réseau.",
+        },
+        {
+          q: "Puis-je gérer stocks et gaspillage dans Caisty ?",
+          a: "Le suivi des stocks et des pertes est pensé pour l’exploitation, avec ventes, commandes et rapports.",
+        },
       ],
     },
   },
@@ -486,6 +552,9 @@ const landingLocales = {
       ctaPrimary: "Kostenlos starten",
       ctaSecondary: "Preise ansehen",
       trialTrust: "Starte mit einer kostenlosen 3-Tage-Testphase. Keine Zahlungsdaten nötig.",
+      tagline: "Schnell. Modern. Zuverlässig.",
+      taglineLead:
+        "Die Einfachheit einer klassischen Kasse — mit Cloud-Tools für Lizenzen, Geräte und Wachstum, wenn du sie brauchst.",
     },
     preview: {
       title: "Alles in einer Lösung",
@@ -521,6 +590,12 @@ const landingLocales = {
       feature4Title: "Team-tauglich",
       feature4Text:
         "Klare Berechtigungen und Abläufe für Schichtbetrieb — damit die Kasse im Stress zuverlässig bleibt.",
+      feature5Title: "Bestand & Schwund",
+      feature5Text:
+        "Lagerbewegungen und Verluste im Blick — statt verstreuter Tabellenblätter neben der Kasse.",
+      feature6Title: "Offline-Kasse mit Sync",
+      feature6Text:
+        "Weiterverkaufen bei schwachem oder fehlendem Netz; danach automatische Synchronisation, sobald die Verbindung steht.",
     },
     forWhom: {
       title: "Für den täglichen Betrieb gemacht",
@@ -530,6 +605,9 @@ const landingLocales = {
       target2Text: "Tische, flexible Artikel, Küchendruck und klare Tagesauswertungen.",
       target3Title: "Bäckereien & Einzelhandel",
       target3Text: "Kasse, Belege, Basis-Reporting und Inventar in einem schlanken System — skalierbar für mehrere Standorte.",
+      target4Title: "Skalierung & mehrere Standorte",
+      target4Text:
+        "Von einer Kasse bis zu Filialen und mehreren Geräten — Lizenzen und Gerätemanagement im gleichen Portal.",
     },
     plans: {
       title: "Pläne, die zu Ihrem Betrieb passen",
@@ -658,6 +736,7 @@ const landingLocales = {
         "Tests, Upgrades und Lizenzschlüssel",
         "Geräteübersicht und Installationen",
         "Rechnungen und Zahlungsarten",
+        "Skalierbar von einer Kasse bis zu mehreren Standorten und Geräten",
       ],
     },
     howItWorksProbe: {
@@ -694,6 +773,16 @@ const landingLocales = {
         { feature: "Mehrsprachige POS-Oberfläche", legacy: "Oft begrenzt", caisty: "Breite Abdeckung" },
         { feature: "Multi-Währung", legacy: "Oft begrenzt", caisty: "Für den Betrieb unterstützt" },
         { feature: "Moderne Touch-UI", legacy: "Gemischte Generationen", caisty: "Für Tempo an der Theke" },
+        {
+          feature: "Bestand, Lager & Schwund",
+          legacy: "Oft separates Tool",
+          caisty: "Teil der täglichen POS-Abläufe",
+        },
+        {
+          feature: "Offline-Sitzungen mit Sync",
+          legacy: "Uneinheitlich oder manuell",
+          caisty: "Wieder online — Daten holen automatisch auf",
+        },
       ],
     },
     faq: {
@@ -715,6 +804,14 @@ const landingLocales = {
           q: "Ersetzt Caisty zertifizierte Fiskal-Hardware?",
           a: "Caisty bietet einen generischen POS-Modus. Kläre lokale Fiskalvorschriften immer mit deiner Beratung.",
         },
+        {
+          q: "Funktioniert Caisty offline?",
+          a: "Ja — du kannst bei schwacher oder fehlender Verbindung weiterverkaufen und später synchronisieren.",
+        },
+        {
+          q: "Kann ich Bestand und Schwund in Caisty verwalten?",
+          a: "Bestandsführung und Schwund sind für den Betrieb neben Verkauf, Bestellungen und Reporting vorgesehen.",
+        },
       ],
     },
   },
@@ -723,21 +820,25 @@ const landingLocales = {
       badge: "Caisty POS — مطاعم ومقاهٍ وتجزئة",
       title: "برنامج نقاط بيع حديث للمطاعم والمقاهي والمتاجر الصغيرة.",
       description:
-        "دفع سريع وطاولات وطلبات وطابعات إيصالات — مع بوابة سحابية واضحة للتراخيص والأجهزة والفواتير عند الحاجة.",
+        "أدرِ المبيعات والطلبات والطاولات والمخزون والتقارير وعمليات الموظفين من واجهة واحدة مُحسّنة للمس—بعمق احترافي دون تعقيد حلول المؤسسات. مناسب للتدريب السريع؛ مع بوابة سحابية واضحة للتراخيص والأجهزة والفواتير.",
       ctaPrimary: "ابدأ مجاناً",
       ctaSecondary: "عرض الأسعار",
       trialTrust: "ابدأ بتجربة مجانية لمدة 3 أيام. دون بيانات دفع.",
+      tagline: "سريع. حديث. موثوق.",
+      taglineLead: "بساطة الصندوق التقليدي—مع أدوات سحابية للتراخيص والأجهزة والنمو عند الحاجة.",
     },
     preview: {
-      title: "عند نقطة البيع",
+      title: "كل شيء في حل واحد",
       caption: "الأولوية للـ POS",
       items: [
-        "بيع سريع بالشاشة اللمسية",
-        "طاولات وطلبات",
-        "طباعة مطبخ / بار",
-        "إيصالات ESC/POS",
-        "تقرير مبيعات نهاية اليوم",
-        "سحابة: تراخيص وأجهزة",
+        "نقاط بيع حديثة باللمس",
+        "دخول برمز PIN للكاشير والمسؤولين",
+        "إدارة الطاولات والطلبات",
+        "طابور وتذاكر",
+        "المنتجات والفئات وإغلاق اليوم",
+        "المخزون والتتبع والهدر/الخسائر",
+        "واجهة متعددة اللغات · وضع فاتح وداكن",
+        "سحابة وتراخيص ووضع دون اتصال مع مزامنة تلقائية",
       ],
       liveBadge: "جلسة مباشرة",
       demoBadge: "تجريبي",
@@ -747,7 +848,7 @@ const landingLocales = {
     why: {
       title: "لماذا Caisty؟",
       description:
-        "صُمم Caisty لأصحاب الأعمال الذين يريدون نقطة دفع سريعة دون برامج خلفية معقدة.",
+        "يجمع Caisty سهولة الاستخدام مع ميزات غالباً ما تظهر في أنظمة أغلى بكثير—مصمم لضغط الخدمة الفعلي مع عمل دون اتصال ومزامنة ذكية عند عودة الشبكة.",
       feature1Title: "بدء سريع",
       feature1Text: "أنشئ حسابك، فعّل الترخيص وصِل جهازك دون إعداد طويل.",
       feature2Title: "نظرة واضحة",
@@ -756,6 +857,12 @@ const landingLocales = {
       feature3Text: "ابدأ صغيراً وقم بالترقية لاحقاً عند نمو عملك.",
       feature4Title: "جاهز للطاقم",
       feature4Text: "صلاحيات واضحة وسير عمل يومي للحفاظ على السرعة عند الكاشير.",
+      feature5Title: "المخزون والخسائر",
+      feature5Text:
+        "تتبع حركات المخزون والهدر حتى تبقى الفروقات اليومية ظاهرة—لا تضيع في جداول منفصلة.",
+      feature6Title: "كاشير يعمل دون اتصال",
+      feature6Text:
+        "تابع البيع عند ضعف الاتصال أو انقطاعه؛ تُزامن التغييرات تلقائياً عند عودة الشبكة.",
     },
     forWhom: {
       title: "مصمم للعمل اليومي",
@@ -765,6 +872,9 @@ const landingLocales = {
       target2Text: "منتجات مرنة وتقارير يومية واضحة وإدارة سهلة للأجهزة.",
       target3Title: "متاجر صغيرة",
       target3Text: "الدفع والإيصالات والتقارير الأساسية في نظام واحد بسيط.",
+      target4Title: "وجبات سريعة ومخابز",
+      target4Text:
+        "كاونترات مزدحمة ومنتجات شبيهة بالمخابز—نفس واجهة سريعة للطاقم وتدريب أقل.",
     },
     plans: {
       title: "خطط تناسب عملك",
@@ -890,6 +1000,7 @@ const landingLocales = {
         "تجارب وترقيات ومفاتيح ترخيص",
         "نظرة عامة على الأجهزة والتثبيت",
         "الفواتير وطرق الدفع",
+        "مصمم للنمو من كاشير واحد إلى عدة مواقع وأجهزة",
       ],
     },
     howItWorksProbe: {
@@ -926,6 +1037,16 @@ const landingLocales = {
         { feature: "واجهة POS متعددة اللغات", legacy: "غالباً محدودة", caisty: "تغطية واسعة" },
         { feature: "دعم عملات متعددة", legacy: "غالباً محدود", caisty: "مدعوم للتشغيل" },
         { feature: "واجهة لمس حديثة", legacy: "أجيال مختلطة", caisty: "مصممة لسرعة الكاشير" },
+        {
+          feature: "مخزون ومستودع وهدر/خسائر",
+          legacy: "غالباً نظام منفصل",
+          caisty: "جزء من تدفقات POS اليومية",
+        },
+        {
+          feature: "جلسات دون اتصال مع مزامنة",
+          legacy: "غير متسق أو يدوي",
+          caisty: "عند عودة الشبكة تُحدَّث البيانات تلقائياً",
+        },
       ],
     },
     faq: {
@@ -946,6 +1067,14 @@ const landingLocales = {
         {
           q: "هل يستبدل Caisty أجهزة تخصيص ضريبي معتمدة؟",
           a: "يوفر Caisty وضع POS عاماً. تأكد دائماً من القواعد المحلية مع مستشارك.",
+        },
+        {
+          q: "هل يعمل Caisty دون اتصال؟",
+          a: "نعم — تابع البيع عند ضعف أو انقطاع الاتصال، ثم تُزامن البيانات عند عودة الشبكة.",
+        },
+        {
+          q: "هل أدير المخزون والهدر في Caisty؟",
+          a: "تتبع المخزون والهدر مدمج للتشغيل مع المبيعات والطلبات والتقارير.",
         },
       ],
     },
