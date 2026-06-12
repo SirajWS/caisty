@@ -1,4 +1,3 @@
-// apps/caisty-site/src/routes/PortalLayout.tsx
 import React from "react";
 import {
   NavLink,
@@ -18,6 +17,7 @@ import LanguageSelector from "../components/LanguageSelector";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
+import { CaistyLogo } from "../components/CaistyLogo";
 
 export interface PortalOutletContext {
   customer: PortalCustomer;
@@ -112,9 +112,7 @@ export default function PortalLayout() {
       <header className={`sticky top-0 z-40 border-b backdrop-blur-md ${headerBar}`}>
         <div className="max-w-6xl mx-auto px-4 sm:px-5 py-3 flex items-center justify-between gap-3 min-w-0">
           <div className="flex items-center gap-2.5 min-w-0 shrink-0">
-            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white shadow-sm">
-              C
-            </span>
+            <CaistyLogo className="h-9 w-9 shrink-0" />
             <div className="leading-tight min-w-0">
               <div className={`text-sm font-semibold tracking-tight truncate ${isLight ? "text-[#0B1220]" : "text-white"}`}>
                 {t.layout.taglineTitle}

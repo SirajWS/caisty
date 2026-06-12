@@ -4,10 +4,12 @@ import { portalLogin, getGoogleAuthUrl } from "../lib/portalApi";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
 import { useTheme } from "../lib/theme";
+import { CaistyLogo } from "../components/CaistyLogo";
 
 export default function LoginPage() {
   const { language } = useLanguage();
   const t = translations[language].auth.login;
+  const layoutT = translations[language].common.layout;
   const { theme } = useTheme();
   const isLight = theme === "light";
   const navigate = useNavigate();
@@ -89,17 +91,12 @@ export default function LoginPage() {
               : "border border-white/[0.08] border-t-white/[0.12] bg-[rgba(15,21,32,0.85)]"
           }`}
         >
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-col items-center gap-2">
+            <CaistyLogo className="h-16 w-16" />
             <span
-              className="h-8 w-8 shrink-0 rounded-full bg-orange-500 text-[13px] font-bold text-white flex items-center justify-center"
-              aria-hidden
+              className={`text-[18px] font-medium tracking-[1px] ${isLight ? "text-[#1a1a1a]" : "text-[#f0f0f0]"}`}
             >
-              C
-            </span>
-            <span
-              className={`text-[20px] font-bold tracking-tight ${isLight ? "text-[#0B1220]" : "text-white"}`}
-            >
-              Caisty
+              {layoutT.headerBrand}
             </span>
           </div>
 

@@ -1,4 +1,3 @@
-// apps/caisty-site/src/layouts/SiteLayout.tsx
 import { useState } from "react";
 import { Outlet, Link, NavLink, useLocation } from "react-router-dom";
 import LanguageSelector from "../components/LanguageSelector";
@@ -12,6 +11,7 @@ import { FOOTER_TECH_STRIP } from "../lib/translations/common";
 import { ICON_COLORS } from "../components/TechStackCardGrid";
 import { tunisiaWhatsappUrl } from "../config/marketContact";
 import { COMPANY_HOME, POS_LANDING_PATH } from "../config/marketingRoutes";
+import { CaistyLogo } from "../components/CaistyLogo";
 
 export default function SiteLayout() {
   const { theme } = useTheme();
@@ -52,16 +52,24 @@ export default function SiteLayout() {
       >
         <div className="max-w-6xl mx-auto w-full min-w-0 px-4 sm:px-5 py-3">
           <div className="flex items-center justify-between gap-3 min-w-0">
-            <Link to={COMPANY_HOME} className="flex min-w-0 items-center gap-2.5 shrink-0 no-underline" onClick={closeMobile}>
-              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white shadow-sm">
-                C
-              </span>
-              <span className="flex min-w-0 flex-col leading-tight">
-                <span className={`text-sm font-semibold tracking-tight truncate ${strongText}`}>{t.layout.headerBrand}</span>
-                <span className={`text-[11px] font-medium truncate ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                  {t.layout.headerSubtitle}
-                </span>
-              </span>
+            <Link
+              to={COMPANY_HOME}
+              className="flex min-w-0 max-w-full shrink-0 items-center gap-2 no-underline sm:gap-3"
+              onClick={closeMobile}
+            >
+              <div className="flex items-center gap-[10px]">
+                <CaistyLogo className="h-[44px] w-[44px]" />
+                <div className="flex min-w-0 flex-col leading-[1.2]">
+                  <span
+                    className={`text-[18px] font-medium ${isLight ? "text-[#1a1a1a]" : "text-[#f0f0f0]"}`}
+                  >
+                    {t.layout.headerBrand}
+                  </span>
+                  <span className="text-[11px] font-light tracking-[0.5px] text-[#aaaaaa]">
+                    {t.layout.headerSubtitle}
+                  </span>
+                </div>
+              </div>
             </Link>
 
             <nav
