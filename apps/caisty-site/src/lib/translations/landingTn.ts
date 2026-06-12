@@ -157,6 +157,42 @@ export const landingTn: LandingCopy = {
       "Factures et moyens de paiement",
     ],
   },
+  howItWorksProbe: {
+    title: "Comment ça marche",
+    steps: [
+      "Créer votre compte Caisty",
+      "Activer votre licence dans le portail",
+      "Installer Caisty POS sur votre PC de caisse",
+      "Ouvrir un service et encaisser",
+    ],
+  },
+  hardwareProbe: {
+    title: "Compatibilité matérielle",
+    intro:
+      "Caisty cible les périphériques courants en restauration et commerce — voir la documentation du portail pour les modèles pris en charge.",
+    items: [
+      "Imprimantes tickets (80 mm, ESC/POS)",
+      "Douchettes USB / série",
+      "PC tactiles ou kiosques Windows",
+      "Tiroirs-caisses (impulsion via imprimante)",
+      "Imprimantes cuisine / bar",
+    ],
+  },
+  compareProbe: {
+    title: "Caisty vs. une caisse classique",
+    intro: "Comparaison indicative — le déploiement dépend du matériel, des canaux et de la réglementation locale.",
+    colFeature: "Critère",
+    colLegacy: "POS classique typique",
+    colCaisty: "Caisty",
+    disclaimer: "Validez fiscalité, tickets et paiements avant la mise en production.",
+    rows: [
+      { feature: "Caisse avec mode hors ligne", legacy: "Très variable", caisty: "Priorité produit" },
+      { feature: "Hub licences & appareils", legacy: "Souvent dispersé", caisty: "Portail central" },
+      { feature: "Interface multilingue", legacy: "Souvent limitée", caisty: "Large couverture" },
+      { feature: "Multi-devises", legacy: "Souvent limité", caisty: "Pris en charge" },
+      { feature: "Interface tactile moderne", legacy: "Générations mixtes", caisty: "Pensée pour le comptoir" },
+    ],
+  },
   faq: {
     title: "FAQ",
     items: [

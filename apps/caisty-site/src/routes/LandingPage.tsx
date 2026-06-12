@@ -241,6 +241,98 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Probe: compact journey + hardware + comparison (easy to remove if not wanted) */}
+      <section id="how-it-works" className={`${sectionShell} py-16 sm:py-24 scroll-mt-20`}>
+        <div className="lp-reveal space-y-4 mb-10">
+          <div className="flex items-start gap-3">
+            <span className="lp-section-accent" aria-hidden />
+            <div className="space-y-3 min-w-0">
+              <h2 className="lp-section-h2">{t.howItWorksProbe.title}</h2>
+            </div>
+          </div>
+        </div>
+        <div className="lp-reveal lp-reveal-stagger grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {t.howItWorksProbe.steps.map((step, i) => (
+            <div
+              key={`how-step-${i}`}
+              className={`lp-reveal-item flex min-h-0 flex-col rounded-xl border p-4 sm:p-5 ${
+                isLight ? "border-slate-200 bg-white shadow-sm" : "border-white/10 bg-[#0f172a]/60"
+              }`}
+            >
+              <div
+                className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold mb-3 ${
+                  isLight ? "bg-orange-100 text-[#c2410c]" : "bg-[#f97316]/20 text-orange-200"
+                }`}
+              >
+                {i + 1}
+              </div>
+              <p className="text-sm font-semibold text-[var(--color-text-primary)] lp-font-heading leading-snug">{step}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className={`${sectionShell} py-16 sm:py-24`}>
+        <div className="lp-reveal space-y-4 mb-8">
+          <div className="flex items-start gap-3">
+            <span className="lp-section-accent" aria-hidden />
+            <div className="space-y-3 min-w-0">
+              <h2 className="lp-section-h2">{t.hardwareProbe.title}</h2>
+              <p className="lp-section-desc max-w-2xl">{t.hardwareProbe.intro}</p>
+            </div>
+          </div>
+        </div>
+        <ul className="lp-reveal grid gap-3 sm:grid-cols-2 max-w-3xl text-sm text-[var(--color-text-muted)]">
+          {t.hardwareProbe.items.map((item) => (
+            <li key={item} className="flex gap-2 items-start">
+              <span className="text-[#f97316] shrink-0 mt-0.5" aria-hidden>
+                ✓
+              </span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className={`${sectionShell} py-16 sm:py-24`}>
+        <div className="lp-reveal space-y-4 mb-8">
+          <div className="flex items-start gap-3">
+            <span className="lp-section-accent" aria-hidden />
+            <div className="space-y-3 min-w-0">
+              <h2 className="lp-section-h2">{t.compareProbe.title}</h2>
+              <p className="lp-section-desc max-w-2xl">{t.compareProbe.intro}</p>
+            </div>
+          </div>
+        </div>
+        <div className="lp-reveal overflow-x-auto rounded-xl border border-slate-200/80 dark:border-white/10">
+          <table className="w-full min-w-[520px] text-sm border-collapse" dir="ltr">
+            <thead>
+              <tr className={isLight ? "bg-slate-50" : "bg-white/[0.04]"}>
+                <th className="text-start p-3 sm:p-4 font-bold text-[var(--color-text-primary)] lp-font-heading border-b border-slate-200 dark:border-white/10">
+                  {t.compareProbe.colFeature}
+                </th>
+                <th className="text-start p-3 sm:p-4 font-bold text-[var(--color-text-primary)] lp-font-heading border-b border-slate-200 dark:border-white/10">
+                  {t.compareProbe.colLegacy}
+                </th>
+                <th className="text-start p-3 sm:p-4 font-bold text-[#f97316] lp-font-heading border-b border-slate-200 dark:border-white/10">
+                  {t.compareProbe.colCaisty}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {t.compareProbe.rows.map((row) => (
+                <tr key={row.feature} className="border-b border-slate-100 dark:border-white/[0.06] last:border-0">
+                  <td className="p-3 sm:p-4 font-semibold text-[var(--color-text-primary)]">{row.feature}</td>
+                  <td className="p-3 sm:p-4 text-[var(--color-text-muted)]">{row.legacy}</td>
+                  <td className="p-3 sm:p-4 text-[var(--color-text-muted)]">{row.caisty}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="lp-reveal mt-4 text-xs sm:text-sm text-[var(--color-text-subtle)] max-w-3xl">{t.compareProbe.disclaimer}</p>
+      </section>
+
       {/* Customer portal (supporting product) */}
       <section id="portal" className={`${sectionShell} py-16 sm:py-24 scroll-mt-20`}>
         <div

@@ -173,6 +173,42 @@ const landingLocales = {
         "Invoices and payment methods",
       ],
     },
+    howItWorksProbe: {
+      title: "How it works",
+      steps: [
+        "Create your Caisty account",
+        "Activate your license in the customer portal",
+        "Install Caisty POS on your till PC",
+        "Open a shift and start selling",
+      ],
+    },
+    hardwareProbe: {
+      title: "Hardware support",
+      intro:
+        "Caisty targets common restaurant and retail peripherals — see portal documentation for supported models where applicable.",
+      items: [
+        "Receipt printers (80 mm, ESC/POS)",
+        "USB / serial barcode scanners",
+        "Touchscreen PCs or Windows kiosk setups",
+        "Cash drawers (via printer pulse)",
+        "Kitchen and bar printers",
+      ],
+    },
+    compareProbe: {
+      title: "Caisty vs. a typical legacy stack",
+      intro: "Illustrative summary only — your rollout depends on hardware, channels and local regulations.",
+      colFeature: "Capability",
+      colLegacy: "Typical legacy POS",
+      colCaisty: "Caisty",
+      disclaimer: "Confirm fiscal, ticketing and payment rules for your country before going live.",
+      rows: [
+        { feature: "Offline-first checkout", legacy: "Varies widely", caisty: "Core product focus" },
+        { feature: "License & device hub", legacy: "Often scattered tools", caisty: "Central customer portal" },
+        { feature: "Multi-language POS UI", legacy: "Often limited", caisty: "Broad language coverage" },
+        { feature: "Multi-currency support", legacy: "Often limited", caisty: "Supported for operations" },
+        { feature: "Modern touch-first UI", legacy: "Mixed generations", caisty: "Designed for counter speed" },
+      ],
+    },
     faq: {
       title: "FAQ",
       items: [
@@ -367,6 +403,42 @@ const landingLocales = {
         "Factures et moyens de paiement",
       ],
     },
+    howItWorksProbe: {
+      title: "Comment ça marche",
+      steps: [
+        "Créer votre compte Caisty",
+        "Activer votre licence dans le portail client",
+        "Installer Caisty POS sur votre PC de caisse",
+        "Ouvrir un service et encaisser",
+      ],
+    },
+    hardwareProbe: {
+      title: "Compatibilité matérielle",
+      intro:
+        "Caisty vise les périphériques courants en restauration et commerce — consultez la documentation du portail pour les modèles pris en charge.",
+      items: [
+        "Imprimantes tickets (80 mm, ESC/POS)",
+        "Douchettes USB / série",
+        "PC tactiles ou kiosques Windows",
+        "Tiroirs-caisses (impulsion via imprimante)",
+        "Imprimantes cuisine / bar",
+      ],
+    },
+    compareProbe: {
+      title: "Caisty face à une stack POS classique",
+      intro: "Vue d’ensemble illustrative — votre déploiement dépend du matériel, des canaux et de la réglementation locale.",
+      colFeature: "Critère",
+      colLegacy: "POS classique typique",
+      colCaisty: "Caisty",
+      disclaimer: "Validez toujours fiscalité, tickets et paiements pour votre pays avant la mise en production.",
+      rows: [
+        { feature: "Caisse avec mode hors ligne", legacy: "Très variable", caisty: "Priorité produit" },
+        { feature: "Hub licences & appareils", legacy: "Souvent dispersé", caisty: "Portail client central" },
+        { feature: "Interface POS multilingue", legacy: "Souvent limitée", caisty: "Large couverture" },
+        { feature: "Multi-devises", legacy: "Souvent limité", caisty: "Pris en charge pour l’exploitation" },
+        { feature: "Interface tactile moderne", legacy: "Générations mixtes", caisty: "Pensée pour la vitesse au comptoir" },
+      ],
+    },
     faq: {
       title: "FAQ",
       items: [
@@ -391,54 +463,57 @@ const landingLocales = {
   },
   de: {
     hero: {
-      badge: "Caisty POS — Gastronomie & Einzelhandel",
-      title: "Moderne POS-Software für Restaurants, Cafés und kleine Läden.",
+      badge: "Caisty POS — Gastronomie, Einzelhandel & mehr",
+      title: "Die moderne Kassensoftware für Gastronomie und Einzelhandel.",
       description:
-        "Schnelle Kasse, Tische, Bestellungen und Belegdrucker — plus ein klares Cloud-Portal für Lizenzen, Geräte und Rechnungen.",
+        "Für Restaurants, Cafés, Fast Food, Bäckereien und den Einzelhandel: Verkauf, Bestellungen, Tische, Inventar und Auswertungen in einer Oberfläche — für Touchscreens optimiert, schnell erlernbar ohne lange Schulungen, dazu Cloud-Portal für Lizenzen, Geräte und Rechnungen.",
       ctaPrimary: "Kostenlos starten",
       ctaSecondary: "Preise ansehen",
       trialTrust: "Starte mit einer kostenlosen 3-Tage-Testphase. Keine Zahlungsdaten nötig.",
     },
     preview: {
-      title: "Direkt an der Kasse",
+      title: "Alles in einer Lösung",
       caption: "POS zuerst",
       items: [
-        "Schneller Touchscreen-Verkauf",
-        "Tische & Bestellungen",
-        "Küchen- / Bar-Druck",
-        "ESC/POS-Belege",
-        "Tagesabschluss-Verkauf",
-        "Cloud: Lizenzen & Geräte",
+        "Moderne Touch-POS-Kasse",
+        "PIN-Login für Kassierer & Administratoren",
+        "Tischverwaltung & Bestellungen",
+        "Warteschlange & Ticketsystem",
+        "Produkte, Kategorien & Tagesabschlüsse",
+        "Inventar, Bestand & Schwund (Waste)",
+        "Mehrsprachige Oberfläche · Hell- & Dunkelmodus",
+        "Cloud, Lizenzen & Offline mit automatischer Synchronisation",
       ],
       liveBadge: "Live-Session",
       demoBadge: "Demo",
       devicesOnline: "2 Kassen · 1 Drucker online",
       quote:
-        "„Wir brauchten eine Kasse, die zur Rushhour mitkommt — das Portal holen wir beim Tagesabschluss.“ – fiktives Bistro",
+        "„Schnell an der Theke, verständlich fürs Team — und wir bleiben auch ohne stabiles WLAN verkaufsfähig.“ – fiktives Bistro",
     },
     why: {
       title: "Warum Caisty?",
       description:
-        "Caisty richtet sich an Betreiberinnen und Betreiber, die schnell kassieren wollen – ohne komplizierte Backoffice-Software.",
+        "Caisty verbindet einfache Bedienung mit Funktionen, die oft erst in deutlich teureren Systemen vorkommen — entwickelt für den echten Arbeitsalltag mit lokaler Performance und intelligenter Offline-Synchronisation.",
       feature1Title: "Schnell startklar",
       feature1Text:
-        "Konto anlegen, Lizenz aktivieren, Gerät verbinden – ohne lange Einrichtungsphase.",
+        "Konto anlegen, Lizenz aktivieren, Gerät verbinden — ohne lange Einrichtungsphase.",
       feature2Title: "Klare Übersicht",
       feature2Text:
         "Aktive Lizenzen, verbundene Geräte und Rechnungen in einem einfachen Portal.",
       feature3Title: "Einfache Preise",
       feature3Text: "Klein starten und später upgraden, wenn Ihr Geschäft wächst.",
       feature4Title: "Team-tauglich",
-      feature4Text: "Klare Berechtigungen und Abläufe, damit die Schicht schnell bleibt.",
+      feature4Text:
+        "Klare Berechtigungen und Abläufe für Schichtbetrieb — damit die Kasse im Stress zuverlässig bleibt.",
     },
     forWhom: {
       title: "Für den täglichen Betrieb gemacht",
-      target1Title: "Take-away & Street Food",
-      target1Text: "Schnelle Bestellungen, einfache Abläufe und POS mit Fokus auf Tempo.",
-      target2Title: "Bars & Cafés",
-      target2Text: "Flexible Artikel, klare Tagesauswertungen und einfache Geräteverwaltung.",
-      target3Title: "Kleine Läden",
-      target3Text: "Kasse, Belege und Basis-Reporting in einem schlanken System.",
+      target1Title: "Fast Food & Take-away",
+      target1Text: "Schnelle Bestellungen, Tickets und ein POS, das Tempo und Warteschlangen mitdenkt.",
+      target2Title: "Bars, Cafés & Restaurants",
+      target2Text: "Tische, flexible Artikel, Küchendruck und klare Tagesauswertungen.",
+      target3Title: "Bäckereien & Einzelhandel",
+      target3Text: "Kasse, Belege, Basis-Reporting und Inventar in einem schlanken System — skalierbar für mehrere Standorte.",
     },
     plans: {
       title: "Pläne, die zu Ihrem Betrieb passen",
@@ -554,11 +629,47 @@ const landingLocales = {
     portalBand: {
       title: "Kundenportal (inklusive)",
       description:
-        "Lizenzen, Geräte, Rechnungen und Installer an einem Ort — weniger Verwaltung, mehr Zeit im Service.",
+        "Lizenzen, Geräte, Rechnungen und Installer an einem Ort — für einen Standort oder mehrere Kassen, mit weniger Verwaltung und mehr Zeit im Betrieb.",
       bullets: [
         "Tests, Upgrades und Lizenzschlüssel",
         "Geräteübersicht und Installationen",
         "Rechnungen und Zahlungsarten",
+      ],
+    },
+    howItWorksProbe: {
+      title: "So funktioniert’s",
+      steps: [
+        "Caisty-Konto anlegen",
+        "Lizenz im Kundenportal aktivieren",
+        "Caisty POS auf dem Kassen-PC installieren",
+        "Schicht öffnen und verkaufen",
+      ],
+    },
+    hardwareProbe: {
+      title: "Hardware-Unterstützung",
+      intro:
+        "Caisty richtet sich an gängige Gastro- und Retail-Peripherie — unterstützte Modelle siehe Portaldokumentation.",
+      items: [
+        "Bondrucker (80 mm, ESC/POS)",
+        "USB- / Serien-Barcodescanner",
+        "Touch-PCs oder Windows-Kiosk-Setups",
+        "Kassenschubladen (Impuls über Drucker)",
+        "Küchen- und Barbondrucker",
+      ],
+    },
+    compareProbe: {
+      title: "Caisty vs. typische Legacy-Kasse",
+      intro: "Illustrativer Vergleich — der Rollout hängt von Hardware, Kanälen und lokalen Vorschriften ab.",
+      colFeature: "Kriterium",
+      colLegacy: "Typische Legacy-POS",
+      colCaisty: "Caisty",
+      disclaimer: "Fiskal-, Beleg- und Zahlungsregeln vor Produktion immer lokal prüfen.",
+      rows: [
+        { feature: "Offline-fähige Kasse", legacy: "Sehr unterschiedlich", caisty: "Produktfokus" },
+        { feature: "Lizenz- & Geräte-Hub", legacy: "Oft verstreut", caisty: "Zentrales Kundenportal" },
+        { feature: "Mehrsprachige POS-Oberfläche", legacy: "Oft begrenzt", caisty: "Breite Abdeckung" },
+        { feature: "Multi-Währung", legacy: "Oft begrenzt", caisty: "Für den Betrieb unterstützt" },
+        { feature: "Moderne Touch-UI", legacy: "Gemischte Generationen", caisty: "Für Tempo an der Theke" },
       ],
     },
     faq: {
@@ -747,6 +858,42 @@ const landingLocales = {
         "تجارب وترقيات ومفاتيح ترخيص",
         "نظرة عامة على الأجهزة والتثبيت",
         "الفواتير وطرق الدفع",
+      ],
+    },
+    howItWorksProbe: {
+      title: "كيف يعمل",
+      steps: [
+        "أنشئ حساب Caisty",
+        "فعّل الترخيص في بوابة العملاء",
+        "ثبّت Caisty POS على جهاز الكاشير",
+        "افتح وردية وابدأ البيع",
+      ],
+    },
+    hardwareProbe: {
+      title: "دعم الأجهزة",
+      intro:
+        "يركّز Caisty على ملحقات المطاعم والتجزئة الشائعة — راجع وثائق البوابة للطرازات المدعومة عند الحاجة.",
+      items: [
+        "طابعات الإيصالات (80 مم، ESC/POS)",
+        "ماسحات الباركود USB / تسلسلي",
+        "أجهزة تعمل باللمس أو إعدادات كشك Windows",
+        "أدراج النقد (نبض عبر الطابعة)",
+        "طابعات المطبخ والبار",
+      ],
+    },
+    compareProbe: {
+      title: "Caisty مقارنةً بكاشير تقليدي نموذجي",
+      intro: "ملخص توضيحي فقط — يعتمد التشغيل على الأجهزة والقنوات والأنظمة المحلية.",
+      colFeature: "النقطة",
+      colLegacy: "نقاط بيع تقليدية نموذجية",
+      colCaisty: "Caisty",
+      disclaimer: "أكد قواعد الضرائب والإيصالات والدفع في بلدك قبل الإنتاج.",
+      rows: [
+        { feature: "كاشير يعمل دون اتصال", legacy: "يختلف كثيراً", caisty: "تركيز المنتج" },
+        { feature: "مركز الترخيص والأجهزة", legacy: "غالباً مبعثر", caisty: "بوابة عملاء مركزية" },
+        { feature: "واجهة POS متعددة اللغات", legacy: "غالباً محدودة", caisty: "تغطية واسعة" },
+        { feature: "دعم عملات متعددة", legacy: "غالباً محدود", caisty: "مدعوم للتشغيل" },
+        { feature: "واجهة لمس حديثة", legacy: "أجيال مختلطة", caisty: "مصممة لسرعة الكاشير" },
       ],
     },
     faq: {
