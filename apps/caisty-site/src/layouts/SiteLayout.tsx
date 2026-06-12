@@ -234,31 +234,10 @@ export default function SiteLayout() {
             </div>
             <div className="space-y-3 min-w-0">
               <h3 className={`text-xs font-bold uppercase tracking-wide ${strongText}`}>{t.footer.followTitle}</h3>
-              <div className="flex flex-col gap-2 text-sm">
-                <a
-                  href="https://facebook.com/caisty"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`no-underline transition-colors hover:text-[#f97316] ${isLight ? "text-slate-600" : "text-slate-400"}`}
-                >
-                  {t.footer.facebook}
-                </a>
-                <a
-                  href="https://instagram.com/caisty"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`no-underline transition-colors hover:text-[#f97316] ${isLight ? "text-slate-600" : "text-slate-400"}`}
-                >
-                  {t.footer.instagram}
-                </a>
-                <a
-                  href="https://youtube.com/@caisty"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`no-underline transition-colors hover:text-[#f97316] ${isLight ? "text-slate-600" : "text-slate-400"}`}
-                >
-                  {t.footer.youtube}
-                </a>
+              <div className="flex flex-col gap-2 text-sm" aria-label={t.footer.followTitle}>
+                <span className={`cursor-default ${isLight ? "text-slate-400" : "text-slate-500"}`}>{t.footer.facebook}</span>
+                <span className={`cursor-default ${isLight ? "text-slate-400" : "text-slate-500"}`}>{t.footer.instagram}</span>
+                <span className={`cursor-default ${isLight ? "text-slate-400" : "text-slate-500"}`}>{t.footer.youtube}</span>
               </div>
             </div>
           </div>
