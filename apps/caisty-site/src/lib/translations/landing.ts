@@ -184,6 +184,13 @@ const landingLocales = {
       shotCashierLogin: "Cashier PIN login",
       shotQueueTicket: "Queue ticket",
       shotAdminPinsSettings: "Admin & register PIN settings",
+      shotRegister: "Customer portal — create account",
+      scrollStripHint:
+        "Choose a thumbnail below or use the arrows on the large preview. Click the preview to open it full size.",
+      mainStageZoomAria: "Open this screenshot at full size",
+      thumbStripLabel: "Screenshot thumbnails",
+      thumbStripScrollPrev: "Scroll thumbnails left",
+      thumbStripScrollNext: "Scroll thumbnails right",
     },
     portalBand: {
       title: "Customer portal (included)",
@@ -455,6 +462,13 @@ const landingLocales = {
       shotCashierLogin: "Connexion caissier (PIN)",
       shotQueueTicket: "Ticket de file d’attente",
       shotAdminPinsSettings: "PIN admin & caisses",
+      shotRegister: "Portail client — création de compte",
+      scrollStripHint:
+        "Choisissez une miniature ci-dessous ou utilisez les flèches sur la grande prévisualisation. Cliquez sur l’aperçu pour l’agrandir.",
+      mainStageZoomAria: "Ouvrir cette capture en grand",
+      thumbStripLabel: "Miniatures des captures",
+      thumbStripScrollPrev: "Faire défiler les miniatures vers la gauche",
+      thumbStripScrollNext: "Faire défiler les miniatures vers la droite",
     },
     portalBand: {
       title: "Portail client (inclus)",
@@ -727,6 +741,13 @@ const landingLocales = {
       shotCashierLogin: "Kassen-Login (PIN)",
       shotQueueTicket: "Warteschlangen-Ticket",
       shotAdminPinsSettings: "Admin- & Kassen-PINs",
+      shotRegister: "Kundenportal — Konto anlegen",
+      scrollStripHint:
+        "Wählen Sie unten eine Miniatur oder nutzen Sie die Pfeile an der großen Vorschau. Klick auf die Vorschau öffnet sie groß.",
+      mainStageZoomAria: "Diese Ansicht in groß öffnen",
+      thumbStripLabel: "Miniatur-Ansichten",
+      thumbStripScrollPrev: "Miniaturen nach links scrollen",
+      thumbStripScrollNext: "Miniaturen nach rechts scrollen",
     },
     portalBand: {
       title: "Kundenportal (inklusive)",
@@ -992,6 +1013,13 @@ const landingLocales = {
       shotCashierLogin: "تسجيل دخول الكاشير (رمز)",
       shotQueueTicket: "تذكرة الطابور",
       shotAdminPinsSettings: "إعدادات رمز المسؤول والكاشير",
+      shotRegister: "بوابة العملاء — إنشاء حساب",
+      scrollStripHint:
+        "اختر صورة مصغّرة أدناه أو استخدم الأسهم على المعاينة الكبيرة. انقر المعاينة لفتحها بالحجم الكامل.",
+      mainStageZoomAria: "فتح هذه اللقطة بالحجم الكامل",
+      thumbStripLabel: "صور مصغّرة للقطات",
+      thumbStripScrollPrev: "تمرير المصغّرات إلى اليسار",
+      thumbStripScrollNext: "تمرير المصغّرات إلى اليمين",
     },
     portalBand: {
       title: "بوابة العملاء (مشمولة)",

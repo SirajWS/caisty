@@ -168,6 +168,13 @@ export const landingTn: LandingCopy = {
     shotCashierLogin: "Connexion caissier (PIN)",
     shotQueueTicket: "Ticket de file d’attente",
     shotAdminPinsSettings: "PIN admin & caisses",
+    shotRegister: "Portail client — création de compte",
+    scrollStripHint:
+      "Choisissez une miniature ci-dessous ou utilisez les flèches sur la grande prévisualisation. Cliquez sur l’aperçu pour l’agrandir.",
+    mainStageZoomAria: "Ouvrir cette capture en grand",
+    thumbStripLabel: "Miniatures des captures",
+    thumbStripScrollPrev: "Faire défiler les miniatures vers la gauche",
+    thumbStripScrollNext: "Faire défiler les miniatures vers la droite",
   },
   portalBand: {
     title: "Portail client (inclus)",

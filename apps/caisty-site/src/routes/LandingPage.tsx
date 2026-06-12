@@ -15,8 +15,9 @@ export default function LandingPage() {
   const isLight = theme === "light";
   const t = market === "tn" ? landingTn : translations[language].landing;
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [galleryIndex, setGalleryIndex] = useState(0);
   const landingRef = useRef<HTMLDivElement>(null);
+  const thumbStripRef = useRef<HTMLDivElement>(null);
 
   const screenshots = [
     { id: 0, src: "/screenshots/CaistyPosDarkMode.png", alt: t.demo.shotPosDarkMode, title: t.demo.shotPosDarkMode },
@@ -28,6 +29,7 @@ export default function LandingPage() {
     { id: 6, src: "/screenshots/pos-cashier-login.png", alt: t.demo.shotCashierLogin, title: t.demo.shotCashierLogin },
     { id: 7, src: "/screenshots/pos-queue-ticket.png", alt: t.demo.shotQueueTicket, title: t.demo.shotQueueTicket },
     { id: 8, src: "/screenshots/pos-admin-pins-settings.png", alt: t.demo.shotAdminPinsSettings, title: t.demo.shotAdminPinsSettings },
+    { id: 9, src: "/screenshots/register.png", alt: t.demo.shotRegister, title: t.demo.shotRegister },
   ];
 
   useEffect(() => {
@@ -47,27 +49,6 @@ export default function LandingPage() {
   }, [location.hash, location.pathname]);
 
   useEffect(() => {
-    setCarouselIndex(0);
-  }, [language, market]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const el = e.target;
-      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
-      if (el instanceof HTMLElement && el.isContentEditable) return;
-      if (e.key === "ArrowLeft") {
-        e.preventDefault();
-        setCarouselIndex((i) => (i - 1 + screenshots.length) % screenshots.length);
-      } else if (e.key === "ArrowRight") {
-        e.preventDefault();
-        setCarouselIndex((i) => (i + 1) % screenshots.length);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [screenshots.length]);
-
-  useEffect(() => {
     const root = landingRef.current;
     if (!root) return;
     const els = root.querySelectorAll(".lp-reveal, .lp-reveal-stagger");
@@ -82,6 +63,32 @@ export default function LandingPage() {
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, [language, theme, market]);
+
+  useEffect(() => {
+    setGalleryIndex(0);
+  }, [language, market]);
+
+  useEffect(() => {
+    const el = thumbStripRef.current?.querySelector<HTMLElement>(`[data-gallery-thumb="${galleryIndex}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [galleryIndex]);
+
+  const scrollThumbStrip = (direction: -1 | 1) => {
+    const el = thumbStripRef.current;
+    if (!el) return;
+    const step = Math.min(220, Math.max(120, el.clientWidth * 0.45));
+    el.scrollBy({ left: direction * step, behavior: "smooth" });
+  };
+
+  const stepGallery = (delta: -1 | 1) => {
+    setGalleryIndex((i) => {
+      const n = screenshots.length;
+      if (n === 0) return 0;
+      return (i + delta + n) % n;
+    });
+  };
+
+  const currentShot = screenshots[galleryIndex] ?? screenshots[0];
 
   const sectionShell = "w-full max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8";
 
@@ -227,28 +234,168 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
 
-            <figure className="lp-mock-card-enter w-full max-w-5xl mx-auto">
-              <div
-                className={`rounded-2xl p-1.5 sm:p-2 ${
-                  isLight
-                    ? "bg-slate-100/80 ring-1 ring-slate-200/90 shadow-sm"
-                    : "bg-black/40 ring-1 ring-white/[0.12] shadow-[0_20px_50px_rgba(0,0,0,0.35)]"
-                }`}
+      {/* Demo / POS screenshots — filmstrip (main + thumbnails) */}
+      <section id="screenshots" className={`${sectionShell} py-16 sm:py-24 scroll-mt-20`}>
+        <div className="lp-reveal mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex items-start gap-3 min-w-0">
+            <span className="lp-section-accent" aria-hidden />
+            <h2 className="lp-section-h2">{t.demo.sectionTitle}</h2>
+          </div>
+          <p className="text-xs sm:text-sm text-[var(--color-text-muted)] max-w-xl sm:text-end shrink-0">
+            {t.demo.scrollStripHint}
+          </p>
+        </div>
+
+        <div className="lp-reveal space-y-4">
+          <div
+            className={`relative overflow-hidden rounded-2xl border shadow-lg ${
+              isLight ? "border-slate-200 bg-white" : "border-white/10 bg-[#0f172a]/90"
+            }`}
+          >
+            <div className="aspect-video relative min-h-[180px] bg-[#0b1220] sm:min-h-[220px]">
+              <button
+                type="button"
+                onClick={() => setSelectedImage(currentShot.src)}
+                className="absolute inset-0 z-0 flex cursor-zoom-in items-stretch justify-center outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#f97316]"
+                aria-label={t.demo.mainStageZoomAria}
               >
                 <img
-                  src="/screenshots/CaistyPosDarkMode.png"
-                  alt={t.demo.shotPosDarkMode}
-                  className={`block w-full h-auto max-w-full rounded-xl object-contain object-center ${
-                    isLight ? "border border-slate-200/80" : "border border-white/[0.06]"
-                  }`}
-                  width={1600}
-                  height={900}
+                  src={currentShot.src}
+                  alt={currentShot.alt}
                   loading="eager"
-                  fetchPriority="high"
+                  decoding="async"
+                  draggable={false}
+                  className="pointer-events-none max-h-full w-full object-contain object-top p-2 sm:p-3"
                 />
+              </button>
+
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] flex justify-center pb-2">
+                <span
+                  className={`pointer-events-none rounded-full px-2.5 py-0.5 text-[11px] font-semibold tabular-nums ${
+                    isLight ? "bg-white/90 text-slate-700 shadow-sm" : "bg-black/50 text-slate-200"
+                  }`}
+                  aria-live="polite"
+                >
+                  {galleryIndex + 1} / {screenshots.length}
+                </span>
               </div>
-            </figure>
+
+              <div className="absolute inset-y-0 left-0 z-[2] flex items-center ps-1 sm:ps-2">
+                <button
+                  type="button"
+                  onClick={() => stepGallery(-1)}
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl border text-[#f97316] shadow-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f97316] ${
+                    isLight
+                      ? "border-slate-200 bg-white/95 hover:bg-orange-50"
+                      : "border-white/15 bg-[#0b1220]/90 hover:bg-white/10"
+                  }`}
+                  aria-label={t.demo.carouselPrev}
+                >
+                  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+              </div>
+              <div className="absolute inset-y-0 right-0 z-[2] flex items-center pe-1 sm:pe-2">
+                <button
+                  type="button"
+                  onClick={() => stepGallery(1)}
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl border text-[#f97316] shadow-md transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f97316] ${
+                    isLight
+                      ? "border-slate-200 bg-white/95 hover:bg-orange-50"
+                      : "border-white/15 bg-[#0b1220]/90 hover:bg-white/10"
+                  }`}
+                  aria-label={t.demo.carouselNext}
+                >
+                  <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <p
+              className={`border-t px-4 py-3 text-sm font-semibold leading-snug sm:text-base ${
+                isLight ? "border-slate-200 text-slate-800" : "border-white/10 text-slate-200"
+              }`}
+            >
+              {currentShot.title}
+            </p>
+          </div>
+
+          <div className="flex items-stretch gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => scrollThumbStrip(-1)}
+              className={`flex w-9 shrink-0 items-center justify-center self-center rounded-xl border py-2 text-[#f97316] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f97316] sm:w-10 ${
+                isLight
+                  ? "border-slate-200 bg-white hover:bg-orange-50"
+                  : "border-white/10 bg-white/[0.06] hover:bg-white/10"
+              }`}
+              aria-label={t.demo.thumbStripScrollPrev}
+            >
+              <svg className="h-5 w-5 sm:h-6 sm:w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+
+            <div
+              ref={thumbStripRef}
+              role="tablist"
+              aria-label={t.demo.thumbStripLabel}
+              className={`flex min-w-0 flex-1 gap-2 overflow-x-auto overscroll-x-contain scroll-smooth pb-1 pt-0.5 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] sm:gap-2.5 ${
+                isLight ? "[scrollbar-color:#fdba74_#f1f5f9]" : "[scrollbar-color:#ea580c_#0f172a]"
+              }`}
+            >
+              {screenshots.map((shot, idx) => (
+                <button
+                  key={shot.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={galleryIndex === idx}
+                  aria-label={shot.alt}
+                  data-gallery-thumb={idx}
+                  onClick={() => setGalleryIndex(idx)}
+                  className={`shrink-0 rounded-lg border-2 text-start outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-[#f97316] focus-visible:ring-offset-2 sm:rounded-xl ${
+                    galleryIndex === idx
+                      ? "border-[#f97316] shadow-md ring-2 ring-[#f97316]/30"
+                      : isLight
+                        ? "border-slate-200 opacity-90 hover:border-slate-300 hover:opacity-100 focus-visible:ring-offset-white"
+                        : "border-white/10 opacity-85 hover:border-white/25 hover:opacity-100 focus-visible:ring-offset-[#0b1220]"
+                  }`}
+                >
+                  <div className="relative h-[52px] w-[88px] bg-[#0b1220] sm:h-[60px] sm:w-[100px]">
+                    <img
+                      src={shot.src}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      draggable={false}
+                      className="absolute inset-0 h-full w-full object-cover object-top"
+                    />
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => scrollThumbStrip(1)}
+              className={`flex w-9 shrink-0 items-center justify-center self-center rounded-xl border py-2 text-[#f97316] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f97316] sm:w-10 ${
+                isLight
+                  ? "border-slate-200 bg-white hover:bg-orange-50"
+                  : "border-white/10 bg-white/[0.06] hover:bg-white/10"
+              }`}
+              aria-label={t.demo.thumbStripScrollNext}
+            >
+              <svg className="h-5 w-5 sm:h-6 sm:w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
           </div>
         </div>
       </section>
@@ -426,79 +573,6 @@ export default function LandingPage() {
               ))}
             </ul>
           </div>
-        </div>
-      </section>
-
-      {/* Demo / POS screenshots */}
-      <section id="screenshots" className={`${sectionShell} py-16 sm:py-24 scroll-mt-20`}>
-        <div className="lp-reveal mb-6 flex items-start gap-3">
-          <span className="lp-section-accent" aria-hidden />
-          <h2 className="lp-section-h2">{t.demo.sectionTitle}</h2>
-        </div>
-        <div className={`lp-reveal max-w-3xl mx-auto w-full rounded-2xl border overflow-hidden lp-surface-card ${isLight ? "shadow-md" : ""}`}>
-          <div
-            className="relative flex min-h-[220px] w-full items-stretch bg-[#0b1220] aspect-video max-h-[min(70vh,540px)] sm:max-h-[580px]"
-            role="region"
-            aria-roledescription="carousel"
-            aria-label={t.demo.sectionTitle}
-          >
-            <button
-              type="button"
-              onClick={() =>
-                setCarouselIndex((i) => (i - 1 + screenshots.length) % screenshots.length)
-              }
-              className="flex w-12 shrink-0 items-center justify-center border-e border-white/10 bg-black/50 text-[#f97316] transition-colors hover:bg-black/70 hover:text-orange-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f97316] focus-visible:ring-inset sm:w-14"
-              aria-label={t.demo.carouselPrev}
-            >
-              <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
-              </svg>
-            </button>
-
-            <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden p-2 sm:p-6">
-              <img
-                key={screenshots[carouselIndex].src}
-                src={screenshots[carouselIndex].src}
-                alt={screenshots[carouselIndex].alt}
-                className="max-h-full max-w-full object-contain select-none"
-                draggable={false}
-              />
-              <p
-                className="pointer-events-none absolute bottom-3 left-1/2 z-[1] -translate-x-1/2 rounded-full bg-black/70 px-3 py-1 text-[11px] font-medium tabular-nums tracking-wide text-white/95"
-                aria-live="polite"
-                aria-atomic="true"
-              >
-                {carouselIndex + 1} / {screenshots.length}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setCarouselIndex((i) => (i + 1) % screenshots.length)}
-              className="flex w-12 shrink-0 items-center justify-center border-s border-white/10 bg-black/50 text-[#f97316] transition-colors hover:bg-black/70 hover:text-orange-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f97316] focus-visible:ring-inset sm:w-14"
-              aria-label={t.demo.carouselNext}
-            >
-              <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div className="lp-reveal lp-reveal-stagger mx-auto mt-8 grid w-full max-w-lg grid-cols-3 gap-2 min-w-0 sm:max-w-xl sm:gap-2.5 md:max-w-2xl">
-          {screenshots.map((screenshot) => (
-            <div key={screenshot.id} className="lp-reveal-item w-full min-w-0">
-              <ScreenshotThumb
-                screenshot={screenshot}
-                isLight={isLight}
-                onOpen={() => {
-                  const idx = screenshots.findIndex((s) => s.id === screenshot.id);
-                  setCarouselIndex(idx >= 0 ? idx : 0);
-                  setSelectedImage(screenshot.src);
-                }}
-              />
-            </div>
-          ))}
         </div>
       </section>
 
@@ -723,45 +797,6 @@ export default function LandingPage() {
         </div>
       )}
     </div>
-  );
-}
-
-function ScreenshotThumb(props: {
-  screenshot: { id: number; src: string; alt: string; title: string };
-  isLight: boolean;
-  onOpen: () => void;
-}) {
-  const [failed, setFailed] = useState(false);
-  const { screenshot, isLight, onOpen } = props;
-  return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className={`lp-shot-thumb group w-full min-w-0 text-start rounded-lg border overflow-hidden relative ${
-        isLight ? "border-slate-200 bg-white" : "border-white/10 bg-[#0f172a]"
-      }`}
-    >
-        <div className="aspect-video relative overflow-hidden bg-[#0b1220]">
-        <div className="absolute inset-0 lp-shimmer opacity-25" aria-hidden />
-        {!failed ? (
-          <img
-            src={screenshot.src}
-            alt={screenshot.alt}
-            className="relative z-[1] w-full h-full object-cover"
-            onError={() => setFailed(true)}
-          />
-        ) : (
-          <div className="absolute inset-0 z-[2] flex flex-col items-center justify-center gap-2 p-4 text-center">
-            <span className={`text-xs font-semibold ${isLight ? "text-slate-600" : "text-slate-400"}`}>{screenshot.title}</span>
-          </div>
-        )}
-        <div className="absolute inset-0 z-[3] bg-[#f97316]/0 group-hover:bg-[#f97316]/10 transition-colors flex items-center justify-center pointer-events-none">
-          <svg className="w-5 h-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
-          </svg>
-        </div>
-      </div>
-    </button>
   );
 }
 
