@@ -414,6 +414,36 @@ a {
   transition-delay: 0.22s;
 }
 
+.landing-page .lp-reveal-stagger.visible > .lp-reveal-item:nth-child(5) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.28s;
+}
+
+.landing-page .lp-reveal-stagger.visible > .lp-reveal-item:nth-child(6) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.34s;
+}
+
+.landing-page .lp-reveal-stagger.visible > .lp-reveal-item:nth-child(7) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.4s;
+}
+
+.landing-page .lp-reveal-stagger.visible > .lp-reveal-item:nth-child(8) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.46s;
+}
+
+.landing-page .lp-reveal-stagger.visible > .lp-reveal-item:nth-child(9) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.52s;
+}
+
 .landing-page .lp-timeline-line {
   position: absolute;
   inset-inline-start: 13px;

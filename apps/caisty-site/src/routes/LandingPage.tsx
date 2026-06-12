@@ -15,12 +15,19 @@ export default function LandingPage() {
   const isLight = theme === "light";
   const t = market === "tn" ? landingTn : translations[language].landing;
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const landingRef = useRef<HTMLDivElement>(null);
 
   const screenshots = [
+    { id: 0, src: "/screenshots/CaistyPosDarkMode.png", alt: t.demo.shotPosDarkMode, title: t.demo.shotPosDarkMode },
     { id: 1, src: "/screenshots/dashboard.png", alt: t.demo.shotDashboard, title: t.demo.shotDashboard },
     { id: 2, src: "/screenshots/pos.png", alt: t.demo.shotPos, title: t.demo.shotPos },
     { id: 3, src: "/screenshots/portal.png", alt: t.demo.shotPortal, title: t.demo.shotPortal },
+    { id: 4, src: "/screenshots/pos-admin-pin.png", alt: t.demo.shotAdminPin, title: t.demo.shotAdminPin },
+    { id: 5, src: "/screenshots/pos-product-management.png", alt: t.demo.shotProductMgmt, title: t.demo.shotProductMgmt },
+    { id: 6, src: "/screenshots/pos-cashier-login.png", alt: t.demo.shotCashierLogin, title: t.demo.shotCashierLogin },
+    { id: 7, src: "/screenshots/pos-queue-ticket.png", alt: t.demo.shotQueueTicket, title: t.demo.shotQueueTicket },
+    { id: 8, src: "/screenshots/pos-admin-pins-settings.png", alt: t.demo.shotAdminPinsSettings, title: t.demo.shotAdminPinsSettings },
   ];
 
   useEffect(() => {
@@ -38,6 +45,27 @@ export default function LandingPage() {
       });
     }
   }, [location.hash, location.pathname]);
+
+  useEffect(() => {
+    setCarouselIndex(0);
+  }, [language, market]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target;
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return;
+      if (el instanceof HTMLElement && el.isContentEditable) return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setCarouselIndex((i) => (i - 1 + screenshots.length) % screenshots.length);
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setCarouselIndex((i) => (i + 1) % screenshots.length);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [screenshots.length]);
 
   useEffect(() => {
     const root = landingRef.current;
@@ -65,132 +93,157 @@ export default function LandingPage() {
       {/* Hero + product */}
       <section id="product" className="relative overflow-x-clip scroll-mt-20">
         <div className="lp-hero-glow" aria-hidden />
-        <div className={`${sectionShell} relative z-[1] pt-10 pb-12 sm:pt-14 sm:pb-16`}>
-          <div
-            className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold tracking-wide ${
-              isLight ? "border-slate-200 bg-white text-slate-700 shadow-sm" : "border-white/10 bg-white/[0.06] text-slate-200"
-            }`}
-          >
-            <span
-              className="lp-badge-pulse-dot h-1.5 w-1.5 rounded-full shrink-0"
-              style={{ backgroundColor: "var(--color-accent)" }}
-            />
-            {t.hero.badge}
-          </div>
+        <div className={`${sectionShell} relative z-[1] pt-10 pb-14 sm:pt-12 sm:pb-20`}>
+          <div className="flex flex-col gap-8 sm:gap-10 w-full min-w-0">
+            <div
+              className={`inline-flex self-start items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold tracking-wide ${
+                isLight ? "border-slate-200 bg-white text-slate-700 shadow-sm" : "border-white/10 bg-white/[0.06] text-slate-200"
+              }`}
+            >
+              <span
+                className="lp-badge-pulse-dot h-1.5 w-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: "var(--color-accent)" }}
+              />
+              {t.hero.badge}
+            </div>
 
-          <div className="grid gap-10 lg:gap-14 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] items-start mt-8 w-full min-w-0">
-            <div className="space-y-6 min-w-0">
-              <div className="lp-hero-title-block lp-font-heading">
-                <h1 className="lp-title-h1">{t.hero.title}</h1>
-                <p className="mt-4 text-base sm:text-lg leading-relaxed text-[var(--color-text-muted)] max-w-xl">
-                  {t.hero.description}
+            <div className="grid gap-10 lg:gap-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] items-start w-full min-w-0">
+              <div className="space-y-6 min-w-0 max-w-xl lg:max-w-none">
+                <div className="lp-hero-title-block lp-font-heading space-y-4">
+                  <h1 className="lp-title-h1">{t.hero.title}</h1>
+                  <p className="text-base sm:text-lg leading-relaxed text-[var(--color-text-muted)] max-w-xl">
+                    {t.hero.description}
+                  </p>
+                </div>
+
+                <div className="lp-hero-cta flex flex-col sm:flex-row flex-wrap gap-3 w-full min-w-0">
+                  <Link to="/register" className="lp-cta-primary no-underline text-center justify-center w-full sm:w-auto">
+                    {t.hero.ctaPrimary}
+                  </Link>
+                  {market === "tn" ? (
+                    <a
+                      href="mailto:info@caisty.com?subject=D%C3%A9mo%20Caisty%20POS"
+                      className="lp-cta-secondary no-underline text-center justify-center w-full sm:w-auto"
+                    >
+                      {t.hero.ctaSecondary}
+                    </a>
+                  ) : (
+                    <Link to="/pricing" className="lp-cta-secondary no-underline text-center justify-center w-full sm:w-auto">
+                      {t.hero.ctaSecondary}
+                    </Link>
+                  )}
+                </div>
+
+                <p className="lp-hero-trial text-sm max-w-xl leading-relaxed text-[var(--color-text-subtle)]">
+                  {t.hero.trialTrust}
                 </p>
               </div>
 
-              <div className="lp-hero-cta flex flex-col sm:flex-row flex-wrap gap-3 w-full min-w-0">
-                <Link to="/register" className="lp-cta-primary no-underline text-center justify-center w-full sm:w-auto">
-                  {t.hero.ctaPrimary}
-                </Link>
-                {market === "tn" ? (
-                  <a
-                    href="mailto:info@caisty.com?subject=D%C3%A9mo%20Caisty%20POS"
-                    className="lp-cta-secondary no-underline text-center justify-center w-full sm:w-auto"
-                  >
-                    {t.hero.ctaSecondary}
-                  </a>
-                ) : (
-                  <Link to="/pricing" className="lp-cta-secondary no-underline text-center justify-center w-full sm:w-auto">
-                    {t.hero.ctaSecondary}
-                  </Link>
-                )}
-              </div>
-
-              <p className="lp-hero-trial text-sm max-w-xl leading-relaxed text-[var(--color-text-subtle)]">
-                {t.hero.trialTrust}
-              </p>
-            </div>
-
-            <div className="lp-mock-card-enter w-full min-w-0">
-              <div
-                className={`rounded-2xl p-5 sm:p-6 border shadow-lg ${
-                  isLight ? "border-slate-200 bg-white" : "lp-glass-mock shadow-[0_24px_80px_rgba(0,0,0,0.35)]"
-                }`}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-                  <div className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-subtle)]">
-                    {t.preview.caption}
-                  </div>
-                  <div
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
-                      isLight ? "bg-slate-100 text-slate-700" : "bg-white/[0.08] text-slate-200"
-                    }`}
-                  >
-                    <span className="h-2 w-2 rounded-full shrink-0 bg-[#f97316]" />
-                    {t.preview.liveBadge}
-                  </div>
-                </div>
-
+              <div className="lp-mock-card-enter w-full min-w-0">
                 <div
-                  className={`rounded-xl border p-4 sm:p-5 space-y-4 ${
-                    isLight ? "border-slate-200 bg-slate-50" : "border-white/[0.08] bg-black/30"
+                  className={`rounded-2xl p-5 sm:p-6 ${
+                    isLight
+                      ? "border border-slate-200 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.06)]"
+                      : "lp-glass-mock shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
                   }`}
                 >
-                  <div className="text-sm font-bold text-[var(--color-text-primary)] lp-font-heading">{t.preview.title}</div>
-                  <ul className="grid gap-2 sm:grid-cols-2 text-sm text-[var(--color-text-primary)]">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[var(--color-border)]">
+                    <span className="lp-label-caps text-[var(--color-text-subtle)]">{t.preview.caption}</span>
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+                        isLight ? "bg-slate-100 text-slate-700" : "bg-white/[0.08] text-slate-200"
+                      }`}
+                    >
+                      <span className="h-2 w-2 rounded-full shrink-0 bg-[#f97316]" aria-hidden />
+                      {t.preview.liveBadge}
+                    </span>
+                  </div>
+
+                  <p className="mt-4 text-base font-semibold text-[var(--color-text-primary)] lp-font-heading">
+                    {t.preview.title}
+                  </p>
+
+                  <ul className="mt-4 flex flex-wrap gap-2">
                     {t.preview.items.map((item) => (
                       <li
                         key={item}
-                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${
-                          isLight ? "border-slate-200 bg-white" : "border-white/10 bg-white/[0.04]"
+                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs sm:text-sm text-[var(--color-text-primary)] ${
+                          isLight ? "border-slate-200 bg-slate-50" : "border-white/10 bg-white/[0.04]"
                         }`}
                       >
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#f97316] shrink-0" />
-                        <span>{item}</span>
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#f97316] shrink-0" aria-hidden />
+                        {item}
                       </li>
                     ))}
                   </ul>
 
-                  <div className="grid gap-3 sm:grid-cols-2 text-xs sm:text-sm">
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2 text-xs sm:text-sm">
                     <div
-                      className={`rounded-xl border p-3 sm:p-4 space-y-1 ${
-                        isLight ? "border-slate-200 bg-white" : "border-white/10 bg-white/[0.04]"
+                      className={`rounded-xl px-3 py-3 ${
+                        isLight ? "bg-slate-50 text-slate-800" : "bg-white/[0.04] text-slate-200"
                       }`}
                     >
                       <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-subtle)]">
                         {t.preview.items[0]}
                       </div>
-                      <div className="font-mono text-xs text-[var(--color-text-primary)]">CSTY-XXXX-XXXX-XXXX</div>
+                      <div className="mt-1 font-mono text-xs text-[var(--color-text-primary)] break-all">
+                        CSTY-XXXX-XXXX-XXXX
+                      </div>
                     </div>
                     <div
-                      className={`rounded-xl border p-3 sm:p-4 space-y-2 ${
-                        isLight ? "border-slate-200 bg-white" : "border-white/10 bg-white/[0.04]"
+                      className={`rounded-xl px-3 py-3 flex flex-col justify-center ${
+                        isLight ? "bg-slate-50" : "bg-white/[0.04]"
                       }`}
                     >
-                      <div className="flex items-center justify-between text-[11px] text-[var(--color-text-subtle)]">
-                        <span>{t.preview.items[1]}</span>
+                      <div className="flex items-center justify-between gap-2 text-[var(--color-text-subtle)]">
+                        <span className="text-xs font-medium">{t.preview.items[1]}</span>
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                            isLight ? "bg-slate-100 text-slate-700" : "bg-white/10 text-slate-200"
+                          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            isLight ? "bg-white text-slate-700 ring-1 ring-slate-200" : "bg-white/10 text-slate-200"
                           }`}
                         >
                           {t.preview.demoBadge}
                         </span>
                       </div>
-                      <div className="lp-stat-devices lp-font-heading">3</div>
-                      <div className="text-[11px] text-[var(--color-text-subtle)]">{t.preview.devicesOnline}</div>
+                      <div className="mt-1 flex items-baseline gap-2">
+                        <span className="lp-font-heading text-2xl font-bold text-[var(--color-accent)] leading-none">3</span>
+                        <span className="text-xs text-[var(--color-text-subtle)] leading-snug">{t.preview.devicesOnline}</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div
-                    className={`rounded-xl border border-dashed p-3 text-xs sm:text-sm leading-relaxed ${
-                      isLight ? "border-slate-200 bg-white text-slate-600" : "border-white/10 text-slate-400"
+                  <blockquote
+                    className={`mt-6 border-l-2 pl-4 text-sm leading-relaxed ${
+                      isLight ? "border-orange-400/70 text-slate-600" : "border-orange-500/50 text-slate-400"
                     }`}
                   >
                     {t.preview.quote}
-                  </div>
+                  </blockquote>
                 </div>
               </div>
             </div>
+
+            <figure className="lp-mock-card-enter w-full max-w-5xl mx-auto">
+              <div
+                className={`rounded-2xl p-1.5 sm:p-2 ${
+                  isLight
+                    ? "bg-slate-100/80 ring-1 ring-slate-200/90 shadow-sm"
+                    : "bg-black/40 ring-1 ring-white/[0.12] shadow-[0_20px_50px_rgba(0,0,0,0.35)]"
+                }`}
+              >
+                <img
+                  src="/screenshots/CaistyPosDarkMode.png"
+                  alt={t.demo.shotPosDarkMode}
+                  className={`block w-full h-auto max-w-full rounded-xl object-contain object-center ${
+                    isLight ? "border border-slate-200/80" : "border border-white/[0.06]"
+                  }`}
+                  width={1600}
+                  height={900}
+                  loading="eager"
+                  fetchPriority="high"
+                />
+              </div>
+            </figure>
           </div>
         </div>
       </section>
@@ -369,31 +422,67 @@ export default function LandingPage() {
           <h2 className="lp-section-h2">{t.demo.sectionTitle}</h2>
         </div>
         <div className={`lp-reveal max-w-3xl mx-auto w-full rounded-2xl border overflow-hidden lp-surface-card ${isLight ? "shadow-md" : ""}`}>
-          <div className="aspect-video lp-video-shell flex items-center justify-center relative overflow-hidden max-h-[320px] sm:max-h-none">
-            <div className="absolute inset-0 lp-shimmer opacity-30" aria-hidden />
-            <div className="absolute inset-0 flex items-center justify-center z-[1]">
-              <div className="relative w-16 h-16 sm:w-[72px] sm:h-[72px] flex items-center justify-center">
-                <span className="lp-play-ring" />
-                <button
-                  type="button"
-                  className={`relative z-[2] rounded-full p-3 sm:p-4 transition-transform hover:scale-105 ${
-                    isLight ? "bg-white text-slate-900 shadow-lg" : "bg-white/10 text-white border border-white/10"
-                  }`}
-                  aria-label={t.demo.videoAria}
-                >
-                  <svg className="w-8 h-8 sm:w-10 sm:h-10" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z" />
-                  </svg>
-                </button>
-              </div>
+          <div
+            className="relative flex min-h-[220px] w-full items-stretch bg-[#0b1220] aspect-video max-h-[min(70vh,540px)] sm:max-h-[580px]"
+            role="region"
+            aria-roledescription="carousel"
+            aria-label={t.demo.sectionTitle}
+          >
+            <button
+              type="button"
+              onClick={() =>
+                setCarouselIndex((i) => (i - 1 + screenshots.length) % screenshots.length)
+              }
+              className="flex w-12 shrink-0 items-center justify-center border-e border-white/10 bg-black/50 text-[#f97316] transition-colors hover:bg-black/70 hover:text-orange-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f97316] focus-visible:ring-inset sm:w-14"
+              aria-label={t.demo.carouselPrev}
+            >
+              <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+
+            <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden p-2 sm:p-6">
+              <img
+                key={screenshots[carouselIndex].src}
+                src={screenshots[carouselIndex].src}
+                alt={screenshots[carouselIndex].alt}
+                className="max-h-full max-w-full object-contain select-none"
+                draggable={false}
+              />
+              <p
+                className="pointer-events-none absolute bottom-3 left-1/2 z-[1] -translate-x-1/2 rounded-full bg-black/70 px-3 py-1 text-[11px] font-medium tabular-nums tracking-wide text-white/95"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {carouselIndex + 1} / {screenshots.length}
+              </p>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setCarouselIndex((i) => (i + 1) % screenshots.length)}
+              className="flex w-12 shrink-0 items-center justify-center border-s border-white/10 bg-black/50 text-[#f97316] transition-colors hover:bg-black/70 hover:text-orange-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f97316] focus-visible:ring-inset sm:w-14"
+              aria-label={t.demo.carouselNext}
+            >
+              <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+              </svg>
+            </button>
           </div>
         </div>
 
-        <div className="lp-reveal lp-reveal-stagger grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mt-8 w-full min-w-0">
+        <div className="lp-reveal lp-reveal-stagger mx-auto mt-8 grid w-full max-w-lg grid-cols-3 gap-2 min-w-0 sm:max-w-xl sm:gap-2.5 md:max-w-2xl">
           {screenshots.map((screenshot) => (
             <div key={screenshot.id} className="lp-reveal-item w-full min-w-0">
-              <ScreenshotThumb screenshot={screenshot} isLight={isLight} onOpen={() => setSelectedImage(screenshot.src)} />
+              <ScreenshotThumb
+                screenshot={screenshot}
+                isLight={isLight}
+                onOpen={() => {
+                  const idx = screenshots.findIndex((s) => s.id === screenshot.id);
+                  setCarouselIndex(idx >= 0 ? idx : 0);
+                  setSelectedImage(screenshot.src);
+                }}
+              />
             </div>
           ))}
         </div>
@@ -634,11 +723,11 @@ function ScreenshotThumb(props: {
     <button
       type="button"
       onClick={onOpen}
-      className={`lp-shot-thumb group w-full min-w-0 text-start rounded-2xl border overflow-hidden relative ${
+      className={`lp-shot-thumb group w-full min-w-0 text-start rounded-lg border overflow-hidden relative ${
         isLight ? "border-slate-200 bg-white" : "border-white/10 bg-[#0f172a]"
       }`}
     >
-      <div className="aspect-video relative overflow-hidden bg-[#0b1220]">
+        <div className="aspect-video relative overflow-hidden bg-[#0b1220]">
         <div className="absolute inset-0 lp-shimmer opacity-25" aria-hidden />
         {!failed ? (
           <img
@@ -653,7 +742,7 @@ function ScreenshotThumb(props: {
           </div>
         )}
         <div className="absolute inset-0 z-[3] bg-[#f97316]/0 group-hover:bg-[#f97316]/10 transition-colors flex items-center justify-center pointer-events-none">
-          <svg className="w-7 h-7 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-[#f97316] opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
           </svg>
         </div>
