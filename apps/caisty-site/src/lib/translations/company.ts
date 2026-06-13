@@ -22,14 +22,15 @@ const companyLocales = {
     about: {
       title: "About Caisty",
       paragraphs: [
-        "Caisty develops modern software products for businesses. Our focus is on cloud software, SaaS platforms, automation and AI-powered solutions that help companies work more efficiently.",
-        "We build our own products — starting with Caisty POS for retail and hospitality, and ShiftIQ for workforce management.",
-        "Our mission: create reliable, scalable software that solves real business problems.",
+        "Caisty is a software company focused on cloud software, SaaS platforms, automation and AI-powered business solutions.",
+        "We build products that help businesses simplify operations, improve efficiency and grow with modern technology.",
+        "Starting with Caisty POS for hospitality and retail, our roadmap expands into workforce management, automation tools and future business software solutions.",
+        "Our goal is simple: create reliable, scalable and practical software that businesses enjoy using every day.",
       ],
       highlights: [
-        { title: "Own products", body: "We design, ship and operate our platforms end-to-end — not client brochureware." },
-        { title: "Operations-first", body: "Built for real tills, shifts, inventory and teams — not generic landing pages." },
-        { title: "Germany-based", body: "Registered software company focused on long-term product quality and compliance." },
+        { title: "Our roadmap", body: "From Caisty POS today toward workforce tools, automation and more — we build and ship our own products." },
+        { title: "Practical by design", body: "Tools for real operations: fewer friction points, clearer workflows, software teams actually want to open." },
+        { title: "Built to last", body: "Reliable, scalable platforms meant for daily use — not one-off projects or brochureware." },
       ],
     },
     products: {
@@ -142,14 +143,15 @@ const companyLocales = {
     about: {
       title: "À propos de Caisty",
       paragraphs: [
-        "Caisty conçoit des produits logiciels modernes pour les entreprises : cloud, SaaS, automatisation et IA au service de l’efficacité opérationnelle.",
-        "Nous développons nos propres produits — Caisty POS pour la restauration et le commerce, et ShiftIQ pour la gestion des équipes et le temps.",
-        "Notre mission : des logiciels fiables et évolutifs qui répondent à de vrais problèmes métier.",
+        "Caisty est une société logicielle centrée sur le cloud, les plateformes SaaS, l’automatisation et les solutions métier assistées par l’IA.",
+        "Nous créons des produits qui aident les entreprises à simplifier leurs opérations, à gagner en efficacité et à croître avec des technologies modernes.",
+        "En commençant par Caisty POS pour l’hôtellerie-restauration et le commerce, notre feuille de route s’étend à la gestion des équipes, aux outils d’automatisation et aux futures solutions logicielles métier.",
+        "Notre objectif est simple : des logiciels fiables, évolutifs et pratiques que les équipes aiment utiliser au quotidien.",
       ],
       highlights: [
-        { title: "Produits maison", body: "Conception, exploitation et évolution de nos plateformes — pas de projets à la chaîne." },
-        { title: "Orienté terrain", body: "Pensé pour caisses, plannings, stocks et équipes — pas pour de simples vitrines web." },
-        { title: "Basé en Allemagne", body: "Éditeur inscrit, avec une vision long terme sur la qualité produit et la conformité." },
+        { title: "Notre feuille de route", body: "De Caisty POS aujourd’hui vers la gestion des équipes, l’automatisation et au-delà — nous livrons nos propres produits." },
+        { title: "Conçu pour l’usage réel", body: "Des outils pour les opérations concrètes : moins de friction, des flux plus clairs, une logique du quotidien." },
+        { title: "Pensé pour durer", body: "Des plateformes fiables et évolutives, pensées pour un usage quotidien — pas des projets jetables." },
       ],
     },
     products: {
@@ -262,14 +264,15 @@ const companyLocales = {
     about: {
       title: "Über Caisty",
       paragraphs: [
-        "Caisty entwickelt moderne Softwareprodukte für Unternehmen — mit Fokus auf Cloud-Software, SaaS, Automatisierung und KI, damit Organisationen effizienter arbeiten können.",
-        "Wir bauen eigene Produkte — beginnend mit Caisty POS für Gastronomie und Handel sowie ShiftIQ für Workforce-Management.",
-        "Unsere Mission: zuverlässige, skalierbare Software, die echte betriebliche Probleme löst.",
+        "Caisty ist ein Softwareunternehmen mit Schwerpunkt auf Cloud-Software, SaaS-Plattformen, Automatisierung und KI-gestützten Business-Lösungen.",
+        "Wir entwickeln Produkte, die Unternehmen dabei helfen, Abläufe zu vereinfachen, effizienter zu arbeiten und mit moderner Technologie zu wachsen.",
+        "Beginnend mit Caisty POS für Gastronomie und Einzelhandel erweitert sich unsere Roadmap um Workforce-Management, Automatisierungstools und künftige Business-Software.",
+        "Unser Ziel ist einfach: zuverlässige, skalierbare und praxisnahe Software, die Unternehmen gerne täglich nutzen.",
       ],
       highlights: [
-        { title: "Eigene Produkte", body: "Wir entwickeln und betreiben unsere Plattformen selbst — kein Projektgeschäft nach Auftrag." },
-        { title: "Betrieb im Blick", body: "Für echte Kassen, Schichten, Bestände und Teams — nicht für generische Webauftritte." },
-        { title: "Deutschland", body: "Registriertes Softwareunternehmen mit Fokus auf Qualität und Compliance über Jahre." },
+        { title: "Unsere Roadmap", body: "Von Caisty POS heute zu Workforce-Tools, Automatisierung und mehr — wir liefern eigene Produkte." },
+        { title: "Praxisnah gebaut", body: "Werkzeuge für echte Abläufe: weniger Reibung, klarere Workflows, Software für den Alltag." },
+        { title: "Für den Dauerbetrieb", body: "Zuverlässige, skalierbare Plattformen für den täglichen Einsatz — keine Einmalprojekte." },
       ],
     },
     products: {
@@ -382,14 +385,15 @@ const companyLocales = {
     about: {
       title: "عن Caisty",
       paragraphs: [
-        "تطوّر Caisty منتجات برمجية حديثة للشركات، مع تركيز على السحابة وSaaS والأتمتة والذكاء الاصطناعي لرفع كفاءة العمل.",
-        "نبني منتجاتنا الخاصة — بدءًا من Caisty POS للمطاعم والتجزئة، وShiftIQ لإدارة القوى العاملة.",
-        "مهمتنا: برمجيات موثوقة وقابلة للتوسع تحل مشاكل أعمال حقيقية.",
+        "Caisty شركة برمجيات تركز على السحابة ومنصات SaaS والأتمتة وحلول الأعمال المدعومة بالذكاء الاصطناعي.",
+        "نبني منتجات تساعد الشركات على تبسيط العمليات ورفع الكفاءة والنمو بتقنيات حديثة.",
+        "بدءًا من Caisty POS للضيافة والتجزئة، تمتد خارطة طريقنا إلى إدارة القوى العاملة وأدوات الأتمتة وحلول برمجيات أعمال مستقبلية.",
+        "هدفنا بسيط: برمجيات موثوقة وقابلة للتوسع وعملية تستمتع الشركات باستخدامها يوميًا.",
       ],
       highlights: [
-        { title: "منتجات ملكية", body: "نصمّم ونشغّل منصاتنا بأنفسنا — وليس مشاريع عملاء عرضية." },
-        { title: "من منظور التشغيل", body: "للكاشير والورديات والمخزون والفرق — وليس لصفحات تعريف عامة." },
-        { title: "شركة في ألمانيا", body: "مسجّلون كشركة برمجيات مع التزام طويل الأمد بالجودة والامتثال." },
+        { title: "خارطة طريقنا", body: "من Caisty POS اليوم نحو أدوات القوى العاملة والأتمتة وأكثر — نطوّر ونُوصّل منتجاتنا بأنفسنا." },
+        { title: "عملي بالتصميم", body: "أدوات للعمليات الحقيقية: أقل احتكاكًا، سير عمل أوضح، برمجيات للاستخدام اليومي." },
+        { title: "مبني للاستمرار", body: "منصات موثوقة قابلة للتوسع للاستخدام اليومي — وليست مشاريع لمرة واحدة." },
       ],
     },
     products: {

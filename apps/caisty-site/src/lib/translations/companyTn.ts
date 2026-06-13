@@ -20,14 +20,15 @@ export const companyTn: CompanyCopy = {
   about: {
     title: "À propos de Caisty",
     paragraphs: [
-      "Caisty conçoit des produits logiciels modernes pour les entreprises : cloud, SaaS, automatisation et IA au service de l’efficacité opérationnelle.",
-      "Nous développons nos propres produits — Caisty POS pour la restauration et le commerce (disponible en Tunisie), et ShiftIQ pour la gestion des équipes et le temps.",
-      "Notre mission : des logiciels fiables et évolutifs qui répondent à de vrais problèmes métier.",
+      "Caisty est une société logicielle centrée sur le cloud, les plateformes SaaS, l’automatisation et les solutions métier assistées par l’IA.",
+      "Nous créons des produits qui aident les entreprises à simplifier leurs opérations, à gagner en efficacité et à croître avec des technologies modernes.",
+      "En commençant par Caisty POS pour l’hôtellerie-restauration et le commerce (disponible en Tunisie), notre feuille de route s’étend à la gestion des équipes, aux outils d’automatisation et aux futures solutions logicielles métier.",
+      "Notre objectif est simple : des logiciels fiables, évolutifs et pratiques que les équipes aiment utiliser au quotidien.",
     ],
     highlights: [
-      { title: "Produits maison", body: "Conception, exploitation et évolution de nos plateformes — pas de projets à la chaîne." },
-      { title: "Orienté terrain", body: "Pensé pour caisses, plannings, stocks et équipes — pas pour de simples vitrines web." },
-      { title: "Basé en Allemagne", body: "Éditeur inscrit, avec une vision long terme sur la qualité produit et la conformité." },
+      { title: "Notre feuille de route", body: "De Caisty POS aujourd’hui vers la gestion des équipes, l’automatisation et au-delà — nous livrons nos propres produits." },
+      { title: "Conçu pour l’usage réel", body: "Des outils pour les opérations concrètes : moins de friction, des flux plus clairs, une logique du quotidien." },
+      { title: "Pensé pour durer", body: "Des plateformes fiables et évolutives, pensées pour un usage quotidien — pas des projets jetables." },
     ],
   },
   products: {
