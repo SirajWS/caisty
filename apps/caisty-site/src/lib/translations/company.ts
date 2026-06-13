@@ -9,9 +9,7 @@ const companyLocales = {
       badge: "Caisty",
       headline: "Business software for modern companies.",
       subtitle:
-        "We create modern business software that helps restaurants, retail stores and growing teams run their operations more efficiently.",
-      subtitleSecondary:
-        "From point-of-sale systems to workforce management, our products are built to be reliable, scalable and easy to use.",
+        "We develop cloud software, SaaS platforms, and AI-powered solutions that help businesses run more efficiently. Starting with Caisty POS — and building what comes next.",
       ctaExplore: "Explore Caisty POS",
       ctaContact: "Contact us",
     },
@@ -21,12 +19,17 @@ const companyLocales = {
       items: ["Caisty POS", "ShiftIQ", "Cloud portal", "Licenses", "Invoices", "Devices"],
       footerNote: "We build our own business products — not a web agency.",
     },
-    stats: {
-      cards: [
-        { stat: "2", label: "Products" },
-        { stat: "1", label: "Platform" },
-        { stat: "4", label: "Languages" },
-        { stat: "—", label: "Cloud-based" },
+    about: {
+      title: "About Caisty",
+      paragraphs: [
+        "Caisty develops modern software products for businesses. Our focus is on cloud software, SaaS platforms, automation and AI-powered solutions that help companies work more efficiently.",
+        "We build our own products — starting with Caisty POS for retail and hospitality, and ShiftIQ for workforce management.",
+        "Our mission: create reliable, scalable software that solves real business problems.",
+      ],
+      highlights: [
+        { title: "Own products", body: "We design, ship and operate our platforms end-to-end — not client brochureware." },
+        { title: "Operations-first", body: "Built for real tills, shifts, inventory and teams — not generic landing pages." },
+        { title: "Germany-based", body: "Registered software company focused on long-term product quality and compliance." },
       ],
     },
     products: {
@@ -36,7 +39,7 @@ const companyLocales = {
       pos: {
         name: "Caisty POS",
         description:
-          "Modern cloud POS software for restaurants, cafés, fast food businesses and retail shops.",
+          "Modern cloud POS for restaurants, cafés, fast food and retail — checkout, orders, inventory and a customer portal in one stack.",
         features: [
           "Fast checkout",
           "Orders and products",
@@ -48,59 +51,77 @@ const companyLocales = {
       },
       shiftiq: {
         name: "ShiftIQ",
-        description: "Workforce management and employee time tracking for modern teams.",
-        features: [
-          "Time tracking",
-          "Shift planning",
-          "Employee check-in",
-          "Team management",
-          "Reports",
-        ],
+        description: "Workforce management and employee time tracking for growing teams.",
+        features: ["Time tracking", "Shift planning", "Employee check-in", "Team management", "Reports"],
         ctaDisabled: "Coming soon",
       },
     },
+    whatWeDo: {
+      title: "What we do",
+      subtitle: "From cloud platforms to AI tools — software built for real business operations.",
+      items: [
+        {
+          iconKey: "cloud" as const,
+          title: "SaaS & cloud solutions",
+          description:
+            "Development and operation of cloud-based software platforms. Scalable, reliable, accessible from anywhere.",
+        },
+        {
+          iconKey: "monitor" as const,
+          title: "Business software",
+          description:
+            "POS systems, workforce management, customer portals and operational tools for restaurants, retail and growing teams.",
+        },
+        {
+          iconKey: "bot" as const,
+          title: "AI & automation",
+          description:
+            "AI-powered tools and workflow automation to reduce manual work and help businesses make smarter decisions.",
+        },
+        {
+          iconKey: "smartphone" as const,
+          title: "Web & mobile applications",
+          description:
+            "Web applications, mobile apps and digital business tools tailored to specific operational needs.",
+        },
+      ],
+    },
     whyChoose: {
-      title: "Why businesses choose Caisty",
+      title: "Why companies choose Caisty",
       points: [
-        "Reliable software",
-        "Offline-first architecture",
-        "Cloud management portal",
-        "Multi-language support",
-        "Multi-currency support",
-        "Designed for real-world operations",
+        "Cloud-based — access from anywhere, no local setup",
+        "AI-ready — built to integrate intelligent features",
+        "Automation-focused — reduce manual work across operations",
+        "Multi-language support — built for international use",
+        "Multi-currency support — ready for global markets",
+        "Offline-first architecture — works even without internet",
+        "Scalable infrastructure — grows with your business",
+        "Built for real operations — designed by people who understand how businesses actually work",
+      ],
+    },
+    roadmap: {
+      title: "Product roadmap",
+      subtitle: "We're building more than a POS system.",
+      colProduct: "Product",
+      colStatus: "Status",
+      rows: [
+        { product: "Caisty POS", status: "Available", variant: "available" as const },
+        { product: "ShiftIQ", status: "Coming soon", variant: "soon" as const },
+        { product: "Future CRM modules", status: "Planned", variant: "planned" as const },
+        { product: "Automation tools", status: "Planned", variant: "planned" as const },
+        { product: "AI business assistant", status: "In research", variant: "research" as const },
       ],
     },
     technology: {
       title: "Technology stack",
+      lead: "Built with modern, proven technology",
       stack: TECH_STACK_ICONS,
     },
-    building: {
-      title: "What we are building",
-      posTitle: "Caisty POS",
-      posSub: "Available today",
-      posItems: [
-        "Cash register",
-        "Orders",
-        "Inventory",
-        "Licenses",
-        "Devices",
-        "Cloud portal",
-      ],
-      shiftiqTitle: "ShiftIQ",
-      shiftiqSub: "Coming soon",
-      shiftiqItems: [
-        "Time tracking",
-        "Shift planning",
-        "Employee management",
-        "Attendance",
-        "Reports",
-      ],
-    },
     contactCta: {
-      headline: "Let's build better business software.",
-      body: "Interested in Caisty POS or future Caisty products? Contact us and let's talk.",
-      ctaStart: "Start free",
-      ctaContact: "Contact us",
+      headline: "Building the next generation of business software.",
+      body: "From cloud software and SaaS platforms to AI and automation solutions — Caisty develops tools that help businesses grow and operate more efficiently.",
+      ctaPrimary: "Explore Caisty POS",
+      ctaSecondary: "Contact us",
     },
   },
   fr: {
@@ -108,9 +129,7 @@ const companyLocales = {
       badge: "Caisty",
       headline: "Logiciels métier pour les entreprises modernes.",
       subtitle:
-        "Nous créons des logiciels métier modernes qui aident les restaurants, les commerces de détail et les équipes en croissance à piloter leurs opérations plus efficacement.",
-      subtitleSecondary:
-        "Des systèmes de caisse à la gestion des équipes, nos produits sont pensés pour être fiables, évolutifs et simples à utiliser.",
+        "Nous développons des logiciels cloud, des plateformes SaaS et des solutions IA pour aider les entreprises à gagner en efficacité. En commençant par Caisty POS — et en poursuivant avec la suite.",
       ctaExplore: "Découvrir Caisty POS",
       ctaContact: "Nous contacter",
     },
@@ -120,12 +139,17 @@ const companyLocales = {
       items: ["Caisty POS", "ShiftIQ", "Portail cloud", "Licences", "Factures", "Appareils"],
       footerNote: "Nous développons nos propres produits logiciels — pas une agence web.",
     },
-    stats: {
-      cards: [
-        { stat: "2", label: "Produits" },
-        { stat: "1", label: "Plateforme" },
-        { stat: "4", label: "Langues" },
-        { stat: "—", label: "Cloud" },
+    about: {
+      title: "À propos de Caisty",
+      paragraphs: [
+        "Caisty conçoit des produits logiciels modernes pour les entreprises : cloud, SaaS, automatisation et IA au service de l’efficacité opérationnelle.",
+        "Nous développons nos propres produits — Caisty POS pour la restauration et le commerce, et ShiftIQ pour la gestion des équipes et le temps.",
+        "Notre mission : des logiciels fiables et évolutifs qui répondent à de vrais problèmes métier.",
+      ],
+      highlights: [
+        { title: "Produits maison", body: "Conception, exploitation et évolution de nos plateformes — pas de projets à la chaîne." },
+        { title: "Orienté terrain", body: "Pensé pour caisses, plannings, stocks et équipes — pas pour de simples vitrines web." },
+        { title: "Basé en Allemagne", body: "Éditeur inscrit, avec une vision long terme sur la qualité produit et la conformité." },
       ],
     },
     products: {
@@ -135,7 +159,7 @@ const companyLocales = {
       pos: {
         name: "Caisty POS",
         description:
-          "Logiciel de caisse cloud moderne pour restaurants, cafés, fast-foods et commerces de détail.",
+          "Caisse cloud moderne pour restaurants, cafés, fast-foods et retail — encaissement, commandes, stocks et portail client.",
         features: [
           "Encaissement rapide",
           "Commandes et produits",
@@ -147,60 +171,77 @@ const companyLocales = {
       },
       shiftiq: {
         name: "ShiftIQ",
-        description:
-          "Gestion des équipes et suivi du temps de travail pour les organisations modernes.",
-        features: [
-          "Suivi du temps",
-          "Planification des shifts",
-          "Pointage employés",
-          "Gestion d’équipe",
-          "Rapports",
-        ],
+        description: "Gestion des équipes et suivi du temps pour les organisations en croissance.",
+        features: ["Suivi du temps", "Planification des shifts", "Pointage employés", "Gestion d’équipe", "Rapports"],
         ctaDisabled: "Bientôt disponible",
       },
+    },
+    whatWeDo: {
+      title: "Ce que nous faisons",
+      subtitle: "Des plateformes cloud aux outils IA — des logiciels pensés pour les opérations réelles.",
+      items: [
+        {
+          iconKey: "cloud" as const,
+          title: "SaaS & solutions cloud",
+          description:
+            "Développement et exploitation de plateformes logicielles cloud : scalables, fiables, accessibles partout.",
+        },
+        {
+          iconKey: "monitor" as const,
+          title: "Logiciels métier",
+          description:
+            "POS, gestion des équipes, portails clients et outils opérationnels pour la restauration, le retail et les équipes qui grandissent.",
+        },
+        {
+          iconKey: "bot" as const,
+          title: "IA & automatisation",
+          description:
+            "Outils IA et automatisation des flux pour réduire le travail manuel et éclairer les décisions.",
+        },
+        {
+          iconKey: "smartphone" as const,
+          title: "Applications web & mobiles",
+          description:
+            "Applications web et mobiles et outils numériques adaptés à des besoins opérationnels précis.",
+        },
+      ],
     },
     whyChoose: {
       title: "Pourquoi les entreprises choisissent Caisty",
       points: [
-        "Logiciels fiables",
-        "Architecture offline-first",
-        "Portail de gestion cloud",
-        "Support multilingue",
-        "Support multidevise",
-        "Conçu pour les opérations réelles",
+        "Cloud — accès partout, sans installation locale lourde",
+        "Prêt pour l’IA — conçu pour intégrer des fonctions intelligentes",
+        "Automatisation — moins de tâches manuelles dans les opérations",
+        "Multilingue — pensé pour un usage international",
+        "Multidevise — prêt pour des marchés mondiaux",
+        "Offline-first — fonctionne même sans connexion internet",
+        "Infrastructure évolutive — grandit avec votre activité",
+        "Conçu pour le terrain — par des personnes qui comprennent les opérations réelles",
+      ],
+    },
+    roadmap: {
+      title: "Feuille de route produit",
+      subtitle: "Nous construisons bien plus qu’un système de caisse.",
+      colProduct: "Produit",
+      colStatus: "Statut",
+      rows: [
+        { product: "Caisty POS", status: "Disponible", variant: "available" as const },
+        { product: "ShiftIQ", status: "Bientôt disponible", variant: "soon" as const },
+        { product: "Modules CRM futurs", status: "Planifié", variant: "planned" as const },
+        { product: "Outils d’automatisation", status: "Planifié", variant: "planned" as const },
+        { product: "Assistant IA métier", status: "En recherche", variant: "research" as const },
       ],
     },
     technology: {
       title: "Stack technologique",
+      lead: "Construit avec des technologies modernes et éprouvées",
       stack: TECH_STACK_ICONS,
     },
-    building: {
-      title: "Ce que nous construisons",
-      posTitle: "Caisty POS",
-      posSub: "Disponible aujourd’hui",
-      posItems: [
-        "Caisse enregistreuse",
-        "Commandes",
-        "Stocks",
-        "Licences",
-        "Appareils",
-        "Portail cloud",
-      ],
-      shiftiqTitle: "ShiftIQ",
-      shiftiqSub: "Bientôt disponible",
-      shiftiqItems: [
-        "Suivi du temps",
-        "Planification des shifts",
-        "Gestion des employés",
-        "Présences",
-        "Rapports",
-      ],
-    },
     contactCta: {
-      headline: "Construisons de meilleurs logiciels métier.",
-      body: "Intéressé par Caisty POS ou les futurs produits Caisty ? Contactez-nous et parlons-en.",
-      ctaStart: "Commencer gratuitement",
-      ctaContact: "Nous contacter",
+      headline: "Construire la prochaine génération de logiciels métier.",
+      body: "Du cloud et du SaaS à l’IA et à l’automatisation — Caisty développe des outils pour aider les entreprises à croître et à opérer plus efficacement.",
+      ctaPrimary: "Découvrir Caisty POS",
+      ctaSecondary: "Nous contacter",
     },
   },
   de: {
@@ -208,9 +249,7 @@ const companyLocales = {
       badge: "Caisty",
       headline: "Business-Software für moderne Unternehmen.",
       subtitle:
-        "Wir entwickeln moderne Business-Software, die Restaurants, Einzelhandel und wachsende Teams dabei unterstützt, ihre Abläufe effizienter zu steuern.",
-      subtitleSecondary:
-        "Von Kassensystemen bis Workforce-Management sind unsere Produkte zuverlässig, skalierbar und einfach zu bedienen.",
+        "Wir entwickeln Cloud-Software, SaaS-Plattformen und KI-gestützte Lösungen, die Unternehmen effizienter machen. Beginnend mit Caisty POS — und mit allem, was danach kommt.",
       ctaExplore: "Caisty POS entdecken",
       ctaContact: "Kontakt",
     },
@@ -220,12 +259,17 @@ const companyLocales = {
       items: ["Caisty POS", "ShiftIQ", "Cloud-Portal", "Lizenzen", "Rechnungen", "Geräte"],
       footerNote: "Eigene Business-Software-Produkte — keine Webagentur.",
     },
-    stats: {
-      cards: [
-        { stat: "2", label: "Produkte" },
-        { stat: "1", label: "Plattform" },
-        { stat: "4", label: "Sprachen" },
-        { stat: "—", label: "Cloud-basiert" },
+    about: {
+      title: "Über Caisty",
+      paragraphs: [
+        "Caisty entwickelt moderne Softwareprodukte für Unternehmen — mit Fokus auf Cloud-Software, SaaS, Automatisierung und KI, damit Organisationen effizienter arbeiten können.",
+        "Wir bauen eigene Produkte — beginnend mit Caisty POS für Gastronomie und Handel sowie ShiftIQ für Workforce-Management.",
+        "Unsere Mission: zuverlässige, skalierbare Software, die echte betriebliche Probleme löst.",
+      ],
+      highlights: [
+        { title: "Eigene Produkte", body: "Wir entwickeln und betreiben unsere Plattformen selbst — kein Projektgeschäft nach Auftrag." },
+        { title: "Betrieb im Blick", body: "Für echte Kassen, Schichten, Bestände und Teams — nicht für generische Webauftritte." },
+        { title: "Deutschland", body: "Registriertes Softwareunternehmen mit Fokus auf Qualität und Compliance über Jahre." },
       ],
     },
     products: {
@@ -235,7 +279,7 @@ const companyLocales = {
       pos: {
         name: "Caisty POS",
         description:
-          "Moderne Cloud-POS-Software für Restaurants, Cafés, Fast-Food und Einzelhandel.",
+          "Moderne Cloud-POS-Software für Gastronomie, Café, Fast Food und Einzelhandel — Kasse, Bestellungen, Bestand und Kundenportal.",
         features: [
           "Schnelle Kasse",
           "Bestellungen und Artikel",
@@ -247,59 +291,77 @@ const companyLocales = {
       },
       shiftiq: {
         name: "ShiftIQ",
-        description: "Workforce-Management und Zeiterfassung für moderne Teams.",
-        features: [
-          "Zeiterfassung",
-          "Schichtplanung",
-          "Check-in am Arbeitsplatz",
-          "Teamverwaltung",
-          "Reports",
-        ],
+        description: "Workforce-Management und Zeiterfassung für wachsende Teams.",
+        features: ["Zeiterfassung", "Schichtplanung", "Check-in", "Teamverwaltung", "Reports"],
         ctaDisabled: "Demnächst",
       },
+    },
+    whatWeDo: {
+      title: "Was wir tun",
+      subtitle: "Von Cloud-Plattformen bis zu KI-Tools — Software für echte Betriebsabläufe.",
+      items: [
+        {
+          iconKey: "cloud" as const,
+          title: "SaaS & Cloud-Lösungen",
+          description:
+            "Entwicklung und Betrieb cloudbasierter Plattformen — skalierbar, zuverlässig, von überall nutzbar.",
+        },
+        {
+          iconKey: "monitor" as const,
+          title: "Business-Software",
+          description:
+            "Kassensysteme, Workforce-Management, Kundenportale und operative Tools für Gastronomie, Handel und Teams.",
+        },
+        {
+          iconKey: "bot" as const,
+          title: "KI & Automatisierung",
+          description:
+            "KI-gestützte Funktionen und Workflow-Automatisierung, um manuelle Arbeit zu reduzieren und Entscheidungen zu verbessern.",
+        },
+        {
+          iconKey: "smartphone" as const,
+          title: "Web- & Mobile-Apps",
+          description:
+            "Webanwendungen, mobile Apps und digitale Business-Tools für konkrete betriebliche Anforderungen.",
+        },
+      ],
     },
     whyChoose: {
       title: "Warum Unternehmen Caisty wählen",
       points: [
-        "Zuverlässige Software",
-        "Offline-first-Architektur",
-        "Cloud-Verwaltungsportal",
-        "Mehrsprachiger Support",
-        "Multi-Währung",
-        "Für den echten Betrieb entwickelt",
+        "Cloud-basiert — Zugriff überall, ohne lokale Installation",
+        "KI-fähig — vorbereitet für intelligente Funktionen",
+        "Automatisierung — weniger manuelle Arbeit im Tagesgeschäft",
+        "Mehrsprachig — für internationalen Einsatz gebaut",
+        "Multi-Währung — bereit für globale Märkte",
+        "Offline-first — funktioniert auch ohne Internet",
+        "Skalierbare Infrastruktur — wächst mit Ihrem Geschäft",
+        "Für den echten Betrieb — von Menschen, die wissen, wie Unternehmen arbeiten",
+      ],
+    },
+    roadmap: {
+      title: "Produkt-Roadmap",
+      subtitle: "Wir bauen mehr als ein Kassensystem.",
+      colProduct: "Produkt",
+      colStatus: "Status",
+      rows: [
+        { product: "Caisty POS", status: "Verfügbar", variant: "available" as const },
+        { product: "ShiftIQ", status: "Demnächst", variant: "soon" as const },
+        { product: "Zukünftige CRM-Module", status: "Geplant", variant: "planned" as const },
+        { product: "Automatisierungstools", status: "Geplant", variant: "planned" as const },
+        { product: "KI-Assistent fürs Business", status: "In Forschung", variant: "research" as const },
       ],
     },
     technology: {
       title: "Technologie-Stack",
+      lead: "Mit modernen, bewährten Technologien umgesetzt",
       stack: TECH_STACK_ICONS,
     },
-    building: {
-      title: "Woran wir arbeiten",
-      posTitle: "Caisty POS",
-      posSub: "Heute verfügbar",
-      posItems: [
-        "Kasse",
-        "Bestellungen",
-        "Lager / Inventar",
-        "Lizenzen",
-        "Geräte",
-        "Cloud-Portal",
-      ],
-      shiftiqTitle: "ShiftIQ",
-      shiftiqSub: "Demnächst",
-      shiftiqItems: [
-        "Zeiterfassung",
-        "Schichtplanung",
-        "Mitarbeiterverwaltung",
-        "Anwesenheit",
-        "Berichte",
-      ],
-    },
     contactCta: {
-      headline: "Gemeinsam bessere Business-Software bauen.",
-      body: "Interesse an Caisty POS oder künftigen Produkten von Caisty? Kontaktieren Sie uns — wir sprechen gern mit Ihnen.",
-      ctaStart: "Kostenlos starten",
-      ctaContact: "Kontakt",
+      headline: "Die nächste Generation Business-Software entwickeln.",
+      body: "Von Cloud- und SaaS-Plattformen bis zu KI und Automatisierung — Caisty entwickelt Werkzeuge, damit Unternehmen wachsen und effizienter arbeiten können.",
+      ctaPrimary: "Caisty POS entdecken",
+      ctaSecondary: "Kontakt",
     },
   },
   ar: {
@@ -307,9 +369,7 @@ const companyLocales = {
       badge: "Caisty",
       headline: "برمجيات أعمال للشركات الحديثة.",
       subtitle:
-        "ننشئ برمجيات أعمال حديثة تساعد المطاعم ومتاجر التجزئة والفرق النامية على إدارة عملياتها بكفاءة أكبر.",
-      subtitleSecondary:
-        "من أنظمة نقاط البيع إلى إدارة القوى العاملة، منتجاتنا مصممة لتكون موثوقة وقابلة للتوسع وسهلة الاستخدام.",
+        "نطوّر برمجيات سحابية ومنصات SaaS وحلولاً مدعومة بالذكاء الاصطناعي تساعد الشركات على العمل بكفاءة أكبر. بدءًا من Caisty POS — وما يليه في الطريق.",
       ctaExplore: "استكشف Caisty POS",
       ctaContact: "تواصل معنا",
     },
@@ -319,12 +379,17 @@ const companyLocales = {
       items: ["Caisty POS", "ShiftIQ", "بوابة سحابية", "التراخيص", "الفواتير", "الأجهزة"],
       footerNote: "نطوّر منتجاتنا البرمجية بأنفسنا — وليس وكالة ويب.",
     },
-    stats: {
-      cards: [
-        { stat: "2", label: "منتجات" },
-        { stat: "1", label: "منصة" },
-        { stat: "4", label: "لغات" },
-        { stat: "—", label: "سحابي" },
+    about: {
+      title: "عن Caisty",
+      paragraphs: [
+        "تطوّر Caisty منتجات برمجية حديثة للشركات، مع تركيز على السحابة وSaaS والأتمتة والذكاء الاصطناعي لرفع كفاءة العمل.",
+        "نبني منتجاتنا الخاصة — بدءًا من Caisty POS للمطاعم والتجزئة، وShiftIQ لإدارة القوى العاملة.",
+        "مهمتنا: برمجيات موثوقة وقابلة للتوسع تحل مشاكل أعمال حقيقية.",
+      ],
+      highlights: [
+        { title: "منتجات ملكية", body: "نصمّم ونشغّل منصاتنا بأنفسنا — وليس مشاريع عملاء عرضية." },
+        { title: "من منظور التشغيل", body: "للكاشير والورديات والمخزون والفرق — وليس لصفحات تعريف عامة." },
+        { title: "شركة في ألمانيا", body: "مسجّلون كشركة برمجيات مع التزام طويل الأمد بالجودة والامتثال." },
       ],
     },
     products: {
@@ -333,71 +398,80 @@ const companyLocales = {
       statusComingSoon: "قريباً",
       pos: {
         name: "Caisty POS",
-        description: "برنامج نقاط بيع سحابي حديث للمطاعم والمقاهي والوجبات السريعة وتجارة التجزئة.",
-        features: [
-          "دفع سريع",
-          "الطلبات والمنتجات",
-          "طباعة الإيصالات",
-          "بوابة سحابية",
-          "الفواتير والتراخيص",
-        ],
+        description: "نقاط بيع سحابية حديثة للمطاعم والمقاهي والوجبات السريعة والتجزئة — مع بوابة عملاء.",
+        features: ["دفع سريع", "الطلبات والمنتجات", "طباعة الإيصالات", "بوابة سحابية", "الفواتير والتراخيص"],
         ctaLearn: "فتح Caisty POS",
       },
       shiftiq: {
         name: "ShiftIQ",
-        description: "إدارة القوى العاملة وتتبع وقت الموظفين للفرق الحديثة.",
-        features: [
-          "تتبع الوقت",
-          "تخطيط الورديات",
-          "تسجيل حضور الموظفين",
-          "إدارة الفريق",
-          "التقارير",
-        ],
+        description: "إدارة القوى العاملة وتتبع وقت الموظفين للفرق النامية.",
+        features: ["تتبع الوقت", "تخطيط الورديات", "تسجيل الحضور", "إدارة الفريق", "التقارير"],
         ctaDisabled: "قريباً",
       },
+    },
+    whatWeDo: {
+      title: "ماذا نفعل",
+      subtitle: "من منصات سحابية إلى أدوات ذكاء اصطناعي — برمجيات لعمليات أعمال حقيقية.",
+      items: [
+        {
+          iconKey: "cloud" as const,
+          title: "SaaS وحلول سحابية",
+          description: "تطوير وتشغيل منصات برمجية سحابية قابلة للتوسع وموثوقة ومتاحة من أي مكان.",
+        },
+        {
+          iconKey: "monitor" as const,
+          title: "برمجيات أعمال",
+          description:
+            "أنظمة نقاط بيع وإدارة قوى عاملة وبوابات عملاء وأدوات تشغيل للمطاعم والتجزئة والفرق المتنامية.",
+        },
+        {
+          iconKey: "bot" as const,
+          title: "ذكاء اصطناعي وأتمتة",
+          description: "أدوات مدعومة بالذكاء الاصطناعي وأتمتة سير العمل لتقليل العمل اليدوي ودعم القرار.",
+        },
+        {
+          iconKey: "smartphone" as const,
+          title: "تطبيقات ويب وموبايل",
+          description: "تطبيقات ويب وموبايل وأدوات رقمية تناسب احتياجات تشغيلية محددة.",
+        },
+      ],
     },
     whyChoose: {
       title: "لماذا تختار الشركات Caisty",
       points: [
-        "برمجيات موثوقة",
-        "بنية تعمل دون اتصال أولاً",
-        "بوابة إدارة سحابية",
-        "دعم متعدد اللغات",
-        "دعم متعدد العملات",
-        "مصمم للعمليات الواقعية",
+        "سحابي — وصول من أي مكان دون إعداد محلي ثقيل",
+        "جاهز للذكاء الاصطناعي — مصمم لدمج ميزات ذكية",
+        "يركز على الأتمتة — تقليل العمل اليدوي عبر العمليات",
+        "متعدد اللغات — مبني للاستخدام الدولي",
+        "متعدد العملات — جاهز للأسواق العالمية",
+        "يعمل دون اتصال أولاً — يعمل حتى دون إنترنت",
+        "بنية تحتية قابلة للتوسع — تنمو مع عملك",
+        "مبني للعمليات الحقيقية — من يفهمون كيف تعمل الشركات فعلياً",
+      ],
+    },
+    roadmap: {
+      title: "خارطة طريق المنتجات",
+      subtitle: "نبني أكثر من نظام نقاط بيع.",
+      colProduct: "المنتج",
+      colStatus: "الحالة",
+      rows: [
+        { product: "Caisty POS", status: "متاح", variant: "available" as const },
+        { product: "ShiftIQ", status: "قريباً", variant: "soon" as const },
+        { product: "وحدات CRM مستقبلية", status: "مخطط", variant: "planned" as const },
+        { product: "أدوات أتمتة", status: "مخطط", variant: "planned" as const },
+        { product: "مساعد أعمال بالذكاء الاصطناعي", status: "قيد البحث", variant: "research" as const },
       ],
     },
     technology: {
       title: "مجموعة التقنيات",
+      lead: "مبني بتقنيات حديثة ومجرّبة",
       stack: TECH_STACK_ICONS,
     },
-    building: {
-      title: "ما نبنيه",
-      posTitle: "Caisty POS",
-      posSub: "متاح اليوم",
-      posItems: [
-        "نقطة البيع / الصندوق",
-        "الطلبات",
-        "المخزون",
-        "التراخيص",
-        "الأجهزة",
-        "البوابة السحابية",
-      ],
-      shiftiqTitle: "ShiftIQ",
-      shiftiqSub: "قريباً",
-      shiftiqItems: [
-        "تتبع الوقت",
-        "تخطيط الورديات",
-        "إدارة الموظفين",
-        "الحضور",
-        "التقارير",
-      ],
-    },
     contactCta: {
-      headline: "لنبني برمجيات أعمال أفضل.",
-      body: "مهتم بـ Caisty POS أو منتجات Caisty مستقبلاً؟ تواصل معنا لنتحدث.",
-      ctaStart: "ابدأ مجاناً",
-      ctaContact: "تواصل معنا",
+      headline: "بناء الجيل القادم من برمجيات الأعمال.",
+      body: "من السحابة وSaaS إلى الذكاء الاصطناعي والأتمتة — تطوّر Caisty أدوات تساعد الشركات على النمو والعمل بكفاءة أكبر.",
+      ctaPrimary: "استكشف Caisty POS",
+      ctaSecondary: "تواصل معنا",
     },
   },
 };

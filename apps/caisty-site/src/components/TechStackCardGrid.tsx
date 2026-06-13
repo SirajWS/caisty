@@ -16,7 +16,14 @@ export const ICON_COLORS: Record<string, string> = {
 
 export type TechStackItem = { slug: string; label: string };
 
-export function TechStackCardGrid(props: { title: string; items: TechStackItem[]; isLight: boolean }) {
+export function TechStackCardGrid(props: {
+  title: string;
+  items: TechStackItem[];
+  isLight: boolean;
+  /** Smaller cells for secondary placement (e.g. company page). */
+  compact?: boolean;
+}) {
+  const compact = props.compact ?? false;
   return (
     <div>
       {props.title ? (
@@ -26,31 +33,42 @@ export function TechStackCardGrid(props: { title: string; items: TechStackItem[]
           {props.title}
         </h3>
       ) : null}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div
+        className={
+          compact
+            ? "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-2.5"
+            : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
+        }
+      >
         {props.items.map((item) => {
           const hex = ICON_COLORS[item.slug] ?? "64748B";
+          const iconSize = compact ? 22 : 32;
+          const iconClass = compact ? "h-5 w-5 shrink-0" : "h-8 w-8 shrink-0";
+          const pad = compact ? "px-2 py-2.5 gap-1.5" : "px-3 py-4 gap-2";
+          const innerPad = compact ? "p-1.5" : "p-2";
+          const labelClass = compact
+            ? `text-[10px] font-semibold leading-tight ${props.isLight ? "text-slate-800" : "text-slate-200"}`
+            : `text-[11px] font-semibold leading-tight ${props.isLight ? "text-slate-800" : "text-slate-200"}`;
           return (
             <div
               key={item.slug}
-              className={`flex flex-col items-center justify-center gap-2 rounded-xl border px-3 py-4 text-center transition-shadow ${
+              className={`flex flex-col items-center justify-center rounded-xl border text-center transition-shadow ${pad} ${
                 props.isLight
                   ? "border-slate-200/90 bg-white shadow-sm hover:shadow-md hover:border-slate-300"
                   : "border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.06]"
               }`}
             >
-              <div className="rounded-lg bg-white p-2 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)]">
+              <div className={`rounded-lg bg-white shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] ${innerPad}`}>
                 <img
                   src={`https://cdn.simpleicons.org/${item.slug}/${hex}`}
                   alt=""
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 shrink-0"
+                  width={iconSize}
+                  height={iconSize}
+                  className={iconClass}
                   loading="lazy"
                 />
               </div>
-              <span className={`text-[11px] font-semibold leading-tight ${props.isLight ? "text-slate-800" : "text-slate-200"}`}>
-                {item.label}
-              </span>
+              <span className={labelClass}>{item.label}</span>
             </div>
           );
         })}

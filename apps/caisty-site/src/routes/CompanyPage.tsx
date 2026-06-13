@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
+import { Bot, Cloud, Monitor, Smartphone, type LucideIcon } from "lucide-react";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
 import { companyTn } from "../lib/translations/companyTn";
@@ -11,6 +12,13 @@ import { applyCompanySiteMeta } from "../lib/siteDocumentMeta";
 
 const sectionShell = "w-full max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8";
 
+const whatWeDoIcons: Record<"cloud" | "monitor" | "bot" | "smartphone", LucideIcon> = {
+  cloud: Cloud,
+  monitor: Monitor,
+  bot: Bot,
+  smartphone: Smartphone,
+};
+
 export default function CompanyPage() {
   const { language } = useLanguage();
   const { theme } = useTheme();
@@ -18,7 +26,6 @@ export default function CompanyPage() {
   const isTN = market === "tn";
   const isLight = theme === "light";
   const t = isTN ? companyTn : translations[language].company;
-  const tc = translations[language].common;
   const productHomeHref = isTN ? `${POS_LANDING_PATH}#features` : `${POS_LANDING_PATH}#product`;
 
   useEffect(() => {
@@ -49,10 +56,9 @@ export default function CompanyPage() {
               <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] xl:text-5xl font-bold tracking-tight text-[var(--color-text-primary)] lp-font-heading leading-[1.12]">
                 {t.hero.headline}
               </h1>
-              <div className="space-y-4 text-base sm:text-lg lg:text-xl leading-relaxed text-[var(--color-text-muted)] max-w-xl">
-                <p className="m-0">{t.hero.subtitle}</p>
-                <p className="m-0">{t.hero.subtitleSecondary}</p>
-              </div>
+              <p className="m-0 text-base sm:text-lg lg:text-xl leading-relaxed text-[var(--color-text-muted)] max-w-xl">
+                {t.hero.subtitle}
+              </p>
               <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-1">
                 <Link
                   to={productHomeHref}
@@ -74,27 +80,38 @@ export default function CompanyPage() {
         </div>
       </section>
 
-      {/* Stats */}
-      <section className={`${sectionShell} py-14 sm:py-16`}>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          {t.stats.cards.map((card) => (
-            <div
-              key={card.label}
-              className={`rounded-2xl border p-5 sm:p-6 text-center transition-shadow hover:shadow-md ${
-                isLight ? "border-slate-200/90 bg-white shadow-sm" : "border-white/10 bg-[#0f172a]/70"
-              }`}
-            >
-              <div className="text-2xl sm:text-3xl font-bold text-[#f97316] lp-font-heading tabular-nums">{card.stat}</div>
-              <div className={`mt-2 text-xs sm:text-sm font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                {card.label}
+      {/* About */}
+      <section className={`${sectionShell} py-14 sm:py-16 border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
+        <div className="flex items-start gap-3 mb-8 lg:mb-10">
+          <span className="lp-section-accent" aria-hidden />
+          <h2 className="lp-section-h2">{t.about.title}</h2>
+        </div>
+        <div className="grid gap-10 lg:gap-12 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] items-start">
+          <div className={`space-y-4 text-sm sm:text-base leading-relaxed max-w-2xl ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+            {t.about.paragraphs.map((p, i) => (
+              <p key={i} className="m-0">
+                {p}
+              </p>
+            ))}
+          </div>
+          <div className="grid gap-3 sm:gap-4 min-w-0">
+            {t.about.highlights.map((h) => (
+              <div
+                key={h.title}
+                className={`rounded-2xl border p-4 sm:p-5 ${isLight ? "border-slate-200 bg-white shadow-sm" : "border-white/10 bg-[#0f172a]/60"}`}
+              >
+                <h3 className={`text-sm font-bold lp-font-heading mb-1.5 ${isLight ? "text-slate-900" : "text-slate-100"}`}>
+                  {h.title}
+                </h3>
+                <p className={`text-xs sm:text-sm leading-relaxed m-0 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{h.body}</p>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Products */}
-      <section className={`${sectionShell} py-14 sm:py-16 border-t ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
+      <section className={`${sectionShell} py-14 sm:py-16 border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
         <div className="flex items-start gap-3 mb-10">
           <span className="lp-section-accent" aria-hidden />
           <h2 className="lp-section-h2">{t.products.title}</h2>
@@ -129,16 +146,53 @@ export default function CompanyPage() {
         </div>
       </section>
 
-      {/* Why businesses choose Caisty */}
-      <section className={`${sectionShell} py-14 sm:py-16 border-t ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
+      {/* What we do */}
+      <section className={`${sectionShell} py-14 sm:py-16 border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
+        <div className="flex flex-col gap-3 mb-8 sm:mb-10 max-w-3xl">
+          <div className="flex items-start gap-3">
+            <span className="lp-section-accent" aria-hidden />
+            <h2 className="lp-section-h2">{t.whatWeDo.title}</h2>
+          </div>
+          <p className={`text-sm sm:text-base leading-relaxed m-0 ps-0 sm:ps-9 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+            {t.whatWeDo.subtitle}
+          </p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {t.whatWeDo.items.map((item) => {
+            const Icon = whatWeDoIcons[item.iconKey as keyof typeof whatWeDoIcons];
+            return (
+              <div
+                key={item.title}
+                className={`flex flex-col gap-3 rounded-2xl border p-5 sm:p-6 h-full ${isLight ? "border-slate-200 bg-white shadow-sm" : "border-white/10 bg-[#0f172a]/60"}`}
+              >
+                <div
+                  className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border ${isLight ? "border-slate-200 bg-orange-50 text-[#c2410c]" : "border-white/10 bg-[#f97316]/15 text-orange-200"}`}
+                  aria-hidden
+                >
+                  <Icon className="h-5 w-5" strokeWidth={2} />
+                </div>
+                <h3 className={`text-sm font-bold lp-font-heading leading-snug ${isLight ? "text-slate-900" : "text-slate-100"}`}>
+                  {item.title}
+                </h3>
+                <p className={`text-xs sm:text-sm leading-relaxed m-0 flex-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                  {item.description}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Why companies choose Caisty */}
+      <section className={`${sectionShell} py-14 sm:py-16 border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
         <div className="flex items-start gap-3 mb-8">
           <span className="lp-section-accent" aria-hidden />
           <h2 className="lp-section-h2">{t.whyChoose.title}</h2>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {t.whyChoose.points.map((pt) => (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {t.whyChoose.points.map((pt, i) => (
             <div
-              key={pt}
+              key={i}
               className={`flex gap-3 rounded-2xl border p-4 sm:p-5 ${isLight ? "border-slate-200 bg-white shadow-sm" : "border-white/10 bg-[#0f172a]/60"}`}
             >
               <span className="text-[#f97316] font-bold shrink-0 mt-0.5" aria-hidden>
@@ -150,67 +204,59 @@ export default function CompanyPage() {
         </div>
       </section>
 
-      {/* Technology */}
-      <section className={`${sectionShell} py-14 sm:py-16 border-t ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
-        <div className="flex items-start gap-3 mb-8">
-          <span className="lp-section-accent" aria-hidden />
-          <h2 className="lp-section-h2">{t.technology.title}</h2>
+      {/* Product roadmap */}
+      <section className={`${sectionShell} py-14 sm:py-16 border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
+        <div className="flex flex-col gap-3 mb-8 max-w-3xl">
+          <div className="flex items-start gap-3">
+            <span className="lp-section-accent" aria-hidden />
+            <h2 className="lp-section-h2">{t.roadmap.title}</h2>
+          </div>
+          <p className={`text-sm sm:text-base leading-relaxed m-0 sm:ps-9 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{t.roadmap.subtitle}</p>
         </div>
-        <TechStackCardGrid title="" items={t.technology.stack} isLight={isLight} />
+        <div className={`overflow-x-auto rounded-xl border ${isLight ? "border-slate-200 bg-white shadow-sm" : "border-white/10 bg-[#0f172a]/50"}`}>
+          <table className="w-full min-w-[320px] text-sm border-collapse text-start">
+            <thead>
+              <tr className={isLight ? "bg-slate-50" : "bg-white/[0.04]"}>
+                <th
+                  className={`p-3 sm:p-4 font-bold lp-font-heading border-b text-start ${isLight ? "border-slate-200 text-slate-900" : "border-white/10 text-slate-100"}`}
+                >
+                  {t.roadmap.colProduct}
+                </th>
+                <th
+                  className={`p-3 sm:p-4 font-bold lp-font-heading border-b text-start ${isLight ? "border-slate-200 text-slate-900" : "border-white/10 text-slate-100"}`}
+                >
+                  {t.roadmap.colStatus}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {t.roadmap.rows.map((row) => (
+                <tr key={row.product} className={`border-b last:border-0 ${isLight ? "border-slate-100" : "border-white/[0.06]"}`}>
+                  <td className={`p-3 sm:p-4 font-semibold ${isLight ? "text-slate-800" : "text-slate-200"}`}>{row.product}</td>
+                  <td className="p-3 sm:p-4">
+                    <RoadmapStatusBadge
+                      variant={row.variant as "available" | "soon" | "planned" | "research"}
+                      label={row.status}
+                      isLight={isLight}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
 
-      {/* What we are building */}
-      <section className={`${sectionShell} py-14 sm:py-20 border-t ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
-        <div className="flex items-start gap-3 mb-10">
-          <span className="lp-section-accent" aria-hidden />
-          <h2 className="lp-section-h2">{t.building.title}</h2>
-        </div>
-        <div className="grid gap-6 lg:grid-cols-2 max-w-4xl">
-          <div
-            className={`rounded-2xl border p-6 sm:p-7 space-y-4 relative overflow-hidden ${isLight ? "border-slate-200 bg-white shadow-sm" : "border-white/10 bg-[#0f172a]/70"}`}
-          >
-            <div className="absolute start-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#f97316] to-orange-600/40 rounded-full" aria-hidden />
-            <h3 className="text-base font-bold text-[var(--color-text-primary)] lp-font-heading ps-3">{t.building.posTitle}</h3>
-            <p className="text-xs font-bold uppercase tracking-wide text-[#f97316] ps-3">{t.building.posSub}</p>
-            <ul className={`space-y-2.5 text-sm ps-3 ${isLight ? "text-slate-700" : "text-slate-300"}`}>
-              {t.building.posItems.map((item) => (
-                <li key={item} className="flex gap-2 items-start">
-                  <span className="text-[#f97316] shrink-0 mt-0.5" aria-hidden>
-                    ✓
-                  </span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
+      {/* Technology */}
+      <section className={`${sectionShell} py-12 sm:py-14 border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
+        <div className="flex flex-col gap-2 mb-6">
+          <div className="flex items-start gap-3">
+            <span className="lp-section-accent" aria-hidden />
+            <h2 className="lp-section-h2">{t.technology.title}</h2>
           </div>
-          <div
-            className={`rounded-2xl border p-6 sm:p-7 space-y-4 ${isLight ? "border-slate-200 bg-slate-50/90" : "border-white/10 bg-white/[0.04]"}`}
-          >
-            <h3 className="text-base font-bold text-[var(--color-text-primary)] lp-font-heading">{t.building.shiftiqTitle}</h3>
-            <p className={`text-xs font-bold uppercase tracking-wide ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-              {t.building.shiftiqSub}
-            </p>
-            <ul className={`space-y-2.5 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-              {t.building.shiftiqItems.map((item) => (
-                <li key={item} className="flex gap-2 items-start">
-                  <span className="text-slate-400 shrink-0 mt-0.5" aria-hidden>
-                    ◆
-                  </span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <p className={`text-xs sm:text-sm font-medium m-0 sm:ps-9 ${isLight ? "text-slate-500" : "text-slate-500"}`}>{t.technology.lead}</p>
         </div>
-        <p className="mt-10 text-xs text-[var(--color-text-subtle)] max-w-2xl">
-          <Link to={POS_LANDING_PATH} className="text-[#f97316] hover:underline font-medium no-underline">
-            Caisty POS
-          </Link>
-          {" · "}
-          <Link to="/pricing" className="text-[#f97316] hover:underline font-medium no-underline">
-            {tc.nav.pricing}
-          </Link>
-        </p>
+        <TechStackCardGrid title="" items={t.technology.stack} isLight={isLight} compact />
       </section>
 
       {/* Contact CTA — dark band */}
@@ -225,16 +271,16 @@ export default function CompanyPage() {
             <p className="text-sm sm:text-base leading-relaxed text-slate-300">{t.contactCta.body}</p>
             <div className="flex flex-col sm:flex-row flex-wrap gap-3 pt-2">
               <Link
-                to="/register"
+                to={productHomeHref}
                 className="inline-flex items-center justify-center rounded-full bg-[#f97316] px-6 py-3 min-h-[48px] text-sm font-semibold text-white no-underline shadow-lg shadow-orange-900/30 hover:bg-[#ea580c] transition-colors w-full sm:w-auto"
               >
-                {t.contactCta.ctaStart}
+                {t.contactCta.ctaPrimary}
               </Link>
               <a
                 href="mailto:info@caisty.com"
                 className="inline-flex items-center justify-center rounded-full border border-white/25 bg-white/5 px-6 py-3 min-h-[48px] text-sm font-semibold text-white no-underline hover:bg-white/10 transition-colors w-full sm:w-auto"
               >
-                {t.contactCta.ctaContact}
+                {t.contactCta.ctaSecondary}
               </a>
             </div>
           </div>
@@ -242,6 +288,26 @@ export default function CompanyPage() {
       </section>
     </div>
   );
+}
+
+function RoadmapStatusBadge(props: { variant: "available" | "soon" | "planned" | "research"; label: string; isLight: boolean }) {
+  const { variant, label, isLight } = props;
+  const base = "inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide border";
+  const styles =
+    variant === "available"
+      ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/35"
+      : variant === "soon"
+        ? isLight
+          ? "bg-orange-50 text-orange-800 border-orange-200"
+          : "bg-orange-500/10 text-orange-200 border-orange-500/25"
+        : variant === "planned"
+          ? isLight
+            ? "bg-slate-100 text-slate-600 border-slate-200"
+            : "bg-white/[0.06] text-slate-400 border-white/10"
+          : isLight
+            ? "bg-sky-50 text-sky-800 border-sky-200"
+            : "bg-sky-500/10 text-sky-200 border-sky-500/25";
+  return <span className={`${base} ${styles}`}>{label}</span>;
 }
 
 function HeroMockPanel(props: {
