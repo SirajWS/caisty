@@ -146,6 +146,11 @@ export const portalFr: PortalTranslations = {
     subtitle: "Terminaux POS liés à vos licences.",
     loading: "Chargement des appareils…",
     empty: "Aucun appareil enregistré.",
+    tableFootnote:
+      "Les appareils apparaissent ici automatiquement une fois Caisty POS installé et connecté avec votre clé de licence.",
+    notLinked: "Non lié",
+    sameDayHint: "Aujourd’hui à {{time}}",
+    prevDayHint: "Hier à {{time}}",
   },
   invoices: {
     title: "Factures",
@@ -154,6 +159,10 @@ export const portalFr: PortalTranslations = {
     loading: "Chargement…",
     errorLoad: "Impossible de charger les factures.",
     empty: "Aucune facture pour le moment.",
+    emptyTitle: "Aucune facture pour le moment",
+    emptyDescription:
+      "Les factures apparaîtront ici une fois un cycle de facturation terminé. Les détails de votre offre actuelle se trouvent sous « Plan & facturation ».",
+    emptyCta: "Aller au plan & facturation",
     details: "Détails →",
   },
   invoiceDetail: {

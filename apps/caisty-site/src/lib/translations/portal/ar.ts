@@ -144,6 +144,11 @@ export const portalAr: PortalTranslations = {
     subtitle: "أجهزة نقاط البيع المرتبطة بتراخيصك.",
     loading: "جارٍ تحميل الأجهزة…",
     empty: "لا توجد أجهزة مسجّلة.",
+    tableFootnote:
+      "تظهر الأجهزة هنا تلقائيًا بعد تثبيت Caisty POS وربطه بمفتاح الترخيص.",
+    notLinked: "غير مرتبط",
+    sameDayHint: "اليوم في {{time}}",
+    prevDayHint: "أمس في {{time}}",
   },
   invoices: {
     title: "الفواتير",
@@ -152,6 +157,10 @@ export const portalAr: PortalTranslations = {
     loading: "جارٍ التحميل…",
     errorLoad: "تعذّر تحميل الفواتير.",
     empty: "لا توجد فواتير بعد.",
+    emptyTitle: "لا توجد فواتير بعد",
+    emptyDescription:
+      "ستظهر الفواتير هنا بعد اكتمال دورة الفوترة. تفاصيل خطتك الحالية ضمن «الخطة والفوترة».",
+    emptyCta: "الانتقال إلى الخطة والفوترة",
     details: "التفاصيل ←",
   },
   invoiceDetail: {

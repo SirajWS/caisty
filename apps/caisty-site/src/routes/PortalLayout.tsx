@@ -11,7 +11,7 @@ import {
   clearPortalToken,
   type PortalCustomer,
 } from "../lib/portalApi";
-import { Button } from "../components/ui/Button";
+import { LogOut } from "lucide-react";
 import ThemeToggle from "../components/ThemeToggle";
 import LanguageSelector from "../components/LanguageSelector";
 import { useTheme } from "../lib/theme";
@@ -110,7 +110,7 @@ export default function PortalLayout() {
   return (
     <div className={`min-h-screen flex flex-col ${shellBg}`}>
       <header className={`sticky top-0 z-40 border-b backdrop-blur-md ${headerBar}`}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-5 py-3 flex items-center justify-between gap-3 min-w-0">
+        <div className="max-w-6xl mx-auto px-4 sm:px-5 py-4 flex items-center justify-between gap-3 min-w-0">
           <div className="flex items-center gap-2.5 min-w-0 shrink-0">
             <CaistyLogo className="h-9 w-9 shrink-0" />
             <div className="leading-tight min-w-0">
@@ -124,7 +124,7 @@ export default function PortalLayout() {
           </div>
 
           <div className="hidden lg:flex items-center gap-5 min-w-0 flex-1 justify-end">
-            <nav className="flex items-center gap-1 text-[13px] font-medium flex-wrap justify-end">
+            <nav className="flex flex-nowrap items-center gap-x-2 text-xs font-medium justify-end">
               <PortalNavLink to="/portal">{t.layout.navDashboard}</PortalNavLink>
               <PortalNavLink to="/portal/licenses">{t.layout.navLicenses}</PortalNavLink>
               <PortalNavLink to="/portal/plan">{t.layout.navPlans}</PortalNavLink>
@@ -135,13 +135,26 @@ export default function PortalLayout() {
             </nav>
 
             <div
-              className={`flex items-center gap-3 shrink-0 pl-2 border-l ${
+              className={`flex items-center gap-2 shrink-0 pl-2 border-l ${
                 isLight ? "border-slate-200" : "border-white/10"
               }`}
             >
-              <LanguageSelector />
-              <ThemeToggle />
-              <div className="hidden xl:flex flex-col items-end max-w-[200px]">
+              <LanguageSelector variant="compact" />
+              <ThemeToggle variant="compact" />
+              <button
+                type="button"
+                onClick={handleLogout}
+                title={t.layout.logout}
+                aria-label={t.layout.logout}
+                className={
+                  isLight
+                    ? "inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white p-2 text-slate-800 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+                    : "inline-flex items-center justify-center rounded-lg border border-white/20 bg-transparent p-2 text-slate-200 transition-colors hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
+                }
+              >
+                <LogOut className="h-4 w-4" strokeWidth={2} aria-hidden />
+              </button>
+              <div className="hidden lg:flex flex-col items-end max-w-[220px]">
                 <span className={`text-xs font-semibold truncate w-full text-end ${isLight ? "text-slate-900" : "text-slate-100"}`}>
                   {customer.name}
                 </span>
@@ -149,19 +162,6 @@ export default function PortalLayout() {
                   {customer.email}
                 </span>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                type="button"
-                onClick={handleLogout}
-                className={
-                  isLight
-                    ? "!border-slate-300 !text-slate-800 hover:!bg-slate-50"
-                    : "!border-white/20 !text-white hover:!bg-white/[0.06]"
-                }
-              >
-                {t.layout.logout}
-              </Button>
             </div>
           </div>
 
@@ -213,9 +213,22 @@ export default function PortalLayout() {
                 </PortalNavLink>
               </nav>
 
-              <div className={`flex flex-wrap items-center gap-3 pt-2 border-t ${isLight ? "border-slate-200" : "border-white/10"}`}>
-                <LanguageSelector />
-                <ThemeToggle />
+              <div className={`flex flex-wrap items-center gap-2 pt-2 border-t ${isLight ? "border-slate-200" : "border-white/10"}`}>
+                <LanguageSelector variant="compact" />
+                <ThemeToggle variant="compact" />
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  title={t.layout.logout}
+                  aria-label={t.layout.logout}
+                  className={
+                    isLight
+                      ? "inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white p-2 text-slate-800 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+                      : "inline-flex items-center justify-center rounded-lg border border-white/20 bg-transparent p-2 text-slate-200 transition-colors hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
+                  }
+                >
+                  <LogOut className="h-4 w-4" strokeWidth={2} aria-hidden />
+                </button>
                 <div className="flex flex-col min-w-0 flex-1">
                   <span className={`text-xs font-semibold truncate ${isLight ? "text-slate-900" : "text-white"}`}>
                     {customer.name}
@@ -224,19 +237,6 @@ export default function PortalLayout() {
                     {customer.email}
                   </span>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  type="button"
-                  onClick={handleLogout}
-                  className={
-                    isLight
-                      ? "!border-slate-300 !text-slate-800"
-                      : "!border-white/20 !text-white"
-                  }
-                >
-                  {t.layout.logout}
-                </Button>
               </div>
             </div>
           </div>
@@ -244,7 +244,7 @@ export default function PortalLayout() {
       </header>
 
       <main className="flex-1 min-w-0">
-        <div className="max-w-6xl mx-auto px-4 sm:px-5 py-8 sm:py-10 w-full min-w-0">
+        <div className="max-w-6xl mx-auto px-4 sm:px-5 py-8 sm:py-12 w-full min-w-0">
           <Outlet context={{ customer, setCustomer }} />
         </div>
       </main>

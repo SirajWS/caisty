@@ -7,7 +7,7 @@ import {
   type PortalLicense,
 } from "../lib/portalApi";
 import { usePortalOutlet } from "./PortalLayout";
-import { PRICING, TRIAL_DAYS, formatPrice } from "../config/pricing";
+import { PRICING, TRIAL_DAYS } from "../config/pricing";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
@@ -120,7 +120,7 @@ const PortalPlanBillingPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className={`text-3xl sm:text-4xl font-semibold tracking-tight ${isLight ? "text-[#0B1220]" : "text-white"}`}>
+        <h1 className={`text-2xl sm:text-3xl font-semibold tracking-tight ${isLight ? "text-[#0B1220]" : "text-white"}`}>
           {t.plan.title}
         </h1>
         <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-300"}`}>
@@ -134,7 +134,8 @@ const PortalPlanBillingPage: React.FC = () => {
         </div>
       )}
 
-      <section className={`flex flex-col gap-4 md:flex-row md:items-start md:justify-between ${portalCardShell(isLight)}`}>
+      <section className={`${portalCardShell(isLight)} overflow-hidden`}>
+        <div className="border-l-4 border-orange-500/45 pl-4 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="space-y-2">
           <div className={`text-xs font-semibold tracking-wide uppercase ${isLight ? "text-orange-600" : "text-orange-400"}`}>
             {t.plan.currentPlanLabel}
@@ -151,12 +152,14 @@ const PortalPlanBillingPage: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className={`flex flex-wrap items-center gap-2 text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>
-                {primaryLicense.plan === "trial"
-                  ? t.plan.trialTitle
-                  : primaryLicense.plan === "starter"
-                    ? "Starter"
-                    : "Pro"}
+              <div className={`flex flex-wrap items-center gap-3 ${isLight ? "text-slate-900" : "text-slate-50"}`}>
+                <span className="text-2xl font-bold tracking-tight">
+                  {primaryLicense.plan === "trial"
+                    ? t.plan.trialTitle
+                    : primaryLicense.plan === "starter"
+                      ? "Starter"
+                      : "Pro"}
+                </span>
                 <span
                   className={portalLicenseStatusBadge(
                     primaryLicense.status,
@@ -168,7 +171,7 @@ const PortalPlanBillingPage: React.FC = () => {
               </div>
               <div className={`text-xs ${isLight ? "text-slate-600" : "text-slate-300"}`}>
                 {t.plan.licenseKeyLabel}{" "}
-                <span className="font-mono text-[11px]">
+                <span className="font-mono text-xs">
                   {primaryLicense.key}
                 </span>
               </div>
@@ -179,7 +182,7 @@ const PortalPlanBillingPage: React.FC = () => {
           )}
         </div>
 
-        <div className={`mt-2 space-y-1 text-xs text-right md:mt-0 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+          <div className={`mt-2 space-y-1 text-xs text-right md:mt-0 md:max-w-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
           <div>{t.plan.accountHolder} {customer.name}</div>
           {primaryLicense && (
             <div>
@@ -193,10 +196,11 @@ const PortalPlanBillingPage: React.FC = () => {
             {t.plan.paymentNote}
           </div>
         </div>
+        </div>
       </section>
 
-      <section className="space-y-4">
-        <h2 className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>
+      <section className="space-y-6">
+        <h2 className={`text-sm font-semibold tracking-tight ${isLight ? "text-slate-900" : "text-slate-100"}`}>
           {t.plan.sectionTitle}
         </h2>
 
@@ -209,10 +213,19 @@ const PortalPlanBillingPage: React.FC = () => {
               <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
                 {t.plan.trialDesc}
               </p>
-              <div className={`mt-2 text-2xl font-semibold ${isLight ? "text-orange-600" : "text-orange-400"}`}>
-                0&nbsp;{currencySymbol}
-                <span className={`text-xs font-normal ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                  &nbsp;{trialDaysLabel}
+              <div className="mt-3 flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
+                <span
+                  className={`text-3xl font-bold tabular-nums tracking-tight ${
+                    isLight ? "text-orange-600" : "text-orange-400"
+                  }`}
+                >
+                  0
+                </span>
+                <span className={`text-sm font-semibold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                  {currencySymbol}
+                </span>
+                <span className={`w-full text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                  {trialDaysLabel}
                 </span>
               </div>
               <div className={`mt-1 text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
@@ -240,30 +253,35 @@ const PortalPlanBillingPage: React.FC = () => {
           </div>
 
           <div
-            className={`flex flex-col justify-between ring-2 ring-orange-500/50 ${portalCardShell(isLight)}`}
+            className={`relative flex flex-col justify-between ${portalCardShell(isLight)} !border-2 !border-orange-500`}
           >
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>
-                  Starter
-                </div>
-                <span
-                  className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                    isLight ? "bg-orange-50 border-orange-200 text-orange-700" : "bg-orange-500/15 border-orange-500/40 text-orange-300"
-                  }`}
-                >
-                  {t.labels.recommended}
-                </span>
+            <span
+              className={`absolute right-4 top-4 inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                isLight ? "bg-orange-500 text-white" : "bg-orange-500 text-white"
+              }`}
+            >
+              {t.labels.recommended}
+            </span>
+            <div className="space-y-2 pr-14 pt-1">
+              <div className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>
+                Starter
               </div>
               <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
                 {t.plan.starterDesc}
               </p>
-              <div className={`mt-2 text-2xl font-semibold ${isLight ? "text-orange-600" : "text-orange-400"}`}>
-                {formatPrice(starterPrice, "EUR")}
-                <span className={`text-xs font-normal ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                  &nbsp;{t.labels.perMonth}
+              <div className="mt-3 flex flex-wrap items-baseline gap-x-1.5">
+                <span
+                  className={`text-3xl font-bold tabular-nums tracking-tight ${
+                    isLight ? "text-orange-600" : "text-orange-400"
+                  }`}
+                >
+                  {starterPrice.toFixed(2)}
+                </span>
+                <span className={`text-sm font-semibold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                  {currencySymbol}
                 </span>
               </div>
+              <div className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>{t.labels.perMonth}</div>
             </div>
 
             <div className="mt-4">
@@ -291,12 +309,19 @@ const PortalPlanBillingPage: React.FC = () => {
               <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
                 {t.plan.proDesc}
               </p>
-              <div className={`mt-2 text-2xl font-semibold ${isLight ? "text-orange-600" : "text-orange-400"}`}>
-                {formatPrice(proPrice, "EUR")}
-                <span className={`text-xs font-normal ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                  &nbsp;{t.labels.perMonth}
+              <div className="mt-3 flex flex-wrap items-baseline gap-x-1.5">
+                <span
+                  className={`text-3xl font-bold tabular-nums tracking-tight ${
+                    isLight ? "text-orange-600" : "text-orange-400"
+                  }`}
+                >
+                  {proPrice.toFixed(2)}
+                </span>
+                <span className={`text-sm font-semibold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+                  {currencySymbol}
                 </span>
               </div>
+              <div className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>{t.labels.perMonth}</div>
             </div>
 
             <div className="mt-4">
@@ -317,7 +342,7 @@ const PortalPlanBillingPage: React.FC = () => {
           </div>
         </div>
 
-        <p className={`text-[11px] ${isLight ? "text-slate-500" : "text-slate-500"}`}>
+        <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-500"}`}>
           {t.plan.vatFootnote}
         </p>
       </section>

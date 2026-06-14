@@ -1,10 +1,17 @@
 // apps/caisty-site/src/components/LanguageSelector.tsx
 import { useState, useRef, useEffect } from "react";
+import { ChevronDown, Globe } from "lucide-react";
 import { useLanguage } from "../lib/LanguageContext";
 import { useTheme } from "../lib/theme";
 import { languages } from "../lib/translations/index";
 
-export default function LanguageSelector() {
+export type LanguageSelectorVariant = "default" | "compact";
+
+export default function LanguageSelector({
+  variant = "default",
+}: {
+  variant?: LanguageSelectorVariant;
+}) {
   const { language, setLanguage } = useLanguage();
   const { theme } = useTheme();
   const isLight = theme === "light";
@@ -25,10 +32,82 @@ export default function LanguageSelector() {
   }, []);
 
   const currentLang = languages.find((l) => l.code === language);
+  const codeLabel = (language || "en").toUpperCase();
+
+  if (variant === "compact") {
+    const trigger = isLight
+      ? "inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 transition-colors hover:bg-slate-100"
+      : "inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-transparent px-3 py-1.5 text-xs font-medium text-slate-200 transition-colors hover:bg-white/10";
+
+    return (
+      <div className="relative" ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={trigger}
+          aria-label="Select language"
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
+        >
+          <Globe className="h-4 w-4 shrink-0" strokeWidth={2} aria-hidden />
+          <span className="font-semibold tabular-nums">{codeLabel}</span>
+          <ChevronDown
+            className={`h-3.5 w-3.5 shrink-0 opacity-60 transition-transform ${isOpen ? "rotate-180" : ""}`}
+            strokeWidth={2}
+            aria-hidden
+          />
+        </button>
+
+        {isOpen && (
+          <div
+            className={`absolute mt-2 w-48 rounded-lg border shadow-xl z-50 overflow-hidden ${
+              language === "ar" ? "start-0" : "end-0"
+            } ${
+              isLight
+                ? "border-slate-300 bg-white"
+                : "border-slate-700 bg-slate-900"
+            }`}
+          >
+            {languages.map((lang) => (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => {
+                  setLanguage(lang.code);
+                  setIsOpen(false);
+                }}
+                className={`w-full text-start px-4 py-2.5 text-sm transition-colors ${
+                  language === lang.code
+                    ? isLight
+                      ? "bg-emerald-50 text-emerald-600"
+                      : "bg-emerald-500/10 text-emerald-300"
+                    : isLight
+                      ? "text-slate-700 hover:bg-slate-50"
+                      : "text-slate-300 hover:bg-slate-800"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{lang.nativeName}</span>
+                  <span
+                    className={`text-xs ${
+                      isLight ? "text-slate-500" : "text-slate-500"
+                    }`}
+                  >
+                    {lang.name}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="relative" ref={dropdownRef}>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors text-sm ${
           isLight
@@ -36,6 +115,7 @@ export default function LanguageSelector() {
             : "border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300"
         }`}
         aria-label="Select language"
+        aria-expanded={isOpen}
       >
         <svg
           className="w-4 h-4"
@@ -79,6 +159,7 @@ export default function LanguageSelector() {
           {languages.map((lang) => (
             <button
               key={lang.code}
+              type="button"
               onClick={() => {
                 setLanguage(lang.code);
                 setIsOpen(false);
@@ -89,8 +170,8 @@ export default function LanguageSelector() {
                     ? "bg-emerald-50 text-emerald-600"
                     : "bg-emerald-500/10 text-emerald-300"
                   : isLight
-                  ? "text-slate-700 hover:bg-slate-50"
-                  : "text-slate-300 hover:bg-slate-800"
+                    ? "text-slate-700 hover:bg-slate-50"
+                    : "text-slate-300 hover:bg-slate-800"
               }`}
             >
               <div className="flex items-center justify-between">
@@ -110,4 +191,3 @@ export default function LanguageSelector() {
     </div>
   );
 }
-

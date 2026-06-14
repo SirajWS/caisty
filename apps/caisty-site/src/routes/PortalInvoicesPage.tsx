@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
+import { FileText } from "lucide-react";
 import {
   fetchPortalInvoices,
   type PortalInvoice,
@@ -89,17 +90,17 @@ const PortalInvoicesPage: React.FC = () => {
   }, [language]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className={`text-3xl sm:text-4xl font-semibold tracking-tight ${isLight ? "text-[#0B1220]" : "text-white"}`}>{t.invoices.title}</h1>
-          <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <header className="space-y-2">
+          <h1 className={`text-2xl sm:text-3xl font-semibold tracking-tight ${isLight ? "text-[#0B1220]" : "text-white"}`}>{t.invoices.title}</h1>
+          <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
             {t.invoices.subtitle}
           </p>
-        </div>
+        </header>
         <Link
           to="/portal"
-          className={`text-sm no-underline ${portalMutedLink(isLight)}`}
+          className={`text-sm no-underline shrink-0 ${portalMutedLink(isLight)}`}
         >
           {t.invoices.backDashboard}
         </Link>
@@ -109,8 +110,22 @@ const PortalInvoicesPage: React.FC = () => {
       {error && <div className={`text-sm ${isLight ? "text-red-600" : "text-red-400"}`}>{error}</div>}
 
       {!loading && !error && items.length === 0 && (
-        <div className={`text-sm ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-          {t.invoices.empty}
+        <div
+          className={`flex flex-col items-center justify-center rounded-xl border px-6 py-16 text-center ${
+            isLight ? "border-gray-200 bg-white" : "border-white/10 bg-white/[0.04]"
+          }`}
+        >
+          <FileText className={`mb-4 h-10 w-10 ${isLight ? "text-slate-400" : "text-slate-500"}`} strokeWidth={1.25} aria-hidden />
+          <h2 className={`text-base font-semibold ${isLight ? "text-slate-900" : "text-white"}`}>{t.invoices.emptyTitle}</h2>
+          <p className={`mt-2 max-w-md text-sm leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+            {t.invoices.emptyDescription}
+          </p>
+          <Link
+            to="/portal/plan"
+            className={`mt-6 text-sm font-medium no-underline ${portalTextLink(isLight)}`}
+          >
+            {t.invoices.emptyCta}
+          </Link>
         </div>
       )}
 
@@ -118,30 +133,30 @@ const PortalInvoicesPage: React.FC = () => {
         <div className={portalTableShell(isLight)}>
           <table className="min-w-full text-sm">
             <thead>
-              <tr className={`border-b ${isLight ? "border-slate-200 bg-slate-50" : "border-white/[0.08] bg-[#0f172a]"}`}>
-                <th className={`px-4 py-3.5 text-left text-xs font-semibold uppercase tracking-wider ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+              <tr className={`border-b text-left text-xs font-semibold uppercase tracking-wider ${isLight ? "border-slate-100 bg-slate-50/80 text-slate-500" : "border-white/10 bg-white/[0.03] text-slate-400"}`}>
+                <th className="px-4 py-3.5">
                   {t.labels.number}
                 </th>
-                <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+                <th className="px-4 py-3.5">
                   {t.labels.period}
                 </th>
-                <th className={`px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+                <th className="px-4 py-3.5 text-right">
                   {t.labels.amount}
                 </th>
-                <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+                <th className="px-4 py-3.5">
                   {t.labels.status}
                 </th>
-                <th className={`px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+                <th className="px-4 py-3.5">
                   {t.labels.createdAt}
                 </th>
-                <th className="px-4 py-3" />
+                <th className="px-4 py-3.5" />
               </tr>
             </thead>
-            <tbody className={`divide-y ${isLight ? "divide-slate-100" : "divide-slate-800"}`}>
+            <tbody className={isLight ? "divide-y divide-slate-100" : "divide-y divide-white/10"}>
               {items.map((inv) => (
                 <tr
                   key={inv.id}
-                  className={`transition-colors ${isLight ? "bg-white hover:bg-slate-50" : "bg-[#111827] hover:bg-[#0f172a]"}`}
+                  className={`transition-colors ${isLight ? "hover:bg-slate-50/80" : "hover:bg-white/[0.04]"}`}
                 >
                   <td className={`px-4 py-3 font-mono text-xs font-medium ${isLight ? "text-slate-900" : "text-slate-100"}`}>
                     {inv.number}

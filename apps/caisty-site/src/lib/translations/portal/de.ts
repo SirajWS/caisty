@@ -145,6 +145,11 @@ export const portalDe: PortalTranslations = {
     subtitle: "Übersicht über alle mit deinen Lizenzen verbundenen POS-Geräte.",
     loading: "Lade Geräte…",
     empty: "Keine Geräte registriert.",
+    tableFootnote:
+      "Geräte erscheinen hier automatisch, sobald Caisty POS installiert ist und mit deinem Lizenzschlüssel verbunden wurde.",
+    notLinked: "Nicht verknüpft",
+    sameDayHint: "Heute um {{time}}",
+    prevDayHint: "Gestern um {{time}}",
   },
   invoices: {
     title: "Rechnungen",
@@ -153,6 +158,10 @@ export const portalDe: PortalTranslations = {
     loading: "Lade…",
     errorLoad: "Fehler beim Laden der Rechnungen.",
     empty: "Noch keine Rechnungen vorhanden.",
+    emptyTitle: "Noch keine Rechnungen",
+    emptyDescription:
+      "Rechnungen erscheinen hier, sobald ein Abrechnungszyklus abgeschlossen ist. Details zu deinem aktuellen Plan findest du unter „Plan & Abrechnung“.",
+    emptyCta: "Zu Plan & Abrechnung",
     details: "Details →",
   },
   invoiceDetail: {

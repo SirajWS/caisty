@@ -145,6 +145,11 @@ export const portalEn = {
     subtitle: "POS devices linked to your licenses.",
     loading: "Loading devices…",
     empty: "No devices registered.",
+    tableFootnote:
+      "Devices appear here automatically once Caisty POS is installed and connected with your license key.",
+    notLinked: "Not linked",
+    sameDayHint: "Today at {{time}}",
+    prevDayHint: "Yesterday at {{time}}",
   },
   invoices: {
     title: "Invoices",
@@ -153,6 +158,10 @@ export const portalEn = {
     loading: "Loading…",
     errorLoad: "Could not load invoices.",
     empty: "No invoices yet.",
+    emptyTitle: "No invoices yet",
+    emptyDescription:
+      "Invoices will appear here once a billing cycle is completed. Your current plan details are under Plan & billing.",
+    emptyCta: "Go to Plan & billing",
     details: "Details →",
   },
   invoiceDetail: {

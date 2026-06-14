@@ -1,18 +1,18 @@
 // apps/caisty-site/src/routes/PortalLicensesPage.tsx
 import React from "react";
 import { Link } from "react-router-dom";
+import { Info } from "lucide-react";
 import {
   fetchPortalLicenses,
   type PortalLicense,
   fetchPortalMe,
 } from "../lib/portalApi";
-import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
 import { portalLocaleTag } from "../lib/portalLocale";
-import { portalCardShell, portalLicenseStatusBadge, portalPrimaryCta, portalTableShell, portalTextLink } from "../lib/portalUi";
+import { portalCardShell, portalInputClass, portalLicenseStatusBadge, portalPrimaryCta, portalSectionLabel, portalTableShell, portalTextLink } from "../lib/portalUi";
 
 const PortalLicensesPage: React.FC = () => {
   const { language } = useLanguage();
@@ -79,18 +79,18 @@ const PortalLicensesPage: React.FC = () => {
       : t.licenses.count.replace("{{count}}", String(filtered.length));
 
   return (
-    <div className="space-y-4">
-      <header className="space-y-1">
+    <div className="space-y-8">
+      <header className="space-y-2">
         <h1
-          className={`text-xl font-semibold tracking-tight ${
-            isLight ? "text-slate-900" : "text-slate-100"
+          className={`text-2xl sm:text-3xl font-semibold tracking-tight ${
+            isLight ? "text-[#0B1220]" : "text-white"
           }`}
         >
           {t.licenses.title}
         </h1>
         <p
           className={`text-sm ${
-            isLight ? "text-slate-600" : "text-slate-300"
+            isLight ? "text-slate-600" : "text-slate-400"
           }`}
         >
           {t.licenses.subtitle}
@@ -100,21 +100,21 @@ const PortalLicensesPage: React.FC = () => {
       <LicensesSummary />
 
       <section
-        className={`${portalCardShell(isLight)} flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-[11px]`}
+        className={`${portalCardShell(isLight)} flex flex-col gap-4 md:flex-row md:items-center md:justify-between`}
       >
-        <div>
-          <span
-            className={`font-semibold ${
-              isLight ? "text-slate-900" : "text-slate-100"
-            }`}
-          >
+        <p
+          className={`text-sm leading-relaxed max-w-2xl ${
+            isLight ? "text-slate-600" : "text-slate-300"
+          }`}
+        >
+          <span className={`font-medium ${isLight ? "text-slate-900" : "text-slate-100"}`}>
             {t.licenses.planBillingLabel}
           </span>{" "}
           {t.licenses.planBillingBody}{" "}
-          <span className="font-semibold">{t.licenses.planBillingPage}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Link to="/portal/plan" className={`no-underline ${portalPrimaryCta()} text-[11px] px-4 py-2`}>
+          <span className="font-medium">{t.licenses.planBillingPage}</span>
+        </p>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link to="/portal/plan" className={`no-underline ${portalPrimaryCta()} text-xs px-4 py-2`}>
             {t.licenses.planBillingCta}
           </Link>
         </div>
@@ -122,8 +122,8 @@ const PortalLicensesPage: React.FC = () => {
 
       <section className={portalTableShell(isLight)}>
         <div
-          className={`px-4 py-3 border-b flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${
-            isLight ? "border-slate-200" : "border-slate-800"
+          className={`px-4 py-3.5 border-b flex flex-col gap-3 md:flex-row md:items-center md:justify-between ${
+            isLight ? "border-slate-100" : "border-white/10"
           }`}
         >
           <div
@@ -142,11 +142,7 @@ const PortalLicensesPage: React.FC = () => {
                 {t.labels.status}:
               </span>
               <select
-                className={`rounded-full border px-2 py-1 text-[11px] focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500/40 ${
-                  isLight
-                    ? "border-slate-300 bg-white text-slate-900"
-                    : "border-slate-700 bg-slate-950 text-slate-100"
-                }`}
+                className={`${portalInputClass(isLight)} !w-auto min-w-[7.5rem] py-1.5 text-xs`}
                 value={statusFilter}
                 onChange={(e) =>
                   setStatusFilter(e.target.value as typeof statusFilter)
@@ -160,11 +156,12 @@ const PortalLicensesPage: React.FC = () => {
             </div>
 
             <div className="w-40 md:w-52">
-              <Input
+              <input
+                type="search"
                 placeholder={t.licenses.searchPlaceholder}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-8 px-2 py-1 text-[11px]"
+                className={`h-9 text-xs ${portalInputClass(isLight)}`}
               />
             </div>
 
@@ -188,21 +185,19 @@ const PortalLicensesPage: React.FC = () => {
           <table className="min-w-full text-xs">
             <thead>
               <tr
-                className={`border-b text-[11px] uppercase ${
-                  isLight
-                    ? "border-slate-200 bg-slate-50 text-slate-600"
-                    : "border-slate-800 bg-slate-950/60 text-slate-500"
+                className={`border-b ${
+                  isLight ? "border-slate-100 bg-slate-50/80" : "border-white/10 bg-white/[0.03]"
                 }`}
               >
-                <th className="text-left px-4 py-2 font-medium">{t.licenses.colKey}</th>
-                <th className="text-left px-4 py-2 font-medium">{t.labels.plan}</th>
-                <th className="text-left px-4 py-2 font-medium">{t.labels.status}</th>
-                <th className="text-left px-4 py-2 font-medium">{t.labels.maxDevices}</th>
-                <th className="text-left px-4 py-2 font-medium">{t.labels.validUntil}</th>
-                <th className="text-left px-4 py-2 font-medium">{t.labels.createdAt}</th>
+                <th className={`text-left px-4 py-3 ${portalSectionLabel(isLight)}`}>{t.licenses.colKey}</th>
+                <th className={`text-left px-4 py-3 ${portalSectionLabel(isLight)}`}>{t.labels.plan}</th>
+                <th className={`text-left px-4 py-3 ${portalSectionLabel(isLight)}`}>{t.labels.status}</th>
+                <th className={`text-left px-4 py-3 ${portalSectionLabel(isLight)}`}>{t.labels.maxDevices}</th>
+                <th className={`text-left px-4 py-3 ${portalSectionLabel(isLight)}`}>{t.labels.validUntil}</th>
+                <th className={`text-left px-4 py-3 ${portalSectionLabel(isLight)}`}>{t.labels.createdAt}</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className={isLight ? "divide-y divide-slate-100" : "divide-y divide-white/10"}>
               {loading ? (
                 <>
                   <SkeletonLicenseRow isLight={isLight} />
@@ -223,45 +218,43 @@ const PortalLicensesPage: React.FC = () => {
                 filtered.map((lic) => (
                   <tr
                     key={lic.id}
-                    className={`border-t hover:bg-opacity-80 ${
-                      isLight
-                        ? "border-slate-200 hover:bg-slate-50"
-                        : "border-slate-900/80 hover:bg-slate-900/80"
+                    className={`transition-colors ${
+                      isLight ? "hover:bg-slate-50/80" : "hover:bg-white/[0.04]"
                     }`}
                   >
                     <td
-                      className={`px-4 py-2 font-mono text-[11px] ${
+                      className={`px-4 py-3 font-mono text-sm ${
                         isLight ? "text-slate-900" : "text-slate-200"
                       }`}
                     >
                       {lic.key}
                     </td>
                     <td
-                      className={`px-4 py-2 capitalize ${
+                      className={`px-4 py-3 capitalize text-sm ${
                         isLight ? "text-slate-900" : "text-slate-200"
                       }`}
                     >
                       {lic.plan}
                     </td>
-                    <td className="px-4 py-2">
+                    <td className="px-4 py-3">
                       <StatusBadge status={lic.status} isLight={isLight} />
                     </td>
                     <td
-                      className={`px-4 py-2 ${
+                      className={`px-4 py-3 text-sm ${
                         isLight ? "text-slate-900" : "text-slate-200"
                       }`}
                     >
                       {lic.maxDevices}
                     </td>
                     <td
-                      className={`px-4 py-2 ${
+                      className={`px-4 py-3 text-sm ${
                         isLight ? "text-slate-700" : "text-slate-300"
                       }`}
                     >
                       {formatDate(lic.validUntil)}
                     </td>
                     <td
-                      className={`px-4 py-2 ${
+                      className={`px-4 py-3 text-sm ${
                         isLight ? "text-slate-600" : "text-slate-500"
                       }`}
                     >
@@ -276,7 +269,7 @@ const PortalLicensesPage: React.FC = () => {
       </section>
 
       <p
-        className={`text-[11px] ${
+        className={`text-xs italic ${
           isLight ? "text-slate-600" : "text-slate-500"
         }`}
       >
@@ -307,18 +300,18 @@ const LicensesSummary: React.FC = () => {
 
   return (
     <div
-      className={`rounded-2xl border px-4 py-3 text-[11px] flex items-center justify-between gap-3 ${
+      className={`flex gap-3 rounded-xl border px-4 py-3 text-sm ${
         isLight
-          ? "border-slate-200 bg-slate-50 text-slate-600"
-          : "border-slate-800 bg-slate-950/60 text-slate-400"
+          ? "border-l-4 border-l-orange-500/70 border-y border-r border-slate-200 bg-orange-50/40 text-slate-700"
+          : "border-l-4 border-l-orange-500/50 border-y border-r border-white/10 bg-orange-500/[0.06] text-slate-300"
       }`}
     >
-      <div>
-        <span
-          className={`font-medium ${
-            isLight ? "text-slate-900" : "text-slate-200"
-          }`}
-        >
+      <Info
+        className={`mt-0.5 h-5 w-5 shrink-0 ${isLight ? "text-orange-600" : "text-orange-400"}`}
+        aria-hidden
+      />
+      <div className="min-w-0 leading-relaxed">
+        <span className={`font-medium ${isLight ? "text-slate-900" : "text-slate-100"}`}>
           {t.licenses.summaryPrefix} {who}
         </span>{" "}
         {t.licenses.summarySuffix}
@@ -338,11 +331,7 @@ const SkeletonLicenseRow: React.FC<{ isLight?: boolean }> = ({
   isLight = false,
 }) => {
   return (
-    <tr
-      className={`border-t ${
-        isLight ? "border-slate-200" : "border-slate-900/80"
-      }`}
-    >
+    <tr className={isLight ? "hover:bg-slate-50/80" : "hover:bg-white/[0.04]"}>
       <td className="px-4 py-3">
         <SkeletonBar className="w-40" isLight={isLight} />
       </td>

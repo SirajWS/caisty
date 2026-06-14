@@ -24,7 +24,7 @@ export function portalLicenseStatusBadge(
     return `${base} ${
       isLight
         ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-        : "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
+        : "border-emerald-500/30 bg-emerald-500/15 text-emerald-400"
     }`;
   }
   if (s === "expired") {
@@ -85,14 +85,14 @@ export function portalInvoiceStatusBadge(
 
 export function portalCardShell(isLight: boolean): string {
   return isLight
-    ? "rounded-[22px] border border-slate-200/90 bg-white p-5 sm:p-6 shadow-sm"
-    : "rounded-[22px] border border-white/[0.08] bg-[#111827] p-5 sm:p-6 shadow-[0_4px_28px_rgba(0,0,0,0.35)]";
+    ? "rounded-xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm"
+    : "rounded-xl border border-white/10 bg-white/[0.04] p-5 sm:p-6";
 }
 
 export function portalInnerCard(isLight: boolean): string {
   return isLight
-    ? "rounded-2xl border border-slate-200 bg-slate-50/80"
-    : "rounded-2xl border border-white/[0.06] bg-[#0f172a]/80";
+    ? "rounded-xl border border-gray-200 bg-slate-50/90"
+    : "rounded-xl border border-white/10 bg-white/[0.03]";
 }
 
 export function portalConnectionBadge(status: string, isLight: boolean): string {
@@ -110,16 +110,34 @@ export function portalConnectionBadge(status: string, isLight: boolean): string 
 
 export function portalTableShell(isLight: boolean): string {
   return isLight
-    ? "rounded-[22px] border border-slate-200/90 bg-white shadow-sm overflow-x-auto"
-    : "rounded-[22px] border border-white/[0.08] bg-[#111827] overflow-x-auto shadow-[0_4px_28px_rgba(0,0,0,0.35)]";
+    ? "rounded-xl border border-gray-200 bg-white overflow-x-auto shadow-sm"
+    : "rounded-xl border border-white/10 bg-white/[0.04] overflow-x-auto";
 }
 
 export function portalPrimaryCta(): string {
-  return "inline-flex items-center justify-center rounded-full bg-orange-500 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-55";
+  return "inline-flex items-center justify-center rounded-lg bg-orange-500 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-55";
 }
 
 export function portalSecondaryCta(isLight: boolean): string {
   return isLight
-    ? "inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-4 py-2.5 text-xs sm:text-sm font-medium text-slate-800 transition-colors hover:bg-slate-50"
-    : "inline-flex items-center justify-center rounded-full border border-white/15 bg-transparent px-4 py-2.5 text-xs sm:text-sm font-medium text-slate-100 transition-colors hover:bg-white/[0.06]";
+    ? "inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-xs sm:text-sm font-medium text-slate-800 transition-colors hover:bg-slate-50"
+    : "inline-flex items-center justify-center rounded-lg border border-white/20 bg-transparent px-4 py-2.5 text-xs sm:text-sm font-medium text-slate-100 transition-colors hover:bg-white/[0.06]";
+}
+
+/** Small uppercase section / card eyebrow */
+export function portalSectionLabel(isLight: boolean): string {
+  return isLight
+    ? "text-[11px] font-semibold uppercase tracking-widest text-slate-500"
+    : "text-[11px] font-semibold uppercase tracking-widest text-slate-400";
+}
+
+/** Native inputs / textareas in portal forms */
+export function portalInputClass(isLight: boolean): string {
+  return [
+    "w-full rounded-lg border px-3 py-2 text-sm outline-none transition-[box-shadow,border-color]",
+    "focus:border-orange-500 focus:ring-2 focus:ring-orange-500/40",
+    isLight
+      ? "border-gray-200 bg-white text-slate-900 placeholder:text-slate-400"
+      : "border-white/10 bg-white/[0.05] text-slate-100 placeholder:text-slate-500",
+  ].join(" ");
 }

@@ -1,5 +1,6 @@
 // apps/caisty-site/src/routes/PortalInstallPage.tsx
 import React from "react";
+import { FlaskConical, Monitor, Terminal } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePortalOutlet } from "./PortalLayout";
 import {
@@ -12,7 +13,7 @@ import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
 import { portalLocaleTag } from "../lib/portalLocale";
 import { pickPrimaryPortalLicense } from "../lib/portalLicensePick";
-import { portalCardShell, portalInnerCard, portalLicenseStatusBadge, portalPrimaryCta } from "../lib/portalUi";
+import { portalCardShell, portalLicenseStatusBadge, portalPrimaryCta } from "../lib/portalUi";
 
 const WINDOWS_INSTALL_URL =
   import.meta.env.VITE_POS_WINDOWS_URL ||
@@ -64,10 +65,10 @@ const PortalInstallPage: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-1">
+    <div className="space-y-10">
+      <header className="space-y-2">
         <h1
-          className={`text-3xl font-semibold tracking-tight ${
+          className={`text-2xl sm:text-3xl font-semibold tracking-tight ${
             isLight ? "text-[#0B1220]" : "text-white"
           }`}
         >
@@ -83,9 +84,12 @@ const PortalInstallPage: React.FC = () => {
         </p>
       </header>
 
-      <section className={`${portalCardShell(isLight)} space-y-4`}>
-        <div className="flex items-center justify-between gap-2">
-          <div>
+      <section className={`${portalCardShell(isLight)} space-y-5`}>
+        <div className="flex gap-3">
+          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white">
+            1
+          </span>
+          <div className="min-w-0 flex-1 space-y-1">
             <h2
               className={`text-sm font-semibold ${
                 isLight ? "text-slate-900" : "text-slate-100"
@@ -107,16 +111,19 @@ const PortalInstallPage: React.FC = () => {
           <div
             className={`rounded-xl border p-4 space-y-3 flex flex-col ${
               isLight
-                ? "border-slate-200 bg-white shadow-sm"
-                : "border-slate-800 bg-slate-950/70"
+                ? "border-gray-200 bg-white"
+                : "border-white/10 bg-white/[0.03]"
             }`}
           >
-            <div
-              className={`text-sm font-semibold ${
-                isLight ? "text-slate-900" : "text-slate-100"
-              }`}
-            >
-              {t.install.winTitle}
+            <div className="flex items-center gap-2">
+              <Monitor className={`h-5 w-5 shrink-0 ${isLight ? "text-orange-600" : "text-orange-400"}`} aria-hidden />
+              <div
+                className={`text-sm font-semibold ${
+                  isLight ? "text-slate-900" : "text-slate-100"
+                }`}
+              >
+                {t.install.winTitle}
+              </div>
             </div>
             <p
               className={isLight ? "text-slate-800" : "text-slate-400"}
@@ -124,13 +131,28 @@ const PortalInstallPage: React.FC = () => {
               {t.install.winDesc}
             </p>
             <ul
-              className={`list-disc list-inside space-y-1 ${
-                isLight ? "text-slate-800" : "text-slate-400"
+              className={`space-y-1.5 text-xs ${
+                isLight ? "text-slate-700" : "text-slate-400"
               }`}
             >
-              <li>{t.install.winB1}</li>
-              <li>{t.install.winB2}</li>
-              <li>{t.install.winB3}</li>
+              <li className="flex gap-2">
+                <span className="text-emerald-500" aria-hidden>
+                  ✓
+                </span>
+                {t.install.winB1}
+              </li>
+              <li className="flex gap-2">
+                <span className="text-emerald-500" aria-hidden>
+                  ✓
+                </span>
+                {t.install.winB2}
+              </li>
+              <li className="flex gap-2">
+                <span className="text-emerald-500" aria-hidden>
+                  ✓
+                </span>
+                {t.install.winB3}
+              </li>
             </ul>
             <div className="mt-3">
               <a
@@ -147,35 +169,53 @@ const PortalInstallPage: React.FC = () => {
           <div
             className={`rounded-xl border p-4 space-y-3 flex flex-col ${
               isLight
-                ? "border-slate-200 bg-white shadow-sm"
-                : "border-slate-800 bg-slate-950/70"
+                ? "border-gray-200 bg-white"
+                : "border-white/10 bg-white/[0.03]"
             }`}
           >
-            <div
-              className={`text-sm font-semibold ${
-                isLight ? "text-slate-900" : "text-slate-100"
-              }`}
-            >
-              {t.install.linuxTitle}
+            <div className="flex items-center gap-2">
+              <Terminal className={`h-5 w-5 shrink-0 ${isLight ? "text-orange-600" : "text-orange-400"}`} aria-hidden />
+              <div
+                className={`text-sm font-semibold ${
+                  isLight ? "text-slate-900" : "text-slate-100"
+                }`}
+              >
+                {t.install.linuxTitle}
+              </div>
             </div>
             <p
-              className={isLight ? "text-slate-800" : "text-slate-400"}
+              className={isLight ? "text-slate-700" : "text-slate-400"}
             >
               {t.install.linuxDesc}
             </p>
             <ul
-              className={`list-disc list-inside space-y-1 ${
-                isLight ? "text-slate-800" : "text-slate-400"
+              className={`space-y-1.5 text-xs ${
+                isLight ? "text-slate-700" : "text-slate-400"
               }`}
             >
-              <li>{t.install.linuxB1}</li>
-              <li>{t.install.linuxB2}</li>
-              <li>{t.install.linuxB3}</li>
+              <li className="flex gap-2">
+                <span className="text-emerald-500" aria-hidden>
+                  ✓
+                </span>
+                {t.install.linuxB1}
+              </li>
+              <li className="flex gap-2">
+                <span className="text-emerald-500" aria-hidden>
+                  ✓
+                </span>
+                {t.install.linuxB2}
+              </li>
+              <li className="flex gap-2">
+                <span className="text-emerald-500" aria-hidden>
+                  ✓
+                </span>
+                {t.install.linuxB3}
+              </li>
             </ul>
             <div className="mt-3">
               <Button
                 variant="outline"
-                className="w-full justify-center text-xs font-medium"
+                className="w-full justify-center text-xs font-medium opacity-50 cursor-not-allowed"
                 disabled
               >
                 {t.install.comingSoon}
@@ -186,30 +226,48 @@ const PortalInstallPage: React.FC = () => {
           <div
             className={`rounded-xl border p-4 space-y-3 flex flex-col ${
               isLight
-                ? "border-slate-200 bg-white shadow-sm"
-                : "border-slate-800 bg-slate-950/70"
+                ? "border-gray-200 bg-white"
+                : "border-white/10 bg-white/[0.03]"
             }`}
           >
-            <div
-              className={`text-sm font-semibold ${
-                isLight ? "text-slate-900" : "text-slate-100"
-              }`}
-            >
-              {t.install.demoTitle}
+            <div className="flex items-center gap-2">
+              <FlaskConical className={`h-5 w-5 shrink-0 ${isLight ? "text-orange-600" : "text-orange-400"}`} aria-hidden />
+              <div
+                className={`text-sm font-semibold ${
+                  isLight ? "text-slate-900" : "text-slate-100"
+                }`}
+              >
+                {t.install.demoTitle}
+              </div>
             </div>
             <p
-              className={isLight ? "text-slate-800" : "text-slate-400"}
+              className={isLight ? "text-slate-700" : "text-slate-400"}
             >
               {t.install.demoDesc}
             </p>
             <ul
-              className={`list-disc list-inside space-y-1 ${
-                isLight ? "text-slate-800" : "text-slate-400"
+              className={`space-y-1.5 text-xs ${
+                isLight ? "text-slate-700" : "text-slate-400"
               }`}
             >
-              <li>{t.install.demoB1}</li>
-              <li>{t.install.demoB2}</li>
-              <li>{t.install.demoB3}</li>
+              <li className="flex gap-2">
+                <span className="text-emerald-500" aria-hidden>
+                  ✓
+                </span>
+                {t.install.demoB1}
+              </li>
+              <li className="flex gap-2">
+                <span className="text-emerald-500" aria-hidden>
+                  ✓
+                </span>
+                {t.install.demoB2}
+              </li>
+              <li className="flex gap-2">
+                <span className="text-emerald-500" aria-hidden>
+                  ✓
+                </span>
+                {t.install.demoB3}
+              </li>
             </ul>
             <div className="mt-3">
               {WINDOWS_DEMO_URL ? (
@@ -217,10 +275,10 @@ const PortalInstallPage: React.FC = () => {
                   href={WINDOWS_DEMO_URL}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className={`inline-flex w-full items-center justify-center rounded-full border px-4 py-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 ${
+                  className={`inline-flex w-full items-center justify-center rounded-lg border px-4 py-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 ${
                     isLight
                       ? "border-slate-300 bg-transparent text-slate-900 hover:bg-slate-50"
-                      : "border-slate-700 bg-transparent text-slate-100 hover:bg-slate-900"
+                      : "border-white/15 bg-transparent text-slate-100 hover:bg-white/[0.06]"
                   }`}
                 >
                   {t.install.demoBtn}
@@ -228,7 +286,7 @@ const PortalInstallPage: React.FC = () => {
               ) : (
                 <Button
                   variant="outline"
-                  className="w-full justify-center text-xs font-medium"
+                  className="w-full justify-center text-xs font-medium opacity-50 cursor-not-allowed"
                   disabled
                 >
                   {t.install.comingSoon}
@@ -240,22 +298,33 @@ const PortalInstallPage: React.FC = () => {
       </section>
 
       <section
-        className={`${portalCardShell(isLight)} space-y-4 text-xs`}
+        className={`${portalCardShell(isLight)} space-y-5 text-xs`}
       >
-        <h2
-          className={`text-sm font-semibold ${
-            isLight ? "text-slate-900" : "text-slate-100"
-          }`}
-        >
-          {t.install.step2Title}
-        </h2>
-        <p
-          className={isLight ? "text-slate-700" : "text-slate-300"}
-        >
-          {t.install.step2Body}
-        </p>
+        <div className="flex gap-3">
+          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white">
+            2
+          </span>
+          <div className="min-w-0 flex-1 space-y-3">
+            <h2
+              className={`text-sm font-semibold ${
+                isLight ? "text-slate-900" : "text-slate-100"
+              }`}
+            >
+              {t.install.step2Title}
+            </h2>
+            <p
+              className={isLight ? "text-slate-700" : "text-slate-300"}
+            >
+              {t.install.step2Body}
+            </p>
 
-        <div className={`${portalInnerCard(isLight)} p-4 space-y-2`}>
+            <div
+              className={`rounded-xl border border-l-4 border-orange-500/45 p-4 space-y-2 ${
+                isLight
+                  ? "border-gray-200 bg-slate-50/80"
+                  : "border-white/10 bg-white/[0.04]"
+              }`}
+            >
           <div
             className={`text-[11px] uppercase ${
               isLight ? "text-slate-500" : "text-slate-500"
@@ -285,7 +354,7 @@ const PortalInstallPage: React.FC = () => {
           ) : (
             <>
               <div
-                className={`font-mono text-[11px] break-all ${
+                className={`font-mono text-lg font-semibold tracking-tight break-all ${
                   isLight ? "text-slate-900" : "text-slate-100"
                 }`}
               >
@@ -334,9 +403,16 @@ const PortalInstallPage: React.FC = () => {
             {t.install.stepOL3Suffix}
           </li>
         </ol>
+          </div>
+        </div>
       </section>
 
-      <section className={`${portalCardShell(isLight)} space-y-3 text-xs`}>
+      <section className={`${portalCardShell(isLight)} space-y-4 text-xs`}>
+        <div className="flex gap-3">
+          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white">
+            3
+          </span>
+          <div className="min-w-0 flex-1 space-y-3">
         <h2
           className={`text-sm font-semibold ${
             isLight ? "text-slate-900" : "text-slate-100"
@@ -372,6 +448,8 @@ const PortalInstallPage: React.FC = () => {
         >
           {t.install.footerNote}
         </p>
+          </div>
+        </div>
       </section>
     </div>
   );
