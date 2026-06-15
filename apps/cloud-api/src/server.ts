@@ -68,6 +68,7 @@ export async function buildServer() {
       url.startsWith("/portal/") || // Portal-API (Portal-JWT)
       url.startsWith("/api/billing/") || // Billing-API (Portal-JWT, handled in route)
       (url === "/webhooks/paypal" && method === "POST") ||
+      (url === "/webhooks/stripe" && method === "POST") ||
       (url === "/licenses/verify" && method === "POST") ||
       (url === "/devices/bind" && method === "POST") ||
       (url === "/devices/heartbeat" && method === "POST") ||

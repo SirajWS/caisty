@@ -140,6 +140,11 @@ export async function registerBillingRoutes(app: FastifyInstance) {
       const now = new Date();
       const currentPeriodEnd = period === "yearly" ? addMonths(now, 12) : addMonths(now, 1);
 
+      const subscriptionProvider =
+        body.provider === "stripe" ? "stripe" : "paypal";
+      const subscriptionProviderEnv =
+        body.provider === "stripe" ? stripeProvider.env : paypalProvider.env;
+
       const [sub] = await db
         .insert(subscriptions)
         .values({
@@ -151,8 +156,8 @@ export async function registerBillingRoutes(app: FastifyInstance) {
           currency,
           startedAt: now,
           currentPeriodEnd,
-          provider: "paypal",
-          providerEnv: paypalProvider.env,
+          provider: subscriptionProvider,
+          providerEnv: subscriptionProviderEnv,
         } as any)
         .returning();
 
