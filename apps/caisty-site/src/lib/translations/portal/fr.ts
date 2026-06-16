@@ -24,7 +24,9 @@ export const portalFr: PortalTranslations = {
     amount: "Montant",
     dash: "—",
     monthly: "Mensuel",
+    yearly: "Annuel",
     perMonth: "par mois",
+    perYear: "par an",
     recommended: "Recommandé",
     subtotal: "Sous-total",
     vat19: "TVA (19 %)",
@@ -118,6 +120,7 @@ export const portalFr: PortalTranslations = {
     paymentNote:
       "Le paiement Starter/Pro sera disponible directement dans le portail ultérieurement.",
     sectionTitle: "Forfaits & licences — aperçu",
+    billingIntervalLabel: "Période de facturation",
     trialTitle: "Trial",
     trialDesc:
       "Pour tester sur site sans coordonnées bancaires. Même fonctionnalités que Starter (1 appareil), durée limitée.",
@@ -131,6 +134,24 @@ export const portalFr: PortalTranslations = {
       "Idéal pour un point de vente. Gestion des licences dans le portail, statistiques de base et exports simples.",
     starterBtnBusy: "Redirection vers PayPal…",
     starterBtn: "Choisir ce forfait",
+    planCtaChoose: "Choisir ce forfait",
+    planCtaCurrent: "Forfait actuel",
+    planCtaSwitchToYearly: "Passer à la facturation annuelle",
+    billingYearlyActive: "Facturation annuelle active",
+    billingMonthlyActive: "Facturation mensuelle active",
+    planCtaDowngradeNotAvailable: "Rétrogradation indisponible pour le moment",
+    planCtaYearlyBillingOnly: "Choisissez « Annuel » ci-dessus — la facturation annuelle est déjà active.",
+    planCtaUpgradePro: "Passer à Pro",
+    planCtaProYearlyOnly:
+      "Votre forfait Starter est facturé annuellement — choisissez « Annuel » ci-dessus pour passer à Pro.",
+    planCtaStarterLocked: "Non disponible",
+    overviewPaidPlanLine: "Votre forfait payant actuel : {{plan}}",
+    subscriptionSectionTitle: "Abonnement",
+    subscriptionSectionBody:
+      "Modifiez votre moyen de paiement, consultez les factures ou résiliez votre forfait dans le portail sécurisé Stripe.",
+    manageSubscription: "Gérer l’abonnement",
+    manageSubscriptionBusy: "Ouverture…",
+    billingPortalError: "Impossible d’ouvrir le portail de facturation.",
     purchaseHint:
       "Achat en libre-service dans ce portail. Facturation via sandbox PayPal pour les tests.",
     proDesc:
@@ -309,6 +330,7 @@ export const portalFr: PortalTranslations = {
     backLink: "← Retour",
     yourOrder: "Votre commande",
     monthlyBadge: "Mensuel",
+    yearlyBadge: "Annuel",
     subtotal: "Sous-total",
     total: "Total",
     paymentMethod: "Mode de paiement",
@@ -326,6 +348,15 @@ export const portalFr: PortalTranslations = {
     termsLink: "conditions",
     privacyLink: "confidentialité",
     termsSuffix: ".",
+    alreadyHavePlan:
+      "Vous avez déjà ce forfait actif. Choisissez une autre option sous Forfaits & facturation.",
+    downgradeNotAvailable:
+      "Le passage de Pro à Starter n’est pas disponible en libre-service. Contactez le support.",
+    upgradeProYearlyOnly:
+      "Votre abonnement Starter est annuel. Choisissez « Annuel » sous Forfaits & facturation, puis Pro — ou prenez Pro annuel ici.",
+    intervalDowngradeNotAllowed:
+      "Le passage d’une facturation annuelle à mensuelle n’est pas disponible dans le checkout. Utilisez le portail de facturation ou le support.",
+    backToPlans: "Retour aux forfaits & facturation",
   },
   checkoutSuccess: {
     missingToken: "Jeton de paiement manquant. Contactez le support.",

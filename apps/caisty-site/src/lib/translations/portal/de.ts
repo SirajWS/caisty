@@ -24,7 +24,9 @@ export const portalDe: PortalTranslations = {
     amount: "Betrag",
     dash: "—",
     monthly: "Monatlich",
+    yearly: "Jährlich",
     perMonth: "pro Monat",
+    perYear: "pro Jahr",
     recommended: "Empfohlen",
     subtotal: "Zwischensumme",
     vat19: "MwSt. (19%)",
@@ -117,6 +119,7 @@ export const portalDe: PortalTranslations = {
     paymentNote:
       "Zahlungsweise für Starter/Pro wird später direkt im Portal verfügbar.",
     sectionTitle: "Pläne & Lizenzen im Überblick",
+    billingIntervalLabel: "Abrechnungsintervall",
     trialTitle: "Trial",
     trialDesc:
       "Zum Testen vor Ort, ohne Zahlungsdaten. Funktional identisch mit Starter (1 Gerät), aber zeitlich begrenzt.",
@@ -130,6 +133,24 @@ export const portalDe: PortalTranslations = {
       "Ideal für eine Filiale oder einen Standort. Lizenzverwaltung im Kundenportal, Basis-Statistiken & Export-Grundfunktionen.",
     starterBtnBusy: "Weiterleitung zu PayPal…",
     starterBtn: "Plan wählen",
+    planCtaChoose: "Plan wählen",
+    planCtaCurrent: "Aktueller Plan",
+    planCtaSwitchToYearly: "Auf jährliche Abrechnung wechseln",
+    billingYearlyActive: "Jährliche Abrechnung aktiv",
+    billingMonthlyActive: "Monatliche Abrechnung aktiv",
+    planCtaDowngradeNotAvailable: "Downgrade derzeit nicht verfügbar",
+    planCtaYearlyBillingOnly: "Oben „Jährlich“ wählen — bei dir ist bereits eine jährliche Abrechnung aktiv.",
+    planCtaUpgradePro: "Upgrade auf Pro",
+    planCtaProYearlyOnly:
+      "Dein Starter-Tarif ist jährlich — wähle oben „Jährlich“, um auf Pro zu wechseln.",
+    planCtaStarterLocked: "Nicht verfügbar",
+    overviewPaidPlanLine: "Dein aktueller Bezahlplan: {{plan}}",
+    subscriptionSectionTitle: "Abo",
+    subscriptionSectionBody:
+      "Zahlungsmittel ändern, Rechnungen laden oder Plan kündigen — im sicheren Stripe-Kundenportal.",
+    manageSubscription: "Abo verwalten",
+    manageSubscriptionBusy: "Wird geöffnet…",
+    billingPortalError: "Kundenportal konnte nicht geöffnet werden.",
     purchaseHint:
       "Self-Service-Kauf direkt hier im Portal. Abrechnung über PayPal-Sandbox für Tests.",
     proDesc:
@@ -308,6 +329,7 @@ export const portalDe: PortalTranslations = {
     backLink: "← Zurück",
     yourOrder: "Deine Bestellung",
     monthlyBadge: "Monatlich",
+    yearlyBadge: "Jährlich",
     subtotal: "Zwischensumme",
     total: "Gesamtbetrag",
     paymentMethod: "Zahlungsmethode",
@@ -325,6 +347,15 @@ export const portalDe: PortalTranslations = {
     termsLink: "AGB",
     privacyLink: "Datenschutzbestimmungen",
     termsSuffix: "zu.",
+    alreadyHavePlan:
+      "Du hast diesen Plan bereits aktiv. Bitte wähle auf „Plan & Abrechnung“ eine andere Option.",
+    downgradeNotAvailable:
+      "Ein Wechsel von Pro zu Starter ist im Self-Service-Checkout nicht möglich. Bitte kontaktiere den Support.",
+    upgradeProYearlyOnly:
+      "Dein Starter-Abo ist jährlich. Wähle auf „Plan & Abrechnung“ „Jährlich“ und dann Pro — oder buche hier direkt Pro jährlich.",
+    intervalDowngradeNotAllowed:
+      "Wechsel von jährlich auf monatlich ist im Checkout nicht möglich. Nutze das Billing-Portal oder den Support.",
+    backToPlans: "Zurück zu Plan & Abrechnung",
   },
   checkoutSuccess: {
     missingToken: "Fehlender Zahlungstoken. Bitte kontaktiere den Support.",

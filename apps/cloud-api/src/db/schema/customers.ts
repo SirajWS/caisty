@@ -7,7 +7,7 @@ import {
   jsonb,
   text,
 } from "drizzle-orm/pg-core";
-import { orgs } from "./orgs";
+import { orgs } from "./orgs.js";
 
 export const customers = pgTable("customers", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -35,6 +35,9 @@ export const customers = pgTable("customers", {
   // JSON-Profil, das vom POS kommt (Cloud Customer / Account)
   // Struktur ist bewusst flexibel gehalten.
   profile: jsonb("profile").notNull().default({}),
+
+  /** Stripe Customer ID (cus_...) after Checkout / Portal; used for Billing Portal sessions */
+  stripeCustomerId: text("stripe_customer_id"),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

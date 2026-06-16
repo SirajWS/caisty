@@ -33,6 +33,13 @@ export interface PortalCustomer {
   name: string;
   email: string;
   portalStatus: PortalStatus;
+  /** From GET /portal/me: Stripe Billing Portal available (active Stripe subscription + cus_ id). */
+  stripeBillingPortalEligible?: boolean;
+  /**
+   * From GET /portal/me: inferred from active Starter/Pro subscription.priceCents
+   * vs checkout gross amounts; null if no row or no match (e.g. legacy pricing).
+   */
+  paidBillingPeriod?: "monthly" | "yearly" | null;
   // nur bei /portal/me befüllt
   primaryLicense?: PortalPrimaryLicenseSummary | null;
 }
@@ -213,6 +220,53 @@ export async function fetchPortalMe(): Promise<PortalCustomer | null> {
 
   if (!data.ok || !data.customer) return null;
   return data.customer;
+}
+
+export type StripeBillingPortalResponse = {
+  ok: boolean;
+  url?: string;
+  error?: string;
+  message?: string;
+};
+
+/**
+ * Opens Stripe Customer Billing Portal for the logged-in portal customer.
+ * Caller should assign `window.location.href` to the returned URL.
+ */
+export async function createStripeBillingPortalSession(
+  returnUrl?: string,
+): Promise<string> {
+  const token = getStoredPortalToken();
+  if (!token) {
+    throw new Error("Nicht angemeldet.");
+  }
+
+  const res = await fetch(`${API_BASE}/api/billing/portal`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(returnUrl ? { returnUrl } : {}),
+  });
+
+  const data = (await res.json()) as StripeBillingPortalResponse;
+
+  if (res.status === 401) {
+    clearPortalToken();
+    throw new Error("Nicht angemeldet.");
+  }
+
+  if (!res.ok || !data.ok || !data.url) {
+    throw new Error(
+      data.message ??
+        (data.error === "no_stripe_customer"
+          ? "No Stripe customer found for this account."
+          : "Billing portal could not be opened."),
+    );
+  }
+
+  return data.url;
 }
 
 // Konto-Update

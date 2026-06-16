@@ -24,7 +24,9 @@ export const portalAr: PortalTranslations = {
     amount: "المبلغ",
     dash: "—",
     monthly: "شهري",
+    yearly: "سنوي",
     perMonth: "شهريًا",
+    perYear: "سنويًا",
     recommended: "موصى به",
     subtotal: "المجموع الفرعي",
     vat19: "ضريبة القيمة المضافة (19٪)",
@@ -116,6 +118,7 @@ export const portalAr: PortalTranslations = {
     paymentNote:
       "ستتوفر لاحقًا طرق الدفع لـ Starter/Pro مباشرة في البوابة.",
     sectionTitle: "نظرة على الخطط والتراخيص",
+    billingIntervalLabel: "دورة الفوترة",
     trialTitle: "تجريبي",
     trialDesc:
       "للتجربة في الموقع دون بيانات دفع. نفس ميزات Starter (جهاز واحد) مع حد زمني.",
@@ -129,6 +132,24 @@ export const portalAr: PortalTranslations = {
       "مثالي لفرع واحد. إدارة التراخيص في البوابة، إحصائيات أساسية وتصدير بسيط.",
     starterBtnBusy: "إعادة التوجيه إلى PayPal…",
     starterBtn: "اختر الخطة",
+    planCtaChoose: "اختر الخطة",
+    planCtaCurrent: "الخطة الحالية",
+    planCtaSwitchToYearly: "التبديل إلى الفوترة السنوية",
+    billingYearlyActive: "الفوترة السنوية نشطة",
+    billingMonthlyActive: "الفوترة الشهرية نشطة",
+    planCtaDowngradeNotAvailable: "خفض الخطة غير متاح حاليًا",
+    planCtaYearlyBillingOnly: "اختر «سنوي» أعلاه — الفوترة السنوية مفعّلة بالفعل.",
+    planCtaUpgradePro: "الترقية إلى Pro",
+    planCtaProYearlyOnly:
+      "خطة Starter لديك سنوية — اختر «سنوي» أعلاه للترقية إلى Pro.",
+    planCtaStarterLocked: "غير متاح",
+    overviewPaidPlanLine: "خطتك المدفوعة الحالية: {{plan}}",
+    subscriptionSectionTitle: "الاشتراك",
+    subscriptionSectionBody:
+      "غيّر طريقة الدفع أو نزّل الفواتير أو ألغِ الخطة عبر بوابة Stripe الآمنة.",
+    manageSubscription: "إدارة الاشتراك",
+    manageSubscriptionBusy: "جارٍ الفتح…",
+    billingPortalError: "تعذّر فتح بوابة الفوترة.",
     purchaseHint:
       "شراء ذاتي من البوابة. الفوترة عبر بيئة PayPal التجريبية للاختبارات.",
     proDesc:
@@ -301,6 +322,7 @@ export const portalAr: PortalTranslations = {
     backLink: "← رجوع",
     yourOrder: "طلبك",
     monthlyBadge: "شهري",
+    yearlyBadge: "سنوي",
     subtotal: "المجموع الفرعي",
     total: "الإجمالي",
     paymentMethod: "طريقة الدفع",
@@ -318,6 +340,15 @@ export const portalAr: PortalTranslations = {
     termsLink: "الشروط",
     privacyLink: "سياسة الخصوصية",
     termsSuffix: ".",
+    alreadyHavePlan:
+      "لديك هذه الخطة نشطة بالفعل. اختر خيارًا آخر ضمن الخطط والفوترة.",
+    downgradeNotAvailable:
+      "التخفيض من Pro إلى Starter غير متاح في الدفع الذاتي. يرجى التواصل مع الدعم.",
+    upgradeProYearlyOnly:
+      "اشتراك Starter لديك سنوي. اختر «سنوي» في الخطط والفوترة ثم Pro — أو اختر Pro السنوي هنا.",
+    intervalDowngradeNotAllowed:
+      "التبديل من الفوترة السنوية إلى الشهرية غير متاح في الدفع. استخدم بوابة الفوترة أو تواصل مع الدعم.",
+    backToPlans: "العودة إلى الخطط والفوترة",
   },
   checkoutSuccess: {
     missingToken: "رمز الدفع مفقود. يرجى التواصل مع الدعم.",

@@ -1,15 +1,17 @@
 // apps/cloud-api/src/routes/portalAuthRoutes.ts
 import type { FastifyInstance } from "fastify";
 import bcrypt from "bcryptjs";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNotNull, or } from "drizzle-orm";
 
 import { db } from "../db/client.js";
 import { customers } from "../db/schema/customers.js";
 import { orgs } from "../db/schema/orgs.js";
 import { licenses } from "../db/schema/licenses.js";
+import { subscriptions } from "../db/schema/subscriptions.js";
 import { notificationService } from "../billing/NotificationService.js";
 import { customerAuthProviders } from "../db/schema/customerAuthProviders.js";
 import { signPortalToken, verifyPortalToken } from "../lib/portalJwt.js";
+import { inferPaidBillingPeriodFromPriceCents } from "../lib/inferPaidBillingPeriodFromPriceCents.js";
 
 function makeSlug(name: string): string {
   const base = name
@@ -244,6 +246,57 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
         .orderBy(desc(licenses.validUntil))
         .limit(1);
 
+      const [activeStripeSubscription] = await db
+        .select({ id: subscriptions.id })
+        .from(subscriptions)
+        .where(
+          and(
+            eq(subscriptions.customerId as any, customer.id),
+            eq(subscriptions.provider as any, "stripe"),
+            isNotNull(subscriptions.providerSubscriptionId),
+            eq(subscriptions.status as any, "active"),
+          ),
+        )
+        .limit(1);
+
+      const [activePaidSub] = await db
+        .select({
+          plan: subscriptions.plan,
+          priceCents: subscriptions.priceCents,
+          currency: subscriptions.currency,
+        })
+        .from(subscriptions)
+        .where(
+          and(
+            eq(subscriptions.customerId as any, customer.id),
+            eq(subscriptions.status as any, "active"),
+            or(
+              eq(subscriptions.plan as any, "starter"),
+              eq(subscriptions.plan as any, "pro"),
+            ),
+          ),
+        )
+        .orderBy(desc(subscriptions.startedAt))
+        .limit(1);
+
+      let paidBillingPeriod: "monthly" | "yearly" | null = null;
+      if (
+        activePaidSub &&
+        (activePaidSub.plan === "starter" || activePaidSub.plan === "pro")
+      ) {
+        const curRaw = (activePaidSub.currency || "EUR").toString().toUpperCase();
+        const currency = curRaw === "TND" ? "TND" : "EUR";
+        paidBillingPeriod = inferPaidBillingPeriodFromPriceCents(
+          activePaidSub.plan as "starter" | "pro",
+          currency,
+          Number(activePaidSub.priceCents ?? 0),
+        );
+      }
+
+      const stripeBillingPortalEligible = Boolean(
+        customer.stripeCustomerId?.trim(),
+      ) && Boolean(activeStripeSubscription);
+
       return {
         ok: true,
         customer: {
@@ -252,6 +305,8 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
           name: customer.name,
           email: customer.email,
           portalStatus: customer.portalStatus,
+          stripeBillingPortalEligible,
+          paidBillingPeriod,
           primaryLicense: primaryLicense
             ? {
                 id: primaryLicense.id,

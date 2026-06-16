@@ -3,11 +3,47 @@ import React from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { PRICING, formatPrice } from "../config/pricing";
 import { useCurrency } from "../lib/useCurrency";
-import { getStoredPortalToken } from "../lib/portalApi";
+import {
+  fetchPortalLicenses,
+  fetchPortalMe,
+  getStoredPortalToken,
+  type PortalLicense,
+} from "../lib/portalApi";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
+import { getActivePaidPlanTier } from "../lib/portalLicensePick";
+import {
+  evaluateCheckoutEligibility,
+  type PaidPlanContext,
+} from "../lib/checkoutPlanEligibility";
 
 type PaymentMethod = "paypal" | "card";
+
+const CHECKOUT_PLAN_IDS = new Set([
+  "starter",
+  "pro",
+  "starter_monthly",
+  "starter_yearly",
+  "pro_monthly",
+  "pro_yearly",
+]);
+
+function parsePortalCheckoutPlan(param: string | null): {
+  tier: "starter" | "pro";
+  period: "monthly" | "yearly";
+  planId: string;
+} | null {
+  if (!param) return null;
+  const raw = param.trim().toLowerCase();
+  if (!CHECKOUT_PLAN_IDS.has(raw)) return null;
+  if (raw === "starter" || raw === "pro") {
+    const tier = raw as "starter" | "pro";
+    return { tier, period: "monthly", planId: `${tier}_monthly` };
+  }
+  const tier = raw.startsWith("starter") ? "starter" : "pro";
+  const period = raw.endsWith("_yearly") ? "yearly" : "monthly";
+  return { tier, period, planId: `${tier}_${period}` };
+}
 
 const PortalCheckoutPage: React.FC = () => {
   const { currency } = useCurrency();
@@ -17,11 +53,88 @@ const PortalCheckoutPage: React.FC = () => {
   const t = getPortalTranslations(language);
 
   const planParam = searchParams.get("plan");
-  const isValidPlan = planParam === "starter" || planParam === "pro";
+  const parsedPlan = React.useMemo(
+    () => parsePortalCheckoutPlan(planParam),
+    [planParam],
+  );
+  const isValidPlan = Boolean(parsedPlan);
 
   const [selectedPaymentMethod, setSelectedPaymentMethod] = React.useState<PaymentMethod>("paypal");
   const [processing, setProcessing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [portalLicenses, setPortalLicenses] = React.useState<PortalLicense[]>([]);
+  const [licensesLoading, setLicensesLoading] = React.useState(true);
+  const [paidBillingPeriod, setPaidBillingPeriod] = React.useState<
+    "monthly" | "yearly" | null
+  >(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        setLicensesLoading(true);
+        const token = getStoredPortalToken();
+        if (!token) {
+          if (!cancelled) setLicensesLoading(false);
+          return;
+        }
+        const list = await fetchPortalLicenses();
+        if (!cancelled) setPortalLicenses(list);
+      } catch {
+        if (!cancelled) setPortalLicenses([]);
+      } finally {
+        if (!cancelled) setLicensesLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetchPortalMe()
+      .then((me) => {
+        if (!cancelled) setPaidBillingPeriod(me?.paidBillingPeriod ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setPaidBillingPeriod(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const activePaidPlan = React.useMemo(
+    () => getActivePaidPlanTier(portalLicenses),
+    [portalLicenses],
+  );
+
+  const activeCheckoutCtx = React.useMemo<PaidPlanContext | null>(
+    () =>
+      activePaidPlan ? { tier: activePaidPlan, period: paidBillingPeriod } : null,
+    [activePaidPlan, paidBillingPeriod],
+  );
+
+  const checkoutEligibility = React.useMemo(() => {
+    if (!parsedPlan) return { ok: true as const };
+    return evaluateCheckoutEligibility(
+      activeCheckoutCtx,
+      parsedPlan.tier,
+      parsedPlan.period,
+    );
+  }, [activeCheckoutCtx, parsedPlan]);
+
+  const checkoutBlockedProYearlyStarter = Boolean(
+    parsedPlan &&
+      activeCheckoutCtx?.tier === "starter" &&
+      activeCheckoutCtx.period === "yearly" &&
+      parsedPlan.tier === "pro" &&
+      parsedPlan.period === "monthly",
+  );
+
+  const checkoutBlocked =
+    !checkoutEligibility.ok || checkoutBlockedProYearlyStarter;
 
   React.useEffect(() => {
     if (!isValidPlan) {
@@ -29,12 +142,12 @@ const PortalCheckoutPage: React.FC = () => {
     }
   }, [isValidPlan, navigate]);
 
-  if (!isValidPlan || !planParam) {
+  if (!isValidPlan || !parsedPlan) {
     return null;
   }
 
-  const plan: "starter" | "pro" = planParam;
-  const planPrice = PRICING[currency][plan].monthly;
+  const { tier: plan, period: billingPeriod, planId } = parsedPlan;
+  const planPrice = PRICING[currency][plan][billingPeriod];
   const planName = plan === "starter" ? "Starter" : "Pro";
   const planDescription =
     plan === "starter" ? t.checkout.planStarterDesc : t.checkout.planProDesc;
@@ -56,6 +169,28 @@ const PortalCheckoutPage: React.FC = () => {
         return;
       }
 
+      if (licensesLoading) {
+        setError(t.checkout.checkoutFailed);
+        return;
+      }
+
+      if (checkoutBlocked) {
+        if (checkoutBlockedProYearlyStarter) {
+          setError(t.checkout.upgradeProYearlyOnly);
+        } else if (!checkoutEligibility.ok) {
+          if (checkoutEligibility.code === "downgrade_not_allowed") {
+            setError(t.checkout.downgradeNotAvailable);
+          } else if (
+            checkoutEligibility.code === "interval_downgrade_not_allowed"
+          ) {
+            setError(t.checkout.intervalDowngradeNotAllowed);
+          } else {
+            setError(t.checkout.alreadyHavePlan);
+          }
+        }
+        return;
+      }
+
       const API_BASE = import.meta.env.VITE_CLOUD_API_URL ||
         (import.meta.env.DEV ? "http://localhost:3333" : "https://api.caisty.com");
 
@@ -73,11 +208,11 @@ const PortalCheckoutPage: React.FC = () => {
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
-          "Idempotency-Key": `checkout:${plan}:${provider}:${Date.now()}`,
+          "Idempotency-Key": `checkout:${planId}:${provider}:${Date.now()}`,
         },
         body: JSON.stringify({
           provider,
-          planId: `${plan}_monthly`,
+          planId,
           returnUrl: `${portalBaseUrl}/portal/checkout/success`,
           cancelUrl: `${portalBaseUrl}/portal/checkout/cancel`,
           currency: currency,
@@ -93,6 +228,15 @@ const PortalCheckoutPage: React.FC = () => {
       const checkoutData = await checkoutRes.json();
 
       if (!checkoutRes.ok || !checkoutData.ok) {
+        if (checkoutData.error === "already_have_plan") {
+          throw new Error(t.checkout.alreadyHavePlan);
+        }
+        if (checkoutData.error === "downgrade_not_allowed") {
+          throw new Error(t.checkout.downgradeNotAvailable);
+        }
+        if (checkoutData.error === "interval_downgrade_not_allowed") {
+          throw new Error(t.checkout.intervalDowngradeNotAllowed);
+        }
         throw new Error(checkoutData.message ?? t.checkout.checkoutFailed);
       }
 
@@ -143,6 +287,29 @@ const PortalCheckoutPage: React.FC = () => {
         </div>
       )}
 
+      {!licensesLoading && checkoutBlocked && (
+        <div className="rounded-xl border border-amber-600/50 bg-amber-900/25 px-4 py-3 text-sm text-amber-100 space-y-2">
+          <p>
+            {checkoutBlockedProYearlyStarter
+              ? t.checkout.upgradeProYearlyOnly
+              : !checkoutEligibility.ok &&
+                  checkoutEligibility.code === "downgrade_not_allowed"
+                ? t.checkout.downgradeNotAvailable
+                : !checkoutEligibility.ok &&
+                    checkoutEligibility.code ===
+                      "interval_downgrade_not_allowed"
+                  ? t.checkout.intervalDowngradeNotAllowed
+                  : t.checkout.alreadyHavePlan}
+          </p>
+          <Link
+            to="/portal/plan"
+            className="inline-block text-orange-300 hover:text-orange-200 underline font-medium"
+          >
+            {t.checkout.backToPlans}
+          </Link>
+        </div>
+      )}
+
       <div className="grid gap-6 md:grid-cols-3">
         <div className="md:col-span-2 space-y-4">
           <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
@@ -156,7 +323,9 @@ const PortalCheckoutPage: React.FC = () => {
                       {planName}
                     </h3>
                     <span className="inline-flex items-center rounded-full bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 text-[11px] font-medium text-orange-300">
-                      {t.labels.monthly}
+                      {billingPeriod === "yearly"
+                        ? t.checkout.yearlyBadge
+                        : t.checkout.monthlyBadge}
                     </span>
                   </div>
                   <p className="text-xs text-slate-400">
@@ -167,7 +336,9 @@ const PortalCheckoutPage: React.FC = () => {
                   <div className="text-lg font-semibold text-orange-400">
                     {formatPrice(planPrice, currency)}
                   </div>
-                  <div className="text-xs text-slate-400">{t.labels.perMonth}</div>
+                  <div className="text-xs text-slate-400">
+                    {billingPeriod === "yearly" ? t.labels.perYear : t.labels.perMonth}
+                  </div>
                 </div>
               </div>
 
@@ -268,7 +439,9 @@ const PortalCheckoutPage: React.FC = () => {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">{t.labels.billingPeriod}</span>
-                <span className="text-slate-100 font-medium">{t.labels.monthly}</span>
+                <span className="text-slate-100 font-medium">
+                  {billingPeriod === "yearly" ? t.labels.yearly : t.labels.monthly}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">{t.labels.paymentMethod}</span>
@@ -293,7 +466,7 @@ const PortalCheckoutPage: React.FC = () => {
             <button
               type="button"
               onClick={handlePayment}
-              disabled={processing}
+              disabled={processing || licensesLoading || checkoutBlocked}
               className="w-full inline-flex items-center justify-center rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
             >
               {processing

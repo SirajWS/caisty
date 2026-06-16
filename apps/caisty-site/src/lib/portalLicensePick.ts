@@ -21,3 +21,25 @@ export function pickPrimaryPortalLicense(
 
   return sorted[0] ?? null;
 }
+
+/**
+ * Active paid tier from portal licenses: Pro wins if both exist and are usable.
+ * Matches cloud-api `getActivePaidLicenseTierForCustomer` rules (non-expired, active).
+ */
+export function getActivePaidPlanTier(
+  licenses: PortalLicense[],
+): "starter" | "pro" | null {
+  const now = Date.now();
+  const usable = (l: PortalLicense) => {
+    if ((l.status ?? "").toLowerCase() !== "active") return false;
+    if (!l.validUntil) return true;
+    return new Date(l.validUntil).getTime() > now;
+  };
+  const paid = licenses.filter((l) => {
+    const p = (l.plan ?? "").toLowerCase();
+    return (p === "starter" || p === "pro") && usable(l);
+  });
+  if (paid.some((l) => (l.plan ?? "").toLowerCase() === "pro")) return "pro";
+  if (paid.some((l) => (l.plan ?? "").toLowerCase() === "starter")) return "starter";
+  return null;
+}

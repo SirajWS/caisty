@@ -8,12 +8,11 @@ import { customers } from "../db/schema/customers.js";
 import { subscriptions } from "../db/schema/subscriptions.js";
 import { invoices } from "../db/schema/invoices.js";
 import { licenses } from "../db/schema/licenses.js";
-import { licenseEvents } from "../db/schema/licenseEvents.js";
 import { notificationService } from "../billing/NotificationService.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
-import { generateLicenseKey } from "../lib/licenseKey.js";
 import { type Currency, grossPlanAmountCents } from "../config/pricing.js";
-import { hasUsablePaidLicenseForCustomer } from "../lib/hasUsablePaidLicense.js";
+import { getActivePaidLicenseTierForCustomer } from "../lib/hasUsablePaidLicense.js";
+import { ensurePaidLicenseAfterSuccessfulPayment } from "../lib/finalizePaidLicenseAfterPayment.js";
 
 // Node-Fetch Alias (damit TypeScript nicht meckert)
 const nodeFetch: any = (globalThis as any).fetch;
@@ -74,6 +73,8 @@ type StartUpgradeResponse = {
     | "customer_not_found"
     | "missing_org"
     | "active_plan_exists"
+    | "already_have_plan"
+    | "downgrade_not_allowed"
     | "internal_error";
   message?: string;
   subscription?: {
@@ -169,46 +170,51 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
         };
       }
 
-      // --- Check: gültige Starter-/Pro-Lizenz? (Subscription allein reicht nicht) ---
-      let hasPaid = false;
-      try {
-        hasPaid = await hasUsablePaidLicenseForCustomer(String(customerId));
-      } catch (err) {
-        app.log.error(
-          { err, customerId },
-          "Failed to check existing usable paid licenses",
-        );
-      }
+      const paidTier = await getActivePaidLicenseTierForCustomer(
+        String(customerId),
+      );
 
-      if (hasPaid) {
+      if (paidTier === plan) {
         reply.code(400);
         return {
           ok: false,
-          reason: "active_plan_exists",
+          reason: "already_have_plan",
           message:
-            "Für dieses Konto existiert bereits eine gültige Starter- oder Pro-Lizenz.",
+            "You already have this plan active. Choose a different plan or manage billing in the portal.",
         };
       }
 
-      // Keine nutzbare Lizenz: verwaiste "active"-Subscriptions bereinigen
-      try {
-        await db
-          .update(subscriptions as any)
-          .set({
-            status: "cancelled",
-            canceledAt: new Date(),
-          } as any)
-          .where(
-            and(
-              eq(subscriptions.customerId as any, customerId as any),
-              eq(subscriptions.status as any, "active"),
-            ),
+      if (paidTier === "pro" && plan === "starter") {
+        reply.code(400);
+        return {
+          ok: false,
+          reason: "downgrade_not_allowed",
+          message:
+            "Downgrading from Pro to Starter is not available in self-service checkout. Please contact support.",
+        };
+      }
+
+      // Keine nutzbare bezahlte Lizenz: verwaiste "active"-Subscriptions bereinigen
+      if (paidTier === null) {
+        try {
+          await db
+            .update(subscriptions as any)
+            .set({
+              status: "cancelled",
+              canceledAt: new Date(),
+            } as any)
+            .where(
+              and(
+                eq(subscriptions.customerId as any, customerId as any),
+                eq(subscriptions.status as any, "active"),
+              ),
+            );
+        } catch (err) {
+          app.log.error(
+            { err, customerId },
+            "Failed to cancel orphan active subscriptions before upgrade",
           );
-      } catch (err) {
-        app.log.error(
-          { err, customerId },
-          "Failed to cancel orphan active subscriptions before upgrade",
-        );
+        }
       }
 
       // --- Aufräumen: alte pending-Subscriptions + offene Invoices schließen ---
@@ -447,97 +453,50 @@ export async function registerPortalUpgradeRoutes(app: FastifyInstance) {
               .where(eq(subscriptions.id as any, sub.id as any));
           }
 
-          // 3) Lizenz anlegen, falls noch keine bezahlte Non-Trial-Lizenz existiert
-          if (inv.customerId && inv.orgId) {
-            const [existingPaidLicense] = await db
+          // 3) Lizenz anlegen / Starter→Pro Upgrade (gemeinsame Logik mit Billing-Capture)
+          let createdLicenseId: string | undefined;
+          if (inv.customerId && inv.orgId && inv.subscriptionId) {
+            createdLicenseId = await ensurePaidLicenseAfterSuccessfulPayment({
+              orgId: String(inv.orgId),
+              customerId: String(inv.customerId),
+              subscriptionId: String(inv.subscriptionId),
+              invoiceId: String(inv.id),
+              source: "portal_payment",
+              orderId: token,
+            });
+          }
+
+          if (createdLicenseId) {
+            const [createdLicense] = await db
               .select()
               .from(licenses)
-              .where(
-                and(
-                  eq(licenses.customerId as any, inv.customerId as any),
-                  ne(licenses.plan as any, "trial"),
-                  eq(licenses.status as any, "active"),
-                ),
-              )
+              .where(eq(licenses.id as any, createdLicenseId as any))
               .limit(1);
 
-            if (!existingPaidLicense) {
-              const now = new Date();
-              const validFrom = now;
-              const validUntil = addMonths(now, 1);
-              const maxDevices =
-                sub && sub.plan === "starter"
-                  ? 1
-                  : sub && sub.plan === "pro"
-                  ? 3
-                  : 1;
+            if (createdLicense) {
+              await notificationService.notifyPayPalPaymentCompleted({
+                orgId: String(inv.orgId),
+                customerId: inv.customerId ? String(inv.customerId) : undefined,
+                invoiceId: String(inv.id),
+                invoiceNumber: inv.number,
+                orderId: token,
+                amountCents: inv.amountCents,
+                currency: inv.currency || "EUR",
+                licenseId: createdLicense.id,
+              });
 
-              const licenseKey = generateLicenseKey("CSTY");
-
-              const [createdLicense] = await db
-                .insert(licenses)
-                .values({
-                  orgId: String(inv.orgId), // Konvertiere zu String, da licenses.orgId als text gespeichert ist
-                  customerId: inv.customerId ? String(inv.customerId) : null,
-                  subscriptionId: inv.subscriptionId ? String(inv.subscriptionId) : null,
-                  plan: sub?.plan ?? "starter",
-                  status: "active",
-                  key: licenseKey,
-                  maxDevices,
-                  validFrom,
-                  validUntil,
-                } as any)
-                .returning();
-
-              // License Event protokollieren
-              if (createdLicense) {
-                await db.insert(licenseEvents).values({
-                  orgId: String(inv.orgId), // Konvertiere zu String für Konsistenz
-                  licenseId: createdLicense.id,
-                  type: "created",
-                  metadata: {
-                    source: "portal_payment",
-                    invoiceId: String(inv.id),
-                    subscriptionId: inv.subscriptionId ? String(inv.subscriptionId) : null,
-                  },
-                });
-
-                // Notification für erfolgreiche Zahlung und Lizenz-Erstellung
-                await notificationService.notifyPayPalPaymentCompleted({
-                  orgId: String(inv.orgId),
-                  customerId: inv.customerId ? String(inv.customerId) : undefined,
-                  invoiceId: String(inv.id),
-                  invoiceNumber: inv.number,
-                  orderId: token, // PayPal orderId
-                  amountCents: inv.amountCents,
-                  currency: inv.currency || "EUR",
-                  licenseId: createdLicense.id,
-                });
-                
-                // Zusätzliche Notification für Lizenz-Erstellung
-                await notificationService.notifyLicenseCreated({
-                  orgId: String(inv.orgId),
-                  customerId: inv.customerId ? String(inv.customerId) : undefined,
-                  licenseId: createdLicense.id,
-                  licenseKey: createdLicense.key,
-                  plan: sub?.plan ?? "starter",
-                  source: "portal_payment",
-                  invoiceId: inv.id ? String(inv.id) : undefined,
-                  subscriptionId: inv.subscriptionId ? String(inv.subscriptionId) : undefined,
-                });
-              }
-
-              // Trial-Lizenz optional auf "revoked" setzen
-              await db
-                .update(licenses as any)
-                .set({ status: "revoked" } as any)
-                .where(
-                  and(
-                    eq(licenses.customerId as any, inv.customerId as any),
-                    eq(licenses.plan as any, "trial"),
-                    eq(licenses.status as any, "active"),
-                  ),
-                );
+              await notificationService.notifyLicenseCreated({
+                orgId: String(inv.orgId),
+                customerId: inv.customerId ? String(inv.customerId) : undefined,
+                licenseId: createdLicense.id,
+                licenseKey: createdLicense.key,
+                plan: sub?.plan ?? "starter",
+                source: "portal_payment",
+                invoiceId: inv.id ? String(inv.id) : undefined,
+                subscriptionId: inv.subscriptionId
+                  ? String(inv.subscriptionId)
+                  : undefined,
+              });
             }
           }
 

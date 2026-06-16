@@ -8,15 +8,22 @@ import { db } from "../db/client.js";
 import { customers } from "../db/schema/customers.js";
 import { subscriptions } from "../db/schema/subscriptions.js";
 import { invoices } from "../db/schema/invoices.js";
-import { licenses } from "../db/schema/licenses.js";
-import { licenseEvents } from "../db/schema/licenseEvents.js";
 import { notificationService } from "../billing/NotificationService.js";
 import { payments } from "../db/schema/payments.js";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { addDays, addMonths } from "date-fns";
-import { generateLicenseKey } from "../lib/licenseKey.js";
+import { ENV } from "../config/env.js";
 import { type Currency, grossPlanAmountCents } from "../config/pricing.js";
-import { hasUsablePaidLicenseForCustomer } from "../lib/hasUsablePaidLicense.js";
+import {
+  getActivePaidLicenseTierForCustomer,
+  getActivePaidSubscriptionPlanPeriodForCustomer,
+} from "../lib/hasUsablePaidLicense.js";
+import {
+  evaluateCheckoutEligibility,
+  type PaidPlanContext,
+} from "../lib/checkoutPlanEligibility.js";
+import { ensurePaidLicenseAfterSuccessfulPayment } from "../lib/finalizePaidLicenseAfterPayment.js";
+import { persistStripeSubscriptionAfterCheckoutSession } from "../lib/persistStripeSubscriptionFromSession.js";
 
 interface PortalJwtPayload {
   customerId: string;
@@ -41,6 +48,30 @@ async function generateInvoiceNumber(): Promise<string> {
     .toString()
     .padStart(6, "0");
   return `INV-${year}-${rand}`;
+}
+
+function normalizePortalBaseUrl(): string {
+  return String(ENV.PORTAL_BASE_URL ?? "").replace(/\/+$/, "");
+}
+
+/**
+ * Only allow return URLs on our configured portal origin (open redirect protection).
+ */
+function resolveBillingPortalReturnUrl(bodyReturnUrl: unknown): string {
+  const base = normalizePortalBaseUrl() || "http://localhost:5173";
+  const fallback = `${base}/portal/plan`;
+  if (typeof bodyReturnUrl !== "string" || !bodyReturnUrl.trim()) {
+    return fallback;
+  }
+  const trimmed = bodyReturnUrl.trim();
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return fallback;
+  }
+  const baseLower = base.toLowerCase();
+  if (!trimmed.toLowerCase().startsWith(baseLower)) {
+    return fallback;
+  }
+  return trimmed;
 }
 
 export async function registerBillingRoutes(app: FastifyInstance) {
@@ -94,35 +125,70 @@ export async function registerBillingRoutes(app: FastifyInstance) {
       const period = body.planId.includes("yearly") ? "yearly" : "monthly";
       const currency = (body.currency ?? "EUR") as Currency;
 
-      // Block only when there is a still-valid paid license (Starter/Pro).
-      // A stale "active" subscription row without a usable license must not block checkout.
-      const hasPaid = await hasUsablePaidLicenseForCustomer(
+      const paidTier = await getActivePaidLicenseTierForCustomer(
         String(payload.customerId),
       );
-      if (hasPaid) {
+
+      const subPlanPeriod =
+        await getActivePaidSubscriptionPlanPeriodForCustomer(
+          String(payload.customerId),
+        );
+
+      const activeCheckout: PaidPlanContext | null = subPlanPeriod
+        ? { tier: subPlanPeriod.tier, period: subPlanPeriod.period }
+        : paidTier
+          ? { tier: paidTier, period: null }
+          : null;
+
+      const eligibility = evaluateCheckoutEligibility(
+        activeCheckout,
+        plan,
+        period,
+      );
+
+      if (!eligibility.ok) {
         reply.code(400);
+        if (eligibility.code === "downgrade_not_allowed") {
+          return {
+            ok: false,
+            error: "downgrade_not_allowed",
+            message:
+              "Downgrading from Pro to Starter is not available in self-service checkout. Please contact support.",
+          };
+        }
+        if (eligibility.code === "interval_downgrade_not_allowed") {
+          return {
+            ok: false,
+            error: "interval_downgrade_not_allowed",
+            message:
+              "Switching from yearly to monthly billing is not available in checkout. Please use the billing portal or contact support.",
+          };
+        }
         return {
           ok: false,
-          error: "active_subscription_exists",
+          error: "already_have_plan",
           message:
-            "Für dieses Konto existiert bereits eine gültige Starter- oder Pro-Lizenz.",
+            "You already have this plan and billing interval. Choose yearly to switch billing, upgrade tier, or manage billing in the portal.",
         };
       }
 
       // No usable paid license: clear orphan "active" subscription rows (e.g. licenses
       // removed in admin while subscriptions stayed active). Prevents duplicate active subs.
-      await db
-        .update(subscriptions as any)
-        .set({
-          status: "cancelled",
-          canceledAt: new Date(),
-        } as any)
-        .where(
-          and(
-            eq(subscriptions.customerId as any, payload.customerId),
-            eq(subscriptions.status as any, "active"),
-          ),
-        );
+      // Skip when upgrading Starter → Pro so the existing Starter subscription stays active until payment completes.
+      if (paidTier === null) {
+        await db
+          .update(subscriptions as any)
+          .set({
+            status: "cancelled",
+            canceledAt: new Date(),
+          } as any)
+          .where(
+            and(
+              eq(subscriptions.customerId as any, payload.customerId),
+              eq(subscriptions.status as any, "active"),
+            ),
+          );
+      }
 
       // Cleanup pending subscriptions
       await db
@@ -230,6 +296,106 @@ export async function registerBillingRoutes(app: FastifyInstance) {
     }
   });
 
+  // POST /api/billing/portal — Stripe Customer Billing Portal (manage card, cancel, invoices)
+  app.post<{
+    Body: { returnUrl?: string };
+  }>("/api/billing/portal", async (request, reply) => {
+    let payload: PortalJwtPayload;
+
+    try {
+      payload = getPortalAuth(request);
+    } catch (err) {
+      app.log.warn({ err }, "billing/portal: invalid portal token");
+      reply.code(401);
+      return {
+        ok: false,
+        error: "unauthorized",
+        message: "Invalid or missing portal token",
+      };
+    }
+
+    const [customerRow] = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.id as any, payload.customerId))
+      .limit(1);
+
+    if (!customerRow) {
+      reply.code(404);
+      return {
+        ok: false,
+        error: "not_found",
+        message: "Customer not found.",
+      };
+    }
+
+    const stripeCustomerId = customerRow.stripeCustomerId?.trim();
+    if (!stripeCustomerId) {
+      reply.code(400);
+      return {
+        ok: false,
+        error: "no_stripe_customer",
+        message: "No Stripe customer found for this account.",
+      };
+    }
+
+    const secretKey =
+      stripeProvider.env === "live"
+        ? ENV.STRIPE_SECRET_KEY_LIVE
+        : ENV.STRIPE_SECRET_KEY_TEST;
+
+    if (!secretKey) {
+      reply.code(500);
+      return {
+        ok: false,
+        error: "stripe_not_configured",
+        message: "Stripe is not configured.",
+      };
+    }
+
+    const returnUrl = resolveBillingPortalReturnUrl(request.body?.returnUrl);
+
+    const params = new URLSearchParams({
+      customer: stripeCustomerId,
+      return_url: returnUrl,
+    });
+
+    const sessionRes = await fetch("https://api.stripe.com/v1/billing_portal/sessions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params.toString(),
+    });
+
+    if (!sessionRes.ok) {
+      const errText = await sessionRes.text();
+      app.log.error(
+        { status: sessionRes.status, errText },
+        "billing/portal: Stripe billing portal session failed",
+      );
+      reply.code(502);
+      return {
+        ok: false,
+        error: "portal_session_failed",
+        message: "Could not open billing portal.",
+      };
+    }
+
+    const sessionJson = (await sessionRes.json()) as { url?: string };
+    if (!sessionJson?.url) {
+      reply.code(502);
+      return {
+        ok: false,
+        error: "portal_no_url",
+        message: "Stripe returned no portal URL.",
+      };
+    }
+
+    return { ok: true, url: sessionJson.url };
+  });
+
   // POST /api/billing/capture - Handle PayPal/Stripe return after payment
   app.post<{
     Body: {
@@ -270,6 +436,7 @@ export async function registerBillingRoutes(app: FastifyInstance) {
     try {
       let finalInvoiceId: string | undefined = invoiceId;
       let paymentId: string;
+      let stripeCheckoutSession: { customer?: unknown; subscription?: unknown } | undefined;
 
       if (actualProvider === "stripe") {
         if (!sessionId) {
@@ -295,6 +462,7 @@ export async function registerBillingRoutes(app: FastifyInstance) {
         }
 
         const session = await sessionRes.json();
+        stripeCheckoutSession = session;
 
         // Check if session is complete
         if (session.payment_status !== "paid" && session.status !== "complete") {
@@ -372,6 +540,15 @@ export async function registerBillingRoutes(app: FastifyInstance) {
         };
       }
 
+      if (actualProvider === "stripe" && stripeCheckoutSession) {
+        await persistStripeSubscriptionAfterCheckoutSession({
+          portalCustomerId: inv.customerId,
+          internalSubscriptionId: inv.subscriptionId,
+          session: stripeCheckoutSession,
+          providerEnv: stripeProvider.env,
+        });
+      }
+
       // Update invoice to paid
       // Bei bezahlten Rechnungen: dueDate auf null setzen (nicht mehr relevant)
       await db
@@ -414,65 +591,16 @@ export async function registerBillingRoutes(app: FastifyInstance) {
             amountGrossCents: inv.amountCents,
           } as any);
 
-          // Create license if none exists
-          if (inv.customerId && inv.orgId) {
-            const [existingPaidLicense] = await db
-              .select()
-              .from(licenses)
-              .where(
-                and(
-                  eq(licenses.customerId as any, inv.customerId),
-                  ne(licenses.plan as any, "trial"),
-                  eq(licenses.status as any, "active"),
-                ),
-              )
-              .limit(1);
-
-            if (!existingPaidLicense) {
-              const now = new Date();
-              const maxDevices = sub.plan === "starter" ? 1 : sub.plan === "pro" ? 3 : 1;
-              const licenseKey = generateLicenseKey("CSTY");
-
-              const [createdLicense] = await db
-                .insert(licenses)
-                .values({
-                  orgId: String(inv.orgId),
-                  customerId: String(inv.customerId),
-                  subscriptionId: String(inv.subscriptionId),
-                  plan: sub.plan,
-                  status: "active",
-                  key: licenseKey,
-                  maxDevices,
-                  validFrom: now,
-                  validUntil: sub.currentPeriodEnd || addMonths(now, 1),
-                } as any)
-                .returning();
-
-              if (createdLicense) {
-                await db.insert(licenseEvents).values({
-                  orgId: String(inv.orgId),
-                  licenseId: createdLicense.id,
-                  type: "created",
-                  metadata: {
-                    source: "portal_payment",
-                    invoiceId: String(inv.id),
-                    subscriptionId: String(inv.subscriptionId),
-                  },
-                });
-
-                // Revoke trial licenses
-                await db
-                  .update(licenses as any)
-                  .set({ status: "revoked" } as any)
-                  .where(
-                    and(
-                      eq(licenses.customerId as any, inv.customerId),
-                      eq(licenses.plan as any, "trial"),
-                      eq(licenses.status as any, "active"),
-                    ),
-                  );
-              }
-            }
+          if (inv.customerId && inv.orgId && inv.subscriptionId) {
+            await ensurePaidLicenseAfterSuccessfulPayment({
+              orgId: String(inv.orgId),
+              customerId: String(inv.customerId),
+              subscriptionId: String(inv.subscriptionId),
+              invoiceId: String(inv.id),
+              source: "portal_payment",
+              sessionId: actualProvider === "stripe" ? paymentId : undefined,
+              orderId: actualProvider === "paypal" ? paymentId : undefined,
+            });
           }
         }
       }

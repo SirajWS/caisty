@@ -4,15 +4,22 @@ import { Link } from "react-router-dom";
 import {
   createTrialLicense,
   fetchPortalLicenses,
+  fetchPortalMe,
+  createStripeBillingPortalSession,
   type PortalLicense,
 } from "../lib/portalApi";
 import { usePortalOutlet } from "./PortalLayout";
-import { PRICING, TRIAL_DAYS } from "../config/pricing";
+import { PRICING, TRIAL_DAYS, CURRENCY_SYMBOLS } from "../config/pricing";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
 import { portalLocaleTag } from "../lib/portalLocale";
-import { pickPrimaryPortalLicense } from "../lib/portalLicensePick";
+import { pickPrimaryPortalLicense, getActivePaidPlanTier } from "../lib/portalLicensePick";
+import { useCurrency } from "../lib/useCurrency";
+import {
+  evaluateCheckoutEligibility,
+  type PaidPlanContext,
+} from "../lib/checkoutPlanEligibility";
 import {
   portalCardShell,
   portalLicenseStatusBadge,
@@ -21,13 +28,18 @@ import {
   portalTextLink,
 } from "../lib/portalUi";
 
+type BillingPeriod = "monthly" | "yearly";
+
 const PortalPlanBillingPage: React.FC = () => {
-  const { customer } = usePortalOutlet();
+  const { customer, setCustomer } = usePortalOutlet();
   const { language } = useLanguage();
   const t = getPortalTranslations(language);
   const locale = portalLocaleTag(language);
   const { theme } = useTheme();
   const isLight = theme === "light";
+
+  const { currency } = useCurrency();
+  const [billingPeriod, setBillingPeriod] = React.useState<BillingPeriod>("monthly");
 
   const [licenses, setLicenses] = React.useState<PortalLicense[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -36,10 +48,12 @@ const PortalPlanBillingPage: React.FC = () => {
     null,
   );
   const [error, setError] = React.useState<string | null>(null);
+  const [busyBillingPortal, setBusyBillingPortal] = React.useState(false);
 
-  const starterPrice = PRICING["EUR"].starter.monthly;
-  const proPrice = PRICING["EUR"].pro.monthly;
-  const currencySymbol = "€";
+  const priceDecimals = billingPeriod === "yearly" ? 0 : 2;
+  const starterPrice = PRICING[currency].starter[billingPeriod];
+  const proPrice = PRICING[currency].pro[billingPeriod];
+  const currencySymbol = CURRENCY_SYMBOLS[currency];
 
   function formatDate(value: string | null | undefined): string {
     if (!value) return t.labels.dash;
@@ -71,8 +85,25 @@ const PortalPlanBillingPage: React.FC = () => {
     };
   }, [language]);
 
+  React.useEffect(() => {
+    let cancelled = false;
+    fetchPortalMe()
+      .then((me) => {
+        if (!cancelled && me) setCustomer(me);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [setCustomer]);
+
   const primaryLicense: PortalLicense | null = React.useMemo(
     () => pickPrimaryPortalLicense(licenses),
+    [licenses],
+  );
+
+  const activePaidPlan = React.useMemo(
+    () => getActivePaidPlanTier(licenses),
     [licenses],
   );
 
@@ -80,6 +111,72 @@ const PortalPlanBillingPage: React.FC = () => {
     () => licenses.some((l) => l.plan === "trial"),
     [licenses],
   );
+
+  const paidPeriod = customer.paidBillingPeriod ?? null;
+
+  const activeCheckoutCtx = React.useMemo<PaidPlanContext | null>(
+    () => (activePaidPlan ? { tier: activePaidPlan, period: paidPeriod } : null),
+    [activePaidPlan, paidPeriod],
+  );
+
+  const starterCheckoutElig = React.useMemo(
+    () => evaluateCheckoutEligibility(activeCheckoutCtx, "starter", billingPeriod),
+    [activeCheckoutCtx, billingPeriod],
+  );
+
+  const proCheckoutElig = React.useMemo(
+    () => evaluateCheckoutEligibility(activeCheckoutCtx, "pro", billingPeriod),
+    [activeCheckoutCtx, billingPeriod],
+  );
+
+  const proBlockedYearlyStarterRule =
+    activeCheckoutCtx?.tier === "starter" &&
+    activeCheckoutCtx.period === "yearly" &&
+    billingPeriod === "monthly";
+
+  const starterPlanDisabled = loading || !starterCheckoutElig.ok;
+  const proPlanDisabled =
+    loading || !proCheckoutElig.ok || proBlockedYearlyStarterRule;
+
+  function starterPlanCtaText(): string {
+    if (busyPlan === "starter") return t.plan.starterBtnBusy;
+    if (!starterCheckoutElig.ok) {
+      if (starterCheckoutElig.code === "already_have_plan")
+        return t.plan.planCtaCurrent;
+      if (starterCheckoutElig.code === "interval_downgrade_not_allowed")
+        return t.plan.planCtaYearlyBillingOnly;
+      return t.plan.planCtaDowngradeNotAvailable;
+    }
+    if (
+      activeCheckoutCtx?.tier === "starter" &&
+      activeCheckoutCtx.period === "monthly" &&
+      billingPeriod === "yearly"
+    ) {
+      return t.plan.planCtaSwitchToYearly;
+    }
+    return t.plan.planCtaChoose;
+  }
+
+  function proPlanCtaText(): string {
+    if (busyPlan === "pro") return t.plan.starterBtnBusy;
+    if (proBlockedYearlyStarterRule) return t.plan.planCtaProYearlyOnly;
+    if (!proCheckoutElig.ok) {
+      if (proCheckoutElig.code === "already_have_plan")
+        return t.plan.planCtaCurrent;
+      if (proCheckoutElig.code === "interval_downgrade_not_allowed")
+        return t.plan.planCtaYearlyBillingOnly;
+      return t.plan.planCtaDowngradeNotAvailable;
+    }
+    if (activeCheckoutCtx?.tier === "starter") return t.plan.planCtaUpgradePro;
+    if (
+      activeCheckoutCtx?.tier === "pro" &&
+      activeCheckoutCtx.period === "monthly" &&
+      billingPeriod === "yearly"
+    ) {
+      return t.plan.planCtaSwitchToYearly;
+    }
+    return t.plan.planCtaChoose;
+  }
 
   async function handleCreateTrial() {
     try {
@@ -97,11 +194,33 @@ const PortalPlanBillingPage: React.FC = () => {
     }
   }
 
+  async function handleManageSubscription() {
+    try {
+      setError(null);
+      setBusyBillingPortal(true);
+      const portalBase =
+        import.meta.env.DEV
+          ? "http://localhost:5173"
+          : import.meta.env.VITE_PORTAL_BASE_URL || window.location.origin;
+      const returnUrl = `${String(portalBase).replace(/\/+$/, "")}/portal/plan`;
+      const url = await createStripeBillingPortalSession(returnUrl);
+      window.location.href = url;
+    } catch (err: unknown) {
+      console.error("billing portal failed", err);
+      setError(
+        err instanceof Error ? err.message : t.plan.billingPortalError,
+      );
+    } finally {
+      setBusyBillingPortal(false);
+    }
+  }
+
   async function handleUpgradePlan(plan: "starter" | "pro") {
     try {
       setError(null);
       setBusyPlan(plan);
-      window.location.href = `/portal/checkout?plan=${plan}`;
+      const planId = `${plan}_${billingPeriod}`;
+      window.location.href = `/portal/checkout?plan=${encodeURIComponent(planId)}`;
     } catch (err: unknown) {
       console.error("upgrade failed", err);
       setError(
@@ -178,6 +297,17 @@ const PortalPlanBillingPage: React.FC = () => {
               <div className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                 {t.labels.validUntil}: {formatDate(primaryLicense.validUntil)}
               </div>
+              {paidPeriod &&
+                (primaryLicense.plan === "starter" ||
+                  primaryLicense.plan === "pro") && (
+                  <div
+                    className={`text-[11px] font-medium ${isLight ? "text-slate-600" : "text-slate-400"}`}
+                  >
+                    {paidPeriod === "yearly"
+                      ? t.plan.billingYearlyActive
+                      : t.plan.billingMonthlyActive}
+                  </div>
+                )}
             </>
           )}
         </div>
@@ -199,10 +329,95 @@ const PortalPlanBillingPage: React.FC = () => {
         </div>
       </section>
 
+      {customer.stripeBillingPortalEligible && (
+        <section className={`${portalCardShell(isLight)} px-4 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between`}>
+          <div className="space-y-1">
+            <div className={`text-xs font-semibold tracking-wide uppercase ${isLight ? "text-orange-600" : "text-orange-400"}`}>
+              {t.plan.subscriptionSectionTitle}
+            </div>
+            <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+              {t.plan.subscriptionSectionBody}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleManageSubscription}
+            disabled={busyBillingPortal}
+            className={`shrink-0 inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
+              busyBillingPortal ? portalSecondaryCta(isLight) : portalPrimaryCta()
+            }`}
+          >
+            {busyBillingPortal
+              ? t.plan.manageSubscriptionBusy
+              : t.plan.manageSubscription}
+          </button>
+        </section>
+      )}
+
       <section className="space-y-6">
         <h2 className={`text-sm font-semibold tracking-tight ${isLight ? "text-slate-900" : "text-slate-100"}`}>
           {t.plan.sectionTitle}
         </h2>
+        {activePaidPlan && (
+          <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+            {t.plan.overviewPaidPlanLine.replace(
+              "{{plan}}",
+              activePaidPlan === "starter" ? "Starter" : "Pro",
+            )}
+          </p>
+        )}
+
+        <div
+          className={`flex flex-col gap-3 rounded-xl border px-3 py-3 sm:flex-row sm:items-center sm:justify-between ${
+            isLight ? "border-slate-200 bg-slate-50" : "border-slate-700 bg-slate-900/35"
+          }`}
+          role="group"
+          aria-label={t.plan.billingIntervalLabel}
+        >
+          <span
+            className={`text-xs font-semibold tracking-wide uppercase ${isLight ? "text-slate-600" : "text-slate-400"}`}
+          >
+            {t.plan.billingIntervalLabel}
+          </span>
+          <div
+            className={`inline-flex self-start rounded-full p-0.5 sm:self-auto ${
+              isLight ? "bg-slate-200/80" : "bg-slate-800/80"
+            }`}
+          >
+            <button
+              type="button"
+              aria-pressed={billingPeriod === "monthly"}
+              onClick={() => setBillingPeriod("monthly")}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                billingPeriod === "monthly"
+                  ? isLight
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "bg-orange-500 text-white"
+                  : isLight
+                    ? "text-slate-600 hover:text-slate-900"
+                    : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {t.labels.monthly}
+            </button>
+            <button
+              type="button"
+              aria-pressed={billingPeriod === "yearly"}
+              onClick={() => setBillingPeriod("yearly")}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                billingPeriod === "yearly"
+                  ? isLight
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "bg-orange-500 text-white"
+                  : isLight
+                    ? "text-slate-600 hover:text-slate-900"
+                    : "text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {t.labels.yearly}
+            </button>
+          </div>
+        </div>
 
         <div className="grid gap-5 md:grid-cols-3">
           <div className={`flex flex-col justify-between ${portalCardShell(isLight)}`}>
@@ -275,25 +490,29 @@ const PortalPlanBillingPage: React.FC = () => {
                     isLight ? "text-orange-600" : "text-orange-400"
                   }`}
                 >
-                  {starterPrice.toFixed(2)}
+                  {starterPrice.toFixed(priceDecimals)}
                 </span>
                 <span className={`text-sm font-semibold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
                   {currencySymbol}
                 </span>
               </div>
-              <div className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>{t.labels.perMonth}</div>
+              <div className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                {billingPeriod === "yearly" ? t.labels.perYear : t.labels.perMonth}
+              </div>
             </div>
 
             <div className="mt-4">
               <button
                 type="button"
                 onClick={() => handleUpgradePlan("starter")}
-                disabled={busyPlan === "starter"}
-                className={`w-full ${portalPrimaryCta()}`}
+                disabled={busyPlan === "starter" || starterPlanDisabled}
+                className={`w-full ${
+                  busyPlan === "starter" || starterPlanDisabled
+                    ? portalSecondaryCta(isLight)
+                    : portalPrimaryCta()
+                }`}
               >
-                {busyPlan === "starter"
-                  ? t.plan.starterBtnBusy
-                  : t.plan.starterBtn}
+                {starterPlanCtaText()}
               </button>
               <p className={`mt-2 text-[11px] ${isLight ? "text-slate-500" : "text-slate-500"}`}>
                 {t.plan.purchaseHint}
@@ -315,25 +534,29 @@ const PortalPlanBillingPage: React.FC = () => {
                     isLight ? "text-orange-600" : "text-orange-400"
                   }`}
                 >
-                  {proPrice.toFixed(2)}
+                  {proPrice.toFixed(priceDecimals)}
                 </span>
                 <span className={`text-sm font-semibold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
                   {currencySymbol}
                 </span>
               </div>
-              <div className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>{t.labels.perMonth}</div>
+              <div className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                {billingPeriod === "yearly" ? t.labels.perYear : t.labels.perMonth}
+              </div>
             </div>
 
             <div className="mt-4">
               <button
                 type="button"
                 onClick={() => handleUpgradePlan("pro")}
-                disabled={busyPlan === "pro"}
-                className={`w-full ${portalPrimaryCta()}`}
+                disabled={busyPlan === "pro" || proPlanDisabled}
+                className={`w-full ${
+                  busyPlan === "pro" || proPlanDisabled
+                    ? portalSecondaryCta(isLight)
+                    : portalPrimaryCta()
+                }`}
               >
-                {busyPlan === "pro"
-                  ? t.plan.starterBtnBusy
-                  : t.plan.starterBtn}
+                {proPlanCtaText()}
               </button>
               <p className={`mt-2 text-[11px] ${isLight ? "text-slate-500" : "text-slate-500"}`}>
                 {t.plan.purchaseHint}

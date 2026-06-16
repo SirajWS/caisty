@@ -25,7 +25,9 @@ export const portalEn = {
     amount: "Amount",
     dash: "—",
     monthly: "Monthly",
+    yearly: "Yearly",
     perMonth: "per month",
+    perYear: "per year",
     recommended: "Recommended",
     subtotal: "Subtotal",
     vat19: "VAT (19%)",
@@ -117,6 +119,7 @@ export const portalEn = {
     paymentNote:
       "Payment for Starter/Pro will be available directly in the portal later.",
     sectionTitle: "Plans & licenses overview",
+    billingIntervalLabel: "Billing interval",
     trialTitle: "Trial",
     trialDesc:
       "Try on site without payment details. Same features as Starter (1 device), time-limited.",
@@ -130,6 +133,24 @@ export const portalEn = {
       "Ideal for one branch or location. License management in the portal, basic stats & export basics.",
     starterBtnBusy: "Redirecting to PayPal…",
     starterBtn: "Choose plan",
+    planCtaChoose: "Choose plan",
+    planCtaCurrent: "Current plan",
+    planCtaSwitchToYearly: "Switch to yearly billing",
+    billingYearlyActive: "Yearly billing active",
+    billingMonthlyActive: "Monthly billing active",
+    planCtaDowngradeNotAvailable: "Downgrade is currently not available",
+    planCtaYearlyBillingOnly: "Select “Yearly” above — yearly billing is already active on your account.",
+    planCtaUpgradePro: "Upgrade to Pro",
+    planCtaProYearlyOnly:
+      "Your Starter plan is billed yearly — switch to “Yearly” above to upgrade to Pro.",
+    planCtaStarterLocked: "Not available",
+    overviewPaidPlanLine: "Your current paid plan: {{plan}}",
+    subscriptionSectionTitle: "Subscription",
+    subscriptionSectionBody:
+      "Update your payment method, download invoices, or cancel your plan in Stripe’s secure billing portal.",
+    manageSubscription: "Manage subscription",
+    manageSubscriptionBusy: "Opening…",
+    billingPortalError: "Could not open billing portal.",
     purchaseHint:
       "Self-service purchase here in the portal. Billing via PayPal sandbox for tests.",
     proDesc:
@@ -299,6 +320,7 @@ export const portalEn = {
     backLink: "← Back",
     yourOrder: "Your order",
     monthlyBadge: "Monthly",
+    yearlyBadge: "Yearly",
     subtotal: "Subtotal",
     total: "Total",
     paymentMethod: "Payment method",
@@ -316,6 +338,15 @@ export const portalEn = {
     termsLink: "Terms",
     privacyLink: "Privacy policy",
     termsSuffix: ".",
+    alreadyHavePlan:
+      "You already have this plan active. Please pick a different option on Plan & billing.",
+    downgradeNotAvailable:
+      "Downgrading from Pro to Starter is not available in self-service checkout. Please contact support.",
+    upgradeProYearlyOnly:
+      "Your Starter subscription is yearly. Choose “Yearly” on Plan & billing, then upgrade to Pro (or pick Pro yearly here).",
+    intervalDowngradeNotAllowed:
+      "Switching from yearly to monthly billing is not available in checkout. Use the billing portal or contact support.",
+    backToPlans: "Back to Plan & billing",
   },
   checkoutSuccess: {
     missingToken: "Missing payment token. Please contact support.",
