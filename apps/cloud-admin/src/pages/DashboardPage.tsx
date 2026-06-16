@@ -45,15 +45,30 @@ export default function DashboardPage() {
       setError(null);
       setLoadingStats(true);
 
+      // /health is public. Do not bundle it with authenticated list calls — if e.g. DB
+      // schema lags (missing column), Promise.all made it look like "health failed".
+      try {
+        const healthRes = await apiGet<HealthResponse>("/health");
+        setHealth(healthRes);
+      } catch (healthErr) {
+        console.error(healthErr);
+        setHealth(null);
+        setStats(null);
+        setError(
+          healthErr instanceof Error
+            ? healthErr.message
+            : "API nicht erreichbar (Health-Check). Läuft cloud-api auf Port 3333?",
+        );
+        return;
+      }
+
       const [
-        healthRes,
         customersRes,
         subscriptionsRes,
         invoicesRes,
         devicesRes,
         notificationsRes,
       ] = await Promise.all([
-        apiGet<HealthResponse>("/health"),
         apiGet<ListResponse<Customer>>("/customers?limit=1000&offset=0"),
         apiGet<ListResponse<Subscription>>(
           "/subscriptions?limit=1000&offset=0",
@@ -63,89 +78,88 @@ export default function DashboardPage() {
         apiGet<ListResponse<Notification>>("/admin/notifications?limit=1000&offset=0"),
       ]);
 
-        setHealth(healthRes);
+      const customerItems = customersRes.items ?? [];
+      const customersTotal =
+        typeof customersRes.total === "number"
+          ? customersRes.total
+          : customerItems.length;
 
-        const customerItems = customersRes.items ?? [];
-        const customersTotal =
-          typeof customersRes.total === "number"
-            ? customersRes.total
-            : customerItems.length;
+      const customersActive = customerItems.filter((c) => {
+        const status = (c.status ?? "").toLowerCase();
+        return status === "active";
+      }).length;
 
-        const customersActive = customerItems.filter((c) => {
-          const status = (c.status ?? "").toLowerCase();
-          return status === "active";
-        }).length;
+      const subscriptionsItems = subscriptionsRes.items ?? [];
+      const subscriptionsTotal =
+        typeof subscriptionsRes.total === "number"
+          ? subscriptionsRes.total
+          : subscriptionsItems.length;
 
-        const subscriptionsItems = subscriptionsRes.items ?? [];
-        const subscriptionsTotal =
-          typeof subscriptionsRes.total === "number"
-            ? subscriptionsRes.total
-            : subscriptionsItems.length;
+      const subscriptionsActive = subscriptionsItems.filter(
+        (s) => (s.status ?? "").toLowerCase() === "active",
+      ).length;
 
-        const subscriptionsActive = subscriptionsItems.filter(
-          (s) => (s.status ?? "").toLowerCase() === "active",
-        ).length;
+      const invoiceItems = invoicesRes.items ?? [];
+      const invoicesTotal =
+        typeof invoicesRes.total === "number"
+          ? invoicesRes.total
+          : invoiceItems.length;
 
-        const invoiceItems = invoicesRes.items ?? [];
-        const invoicesTotal =
-          typeof invoicesRes.total === "number"
-            ? invoicesRes.total
-            : invoiceItems.length;
+      const invoicesPaid = invoiceItems.filter(
+        (inv) => (inv.status ?? "").toLowerCase() === "paid"
+      ).length;
+      const invoicesOpen = invoiceItems.filter(
+        (inv) => (inv.status ?? "").toLowerCase() === "open"
+      ).length;
+      const invoicesCancelled = invoiceItems.filter((inv) =>
+        ["cancelled", "canceled"].includes((inv.status ?? "").toLowerCase())
+      ).length;
 
-        // Rechnungen nach Status filtern
-        const invoicesPaid = invoiceItems.filter(
-          (inv) => (inv.status ?? "").toLowerCase() === "paid"
-        ).length;
-        const invoicesOpen = invoiceItems.filter(
-          (inv) => (inv.status ?? "").toLowerCase() === "open"
-        ).length;
-        const invoicesCancelled = invoiceItems.filter((inv) =>
-          ["cancelled", "canceled"].includes((inv.status ?? "").toLowerCase())
-        ).length;
+      const paidInvoices = invoiceItems.filter(
+        (inv) => (inv.status ?? "").toLowerCase() === "paid"
+      );
+      const revenueTotal = paidInvoices.reduce(
+        (sum, inv) => sum + (inv.amountCents ?? 0),
+        0
+      );
+      const revenueCurrency = paidInvoices[0]?.currency ?? "EUR";
 
-        // Umsatz berechnen (Summe aller bezahlten Rechnungen)
-        const paidInvoices = invoiceItems.filter(
-          (inv) => (inv.status ?? "").toLowerCase() === "paid"
-        );
-        const revenueTotal = paidInvoices.reduce(
-          (sum, inv) => sum + (inv.amountCents ?? 0),
-          0
-        );
-        const revenueCurrency = paidInvoices[0]?.currency ?? "EUR";
+      const deviceItems = devicesRes.items ?? [];
+      const hardwareIds = new Set<string>();
+      for (const dev of deviceItems) {
+        const key = dev.fingerprint || dev.id;
+        hardwareIds.add(key);
+      }
+      const devicesTotal = hardwareIds.size;
 
-        // Devices nach Hardware-ID (Fingerprint / id) zählen
-        const deviceItems = devicesRes.items ?? [];
-        const hardwareIds = new Set<string>();
-        for (const dev of deviceItems) {
-          const key = dev.fingerprint || dev.id;
-          hardwareIds.add(key);
-        }
-        const devicesTotal = hardwareIds.size;
+      const notificationItems = notificationsRes.items ?? [];
+      const notificationsUnread = notificationItems.filter(
+        (n) => !n.isRead
+      ).length;
 
-        // Ungelesene Notifications
-        const notificationItems = notificationsRes.items ?? [];
-        const notificationsUnread = notificationItems.filter(
-          (n) => !n.isRead
-        ).length;
-
-        setStats({
-          customersTotal,
-          customersActive,
-          subscriptionsTotal,
-          subscriptionsActive,
-          invoicesTotal,
-          invoicesPaid,
-          invoicesOpen,
-          invoicesCancelled,
-          revenueTotal,
-          revenueCurrency,
-          devicesTotal,
-          notificationsUnread,
-        });
+      setStats({
+        customersTotal,
+        customersActive,
+        subscriptionsTotal,
+        subscriptionsActive,
+        invoicesTotal,
+        invoicesPaid,
+        invoicesOpen,
+        invoicesCancelled,
+        revenueTotal,
+        revenueCurrency,
+        devicesTotal,
+        notificationsUnread,
+      });
       setLastRefresh(new Date());
     } catch (err) {
       console.error(err);
-      setError("Health- oder Statistik-Request fehlgeschlagen.");
+      setStats(null);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Statistik konnte nicht geladen werden.",
+      );
     } finally {
       setLoadingStats(false);
     }

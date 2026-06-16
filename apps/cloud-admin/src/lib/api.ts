@@ -92,8 +92,9 @@ async function request<T>(
       const ct = res.headers.get("content-type") ?? "";
       if (ct.includes("application/json")) {
         const data = (await res.json()) as ApiErrorShape;
-        if (data.error || data.message) {
-          message = data.error || data.message || message;
+        if (data.message || data.error) {
+          // Prefer server `message` (often Postgres detail); `error` is often a short code.
+          message = data.message || data.error || message;
         }
       }
     } catch {
