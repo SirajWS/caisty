@@ -6,6 +6,7 @@ import type {
   WebhookHandleResult,
 } from "../../types.js";
 import { getStripePriceId } from "../../../config/stripePrices.js";
+import { resolveStripeEuVat19TaxRateId } from "../../../config/stripeTaxRates.js";
 import { ENV } from "../../../config/env.js";
 
 export class StripeProvider implements PaymentProvider {
@@ -67,6 +68,19 @@ export class StripeProvider implements PaymentProvider {
     // Add line_items as array format (Stripe requirement for URLSearchParams)
     params.append("line_items[0][price]", stripePriceId);
     params.append("line_items[0][quantity]", "1");
+
+    // 19 % USt. on top of net catalog prices (Stripe Prices stay net/exclusive)
+    if (currency === "EUR") {
+      const taxRateId = await resolveStripeEuVat19TaxRateId(this.secretKey);
+      if (taxRateId) {
+        params.append("line_items[0][tax_rates][0]", taxRateId);
+        params.append("subscription_data[default_tax_rates][0]", taxRateId);
+      } else {
+        console.warn(
+          "⚠️ Stripe DE VAT 19% tax rate not configured — checkout will charge net only.",
+        );
+      }
+    }
 
     // Add metadata as flat key/value pairs (Stripe requirement)
     if (req.planId) params.append("metadata[planId]", String(req.planId));

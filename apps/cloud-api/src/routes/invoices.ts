@@ -234,7 +234,28 @@ export async function registerInvoicesRoutes(app: FastifyInstance) {
       }
 
       const { renderInvoiceHtml } = await import("../invoices/renderInvoiceHtml.js");
-      const html = renderInvoiceHtml(invoiceData);
+
+      let subscriptionPlan: string | null = null;
+      let subscriptionBillingPeriod: "monthly" | "yearly" | null = null;
+      const subId = invoiceData.invoice.subscriptionId;
+      if (subId) {
+        const { subscriptions } = await import("../db/schema/subscriptions.js");
+        const [subRow] = await db
+          .select({ plan: subscriptions.plan, billingPeriod: subscriptions.billingPeriod })
+          .from(subscriptions)
+          .where(eq(subscriptions.id, subId))
+          .limit(1);
+        subscriptionPlan = subRow?.plan ? String(subRow.plan) : null;
+        subscriptionBillingPeriod =
+          subRow?.billingPeriod === "monthly" || subRow?.billingPeriod === "yearly"
+            ? subRow.billingPeriod
+            : null;
+      }
+
+      const html = renderInvoiceHtml(invoiceData, {
+        subscriptionPlan,
+        subscriptionBillingPeriod,
+      });
 
       reply.type("text/html").send(html);
     },

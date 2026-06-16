@@ -12,6 +12,8 @@ import {
   persistStripeSubscriptionAfterCheckoutSession,
   invoiceProviderEnvToStripeEnv,
 } from "../lib/persistStripeSubscriptionFromSession.js";
+import { syncPaidInvoiceFromStripeCheckoutSession, syncPaidInvoiceFromStripeInvoice } from "../lib/syncPaidInvoiceFromStripe.js";
+import { parseBillingPeriodFromPlanId } from "../lib/billingPeriod.js";
 
 export interface ProcessedWebhookResult {
   success: boolean;
@@ -383,25 +385,22 @@ export class WebhookProcessor {
       providerEnv: invoiceProviderEnvToStripeEnv(inv.providerEnv),
     });
 
-    // Wenn bereits bezahlt, nichts tun (idempotent)
+    await syncPaidInvoiceFromStripeCheckoutSession({
+      invoiceId: String(invoiceId),
+      subscriptionId: inv.subscriptionId,
+      session: session as Record<string, unknown>,
+      providerRef: sessionId,
+      markPaid: inv.status !== "paid",
+    });
+
+    // Wenn bereits bezahlt, Beträge trotzdem von Stripe nachziehen (Legacy-Preise)
     if (inv.status === "paid") {
       return {
         success: true,
-        message: `Invoice ${invoiceId} already paid`,
+        message: `Invoice ${invoiceId} already paid (amounts synced from Stripe)`,
         updatedInvoiceId: invoiceId,
       };
     }
-
-    // Invoice auf "paid" setzen
-    await db
-      .update(invoices as any)
-      .set({
-        status: "paid",
-        paidAt: new Date(),
-        dueAt: null,
-        providerRef: sessionId,
-      } as any)
-      .where(eq(invoices.id, invoiceId));
 
     // Subscription aktivieren, falls vorhanden
     let updatedSubscriptionId: string | undefined;
@@ -422,7 +421,7 @@ export class WebhookProcessor {
     }
 
     // Payment-Record erstellen
-    const amountCents = session.amount_total || inv.amountCents;
+    const amountCents = Number(session.amount_total || inv.amountCents);
 
     const [payment] = await db
       .insert(payments)
@@ -730,12 +729,21 @@ export class WebhookProcessor {
         .where(eq(invoices.id, metaInvoiceId))
         .limit(1);
       if (metaInv) {
+        const billingPeriod =
+          (sub.billingPeriod as "monthly" | "yearly" | null) ??
+          parseBillingPeriodFromPlanId(
+            (invoice.metadata as Record<string, string> | undefined)?.planId,
+          );
+        await syncPaidInvoiceFromStripeInvoice({
+          invoiceId: metaInv.id,
+          subscriptionId: sub.id,
+          stripeInvoice: invoice as Record<string, unknown>,
+          billingPeriod,
+          markPaid: metaInv.status !== "paid",
+        });
         await db
           .update(invoices as any)
           .set({
-            status: "paid",
-            paidAt: new Date(),
-            dueAt: null,
             providerInvoiceId: stripeInvoiceId,
             provider: "stripe",
             providerEnv: (metaInv.providerEnv as string) || providerEnv,
@@ -775,10 +783,17 @@ export class WebhookProcessor {
       } else {
         const planName = sub.plan === "starter" ? "Starter" : "Pro";
         const invNumber = this.generateWebhookInvoiceNumber();
-        const amountCents = Number(invoice.amount_paid ?? 0);
         const currency = String(invoice.currency || "eur").toUpperCase();
+        const billingPeriod =
+          (sub.billingPeriod as "monthly" | "yearly" | null) ??
+          parseBillingPeriodFromPlanId(
+            (invoice.metadata as Record<string, string> | undefined)?.planId,
+          );
 
         try {
+          const { invoiceAmountFieldsFromBreakdown, amountsFromStripeInvoice } =
+            await import("../lib/stripeCheckoutAmounts.js");
+          const amounts = amountsFromStripeInvoice(invoice as Record<string, unknown>);
           const [newInv] = await db
             .insert(invoices)
             .values({
@@ -786,7 +801,6 @@ export class WebhookProcessor {
               customerId: sub.customerId,
               subscriptionId: sub.id,
               number: invNumber,
-              amountCents,
               currency,
               status: "paid",
               paidAt: new Date(),
@@ -795,8 +809,9 @@ export class WebhookProcessor {
               providerEnv,
               providerInvoiceId: stripeInvoiceId,
               planName,
+              billingPeriod,
               paymentMethod: "card",
-              amountGrossCents: amountCents,
+              ...invoiceAmountFieldsFromBreakdown(amounts),
             } as any)
             .returning();
           invForLicense = newInv?.id;

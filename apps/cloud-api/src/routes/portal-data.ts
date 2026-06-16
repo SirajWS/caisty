@@ -7,6 +7,11 @@ import { subscriptions } from "../db/schema/subscriptions.js";
 import { desc, eq } from "drizzle-orm";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 import { portalInvoiceDisplayBreakdown } from "../lib/portalInvoiceDisplayAmount.js";
+import {
+  formatBillingPeriodLabel,
+  formatPlanWithPeriodLabel,
+  type BillingPeriod,
+} from "../lib/billingPeriod.js";
 
 interface PortalJwtPayload {
   customerId: string;
@@ -121,20 +126,38 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
             amountTaxCents: inv.amountTaxCents,
             planName: inv.planName,
             currency: inv.currency,
+            billingPeriod: inv.billingPeriod,
           },
           sub?.plan ?? null,
+          (sub?.billingPeriod as BillingPeriod | null) ?? null,
         );
+        const billingPeriod =
+          (inv.billingPeriod as BillingPeriod | null) ??
+          (sub?.billingPeriod as BillingPeriod | null) ??
+          bd.billingPeriod;
         return {
           id: String(inv.id),
           number: String(inv.number ?? ""),
           amountCents: Number(bd.grossCents),
           currency: String(inv.currency ?? "EUR"),
           status: String(inv.status ?? "open"),
-          periodStart: null, // periodFrom existiert nicht im Schema
-          periodEnd: null, // periodTo existiert nicht im Schema
+          periodStart: sub?.currentPeriodStart
+            ? new Date(sub.currentPeriodStart).toISOString()
+            : sub?.startedAt
+              ? new Date(sub.startedAt).toISOString()
+              : null,
+          periodEnd: sub?.currentPeriodEnd
+            ? new Date(sub.currentPeriodEnd).toISOString()
+            : null,
+          billingPeriod,
+          billingPeriodLabel: formatBillingPeriodLabel(billingPeriod, "en"),
           createdAt: inv.createdAt ? new Date(inv.createdAt).toISOString() : new Date().toISOString(),
           dueAt: inv.dueAt ? new Date(inv.dueAt).toISOString() : null,
-          plan: inv.planName ? String(inv.planName) : null, // Verwende planName aus Schema
+          plan: sub?.plan
+            ? formatPlanWithPeriodLabel(String(sub.plan), billingPeriod)
+            : inv.planName
+              ? String(inv.planName)
+              : null,
         };
       }).filter((item) => item !== null);
     } catch (err: any) {

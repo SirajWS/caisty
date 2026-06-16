@@ -166,7 +166,12 @@ const PortalInvoicesPage: React.FC = () => {
                       ? `${formatDate(inv.periodStart)} – ${formatDate(
                           inv.periodEnd,
                         )}`
-                      : t.labels.dash}
+                      : inv.billingPeriodLabel ??
+                        (inv.billingPeriod === "yearly"
+                          ? t.labels.yearly
+                          : inv.billingPeriod === "monthly"
+                            ? t.labels.monthly
+                            : t.labels.dash)}
                   </td>
                   <td className={`px-4 py-3 text-right text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>
                     {formatAmount(inv)}

@@ -13,7 +13,7 @@ import { payments } from "../db/schema/payments.js";
 import { and, eq } from "drizzle-orm";
 import { addDays, addMonths } from "date-fns";
 import { ENV } from "../config/env.js";
-import { type Currency, grossPlanAmountCents } from "../config/pricing.js";
+import { type Currency, grossPlanAmountCents, PORTAL_CHECKOUT_VAT_RATE } from "../config/pricing.js";
 import {
   getActivePaidLicenseTierForCustomer,
   getActivePaidSubscriptionPlanPeriodForCustomer,
@@ -24,6 +24,7 @@ import {
 } from "../lib/checkoutPlanEligibility.js";
 import { ensurePaidLicenseAfterSuccessfulPayment } from "../lib/finalizePaidLicenseAfterPayment.js";
 import { persistStripeSubscriptionAfterCheckoutSession } from "../lib/persistStripeSubscriptionFromSession.js";
+import { syncPaidInvoiceFromStripeCheckoutSession } from "../lib/syncPaidInvoiceFromStripe.js";
 
 interface PortalJwtPayload {
   customerId: string;
@@ -218,6 +219,7 @@ export async function registerBillingRoutes(app: FastifyInstance) {
           customerId: payload.customerId,
           plan,
           status: "pending",
+          billingPeriod: period,
           priceCents,
           currency,
           startedAt: now,
@@ -248,6 +250,9 @@ export async function registerBillingRoutes(app: FastifyInstance) {
           subscriptionId: sub.id,
           number: invoiceNumber,
           amountCents: priceCents,
+          amountGrossCents: priceCents,
+          amountNetCents: Math.round(priceCents / (1 + PORTAL_CHECKOUT_VAT_RATE)),
+          amountTaxCents: priceCents - Math.round(priceCents / (1 + PORTAL_CHECKOUT_VAT_RATE)),
           currency,
           status: invoiceStatus,
           issuedAt: now,
@@ -255,6 +260,7 @@ export async function registerBillingRoutes(app: FastifyInstance) {
           provider: body.provider,
           providerEnv: body.provider === "stripe" ? stripeProvider.env : paypalProvider.env,
           planName: planName,
+          billingPeriod: period,
           paymentMethod: paymentMethod,
         } as any)
         .returning();
@@ -547,26 +553,40 @@ export async function registerBillingRoutes(app: FastifyInstance) {
           session: stripeCheckoutSession,
           providerEnv: stripeProvider.env,
         });
+
+        await syncPaidInvoiceFromStripeCheckoutSession({
+          invoiceId: String(inv.id),
+          subscriptionId: inv.subscriptionId,
+          session: stripeCheckoutSession as Record<string, unknown>,
+          providerRef: paymentId,
+          markPaid: true,
+        });
+      } else {
+        // Update invoice to paid (PayPal / non-Stripe)
+        await db
+          .update(invoices as any)
+          .set({ 
+            status: "paid", 
+            paidAt: new Date(),
+            dueAt: null,
+            providerRef: paymentId,
+          } as any)
+          .where(eq(invoices.id, finalInvoiceId));
       }
 
-      // Update invoice to paid
-      // Bei bezahlten Rechnungen: dueDate auf null setzen (nicht mehr relevant)
-      await db
-        .update(invoices as any)
-        .set({ 
-          status: "paid", 
-          paidAt: new Date(),
-          dueAt: null, // Bei bezahlten Rechnungen kein Fälligkeitsdatum
-          providerRef: paymentId, // PayPal orderId oder Stripe sessionId
-        } as any)
-        .where(eq(invoices.id, finalInvoiceId));
+      // Get subscription (reload invoice after Stripe sync for correct amounts)
+      const [invAfterSync] = await db
+        .select()
+        .from(invoices)
+        .where(eq(invoices.id, finalInvoiceId))
+        .limit(1);
+      const paidInv = invAfterSync ?? inv;
 
-      // Get subscription
-      if (inv.subscriptionId) {
+      if (paidInv.subscriptionId) {
         const [sub] = await db
           .select()
           .from(subscriptions)
-          .where(eq(subscriptions.id, inv.subscriptionId))
+          .where(eq(subscriptions.id, paidInv.subscriptionId))
           .limit(1);
 
         if (sub && sub.status !== "active") {
@@ -574,29 +594,34 @@ export async function registerBillingRoutes(app: FastifyInstance) {
           await db
             .update(subscriptions as any)
             .set({ status: "active" } as any)
-            .where(eq(subscriptions.id, inv.subscriptionId));
+            .where(eq(subscriptions.id, paidInv.subscriptionId));
+
+          const paymentAmount =
+            actualProvider === "stripe" && stripeCheckoutSession
+              ? Number((stripeCheckoutSession as { amount_total?: number }).amount_total ?? paidInv.amountCents)
+              : paidInv.amountCents;
 
           // Create payment record
           await db.insert(payments).values({
-            orgId: inv.orgId,
-            customerId: inv.customerId,
-            subscriptionId: inv.subscriptionId,
+            orgId: paidInv.orgId,
+            customerId: paidInv.customerId,
+            subscriptionId: paidInv.subscriptionId,
             provider: actualProvider,
             providerEnv: actualProvider === "stripe" ? stripeProvider.env : paypalProvider.env,
             providerPaymentId: paymentId,
             providerStatus: actualProvider === "stripe" ? "paid" : "COMPLETED",
-            amountCents: inv.amountCents,
-            currency: inv.currency || "EUR",
+            amountCents: paymentAmount,
+            currency: paidInv.currency || "EUR",
             status: "succeeded",
-            amountGrossCents: inv.amountCents,
+            amountGrossCents: paymentAmount,
           } as any);
 
-          if (inv.customerId && inv.orgId && inv.subscriptionId) {
+          if (paidInv.customerId && paidInv.orgId && paidInv.subscriptionId) {
             await ensurePaidLicenseAfterSuccessfulPayment({
-              orgId: String(inv.orgId),
-              customerId: String(inv.customerId),
-              subscriptionId: String(inv.subscriptionId),
-              invoiceId: String(inv.id),
+              orgId: String(paidInv.orgId),
+              customerId: String(paidInv.customerId),
+              subscriptionId: String(paidInv.subscriptionId),
+              invoiceId: String(paidInv.id),
               source: "portal_payment",
               sessionId: actualProvider === "stripe" ? paymentId : undefined,
               orderId: actualProvider === "paypal" ? paymentId : undefined,

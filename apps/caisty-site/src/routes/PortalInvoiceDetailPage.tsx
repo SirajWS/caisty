@@ -187,8 +187,14 @@ const PortalInvoiceDetailPage: React.FC = () => {
                   {t.invoiceDetail.period}
                 </div>
                 <div className={isLight ? "text-slate-900" : "text-slate-100"}>
-                  {formatDate(inv.periodStart)} –{" "}
-                  {formatDate(inv.periodEnd)}
+                  {inv.periodStart || inv.periodEnd
+                    ? `${formatDate(inv.periodStart)} – ${formatDate(inv.periodEnd)}`
+                    : inv.billingPeriodLabel ??
+                      (inv.billingPeriod === "yearly"
+                        ? t.labels.yearly
+                        : inv.billingPeriod === "monthly"
+                          ? t.labels.monthly
+                          : t.labels.dash)}
                 </div>
               </div>
               <div>

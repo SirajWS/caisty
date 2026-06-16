@@ -365,6 +365,8 @@ export interface PortalInvoice {
   dueAt: string | null;
   periodStart: string | null;
   periodEnd: string | null;
+  billingPeriod?: "monthly" | "yearly" | null;
+  billingPeriodLabel?: string | null;
   plan?: string | null;
   /** Present from invoice detail API: matches checkout-style net / VAT / gross. */
   amountBreakdown?: PortalInvoiceAmountBreakdown | null;

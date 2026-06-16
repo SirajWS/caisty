@@ -9,6 +9,7 @@ import { CaistyLogo } from "../components/CaistyLogo";
 export default function LoginPage() {
   const { language } = useLanguage();
   const t = translations[language].auth.login;
+  
   const layoutT = translations[language].common.layout;
   const { theme } = useTheme();
   const isLight = theme === "light";

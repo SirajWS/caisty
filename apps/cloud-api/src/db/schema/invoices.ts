@@ -41,6 +41,7 @@ export const invoices = pgTable(
     providerRef: text("provider_ref"), // PayPal orderId oder Stripe sessionId
 
     planName: text("plan_name"), // "Starter", "Pro" (für Rechnungsanzeige)
+    billingPeriod: varchar("billing_period", { length: 10 }), // monthly | yearly
     paymentMethod: varchar("payment_method", { length: 20 }), // "paypal" | "card"
 
     amountNetCents: integer("amount_net_cents"),

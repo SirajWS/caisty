@@ -5,6 +5,36 @@ import { db } from "../db/client.js";
 import { subscriptions } from "../db/schema/subscriptions.js";
 import { customers } from "../db/schema/customers.js";
 import { invoices } from "../db/schema/invoices.js";
+import type { Currency } from "../config/pricing.js";
+import { grossPlanAmountCents, PORTAL_CHECKOUT_VAT_RATE } from "../config/pricing.js";
+import {
+  catalogNetTaxGrossCents,
+  isNetOnlyStripeAmountCents,
+} from "../lib/vatAmountBreakdown.js";
+import {
+  formatBillingPeriodLabel,
+  formatPlanTierLabel,
+  type BillingPeriod,
+} from "../lib/billingPeriod.js";
+import { inferPaidBillingPeriodFromPriceCents } from "../lib/inferPaidBillingPeriodFromPriceCents.js";
+
+function resolveSubscriptionInterval(
+  billingPeriod: string | null | undefined,
+  plan: string,
+  currency: string,
+  priceCents: number,
+): BillingPeriod | null {
+  if (billingPeriod === "monthly" || billingPeriod === "yearly") {
+    return billingPeriod;
+  }
+  const tier = plan.toLowerCase();
+  if (tier !== "starter" && tier !== "pro") return null;
+  return inferPaidBillingPeriodFromPriceCents(
+    tier as "starter" | "pro",
+    (currency === "TND" ? "TND" : "EUR") as Currency,
+    priceCents,
+  );
+}
 
 export async function registerSubscriptionsRoutes(app: FastifyInstance) {
   app.get<{ Querystring: { limit?: number; offset?: number } }>(
@@ -57,17 +87,81 @@ export async function registerSubscriptionsRoutes(app: FastifyInstance) {
                 // Continue with empty invoices array
               }
 
+              const cur = (sub.currency === "TND" ? "TND" : "EUR") as Currency;
+              const interval = resolveSubscriptionInterval(
+                sub.billingPeriod,
+                String(sub.plan ?? ""),
+                String(sub.currency ?? "EUR"),
+                Number(sub.priceCents ?? 0),
+              );
+              const tier = String(sub.plan ?? "").toLowerCase();
+              const storedPriceCents = Number(sub.priceCents ?? 0);
+              let netPriceCents: number | null = null;
+              let taxPriceCents: number | null = null;
+              let grossPriceCents = storedPriceCents;
+
+              if (
+                interval &&
+                (tier === "starter" || tier === "pro")
+              ) {
+                const plan = tier as "starter" | "pro";
+                if (
+                  isNetOnlyStripeAmountCents(
+                    storedPriceCents,
+                    plan,
+                    cur,
+                    interval,
+                  )
+                ) {
+                  const corrected = catalogNetTaxGrossCents(
+                    plan,
+                    cur,
+                    interval,
+                  );
+                  netPriceCents = corrected.netCents;
+                  taxPriceCents = corrected.taxCents;
+                  grossPriceCents = corrected.grossCents;
+                } else if (
+                  Math.abs(
+                    storedPriceCents -
+                      grossPlanAmountCents(plan, cur, interval),
+                  ) <= 2
+                ) {
+                  const corrected = catalogNetTaxGrossCents(
+                    plan,
+                    cur,
+                    interval,
+                  );
+                  netPriceCents = corrected.netCents;
+                  taxPriceCents = corrected.taxCents;
+                  grossPriceCents = storedPriceCents;
+                } else {
+                  netPriceCents = Math.round(
+                    storedPriceCents / (1 + PORTAL_CHECKOUT_VAT_RATE),
+                  );
+                  taxPriceCents = storedPriceCents - netPriceCents;
+                  grossPriceCents = storedPriceCents;
+                }
+              }
+
               return {
                 id: String(sub.id),
                 customerId: sub.customerId ? String(sub.customerId) : null,
                 customerName: customer?.name ? String(customer.name) : null,
                 customerEmail: customer?.email ? String(customer.email) : null,
                 customerStatus: customer?.status ? String(customer.status) : "active",
-                plan: sub.plan ? String(sub.plan) : "",
+                plan: formatPlanTierLabel(sub.plan),
+                planTier: sub.plan ? String(sub.plan) : "",
                 status: sub.status ? String(sub.status) : "",
-                priceCents: Number(sub.priceCents ?? 0),
+                priceCents: grossPriceCents,
+                grossPriceCents,
+                netPriceCents,
+                taxPriceCents,
                 currency: sub.currency ? String(sub.currency) : "EUR",
+                interval,
+                intervalLabel: formatBillingPeriodLabel(interval, "de"),
                 startedAt: safeDate(sub.startedAt),
+                validUntil: safeDate(sub.currentPeriodEnd),
                 currentPeriodEnd: safeDate(sub.currentPeriodEnd),
                 createdAt: safeDate(sub.createdAt) || new Date().toISOString(),
                 invoices: invoiceRows

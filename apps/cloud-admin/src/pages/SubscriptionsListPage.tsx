@@ -11,12 +11,18 @@ type Subscription = {
   customerEmail?: string;
   customerStatus?: string | null;
   plan: string;
+  planTier?: string;
   status: string;
   priceCents: number;
+  grossPriceCents?: number;
+  netPriceCents?: number | null;
+  taxPriceCents?: number | null;
   currency: string;
   interval?: string | null;
+  intervalLabel?: string | null;
   startedAt?: string | null;
   validUntil?: string | null;
+  currentPeriodEnd?: string | null;
   invoices?: Array<{ id: string; number: string }>;
 };
 
@@ -44,6 +50,19 @@ function formatPrice(
   } catch {
     return `${amount.toFixed(2)} ${currency}`;
   }
+}
+
+function formatSubscriptionPrice(s: Subscription): string {
+  const gross = s.grossPriceCents ?? s.priceCents;
+  const base = formatPrice(gross, s.currency);
+  if (s.interval === "yearly") return `${base} / Jahr`;
+  if (s.interval === "monthly") return `${base} / Monat`;
+  return base;
+}
+
+function formatSubscriptionVat(s: Subscription): string {
+  if (s.taxPriceCents == null || s.taxPriceCents <= 0) return "—";
+  return formatPrice(s.taxPriceCents, s.currency);
 }
 
 function formatDate(value?: string | null) {
@@ -204,7 +223,8 @@ export default function SubscriptionsListPage() {
                 <th style={{ color: colors.textSecondary }}>Customer</th>
                 <th style={{ color: colors.textSecondary }}>Plan</th>
                 <th style={{ color: colors.textSecondary }}>Status</th>
-                <th style={{ color: colors.textSecondary }}>Preis</th>
+                <th style={{ color: colors.textSecondary }}>Preis (brutto)</th>
+                <th style={{ color: colors.textSecondary }}>USt.</th>
                 <th style={{ color: colors.textSecondary }}>Intervall</th>
                 <th style={{ color: colors.textSecondary }}>Gestartet</th>
                 <th style={{ color: colors.textSecondary }}>Läuft bis</th>
@@ -216,7 +236,7 @@ export default function SubscriptionsListPage() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={11}
                     style={{
                       textAlign: "center",
                       padding: 24,
@@ -229,7 +249,7 @@ export default function SubscriptionsListPage() {
               ) : activeSubscriptions.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={11}
                     style={{
                       textAlign: "center",
                       padding: 24,
@@ -300,10 +320,11 @@ export default function SubscriptionsListPage() {
                       {s.status ?? "—"}
                     </span>
                   </td>
-                  <td>{formatPrice(s.priceCents, s.currency)}</td>
-                  <td>{s.interval || "—"}</td>
+                  <td>{formatSubscriptionPrice(s)}</td>
+                  <td>{formatSubscriptionVat(s)}</td>
+                  <td>{s.intervalLabel || (s.interval === "yearly" ? "Jährlich" : s.interval === "monthly" ? "Monatlich" : "—")}</td>
                   <td>{formatDate(s.startedAt)}</td>
-                  <td>{formatDate(s.validUntil)}</td>
+                  <td>{formatDate(s.validUntil ?? s.currentPeriodEnd)}</td>
                   <td>
                     {s.invoices && s.invoices.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -564,7 +585,7 @@ export default function SubscriptionsListPage() {
                         </span>
                       </td>
                       <td style={{ color: colors.textSecondary }}>
-                        {formatPrice(s.priceCents, s.currency)}
+                        {formatSubscriptionPrice(s)}
                       </td>
                       <td style={{ color: colors.textSecondary, fontSize: 12 }}>
                         {formatDate(s.startedAt)}

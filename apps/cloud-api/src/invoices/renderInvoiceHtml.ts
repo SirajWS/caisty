@@ -1,10 +1,26 @@
-// apps/api/src/invoices/renderInvoice.ts
+// apps/api/src/invoices/renderInvoiceHtml.ts
 
 import type { InvoiceWithCustomerAndOrg } from "../services/invoiceService.js";
 import { portalInvoiceDisplayBreakdown } from "../lib/portalInvoiceDisplayAmount.js";
+import {
+  billingPeriodLineItemSuffix,
+  formatBillingPeriodLabel,
+  formatPlanTierLabel,
+  type BillingPeriod,
+} from "../lib/billingPeriod.js";
+
+const CAISTY_LOGO_SVG = `<svg width="48" height="48" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <rect x="0" y="0" width="256" height="256" rx="64" fill="#F97316"/>
+  <path d="M172 88 C160 72 143 64 128 64 C99 64 76 87 76 116 C76 145 99 168 128 168 C143 168 160 160 172 144" fill="none" stroke="#ffffff" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>`;
 
 function fmtCents(cents: number): string {
   return (Number(cents) / 100).toFixed(2);
+}
+
+export interface InvoiceHtmlRenderContext {
+  subscriptionPlan?: string | null;
+  subscriptionBillingPeriod?: BillingPeriod | null;
 }
 
 /**
@@ -13,6 +29,7 @@ function fmtCents(cents: number): string {
  */
 export function renderInvoiceHtml(
   data: InvoiceWithCustomerAndOrg,
+  context: InvoiceHtmlRenderContext = {},
 ): string {
   const { invoice, customer, org } = data;
 
@@ -27,9 +44,22 @@ export function renderInvoiceHtml(
         amountTaxCents: invoice.amountTaxCents,
         planName: invoice.planName,
         currency: invoice.currency,
+        billingPeriod: invoice.billingPeriod,
       },
-      null,
+      context.subscriptionPlan ?? null,
+      context.subscriptionBillingPeriod ?? null,
     );
+
+  const billingPeriod =
+    (invoice.billingPeriod as BillingPeriod | null) ??
+    context.subscriptionBillingPeriod ??
+    breakdown.billingPeriod;
+  const planTier =
+    context.subscriptionPlan ??
+    (invoice.planName ? invoice.planName.toLowerCase() : null);
+  const planLabel = formatPlanTierLabel(planTier);
+  const lineItemSuffix = billingPeriodLineItemSuffix(billingPeriod);
+  const billingPeriodLabel = formatBillingPeriodLabel(billingPeriod, "de");
 
   const netStr = fmtCents(breakdown.netCents);
   const taxStr = fmtCents(breakdown.taxCents);
@@ -91,11 +121,31 @@ export function renderInvoiceHtml(
       padding-bottom: 20px;
       border-bottom: 2px solid #f97316;
     }
-    .logo {
-      font-size: 28px;
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .brand-text .logo-name {
+      font-size: 24px;
       font-weight: 700;
       color: #f97316;
       letter-spacing: -0.5px;
+      line-height: 1.2;
+    }
+    .brand-text .tagline {
+      font-size: 12px;
+      color: #666;
+      margin-top: 2px;
+    }
+    .brand-text .company-links {
+      font-size: 11px;
+      color: #666;
+      margin-top: 6px;
+    }
+    .brand-text .company-links a {
+      color: #f97316;
+      text-decoration: none;
     }
     .invoice-meta {
       text-align: right;
@@ -195,6 +245,15 @@ export function renderInvoiceHtml(
       font-weight: 700;
       color: #0b1220;
     }
+    .recurring-note {
+      margin-top: 28px;
+      padding: 14px 16px;
+      background: #f9fafb;
+      border-left: 3px solid #f97316;
+      font-size: 12px;
+      color: #555;
+      line-height: 1.6;
+    }
     .footer {
       margin-top: 60px;
       padding-top: 20px;
@@ -212,9 +271,16 @@ export function renderInvoiceHtml(
 </head>
 <body>
   <div class="header">
-    <div>
-      <div class="logo">Caisty</div>
-      <div style="font-size: 12px; color: #666; margin-top: 4px;">POS & Cloud</div>
+    <div class="brand">
+      ${CAISTY_LOGO_SVG}
+      <div class="brand-text">
+        <div class="logo-name">Caisty</div>
+        <div class="tagline">POS & Cloud</div>
+        <div class="company-links">
+          <a href="https://www.caisty.com">www.caisty.com</a> ·
+          <a href="mailto:info@caisty.com">info@caisty.com</a>
+        </div>
+      </div>
     </div>
     <div class="invoice-meta">
       <strong>Rechnung</strong>
@@ -248,11 +314,12 @@ export function renderInvoiceHtml(
           ${invoice.paidAt ? `<div style="margin-bottom: 8px;"><strong>Bezahlt am:</strong> ${new Date(invoice.paidAt).toLocaleDateString("de-DE", { year: "numeric", month: "long", day: "numeric" })}</div>` : ""}
         </div>
       </div>
-      ${invoice.planName || invoice.provider || invoice.paymentMethod || invoice.providerRef ? `
+      ${invoice.planName || invoice.provider || invoice.paymentMethod || invoice.providerRef || billingPeriod ? `
       <div class="section" style="margin-top: 20px;">
         <div class="section-title">Zahlungsinformationen</div>
         <div class="section-content" style="margin-top: 12px;">
-          ${invoice.planName ? `<div style="margin-bottom: 8px;"><strong>Plan:</strong> Caisty ${invoice.planName}</div>` : ""}
+          ${planLabel && planLabel !== "—" ? `<div style="margin-bottom: 8px;"><strong>Plan:</strong> Caisty ${planLabel}</div>` : invoice.planName ? `<div style="margin-bottom: 8px;"><strong>Plan:</strong> Caisty ${invoice.planName}</div>` : ""}
+          ${billingPeriod ? `<div style="margin-bottom: 8px;"><strong>Abrechnungsintervall:</strong> ${billingPeriodLabel}</div>` : ""}
           ${invoice.paymentMethod ? `<div style="margin-bottom: 8px;"><strong>Zahlungsart:</strong> ${invoice.paymentMethod === "paypal" ? "PayPal" : invoice.paymentMethod === "card" ? "Kreditkarte (Visa/Mastercard)" : invoice.paymentMethod}</div>` : ""}
           ${invoice.providerRef ? `<div style="margin-bottom: 8px;"><strong>Transaktions-ID:</strong> <code style="font-size: 11px; background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-family: monospace;">${invoice.providerRef}</code></div>` : ""}
         </div>
@@ -270,7 +337,7 @@ export function renderInvoiceHtml(
     </thead>
     <tbody>
       <tr>
-        <td>${invoice.planName ? `Caisty ${invoice.planName} Lizenz` : "Caisty POS Lizenz"} – Monatliche Abrechnung</td>
+        <td>${planLabel && planLabel !== "—" ? `Caisty ${planLabel} Lizenz` : invoice.planName ? `Caisty ${invoice.planName} Lizenz` : "Caisty POS Lizenz"} – ${lineItemSuffix}</td>
         <td class="text-right">${netStr} ${cur}</td>
       </tr>
       <tr>
@@ -289,16 +356,19 @@ export function renderInvoiceHtml(
     <div class="total-amount-value">${grossStr} ${cur}</div>
   </div>
 
+  <div class="recurring-note">
+    Dies ist ein wiederkehrendes Abonnement. Die nächste Abbuchung erfolgt gemäß dem gewählten Abrechnungsintervall, sofern das Abonnement nicht vorher gekündigt wird.
+  </div>
+
   <div class="footer">
     <div class="footer-org">
-      ${org?.name ?? "Caisty – POS & Cloud"}
+      ${org?.name ?? "Caisty"}
     </div>
-    <div>Diese Rechnung wurde automatisch erstellt.</div>
+    <div>www.caisty.com · info@caisty.com</div>
     <div style="margin-top: 8px;">
-      Bei Fragen wenden Sie sich bitte an support@caisty.com
+      Diese Rechnung wurde automatisch erstellt.
     </div>
   </div>
 </body>
 </html>`;
 }
-

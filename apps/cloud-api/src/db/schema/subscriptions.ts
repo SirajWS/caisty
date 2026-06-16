@@ -25,6 +25,7 @@ export const subscriptions = pgTable(
 
     plan: varchar("plan", { length: 50 }).notNull(), // starter / pro
     status: varchar("status", { length: 50 }).notNull().default("active"), // active/canceled/trialing
+    billingPeriod: varchar("billing_period", { length: 10 }), // monthly | yearly
 
     priceCents: integer("price_cents").notNull().default(0),
     currency: varchar("currency", { length: 3 }).notNull().default("EUR"),

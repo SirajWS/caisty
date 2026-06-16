@@ -59,7 +59,7 @@ const PortalCheckoutPage: React.FC = () => {
   );
   const isValidPlan = Boolean(parsedPlan);
 
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = React.useState<PaymentMethod>("paypal");
+  const [selectedPaymentMethod] = React.useState<PaymentMethod>("card");
   const [processing, setProcessing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [portalLicenses, setPortalLicenses] = React.useState<PortalLicense[]>([]);
@@ -151,9 +151,6 @@ const PortalCheckoutPage: React.FC = () => {
   const planName = plan === "starter" ? "Starter" : "Pro";
   const planDescription =
     plan === "starter" ? t.checkout.planStarterDesc : t.checkout.planProDesc;
-
-  const selectedBorder = "rgb(249 115 22)";
-  const idleBorder = "#334155";
 
   async function handlePayment() {
     try {
@@ -367,50 +364,9 @@ const PortalCheckoutPage: React.FC = () => {
             <h2 className="text-lg font-semibold mb-4">{t.checkout.paymentMethod}</h2>
 
             <div className="space-y-3">
-              <label
-                className="flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors hover:bg-slate-800/50"
-                style={{
-                  borderColor: selectedPaymentMethod === "paypal" ? selectedBorder : idleBorder,
-                  backgroundColor: selectedPaymentMethod === "paypal" ? "rgba(249, 115, 22, 0.08)" : "transparent",
-                }}
+              <div
+                className="flex items-start gap-3 p-4 rounded-xl border-2 border-orange-500/50 bg-orange-500/10"
               >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="paypal"
-                  checked={selectedPaymentMethod === "paypal"}
-                  onChange={(e) => setSelectedPaymentMethod(e.target.value as PaymentMethod)}
-                  className="mt-1 h-4 w-4 text-orange-500 focus:ring-orange-500 focus:ring-offset-2"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-semibold text-slate-50">{t.checkout.paypalName}</span>
-                    <span className="inline-flex items-center rounded-full bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 text-[10px] font-medium text-orange-300">
-                      {t.labels.available}
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-400">
-                    {t.checkout.paypalHint}
-                  </p>
-                </div>
-                <div className="text-2xl">💳</div>
-              </label>
-
-              <label
-                className="flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors hover:bg-slate-800/50"
-                style={{
-                  borderColor: selectedPaymentMethod === "card" ? selectedBorder : idleBorder,
-                  backgroundColor: selectedPaymentMethod === "card" ? "rgba(249, 115, 22, 0.08)" : "transparent",
-                }}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="card"
-                  checked={selectedPaymentMethod === "card"}
-                  onChange={(e) => setSelectedPaymentMethod(e.target.value as PaymentMethod)}
-                  className="mt-1 h-4 w-4 text-orange-500 focus:ring-orange-500 focus:ring-offset-2"
-                />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm font-semibold text-slate-50">{t.checkout.cardTitle}</span>
@@ -423,7 +379,7 @@ const PortalCheckoutPage: React.FC = () => {
                   </p>
                 </div>
                 <div className="text-2xl">💳</div>
-              </label>
+              </div>
             </div>
           </section>
         </div>
@@ -446,7 +402,7 @@ const PortalCheckoutPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">{t.labels.paymentMethod}</span>
                 <span className="text-slate-100 font-medium">
-                  {selectedPaymentMethod === "paypal" ? t.checkout.paypalName : t.checkout.cardName}
+                  {t.checkout.cardName}
                 </span>
               </div>
             </div>

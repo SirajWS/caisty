@@ -9,6 +9,11 @@ import { subscriptions } from "../db/schema/subscriptions.js";
 import { orgs } from "../db/schema/orgs.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 import { portalInvoiceDisplayBreakdown } from "../lib/portalInvoiceDisplayAmount.js";
+import {
+  formatBillingPeriodLabel,
+  formatPlanWithPeriodLabel,
+  type BillingPeriod,
+} from "../lib/billingPeriod.js";
 
 interface PortalJwtPayload {
   customerId: string;
@@ -84,11 +89,18 @@ export async function registerPortalInvoiceRoutes(app: FastifyInstance) {
         amountTaxCents: inv.amountTaxCents,
         planName: inv.planName,
         currency: inv.currency,
+        billingPeriod: inv.billingPeriod,
       };
+      const subBillingPeriod = (sub?.billingPeriod as BillingPeriod | null) ?? null;
       const breakdown = portalInvoiceDisplayBreakdown(
         invForCalc,
         sub?.plan ?? null,
+        subBillingPeriod,
       );
+      const billingPeriod =
+        (inv.billingPeriod as BillingPeriod | null) ??
+        subBillingPeriod ??
+        breakdown.billingPeriod;
 
       return {
         ok: true,
@@ -106,9 +118,21 @@ export async function registerPortalInvoiceRoutes(app: FastifyInstance) {
           currency: String(inv.currency ?? "EUR"),
           createdAt: inv.createdAt ? new Date(inv.createdAt).toISOString() : new Date().toISOString(),
           dueAt: inv.dueAt ? new Date(inv.dueAt).toISOString() : null,
-          periodStart: null, // invoices Tabelle hat kein periodFrom/periodStart
-          periodEnd: null, // invoices Tabelle hat kein periodTo/periodEnd
-          plan: sub?.plan ? String(sub.plan) : null,
+          periodStart: sub?.currentPeriodStart
+            ? new Date(sub.currentPeriodStart).toISOString()
+            : sub?.startedAt
+              ? new Date(sub.startedAt).toISOString()
+              : null,
+          periodEnd: sub?.currentPeriodEnd
+            ? new Date(sub.currentPeriodEnd).toISOString()
+            : null,
+          billingPeriod,
+          billingPeriodLabel: formatBillingPeriodLabel(billingPeriod, "en"),
+          plan: sub?.plan
+            ? formatPlanWithPeriodLabel(String(sub.plan), billingPeriod)
+            : inv.planName
+              ? String(inv.planName)
+              : null,
         },
         customer: customer
           ? {
@@ -158,14 +182,19 @@ export async function registerPortalInvoiceRoutes(app: FastifyInstance) {
       }
 
       let subscriptionPlan: string | null = null;
+      let subscriptionBillingPeriod: "monthly" | "yearly" | null = null;
       const subId = invoiceData.invoice.subscriptionId;
       if (subId) {
         const [subRow] = await db
-          .select({ plan: subscriptions.plan })
+          .select({ plan: subscriptions.plan, billingPeriod: subscriptions.billingPeriod })
           .from(subscriptions)
           .where(eq(subscriptions.id, subId))
           .limit(1);
         subscriptionPlan = subRow?.plan ? String(subRow.plan) : null;
+        subscriptionBillingPeriod =
+          subRow?.billingPeriod === "monthly" || subRow?.billingPeriod === "yearly"
+            ? subRow.billingPeriod
+            : null;
       }
 
       const inv = invoiceData.invoice as any;
@@ -177,18 +206,26 @@ export async function registerPortalInvoiceRoutes(app: FastifyInstance) {
         amountTaxCents: inv.amountTaxCents,
         planName: inv.planName,
         currency: inv.currency,
+        billingPeriod: inv.billingPeriod,
       };
       const breakdown = portalInvoiceDisplayBreakdown(
         invForCalc,
         subscriptionPlan,
+        null,
       );
 
       const { renderInvoiceHtml } = await import("../invoices/renderInvoiceHtml.js");
-      const html = renderInvoiceHtml({
-        ...invoiceData,
-        invoice: { ...invoiceData.invoice, amountCents: breakdown.grossCents },
-        amountBreakdown: breakdown,
-      });
+      const html = renderInvoiceHtml(
+        {
+          ...invoiceData,
+          invoice: { ...invoiceData.invoice, amountCents: breakdown.grossCents },
+          amountBreakdown: breakdown,
+        },
+        {
+          subscriptionPlan,
+          subscriptionBillingPeriod,
+        },
+      );
 
       reply.type("text/html").send(html);
     },
