@@ -139,6 +139,12 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
           id: String(inv.id),
           number: String(inv.number ?? ""),
           amountCents: Number(bd.grossCents),
+          amountBreakdown: {
+            netCents: bd.netCents,
+            taxCents: bd.taxCents,
+            grossCents: bd.grossCents,
+            vatRatePercent: Math.round(bd.vatRate * 100),
+          },
           currency: String(inv.currency ?? "EUR"),
           status: String(inv.status ?? "open"),
           periodStart: sub?.currentPeriodStart

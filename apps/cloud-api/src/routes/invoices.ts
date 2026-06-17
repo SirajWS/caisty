@@ -5,6 +5,29 @@ import { db } from "../db/client.js";
 import { invoices } from "../db/schema/invoices.js";
 import { customers } from "../db/schema/customers.js";
 import { subscriptions } from "../db/schema/subscriptions.js";
+import { portalInvoiceDisplayBreakdown } from "../lib/portalInvoiceDisplayAmount.js";
+import type { BillingPeriod } from "../lib/billingPeriod.js";
+import {
+  formatBillingPeriodLabel,
+  formatPlanWithPeriodLabel,
+} from "../lib/billingPeriod.js";
+
+function invoiceRowBreakdown(inv: Record<string, unknown>, sub: Record<string, unknown> | null) {
+  return portalInvoiceDisplayBreakdown(
+    {
+      status: inv.status as string,
+      amountCents: inv.amountCents as number,
+      amountGrossCents: inv.amountGrossCents as number,
+      amountNetCents: inv.amountNetCents as number,
+      amountTaxCents: inv.amountTaxCents as number,
+      planName: inv.planName as string,
+      currency: inv.currency as string,
+      billingPeriod: inv.billingPeriod as string,
+    },
+    sub?.plan ? String(sub.plan) : null,
+    (sub?.billingPeriod as BillingPeriod | null) ?? null,
+  );
+}
 
 export async function registerInvoicesRoutes(app: FastifyInstance) {
   // GET /invoices/:id - Detail als JSON für Admin
@@ -34,6 +57,11 @@ export async function registerInvoicesRoutes(app: FastifyInstance) {
         const inv = row.inv as any;
         const customer = row.customer as any;
         const sub = row.sub as any;
+        const bd = invoiceRowBreakdown(inv, sub);
+        const billingPeriod =
+          (inv.billingPeriod as BillingPeriod | null) ??
+          (sub?.billingPeriod as BillingPeriod | null) ??
+          bd.billingPeriod;
 
         return {
           ok: true,
@@ -41,8 +69,16 @@ export async function registerInvoicesRoutes(app: FastifyInstance) {
             id: String(inv.id),
             number: String(inv.number ?? ""),
             status: String(inv.status ?? "open"),
-            amountCents: Number(inv.amountCents ?? 0),
+            amountCents: bd.grossCents,
+            amountBreakdown: {
+              netCents: bd.netCents,
+              taxCents: bd.taxCents,
+              grossCents: bd.grossCents,
+              vatRatePercent: Math.round(bd.vatRate * 100),
+            },
             currency: String(inv.currency ?? "EUR"),
+            billingPeriod,
+            billingPeriodLabel: formatBillingPeriodLabel(billingPeriod, "de"),
             createdAt: (() => {
               try {
                 return inv.createdAt ? new Date(inv.createdAt).toISOString() : new Date().toISOString();
@@ -64,7 +100,11 @@ export async function registerInvoicesRoutes(app: FastifyInstance) {
                 return null;
               }
             })(),
-            plan: sub?.plan ? String(sub.plan) : null,
+            plan: sub?.plan
+              ? formatPlanWithPeriodLabel(String(sub.plan), billingPeriod)
+              : inv.planName
+                ? String(inv.planName)
+                : null,
           },
           customer: customer
             ? {
@@ -151,17 +191,30 @@ export async function registerInvoicesRoutes(app: FastifyInstance) {
             try {
               const inv = row.inv as any;
               const customer = row.customer as any;
-              
+              const sub = row.sub as any;
+
               if (!inv || !inv.id) {
-                return null; // Skip if no invoice
+                return null;
               }
+
+              const bd = invoiceRowBreakdown(inv, sub);
 
               return {
                 id: String(inv.id),
                 number: String(inv.number ?? ""),
                 status: String(inv.status ?? "open"),
-                amountCents: Number(inv.amountCents ?? 0),
+                amountCents: bd.grossCents,
+                amountBreakdown: {
+                  netCents: bd.netCents,
+                  taxCents: bd.taxCents,
+                  grossCents: bd.grossCents,
+                  vatRatePercent: Math.round(bd.vatRate * 100),
+                },
                 currency: String(inv.currency ?? "EUR"),
+                billingPeriod:
+                  (inv.billingPeriod as BillingPeriod | null) ??
+                  (sub?.billingPeriod as BillingPeriod | null) ??
+                  bd.billingPeriod,
                 createdAt: safeDate(inv.createdAt) || new Date().toISOString(),
                 dueAt: safeDate(inv.dueAt),
                 customerId: customer?.id ? String(customer.id) : null,

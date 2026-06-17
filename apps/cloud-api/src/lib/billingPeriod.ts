@@ -1,10 +1,23 @@
 export type BillingPeriod = "monthly" | "yearly";
 
+export type CheckoutPlan = "starter" | "pro";
+
 export function parseBillingPeriodFromPlanId(
   planId: string | null | undefined,
 ): BillingPeriod {
   if (planId && planId.toLowerCase().includes("yearly")) return "yearly";
   return "monthly";
+}
+
+/** Parse portal checkout planId (starter_monthly, pro_yearly, …). */
+export function parseCheckoutPlanId(planId: string): {
+  plan: CheckoutPlan;
+  period: BillingPeriod;
+} {
+  const raw = planId.trim().toLowerCase();
+  const plan: CheckoutPlan = raw.startsWith("pro") ? "pro" : "starter";
+  const period = parseBillingPeriodFromPlanId(raw);
+  return { plan, period };
 }
 
 export function formatPlanTierLabel(plan: string | null | undefined): string {

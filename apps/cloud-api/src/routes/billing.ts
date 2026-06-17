@@ -13,7 +13,9 @@ import { payments } from "../db/schema/payments.js";
 import { and, eq } from "drizzle-orm";
 import { addDays, addMonths } from "date-fns";
 import { ENV } from "../config/env.js";
-import { type Currency, grossPlanAmountCents, PORTAL_CHECKOUT_VAT_RATE } from "../config/pricing.js";
+import { type Currency } from "../config/pricing.js";
+import { parseCheckoutPlanId } from "../lib/billingPeriod.js";
+import { catalogNetTaxGrossCents } from "../lib/vatAmountBreakdown.js";
 import {
   getActivePaidLicenseTierForCustomer,
   getActivePaidSubscriptionPlanPeriodForCustomer,
@@ -120,10 +122,8 @@ export async function registerBillingRoutes(app: FastifyInstance) {
         };
       }
 
-      // Parse planId
-      const planIdParts = body.planId.split("_");
-      const plan = planIdParts[0] as "starter" | "pro";
-      const period = body.planId.includes("yearly") ? "yearly" : "monthly";
+      // Parse planId (starter_monthly, starter_yearly, pro_monthly, pro_yearly)
+      const { plan, period } = parseCheckoutPlanId(body.planId);
       const currency = (body.currency ?? "EUR") as Currency;
 
       const paidTier = await getActivePaidLicenseTierForCustomer(
@@ -202,8 +202,8 @@ export async function registerBillingRoutes(app: FastifyInstance) {
           ),
         );
 
-      // Create subscription (price = gross charged incl. VAT, matches portal checkout & PayPal)
-      const priceCents = grossPlanAmountCents(plan, currency, period);
+      const amounts = catalogNetTaxGrossCents(plan, currency, period);
+      const priceCents = amounts.grossCents;
       const now = new Date();
       const currentPeriodEnd = period === "yearly" ? addMonths(now, 12) : addMonths(now, 1);
 
@@ -249,14 +249,14 @@ export async function registerBillingRoutes(app: FastifyInstance) {
           customerId: payload.customerId,
           subscriptionId: sub.id,
           number: invoiceNumber,
-          amountCents: priceCents,
-          amountGrossCents: priceCents,
-          amountNetCents: Math.round(priceCents / (1 + PORTAL_CHECKOUT_VAT_RATE)),
-          amountTaxCents: priceCents - Math.round(priceCents / (1 + PORTAL_CHECKOUT_VAT_RATE)),
+          amountCents: amounts.grossCents,
+          amountGrossCents: amounts.grossCents,
+          amountNetCents: amounts.netCents,
+          amountTaxCents: amounts.taxCents,
           currency,
           status: invoiceStatus,
           issuedAt: now,
-          dueAt: dueAt, // Nur bei "open" Status, sonst null
+          dueAt: dueAt,
           provider: body.provider,
           providerEnv: body.provider === "stripe" ? stripeProvider.env : paypalProvider.env,
           planName: planName,
