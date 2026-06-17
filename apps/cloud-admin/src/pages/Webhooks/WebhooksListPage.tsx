@@ -23,6 +23,7 @@ export default function WebhooksListPage() {
   const [data, setData] = useState<WebhooksResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedErrors, setExpandedErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -154,11 +155,30 @@ export default function WebhooksListPage() {
                 </td>
                 <td style={{ maxWidth: 260, color: colors.text }}>
                   {w.errorMessage ? (
-                    <span title={w.errorMessage}>
-                      {w.errorMessage.length > 40
-                        ? `${w.errorMessage.slice(0, 40)}…`
-                        : w.errorMessage}
-                    </span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <span title={w.errorMessage}>
+                        {expandedErrors[w.id]
+                          ? w.errorMessage
+                          : w.errorMessage.length > 40
+                            ? `${w.errorMessage.slice(0, 40)}…`
+                            : w.errorMessage}
+                      </span>
+                      {w.errorMessage.length > 40 && (
+                        <button
+                          type="button"
+                          className="admin-btn admin-btn--ghost"
+                          style={{ alignSelf: "flex-start", height: 24, fontSize: 11, padding: "0 8px" }}
+                          onClick={() =>
+                            setExpandedErrors((prev) => ({
+                              ...prev,
+                              [w.id]: !prev[w.id],
+                            }))
+                          }
+                        >
+                          {expandedErrors[w.id] ? "Show less" : "Show more"}
+                        </button>
+                      )}
+                    </div>
                   ) : (
                     "–"
                   )}

@@ -9,6 +9,19 @@ import {
   Link,
   useNavigate,
 } from "react-router-dom";
+import {
+  Bell,
+  Cable,
+  CreditCard,
+  Gauge,
+  HardDrive,
+  KeyRound,
+  LayoutDashboard,
+  Menu,
+  Receipt,
+  Users,
+  X,
+} from "lucide-react";
 
 import LoginPage from "../pages/LoginPage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage";
@@ -31,9 +44,10 @@ import PortalLicensesPage from "../pages/Licenses/PortalLicensesPage";
 
 import NotificationsPage from "../pages/Notifications/NotificationsPage";
 import NotificationBell from "../components/NotificationBell";
+import { CaistyLogo } from "../components/CaistyLogo.tsx";
 
 import { AuthProvider, useAuth } from "../auth/AuthContext";
-import { ThemeProvider, useTheme, themeColors } from "../theme/ThemeContext";
+import { ThemeProvider, useTheme } from "../theme/ThemeContext";
 
 function RequireAuth({ children }: { children: React.ReactElement }) {
   const { token } = useAuth();
@@ -46,12 +60,62 @@ function RequireAuth({ children }: { children: React.ReactElement }) {
   return children;
 }
 
-// Nur Layout – keine Daten-Logik
+type NavItem = { to: string; label: string; icon: React.ReactNode };
+
+const NAV_ITEMS: NavItem[] = [
+  { to: "/", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
+  { to: "/customers", label: "Customers", icon: <Users size={18} /> },
+  { to: "/subscriptions", label: "Subscriptions", icon: <CreditCard size={18} /> },
+  { to: "/invoices", label: "Invoices", icon: <Receipt size={18} /> },
+  { to: "/devices", label: "Devices", icon: <HardDrive size={18} /> },
+  { to: "/payments", label: "Payments", icon: <CreditCard size={18} /> },
+  { to: "/webhooks", label: "Webhooks", icon: <Cable size={18} /> },
+  { to: "/licenses", label: "Licenses", icon: <KeyRound size={18} /> },
+  { to: "/licenses/portal", label: "Portal Licenses", icon: <KeyRound size={18} /> },
+  { to: "/notifications", label: "Notifications", icon: <Bell size={18} /> },
+];
+
 function AppShell({ children }: { children: React.ReactElement }) {
+  const location = useLocation();
   const { user, clearAuth } = useAuth();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const colors = themeColors[theme];
+  const [mobileOpen, setMobileOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  React.useEffect(() => {
+    const assignTableLabels = () => {
+      const tables = Array.from(
+        document.querySelectorAll<HTMLTableElement>(".admin-table"),
+      );
+      for (const table of tables) {
+        const headers = Array.from(table.querySelectorAll("thead th")).map((th) =>
+          (th.textContent || "").trim(),
+        );
+        const rows = Array.from(table.querySelectorAll("tbody tr"));
+        for (const row of rows) {
+          const cells = Array.from(row.querySelectorAll("td"));
+          cells.forEach((cell, i) => {
+            if (!cell.getAttribute("data-label")) {
+              const label = headers[i] || "Wert";
+              cell.setAttribute("data-label", label);
+            }
+          });
+        }
+      }
+    };
+
+    assignTableLabels();
+    const timer = window.setTimeout(assignTableLabels, 120);
+    window.addEventListener("resize", assignTableLabels);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("resize", assignTableLabels);
+    };
+  }, [location.pathname, children]);
 
   function handleLogout() {
     clearAuth();
@@ -59,312 +123,118 @@ function AppShell({ children }: { children: React.ReactElement }) {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: colors.bg,
-        color: colors.text,
-        transition: "background-color 0.3s, color 0.3s",
-      }}
-    >
-      {/* Header */}
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "12px 32px",
-          borderBottom: `1px solid ${colors.border}`,
-          background: colors.bgSecondary,
-          transition: "background-color 0.3s, border-color 0.3s",
-        }}
-      >
-        <div style={{ fontSize: "18px", fontWeight: 600, color: colors.text }}>
-          Caisty <span style={{ color: colors.accent }}>Admin</span>
+    <div className={`admin-root admin-root--${theme}`}>
+      <aside className={`admin-sidebar ${mobileOpen ? "is-open" : ""}`}>
+        <div className="admin-brand">
+          <CaistyLogo className="admin-logo-svg" />
+          <div className="admin-brand-copy">
+            <span className="admin-brand-main">Caisty</span>
+            <span className="admin-brand-sub">Admin</span>
+          </div>
         </div>
-
-        <nav
-          style={{
-            display: "flex",
-            gap: "16px",
-            fontSize: "14px",
-            flexWrap: "wrap",
-          }}
-        >
-          {[
-            { to: "/", label: "Dashboard" },
-            { to: "/customers", label: "Customers" },
-            { to: "/subscriptions", label: "Subscriptions" },
-            { to: "/invoices", label: "Invoices" },
-            { to: "/devices", label: "Devices" },
-            { to: "/payments", label: "Payments" },
-            { to: "/webhooks", label: "Webhooks" },
-            { to: "/licenses", label: "Licenses" },
-            { to: "/licenses/portal", label: "Portal-Lizenzen" },
-            { to: "/notifications", label: "Notifications" },
-          ].map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              style={{
-                color: colors.textSecondary,
-                textDecoration: "none",
-                transition: "color 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = colors.accent;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = colors.textSecondary;
-              }}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <nav className="admin-nav">
+          {NAV_ITEMS.map((item) => {
+            const active =
+              item.to === "/"
+                ? location.pathname === "/"
+                : location.pathname.startsWith(item.to);
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`admin-nav-link ${active ? "is-active" : ""}`}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
+      </aside>
 
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            fontSize: "12px",
-          }}
-        >
-          <NotificationBell />
-          
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            title={`Zu ${theme === "dark" ? "Light" : "Dark"} Mode wechseln`}
-            style={{
-              padding: "6px 12px",
-              borderRadius: "6px",
-              border: `1px solid ${colors.border}`,
-              background: colors.bgTertiary,
-              color: colors.text,
-              cursor: "pointer",
-              fontSize: "14px",
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = colors.border;
-              e.currentTarget.style.borderColor = colors.accent;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = colors.bgTertiary;
-              e.currentTarget.style.borderColor = colors.border;
-            }}
-          >
-            {theme === "dark" ? "☀️" : "🌙"}
-          </button>
-          
-          {user && (
-            <span style={{ color: colors.textSecondary }}>
-              {user.name || user.email} ({user.role})
-            </span>
-          )}
-          <button
-            onClick={handleLogout}
-            style={{
-              padding: "6px 12px",
-              borderRadius: "6px",
-              border: `1px solid ${colors.border}`,
-              background: colors.bgTertiary,
-              color: colors.text,
-              cursor: "pointer",
-              transition: "all 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = colors.border;
-              e.currentTarget.style.borderColor = colors.error;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = colors.bgTertiary;
-              e.currentTarget.style.borderColor = colors.border;
-            }}
-          >
-            Logout
-          </button>
-        </div>
-      </header>
+      <div className={`admin-backdrop ${mobileOpen ? "is-open" : ""}`} onClick={() => setMobileOpen(false)} />
 
-      {/* Seiteninhalt */}
-      <main
-        style={{
-          padding: "24px 32px 40px",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "1100px",
-            margin: "0 auto",
-          }}
-        >
-          {children}
-        </div>
-      </main>
+      <div className="admin-main">
+        <header className="admin-topbar">
+          <div className="admin-topbar-left">
+            <button
+              type="button"
+              className="admin-icon-btn mobile-only"
+              onClick={() => setMobileOpen((v) => !v)}
+              aria-label="Toggle navigation"
+            >
+              {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+            <div className="admin-page-meta">
+              <Gauge size={16} />
+              <span>{location.pathname === "/" ? "Dashboard" : location.pathname.slice(1).replace(/\//g, " / ")}</span>
+            </div>
+          </div>
+
+          <div className="admin-topbar-right">
+            <NotificationBell />
+            <Link
+              to="/notifications"
+              className="admin-icon-btn"
+              aria-label="Notifications"
+            >
+              <Bell size={16} />
+            </Link>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="admin-icon-btn"
+              title={`Zu ${theme === "dark" ? "Light" : "Dark"} Mode wechseln`}
+            >
+              {theme === "dark" ? "☀️" : "🌙"}
+            </button>
+
+            <div className="admin-user-chip">
+              {user?.name || user?.email}
+            </div>
+
+            <button type="button" className="admin-btn admin-btn--danger" onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
+        </header>
+
+        <main className="admin-content">
+          <div className="admin-content-inner">{children}</div>
+        </main>
+      </div>
     </div>
+  );
+}
+
+function ProtectedPage({ children }: { children: React.ReactElement }) {
+  return (
+    <RequireAuth>
+      <AppShell>{children}</AppShell>
+    </RequireAuth>
   );
 }
 
 function AppRoutes() {
   return (
     <Routes>
-      {/* Login & Password Reset sind frei */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      {/* Dashboard */}
-      <Route
-        path="/"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <DashboardPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-
-      {/* Customers */}
-      <Route
-        path="/customers"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <CustomersListPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/customers/:customerId"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <CustomerDetailPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-
-      {/* Subscriptions */}
-      <Route
-        path="/subscriptions"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <SubscriptionsListPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-
-      {/* Invoices */}
-      <Route
-        path="/invoices"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <InvoicesListPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/invoices/:id"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <InvoiceDetailPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-
-      {/* Devices */}
-      <Route
-        path="/devices"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <DevicesListPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-
-      {/* Payments */}
-      <Route
-        path="/payments"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <PaymentsListPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-
-      {/* Webhooks */}
-      <Route
-        path="/webhooks"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <WebhooksListPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-
-      {/* Licenses */}
-      <Route
-        path="/licenses"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <LicensesListPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/licenses/portal"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <PortalLicensesPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-      <Route
-        path="/licenses/:id"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <LicenseDetailPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-
-      {/* Notifications */}
-      <Route
-        path="/notifications"
-        element={
-          <RequireAuth>
-            <AppShell>
-              <NotificationsPage />
-            </AppShell>
-          </RequireAuth>
-        }
-      />
-
-      {/* Fallback */}
+      <Route path="/" element={<ProtectedPage><DashboardPage /></ProtectedPage>} />
+      <Route path="/customers" element={<ProtectedPage><CustomersListPage /></ProtectedPage>} />
+      <Route path="/customers/:customerId" element={<ProtectedPage><CustomerDetailPage /></ProtectedPage>} />
+      <Route path="/subscriptions" element={<ProtectedPage><SubscriptionsListPage /></ProtectedPage>} />
+      <Route path="/invoices" element={<ProtectedPage><InvoicesListPage /></ProtectedPage>} />
+      <Route path="/invoices/:id" element={<ProtectedPage><InvoiceDetailPage /></ProtectedPage>} />
+      <Route path="/devices" element={<ProtectedPage><DevicesListPage /></ProtectedPage>} />
+      <Route path="/payments" element={<ProtectedPage><PaymentsListPage /></ProtectedPage>} />
+      <Route path="/webhooks" element={<ProtectedPage><WebhooksListPage /></ProtectedPage>} />
+      <Route path="/licenses" element={<ProtectedPage><LicensesListPage /></ProtectedPage>} />
+      <Route path="/licenses/portal" element={<ProtectedPage><PortalLicensesPage /></ProtectedPage>} />
+      <Route path="/licenses/:id" element={<ProtectedPage><LicenseDetailPage /></ProtectedPage>} />
+      <Route path="/notifications" element={<ProtectedPage><NotificationsPage /></ProtectedPage>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

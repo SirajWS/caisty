@@ -1,5 +1,5 @@
 // apps/cloud-admin/src/pages/DevicesListPage.tsx
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet } from "../lib/api";
 import { useTheme, themeColors } from "../theme/ThemeContext";
@@ -48,6 +48,7 @@ export default function DevicesListPage() {
   const [rows, setRows] = useState<DeviceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copiedFingerprint, setCopiedFingerprint] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -210,7 +211,33 @@ export default function DevicesListPage() {
                           fontSize: 12,
                         }}
                       >
-                        {d.fingerprint ?? d.id}
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span>{d.fingerprint ?? d.id}</span>
+                          <button
+                            type="button"
+                            className="admin-btn admin-btn--ghost"
+                            title={copiedFingerprint === d.id ? "Kopiert" : "Fingerprint kopieren"}
+                            style={{ height: 26, fontSize: 11, padding: "0 8px" }}
+                            onClick={async () => {
+                              const value = d.fingerprint ?? d.id;
+                              try {
+                                await navigator.clipboard.writeText(value);
+                                setCopiedFingerprint(d.id);
+                                window.setTimeout(
+                                  () =>
+                                    setCopiedFingerprint((prev) =>
+                                      prev === d.id ? null : prev,
+                                    ),
+                                  1200,
+                                );
+                              } catch (err) {
+                                console.error("copy fingerprint failed", err);
+                              }
+                            }}
+                          >
+                            {copiedFingerprint === d.id ? "Copied" : "Copy"}
+                          </button>
+                        </div>
                       </td>
                       <td style={{ color: colors.text }}>
                         {licenses.length === 0 ? (

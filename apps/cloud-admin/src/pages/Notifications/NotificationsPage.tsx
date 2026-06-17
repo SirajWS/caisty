@@ -9,6 +9,7 @@ import {
   replySupportMessage,
   markNotificationRead,
 } from "../../lib/api";
+import { useTheme, themeColors } from "../../theme/ThemeContext";
 
 function formatDate(value: string) {
   const d = new Date(value);
@@ -16,6 +17,8 @@ function formatDate(value: string) {
 }
 
 export default function NotificationsPage() {
+  const { theme } = useTheme();
+  const colors = themeColors[theme];
   const [items, setItems] = useState<AdminNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -111,17 +114,7 @@ export default function NotificationsPage() {
       </p>
 
       {error && (
-        <div
-          style={{
-            marginTop: 16,
-            padding: "10px 12px",
-            borderRadius: 8,
-            background: "#fef2f2",
-            border: "1px solid #fecaca",
-            fontSize: 13,
-            color: "#991b1b",
-          }}
-        >
+        <div className="admin-error" style={{ marginTop: 16, background: colors.errorBg, borderColor: `${colors.error}40`, color: colors.error }}>
           {error}
         </div>
       )}
@@ -130,45 +123,33 @@ export default function NotificationsPage() {
         style={{
           marginTop: 24,
           borderRadius: 12,
-          border: "1px solid #e5e7eb",
+          border: `1px solid ${colors.border}`,
           overflow: "hidden",
-          background: "#ffffff",
-          boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+          background: colors.bgSecondary,
         }}
       >
         <div
           style={{
             padding: "12px 16px",
-            borderBottom: "1px solid #e5e7eb",
+            borderBottom: `1px solid ${colors.border}`,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             fontSize: 14,
-            background: "#f9fafb",
+            background: colors.bgTertiary,
           }}
         >
-          <span style={{ color: "#111827", fontWeight: 600 }}>Letzte Ereignisse</span>
+          <span style={{ color: colors.text, fontWeight: 600 }}>Letzte Ereignisse</span>
           <button
             type="button"
             onClick={load}
+            className="admin-btn admin-btn--ghost"
             style={{
               fontSize: 12,
-              border: "1px solid #d1d5db",
-              borderRadius: 6,
-              padding: "4px 10px",
-              background: "#ffffff",
-              color: "#374151",
-              cursor: "pointer",
-              transition: "all 0.2s",
+              borderColor: colors.border,
+              background: colors.bgSecondary,
+              color: colors.textSecondary,
               fontWeight: 500,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#f3f4f6";
-              e.currentTarget.style.borderColor = "#9ca3af";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#ffffff";
-              e.currentTarget.style.borderColor = "#d1d5db";
             }}
           >
             aktualisieren
@@ -176,44 +157,38 @@ export default function NotificationsPage() {
         </div>
 
         {loading ? (
-          <div style={{ padding: 16, fontSize: 13, color: "#6b7280" }}>
+          <div style={{ padding: 16, fontSize: 13, color: colors.textSecondary }}>
             Wird geladen …
           </div>
         ) : items.length === 0 ? (
-          <div style={{ padding: 16, fontSize: 13, color: "#6b7280" }}>
+          <div style={{ padding: 16, fontSize: 13, color: colors.textSecondary }}>
             Noch keine Notifications vorhanden.
           </div>
         ) : (
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              fontSize: 13,
-            }}
-          >
+          <table className="admin-table" style={{ fontSize: 13 }}>
             <thead>
               <tr
                 style={{
-                  background: "#f9fafb",
-                  borderBottom: "1px solid #e5e7eb",
+                  background: colors.bgTertiary,
+                  borderBottom: `1px solid ${colors.border}`,
                 }}
               >
-                <th style={{ textAlign: "left", padding: "10px 12px", color: "#374151", fontWeight: 600 }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: colors.textSecondary, fontWeight: 600 }}>
                   Titel
                 </th>
-                <th style={{ textAlign: "left", padding: "10px 12px", color: "#374151", fontWeight: 600 }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: colors.textSecondary, fontWeight: 600 }}>
                   Typ
                 </th>
-                <th style={{ textAlign: "left", padding: "10px 12px", color: "#374151", fontWeight: 600 }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: colors.textSecondary, fontWeight: 600 }}>
                   Kunde
                 </th>
-                <th style={{ textAlign: "left", padding: "10px 12px", color: "#374151", fontWeight: 600 }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: colors.textSecondary, fontWeight: 600 }}>
                   Status
                 </th>
-                <th style={{ textAlign: "left", padding: "10px 12px", color: "#374151", fontWeight: 600 }}>
+                <th style={{ textAlign: "left", padding: "10px 12px", color: colors.textSecondary, fontWeight: 600 }}>
                   Zeit
                 </th>
-                <th style={{ padding: "10px 12px", color: "#374151", fontWeight: 600 }}>Aktion</th>
+                <th style={{ padding: "10px 12px", color: colors.textSecondary, fontWeight: 600 }}>Aktion</th>
               </tr>
             </thead>
             <tbody>
@@ -221,26 +196,22 @@ export default function NotificationsPage() {
                 <tr
                   key={n.id}
                   style={{
-                    borderBottom: "1px solid #e5e7eb",
-                    background: n.isRead ? "#ffffff" : "#f9fafb",
+                    borderBottom: `1px solid ${colors.border}`,
+                    background: n.isRead ? "transparent" : colors.bgTertiary,
                     transition: "background-color 0.2s",
                   }}
                   onMouseEnter={(e) => {
-                    if (n.isRead) {
-                      e.currentTarget.style.background = "#f3f4f6";
-                    } else {
-                      e.currentTarget.style.background = "#f3f4f6";
-                    }
+                    e.currentTarget.style.background = "rgba(139,92,246,0.08)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = n.isRead ? "#ffffff" : "#f9fafb";
+                    e.currentTarget.style.background = n.isRead ? "transparent" : colors.bgTertiary;
                   }}
                 >
-                  <td style={{ padding: "10px 12px", color: "#111827", fontWeight: n.isRead ? 400 : 500 }}>{n.title}</td>
-                  <td style={{ padding: "10px 12px", color: "#6b7280" }}>
+                  <td style={{ padding: "10px 12px", color: colors.text, fontWeight: n.isRead ? 400 : 500 }}>{n.title}</td>
+                  <td style={{ padding: "10px 12px", color: colors.textSecondary }}>
                     {n.kind || n.source || "info"}
                   </td>
-                  <td style={{ padding: "10px 12px", color: "#6b7280", fontSize: 12 }}>
+                  <td style={{ padding: "10px 12px", color: colors.textSecondary, fontSize: 12 }}>
                     {n.customerName ||
                       n.customerEmail ||
                       n.customerId ||
@@ -254,9 +225,9 @@ export default function NotificationsPage() {
                         borderRadius: 12,
                         fontSize: 11,
                         fontWeight: 600,
-                        background: n.isRead ? "#e5e7eb" : "#dcfce7",
-                        color: n.isRead ? "#6b7280" : "#166534",
-                        border: n.isRead ? "none" : "1px solid #bbf7d0",
+                        background: n.isRead ? "rgba(148,163,184,0.2)" : "rgba(139,92,246,0.16)",
+                        color: n.isRead ? colors.textSecondary : "#c4b5fd",
+                        border: n.isRead ? "none" : "1px solid rgba(139,92,246,0.35)",
                       }}
                     >
                       {n.isRead ? "gelesen" : "neu"}
@@ -265,7 +236,7 @@ export default function NotificationsPage() {
                   <td
                     style={{
                       padding: "10px 12px",
-                      color: "#6b7280",
+                      color: colors.textSecondary,
                       whiteSpace: "nowrap",
                       fontSize: 12,
                     }}
@@ -284,24 +255,13 @@ export default function NotificationsPage() {
                     <button
                       type="button"
                       onClick={() => handleOpen(n)}
+                      className="admin-btn admin-btn--ghost"
                       style={{
                         fontSize: 11,
-                        borderRadius: 6,
-                        border: "1px solid #d1d5db",
-                        padding: "4px 12px",
-                        background: "#ffffff",
-                        color: "#374151",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
+                        borderColor: colors.border,
+                        background: colors.bgSecondary,
+                        color: colors.textSecondary,
                         fontWeight: 500,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.background = "#f3f4f6";
-                        e.currentTarget.style.borderColor = "#9ca3af";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.background = "#ffffff";
-                        e.currentTarget.style.borderColor = "#d1d5db";
                       }}
                     >
                       öffnen
@@ -310,24 +270,13 @@ export default function NotificationsPage() {
                       <button
                         type="button"
                         onClick={() => handleMarkRead(n.id)}
+                        className="admin-btn admin-btn--ghost"
                         style={{
                           fontSize: 11,
-                          borderRadius: 6,
-                          border: "1px solid #d1d5db",
-                          padding: "4px 12px",
-                          background: "#ffffff",
-                          color: "#374151",
-                          cursor: "pointer",
-                          transition: "all 0.2s",
+                          borderColor: colors.border,
+                          background: colors.bgSecondary,
+                          color: colors.textSecondary,
                           fontWeight: 500,
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = "#f3f4f6";
-                          e.currentTarget.style.borderColor = "#9ca3af";
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = "#ffffff";
-                          e.currentTarget.style.borderColor = "#d1d5db";
                         }}
                       >
                         als gelesen
@@ -347,14 +296,13 @@ export default function NotificationsPage() {
           style={{
             marginTop: 24,
             borderRadius: 12,
-            border: "1px solid #e5e7eb",
+            border: `1px solid ${colors.border}`,
             padding: 16,
-            background: "#ffffff",
-            boxShadow: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)",
+            background: colors.bgSecondary,
           }}
         >
-          <h2 style={{ fontSize: 16, marginBottom: 8, color: "#111827", fontWeight: 600 }}>Support-Anfrage</h2>
-          <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>
+          <h2 style={{ fontSize: 16, marginBottom: 8, color: colors.text, fontWeight: 600 }}>Support-Anfrage</h2>
+          <p style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 12 }}>
             {selected.customerName || selected.customerEmail || selected.customerId}
             {" · "}
             {formatDate(selected.createdAt)}
@@ -365,8 +313,8 @@ export default function NotificationsPage() {
               marginBottom: 12,
               padding: 12,
               borderRadius: 8,
-              border: "1px solid #e5e7eb",
-              background: "#f9fafb",
+              border: `1px solid ${colors.border}`,
+              background: colors.bgTertiary,
             }}
           >
             <div
@@ -374,7 +322,7 @@ export default function NotificationsPage() {
                 fontSize: 14,
                 fontWeight: 600,
                 marginBottom: 4,
-                color: "#111827",
+                color: colors.text,
               }}
             >
               {selected.subject}
@@ -382,7 +330,7 @@ export default function NotificationsPage() {
             <div
               style={{
                 fontSize: 13,
-                color: "#374151",
+                color: colors.textSecondary,
                 whiteSpace: "pre-wrap",
                 lineHeight: 1.6,
               }}
@@ -397,15 +345,15 @@ export default function NotificationsPage() {
                 marginBottom: 12,
                 padding: 12,
                 borderRadius: 8,
-                border: "1px solid #bfdbfe",
-                background: "#eff6ff",
+                border: "1px solid rgba(139,92,246,0.35)",
+                background: "rgba(139,92,246,0.12)",
                 fontSize: 13,
               }}
             >
               <div
                 style={{
                   fontSize: 11,
-                  color: "#1e40af",
+                  color: "#c4b5fd",
                   marginBottom: 4,
                   fontWeight: 600,
                 }}
@@ -415,7 +363,7 @@ export default function NotificationsPage() {
                   ? `(${formatDate(selected.repliedAt)})`
                   : ""}
               </div>
-              <div style={{ whiteSpace: "pre-wrap", color: "#1e3a8a" }}>
+              <div style={{ whiteSpace: "pre-wrap", color: "#ddd6fe" }}>
                 {selected.replyText}
               </div>
             </div>
@@ -427,10 +375,10 @@ export default function NotificationsPage() {
                 marginBottom: 12,
                 padding: "8px 10px",
                 borderRadius: 8,
-                background: "#fef2f2",
-                border: "1px solid #fecaca",
+                background: colors.errorBg,
+                border: `1px solid ${colors.error}50`,
                 fontSize: 13,
-                color: "#991b1b",
+                color: colors.error,
               }}
             >
               {detailError}
@@ -443,7 +391,7 @@ export default function NotificationsPage() {
                 fontSize: 13,
                 display: "block",
                 marginBottom: 4,
-                color: "#374151",
+                color: colors.textSecondary,
                 fontWeight: 500,
               }}
             >
@@ -458,9 +406,9 @@ export default function NotificationsPage() {
                 width: "100%",
                 padding: "10px 12px",
                 borderRadius: 8,
-                border: "1px solid #d1d5db",
-                background: "#ffffff",
-                color: "#111827",
+                border: `1px solid ${colors.border}`,
+                background: colors.bg,
+                color: colors.text,
                 fontSize: 14,
                 resize: "vertical",
               }}
@@ -470,56 +418,17 @@ export default function NotificationsPage() {
           <div className="mt-3 flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
             <button
               type="button"
-              className="w-full sm:w-auto"
+              className="admin-btn admin-btn--ghost w-full sm:w-auto"
               onClick={() => setSelected(null)}
-              style={{
-                fontSize: 13,
-                borderRadius: 6,
-                border: "1px solid #d1d5db",
-                padding: "10px 14px",
-                background: "#ffffff",
-                color: "#374151",
-                cursor: "pointer",
-                fontWeight: 500,
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#f3f4f6";
-                e.currentTarget.style.borderColor = "#9ca3af";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "#ffffff";
-                e.currentTarget.style.borderColor = "#d1d5db";
-              }}
             >
               schließen
             </button>
             <button
               type="button"
-              className="w-full sm:w-auto"
+              className="admin-btn admin-btn--primary w-full sm:w-auto"
               onClick={handleSendReply}
               disabled={savingReply}
-              style={{
-                fontSize: 13,
-                borderRadius: 6,
-                border: "none",
-                padding: "10px 16px",
-                background: savingReply ? "#86efac" : "#22c55e",
-                color: "#ffffff",
-                fontWeight: 600,
-                cursor: savingReply ? "default" : "pointer",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                if (!savingReply) {
-                  e.currentTarget.style.background = "#16a34a";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!savingReply) {
-                  e.currentTarget.style.background = "#22c55e";
-                }
-              }}
+              style={{ opacity: savingReply ? 0.7 : 1 }}
             >
               {savingReply ? "Wird gesendet…" : "Antwort senden"}
             </button>
