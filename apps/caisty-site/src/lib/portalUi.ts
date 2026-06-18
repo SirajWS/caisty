@@ -108,10 +108,9 @@ export function portalConnectionBadge(status: string, isLight: boolean): string 
   }`;
 }
 
-export function portalTableShell(isLight: boolean): string {
-  return isLight
-    ? "rounded-xl border border-gray-200 bg-white overflow-x-auto shadow-sm"
-    : "rounded-xl border border-white/10 bg-white/[0.04] overflow-x-auto";
+export function portalTableShell(isLight?: boolean): string {
+  void isLight;
+  return "portal-table-wrapper overflow-x-auto";
 }
 
 export function portalPrimaryCta(): string {

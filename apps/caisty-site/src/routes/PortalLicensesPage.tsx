@@ -12,7 +12,7 @@ import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
 import { portalLocaleTag } from "../lib/portalLocale";
-import { portalCardShell, portalInputClass, portalLicenseStatusBadge, portalPrimaryCta, portalSectionLabel, portalTableShell, portalTextLink } from "../lib/portalUi";
+import { portalCardShell, portalInputClass, portalLicenseStatusBadge, portalPrimaryCta, portalTableShell, portalTextLink } from "../lib/portalUi";
 
 const PortalLicensesPage: React.FC = () => {
   const { language } = useLanguage();
@@ -182,22 +182,18 @@ const PortalLicensesPage: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full text-xs">
+          <table className="portal-table text-xs">
             <thead>
-              <tr
-                className={`border-b ${
-                  isLight ? "border-slate-100 bg-slate-50/80" : "border-white/10 bg-white/[0.03]"
-                }`}
-              >
-                <th className={`text-left px-4 py-3 ${portalSectionLabel(isLight)}`}>{t.licenses.colKey}</th>
-                <th className={`text-left px-4 py-3 ${portalSectionLabel(isLight)}`}>{t.labels.plan}</th>
-                <th className={`text-left px-4 py-3 ${portalSectionLabel(isLight)}`}>{t.labels.status}</th>
-                <th className={`text-left px-4 py-3 ${portalSectionLabel(isLight)}`}>{t.labels.maxDevices}</th>
-                <th className={`text-left px-4 py-3 ${portalSectionLabel(isLight)}`}>{t.labels.validUntil}</th>
-                <th className={`text-left px-4 py-3 ${portalSectionLabel(isLight)}`}>{t.labels.createdAt}</th>
+              <tr>
+                <th>{t.licenses.colKey}</th>
+                <th>{t.labels.plan}</th>
+                <th>{t.labels.status}</th>
+                <th>{t.labels.maxDevices}</th>
+                <th>{t.labels.validUntil}</th>
+                <th>{t.labels.createdAt}</th>
               </tr>
             </thead>
-            <tbody className={isLight ? "divide-y divide-slate-100" : "divide-y divide-white/10"}>
+            <tbody>
               {loading ? (
                 <>
                   <SkeletonLicenseRow isLight={isLight} />
@@ -207,7 +203,7 @@ const PortalLicensesPage: React.FC = () => {
                 <tr>
                   <td
                     colSpan={6}
-                    className={`px-4 py-6 text-center ${
+                    className={`text-center ${
                       isLight ? "text-slate-600" : "text-slate-400"
                     }`}
                   >
@@ -216,45 +212,40 @@ const PortalLicensesPage: React.FC = () => {
                 </tr>
               ) : (
                 filtered.map((lic) => (
-                  <tr
-                    key={lic.id}
-                    className={`transition-colors ${
-                      isLight ? "hover:bg-slate-50/80" : "hover:bg-white/[0.04]"
-                    }`}
-                  >
+                  <tr key={lic.id}>
                     <td
-                      className={`px-4 py-3 font-mono text-sm ${
+                      className={`font-mono text-sm ${
                         isLight ? "text-slate-900" : "text-slate-200"
                       }`}
                     >
                       {lic.key}
                     </td>
                     <td
-                      className={`px-4 py-3 capitalize text-sm ${
+                      className={`capitalize text-sm ${
                         isLight ? "text-slate-900" : "text-slate-200"
                       }`}
                     >
                       {lic.plan}
                     </td>
-                    <td className="px-4 py-3">
+                    <td>
                       <StatusBadge status={lic.status} isLight={isLight} />
                     </td>
                     <td
-                      className={`px-4 py-3 text-sm ${
+                      className={`text-sm ${
                         isLight ? "text-slate-900" : "text-slate-200"
                       }`}
                     >
                       {lic.maxDevices}
                     </td>
                     <td
-                      className={`px-4 py-3 text-sm ${
+                      className={`text-sm ${
                         isLight ? "text-slate-700" : "text-slate-300"
                       }`}
                     >
                       {formatDate(lic.validUntil)}
                     </td>
                     <td
-                      className={`px-4 py-3 text-sm ${
+                      className={`text-sm ${
                         isLight ? "text-slate-600" : "text-slate-500"
                       }`}
                     >

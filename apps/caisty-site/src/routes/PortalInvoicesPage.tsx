@@ -131,41 +131,26 @@ const PortalInvoicesPage: React.FC = () => {
 
       {items.length > 0 && (
         <div className={portalTableShell(isLight)}>
-          <table className="min-w-full text-sm">
+          <table className="portal-table">
             <thead>
-              <tr className={`border-b text-left text-xs font-semibold uppercase tracking-wider ${isLight ? "border-slate-100 bg-slate-50/80 text-slate-500" : "border-white/10 bg-white/[0.03] text-slate-400"}`}>
-                <th className="px-4 py-3.5">
-                  {t.labels.number}
-                </th>
-                <th className="px-4 py-3.5">
-                  {t.labels.period}
-                </th>
-                <th className="px-4 py-3.5 text-right">
-                  {t.labels.amount}
-                </th>
-                <th className="px-4 py-3.5">
-                  {t.labels.status}
-                </th>
-                <th className="px-4 py-3.5">
-                  {t.labels.createdAt}
-                </th>
-                <th className="px-4 py-3.5" />
+              <tr>
+                <th>{t.labels.number}</th>
+                <th>{t.labels.period}</th>
+                <th className="text-right">{t.labels.amount}</th>
+                <th>{t.labels.status}</th>
+                <th>{t.labels.createdAt}</th>
+                <th aria-label={t.invoices.details} />
               </tr>
             </thead>
-            <tbody className={isLight ? "divide-y divide-slate-100" : "divide-y divide-white/10"}>
+            <tbody>
               {items.map((inv) => (
-                <tr
-                  key={inv.id}
-                  className={`transition-colors ${isLight ? "hover:bg-slate-50/80" : "hover:bg-white/[0.04]"}`}
-                >
-                  <td className={`px-4 py-3 font-mono text-xs font-medium ${isLight ? "text-slate-900" : "text-slate-100"}`}>
+                <tr key={inv.id}>
+                  <td className={`font-mono text-xs font-medium ${isLight ? "text-slate-900" : "text-slate-100"}`}>
                     {inv.number}
                   </td>
-                  <td className={`px-4 py-3 text-xs ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+                  <td className={`text-xs ${isLight ? "text-slate-600" : "text-slate-300"}`}>
                     {inv.periodStart || inv.periodEnd
-                      ? `${formatDate(inv.periodStart)} – ${formatDate(
-                          inv.periodEnd,
-                        )}`
+                      ? `${formatDate(inv.periodStart)} – ${formatDate(inv.periodEnd)}`
                       : inv.billingPeriodLabel ??
                         (inv.billingPeriod === "yearly"
                           ? t.labels.yearly
@@ -173,16 +158,16 @@ const PortalInvoicesPage: React.FC = () => {
                             ? t.labels.monthly
                             : t.labels.dash)}
                   </td>
-                  <td className={`px-4 py-3 text-right text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>
+                  <td className={`text-right text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>
                     {formatAmount(inv)}
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     <span className={portalInvoiceStatusBadge(inv.status, isLight)}>{inv.status}</span>
                   </td>
-                  <td className={`px-4 py-3 text-xs ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+                  <td className={`text-xs ${isLight ? "text-slate-600" : "text-slate-300"}`}>
                     {formatDate(inv.createdAt)}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="portal-table-actions text-right">
                     <Link
                       to={`/portal/invoices/${inv.id}`}
                       className={`text-xs font-medium no-underline hover:underline ${portalTextLink(isLight)}`}

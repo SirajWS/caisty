@@ -131,8 +131,8 @@ const PortalDashboard: React.FC = () => {
         </p>
       </header>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        <section className={`space-y-4 ${portalCardShell(isLight)}`}>
+      <div className="portal-stat-grid">
+        <section className={`portal-stat-card space-y-4`}>
           <div className={portalSectionLabel(isLight)}>{t.dashboard.activeLicense}</div>
 
           {loading ? (
@@ -204,7 +204,7 @@ const PortalDashboard: React.FC = () => {
           )}
         </section>
 
-        <section className={`${portalCardShell(isLight)} flex flex-col justify-between`}>
+        <section className="portal-stat-card flex flex-col justify-between">
           <div className="space-y-4">
             <div className={portalSectionLabel(isLight)}>{t.dashboard.devicesTitle}</div>
 
@@ -240,7 +240,7 @@ const PortalDashboard: React.FC = () => {
           </div>
         </section>
 
-        <section className={`${portalCardShell(isLight)} flex flex-col justify-between`}>
+        <section className="portal-stat-card flex flex-col justify-between">
           <div className="space-y-4">
             <div className={portalSectionLabel(isLight)}>{t.dashboard.latestInvoice}</div>
 

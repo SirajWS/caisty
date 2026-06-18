@@ -92,21 +92,17 @@ const PortalDevicesPage: React.FC = () => {
       ) : (
         <div className="space-y-4">
           <div className={portalTableShell(isLight)}>
-            <table className="w-full border-collapse text-sm">
+            <table className="portal-table">
               <thead>
-                <tr
-                  className={`border-b text-left text-xs font-semibold uppercase tracking-wider ${
-                    isLight ? "border-slate-100 bg-slate-50/80 text-slate-500" : "border-white/10 bg-white/[0.03] text-slate-400"
-                  }`}
-                >
-                  <th className="px-4 py-3.5">{t.labels.name}</th>
-                  <th className="px-4 py-3.5">{t.labels.deviceId}</th>
-                  <th className="px-4 py-3.5">{t.labels.license}</th>
-                  <th className="px-4 py-3.5">{t.labels.lastSeen}</th>
-                  <th className="px-4 py-3.5">{t.labels.status}</th>
+                <tr>
+                  <th>{t.labels.name}</th>
+                  <th>{t.labels.deviceId}</th>
+                  <th>{t.labels.license}</th>
+                  <th>{t.labels.lastSeen}</th>
+                  <th>{t.labels.status}</th>
                 </tr>
               </thead>
-              <tbody className={isLight ? "divide-y divide-slate-100" : "divide-y divide-white/10"}>
+              <tbody>
                 {devices.map((d, idx) => {
                   const seen = d.lastSeenAt;
                   const rel =
@@ -114,20 +110,17 @@ const PortalDevicesPage: React.FC = () => {
                     lastSeenCaption(seen, locale, t.devices.sameDayHint, t.devices.prevDayHint);
                   const full = formatSeen(seen);
                   return (
-                    <tr
-                      key={d.id ?? idx}
-                      className={`transition-colors ${isLight ? "hover:bg-slate-50/80" : "hover:bg-white/[0.04]"}`}
-                    >
-                      <td className={`px-4 py-3 ${isLight ? "text-slate-900" : "text-slate-100"}`}>
+                    <tr key={d.id ?? idx}>
+                      <td className={isLight ? "text-slate-900" : "text-slate-100"}>
                         {d.name ?? t.labels.dash}
                       </td>
-                      <td className={`px-4 py-3 ${d.deviceId ? `font-mono text-xs ${isLight ? "text-slate-700" : "text-slate-300"}` : emptyCell}`}>
+                      <td className={d.deviceId ? `font-mono text-xs ${isLight ? "text-slate-700" : "text-slate-300"}` : emptyCell}>
                         {d.deviceId ?? "—"}
                       </td>
-                      <td className={`px-4 py-3 ${d.licenseKey ? "font-mono text-xs " + (isLight ? "text-slate-900" : "text-slate-100") : emptyCell}`}>
+                      <td className={d.licenseKey ? "font-mono text-xs " + (isLight ? "text-slate-900" : "text-slate-100") : emptyCell}>
                         {d.licenseKey ?? t.devices.notLinked}
                       </td>
-                      <td className={`px-4 py-3 text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                      <td className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
                         {rel ? (
                           <>
                             <span className={isLight ? "text-slate-700" : "text-slate-300"}>{rel}</span>
@@ -138,7 +131,7 @@ const PortalDevicesPage: React.FC = () => {
                           full
                         )}
                       </td>
-                      <td className="px-4 py-3">
+                      <td>
                         <span className={portalConnectionBadge(String(d.status ?? ""), isLight)}>{d.status}</span>
                       </td>
                     </tr>

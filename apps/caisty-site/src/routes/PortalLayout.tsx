@@ -7,11 +7,22 @@ import {
   useOutletContext,
 } from "react-router-dom";
 import {
+  CreditCard,
+  HardDrive,
+  KeyRound,
+  LayoutDashboard,
+  LifeBuoy,
+  LogOut,
+  Menu,
+  Receipt,
+  User,
+  X,
+} from "lucide-react";
+import {
   fetchPortalMe,
   clearPortalToken,
   type PortalCustomer,
 } from "../lib/portalApi";
-import { LogOut } from "lucide-react";
 import ThemeToggle from "../components/ThemeToggle";
 import LanguageSelector from "../components/LanguageSelector";
 import { useTheme } from "../lib/theme";
@@ -32,14 +43,37 @@ export function usePortalCustomer() {
   return usePortalOutlet().customer;
 }
 
+type NavItem = { to: string; label: string; icon: React.ReactNode; end?: boolean };
+
+function usePortalNavItems(): NavItem[] {
+  const { language } = useLanguage();
+  const t = getPortalTranslations(language);
+  return [
+    { to: "/portal", label: t.layout.navDashboard, icon: <LayoutDashboard size={18} />, end: true },
+    { to: "/portal/licenses", label: t.layout.navLicenses, icon: <KeyRound size={18} /> },
+    { to: "/portal/plan", label: t.layout.navPlans, icon: <CreditCard size={18} /> },
+    { to: "/portal/devices", label: t.layout.navDevices, icon: <HardDrive size={18} /> },
+    { to: "/portal/invoices", label: t.layout.navInvoices, icon: <Receipt size={18} /> },
+    { to: "/portal/support", label: t.layout.navSupport, icon: <LifeBuoy size={18} /> },
+    { to: "/portal/account", label: t.layout.navAccount, icon: <User size={18} /> },
+  ];
+}
+
+function pageTitle(pathname: string, items: NavItem[]): string {
+  const match = items.find((item) =>
+    item.end ? pathname === item.to : pathname.startsWith(item.to),
+  );
+  return match?.label ?? "Portal";
+}
+
 export default function PortalLayout() {
   const { language } = useLanguage();
   const t = getPortalTranslations(language);
   const { theme } = useTheme();
-  const isLight = theme === "light";
+  const navItems = usePortalNavItems();
   const [customer, setCustomer] = React.useState<PortalCustomer | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
+  const [mobileOpen, setMobileOpen] = React.useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -81,25 +115,51 @@ export default function PortalLayout() {
   }, [navigate, location.pathname]);
 
   React.useEffect(() => {
-    setMobileNavOpen(false);
+    setMobileOpen(false);
   }, [location.pathname]);
+
+  React.useEffect(() => {
+    const assignTableLabels = () => {
+      const tables = Array.from(
+        document.querySelectorAll<HTMLTableElement>(".portal-table"),
+      );
+      for (const table of tables) {
+        const headers = Array.from(table.querySelectorAll("thead th")).map((th) =>
+          (th.textContent || "").trim(),
+        );
+        const rows = Array.from(table.querySelectorAll("tbody tr"));
+        for (const row of rows) {
+          const cells = Array.from(row.querySelectorAll("td"));
+          cells.forEach((cell, i) => {
+            if (!cell.getAttribute("data-label")) {
+              const label = headers[i] || "Value";
+              cell.setAttribute("data-label", label);
+            }
+          });
+        }
+      }
+    };
+
+    assignTableLabels();
+    const timer = window.setTimeout(assignTableLabels, 120);
+    window.addEventListener("resize", assignTableLabels);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("resize", assignTableLabels);
+    };
+  }, [location.pathname, loading, customer]);
 
   function handleLogout() {
     clearPortalToken();
     navigate("/login", { replace: true });
   }
 
-  const shellBg = isLight ? "bg-[#f8fafc] text-slate-900" : "bg-[#0B1220] text-slate-100";
-  const headerBar = isLight
-    ? "border-slate-200/90 bg-white/90"
-    : "border-white/[0.08] bg-[#0B1220]/90";
-
   if (loading || !customer) {
     return (
-      <div className={`min-h-screen flex items-center justify-center ${shellBg}`}>
+      <div className={`portal-loading portal-root portal-root--${theme}`}>
         <div className="space-y-3 text-center">
           <div className="h-9 w-9 rounded-full border-2 border-orange-500 border-t-transparent animate-spin mx-auto" />
-          <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+          <p className="text-sm" style={{ color: "var(--portal-muted)" }}>
             {t.layout.loading}
           </p>
         </div>
@@ -107,177 +167,86 @@ export default function PortalLayout() {
     );
   }
 
+  const title = pageTitle(location.pathname, navItems);
+
   return (
-    <div className={`min-h-screen flex flex-col ${shellBg}`}>
-      <header className={`sticky top-0 z-40 border-b backdrop-blur-md ${headerBar}`}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-5 py-4 flex items-center justify-between gap-3 min-w-0">
-          <div className="flex items-center gap-2.5 min-w-0 shrink-0">
-            <CaistyLogo className="h-9 w-9 shrink-0" />
-            <div className="leading-tight min-w-0">
-              <div className={`text-sm font-semibold tracking-tight truncate ${isLight ? "text-[#0B1220]" : "text-white"}`}>
-                {t.layout.taglineTitle}
-              </div>
-              <div className={`text-[11px] truncate ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                {t.layout.taglineSubtitle}
-              </div>
-            </div>
+    <div className={`portal-root portal-root--${theme}`}>
+      <aside className={`portal-sidebar ${mobileOpen ? "is-open" : ""}`}>
+        <div className="portal-brand">
+          <CaistyLogo className="portal-logo-svg" />
+          <div className="portal-brand-copy">
+            <span className="portal-brand-main">{t.layout.taglineTitle}</span>
+            <span className="portal-brand-sub">{t.layout.taglineSubtitle}</span>
           </div>
-
-          <div className="hidden lg:flex items-center gap-5 min-w-0 flex-1 justify-end">
-            <nav className="flex flex-nowrap items-center gap-x-2 text-xs font-medium justify-end">
-              <PortalNavLink to="/portal">{t.layout.navDashboard}</PortalNavLink>
-              <PortalNavLink to="/portal/licenses">{t.layout.navLicenses}</PortalNavLink>
-              <PortalNavLink to="/portal/plan">{t.layout.navPlans}</PortalNavLink>
-              <PortalNavLink to="/portal/devices">{t.layout.navDevices}</PortalNavLink>
-              <PortalNavLink to="/portal/invoices">{t.layout.navInvoices}</PortalNavLink>
-              <PortalNavLink to="/portal/support">{t.layout.navSupport}</PortalNavLink>
-              <PortalNavLink to="/portal/account">{t.layout.navAccount}</PortalNavLink>
-            </nav>
-
-            <div
-              className={`flex items-center gap-2 shrink-0 pl-2 border-l ${
-                isLight ? "border-slate-200" : "border-white/10"
-              }`}
-            >
-              <LanguageSelector variant="compact" />
-              <ThemeToggle variant="compact" />
-              <button
-                type="button"
-                onClick={handleLogout}
-                title={t.layout.logout}
-                aria-label={t.layout.logout}
-                className={
-                  isLight
-                    ? "inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white p-2 text-slate-800 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
-                    : "inline-flex items-center justify-center rounded-lg border border-white/20 bg-transparent p-2 text-slate-200 transition-colors hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
-                }
+        </div>
+        <nav className="portal-nav">
+          {navItems.map((item) => {
+            const active = item.end
+              ? location.pathname === item.to
+              : location.pathname.startsWith(item.to);
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={`portal-nav-link ${active ? "is-active" : ""}`}
               >
-                <LogOut className="h-4 w-4" strokeWidth={2} aria-hidden />
-              </button>
-              <div className="hidden lg:flex flex-col items-end max-w-[220px]">
-                <span className={`text-xs font-semibold truncate w-full text-end ${isLight ? "text-slate-900" : "text-slate-100"}`}>
-                  {customer.name}
-                </span>
-                <span className={`text-[11px] truncate w-full text-end ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                  {customer.email}
-                </span>
-              </div>
+                {item.icon}
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
+      </aside>
+
+      <div
+        className={`portal-backdrop ${mobileOpen ? "is-open" : ""}`}
+        onClick={() => setMobileOpen(false)}
+        aria-hidden
+      />
+
+      <div className="portal-main">
+        <header className="portal-topbar">
+          <div className="portal-topbar-left">
+            <button
+              type="button"
+              className="portal-icon-btn portal-mobile-only"
+              onClick={() => setMobileOpen((v) => !v)}
+              aria-label={t.layout.menuOpenAria}
+            >
+              {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
+            <div className="portal-page-meta">
+              <LayoutDashboard size={16} />
+              <span>{title}</span>
             </div>
           </div>
 
-          <button
-            type="button"
-            className={`lg:hidden inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
-              isLight
-                ? "border-slate-300 bg-white text-slate-800"
-                : "border-white/15 bg-white/[0.04] text-slate-100"
-            }`}
-            onClick={() => setMobileNavOpen((open) => !open)}
-            aria-label={t.layout.menuOpenAria}
-          >
-            <span className="sr-only">{t.layout.menuSr}</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-              {mobileNavOpen ? <path d="M6 18L18 6M6 6l12 12" /> : <path d="M4 6h16M4 12h16M4 18h16" />}
-            </svg>
-          </button>
-        </div>
-
-        {mobileNavOpen && (
-          <div
-            className={`lg:hidden border-t max-h-[min(70vh,calc(100dvh-8rem))] overflow-y-auto ${
-              isLight ? "border-slate-200 bg-white" : "border-white/[0.08] bg-[#0B1220]"
-            }`}
-          >
-            <div className="max-w-6xl mx-auto px-4 pb-4 pt-3 space-y-4">
-              <nav className="flex flex-col gap-1 text-sm font-medium">
-                <PortalNavLink to="/portal" block>
-                  {t.layout.navDashboard}
-                </PortalNavLink>
-                <PortalNavLink to="/portal/licenses" block>
-                  {t.layout.navLicenses}
-                </PortalNavLink>
-                <PortalNavLink to="/portal/plan" block>
-                  {t.layout.navPlans}
-                </PortalNavLink>
-                <PortalNavLink to="/portal/devices" block>
-                  {t.layout.navDevices}
-                </PortalNavLink>
-                <PortalNavLink to="/portal/invoices" block>
-                  {t.layout.navInvoices}
-                </PortalNavLink>
-                <PortalNavLink to="/portal/support" block>
-                  {t.layout.navSupport}
-                </PortalNavLink>
-                <PortalNavLink to="/portal/account" block>
-                  {t.layout.navAccount}
-                </PortalNavLink>
-              </nav>
-
-              <div className={`flex flex-wrap items-center gap-2 pt-2 border-t ${isLight ? "border-slate-200" : "border-white/10"}`}>
-                <LanguageSelector variant="compact" />
-                <ThemeToggle variant="compact" />
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  title={t.layout.logout}
-                  aria-label={t.layout.logout}
-                  className={
-                    isLight
-                      ? "inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white p-2 text-slate-800 transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600"
-                      : "inline-flex items-center justify-center rounded-lg border border-white/20 bg-transparent p-2 text-slate-200 transition-colors hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
-                  }
-                >
-                  <LogOut className="h-4 w-4" strokeWidth={2} aria-hidden />
-                </button>
-                <div className="flex flex-col min-w-0 flex-1">
-                  <span className={`text-xs font-semibold truncate ${isLight ? "text-slate-900" : "text-white"}`}>
-                    {customer.name}
-                  </span>
-                  <span className={`text-[11px] truncate ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                    {customer.email}
-                  </span>
-                </div>
-              </div>
+          <div className="portal-topbar-right">
+            <LanguageSelector variant="compact" />
+            <ThemeToggle variant="compact" />
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="portal-icon-btn portal-icon-btn--danger"
+              title={t.layout.logout}
+              aria-label={t.layout.logout}
+            >
+              <LogOut size={16} />
+            </button>
+            <div className="portal-user-chip">
+              <span className="portal-user-name">{customer.name}</span>
+              <span className="portal-user-email">{customer.email}</span>
             </div>
           </div>
-        )}
-      </header>
+        </header>
 
-      <main className="flex-1 min-w-0">
-        <div className="max-w-6xl mx-auto px-4 sm:px-5 py-8 sm:py-12 w-full min-w-0">
-          <Outlet context={{ customer, setCustomer }} />
-        </div>
-      </main>
+        <main className="portal-content">
+          <div className="portal-content-inner">
+            <Outlet context={{ customer, setCustomer }} />
+          </div>
+        </main>
+      </div>
     </div>
-  );
-}
-
-interface PortalNavLinkProps {
-  to: string;
-  children: React.ReactNode;
-  block?: boolean;
-}
-
-function PortalNavLink({ to, children, block }: PortalNavLinkProps) {
-  const { theme } = useTheme();
-  const isLight = theme === "light";
-  return (
-    <NavLink
-      to={to}
-      end={to === "/portal"}
-      className={({ isActive }) =>
-        [
-          block ? "px-3 py-2.5 rounded-xl text-left w-full" : "px-3 py-1.5 rounded-full whitespace-nowrap",
-          "transition-colors",
-          isActive
-            ? "bg-orange-500 text-white shadow-sm font-semibold"
-            : isLight
-              ? "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-              : "text-slate-400 hover:bg-white/[0.06] hover:text-white",
-        ].join(" ")
-      }
-    >
-      {children}
-    </NavLink>
   );
 }
