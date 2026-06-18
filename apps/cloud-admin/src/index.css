@@ -691,3 +691,136 @@ body {
     border-bottom: 0;
   }
 }
+
+.notification-bell {
+  position: relative;
+}
+
+.notification-bell__badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #f9fafb;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.notification-bell__dropdown {
+  position: absolute;
+  right: 0;
+  margin-top: 8px;
+  width: min(360px, calc(100vw - 24px));
+  max-height: 420px;
+  overflow-y: auto;
+  border-radius: 12px;
+  border: 1px solid var(--admin-border);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.45);
+  z-index: 50;
+}
+
+.notification-bell__header {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--admin-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.notification-bell__refresh {
+  font-size: 11px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.notification-bell__group-label {
+  padding: 8px 12px 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.notification-bell__item {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: none;
+  border-bottom: 1px solid var(--admin-border);
+  cursor: pointer;
+  color: inherit;
+}
+
+.notification-bell__item-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.notification-bell__item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-bell__item-title {
+  font-size: 12px;
+}
+
+.notification-bell__item-sub {
+  font-size: 12px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notification-bell__item-meta {
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+.notification-bell__item-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.notification-bell__empty {
+  padding: 12px;
+  font-size: 13px;
+  margin: 0;
+}
+
+.notification-bell__footer {
+  padding: 8px;
+  text-align: center;
+  font-size: 11px;
+  border-top: 1px solid var(--admin-border);
+}
+
+.admin-input {
+  margin-left: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-bg);
+  color: var(--admin-text);
+  font-size: 13px;
+}
+
+.admin-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}

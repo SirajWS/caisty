@@ -1,24 +1,33 @@
-import { useEffect, useState } from "react";
-import type {
-  AdminNotification,
-  AdminSupportMessage,
-} from "../../lib/api";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import type { AdminNotification, AdminSupportMessage } from "../../lib/api";
 import {
   fetchNotifications,
   fetchSupportMessage,
-  replySupportMessage,
+  markAllNotificationsRead,
   markNotificationRead,
+  replySupportMessage,
 } from "../../lib/api";
+import {
+  DATE_GROUP_LABELS,
+  groupNotificationDate,
+  notificationCategoryLabel,
+  notificationIcon,
+  type DateGroup,
+} from "../../lib/notificationUi";
 import { useTheme, themeColors } from "../../theme/ThemeContext";
 
 function formatDate(value: string) {
-  const d = new Date(value);
-  return d.toLocaleString();
+  return new Date(value).toLocaleString("de-DE");
 }
+
+const GROUP_ORDER: DateGroup[] = ["today", "yesterday", "week", "older"];
 
 export default function NotificationsPage() {
   const { theme } = useTheme();
   const colors = themeColors[theme];
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [items, setItems] = useState<AdminNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,69 +46,103 @@ export default function NotificationsPage() {
         a.createdAt < b.createdAt ? 1 : -1,
       );
       setItems(sorted);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Fehler beim Laden der Notifications");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Fehler beim Laden der Notifications",
+      );
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
+  useEffect(() => {
+    const supportId = searchParams.get("support");
+    if (!supportId) return;
+    void (async () => {
+      try {
+        const msg = await fetchSupportMessage(supportId);
+        setSelected(msg);
+        setReplyText(msg.replyText ?? "");
+      } catch (err: unknown) {
+        setDetailError(
+          err instanceof Error ? err.message : "Support-Nachricht nicht gefunden",
+        );
+      }
+    })();
+  }, [searchParams]);
+
+  const grouped = useMemo(
+    () =>
+      GROUP_ORDER.map((group) => ({
+        group,
+        label: DATE_GROUP_LABELS[group],
+        items: items.filter((n) => groupNotificationDate(n.createdAt) === group),
+      })).filter((g) => g.items.length > 0),
+    [items],
+  );
+
   async function handleMarkRead(id: string) {
-    try {
-      await markNotificationRead(id);
-      setItems((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
-      );
-    } catch (err) {
-      console.error(err);
-    }
+    await markNotificationRead(id);
+    setItems((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+    );
+  }
+
+  async function handleMarkAllRead() {
+    await markAllNotificationsRead();
+    setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
   }
 
   async function handleOpen(n: AdminNotification) {
-    const supportId: string | undefined =
-      n.data && (n.data as any).supportMessageId;
+    if (!n.isRead) await handleMarkRead(n.id);
 
-    if (!supportId) {
-      setDetailError("Keine verknüpfte Support-Nachricht vorhanden.");
-      setSelected(null);
+    if (n.type === "portal_support_message" || n.category === "support") {
+      const supportId =
+        (n.data?.supportMessageId as string | undefined) ??
+        searchParams.get("support") ??
+        undefined;
+      if (!supportId) {
+        setDetailError("Keine verknüpfte Support-Nachricht.");
+        return;
+      }
+      try {
+        setDetailError(null);
+        const msg = await fetchSupportMessage(supportId);
+        setSelected(msg);
+        setReplyText(msg.replyText ?? "");
+      } catch (err: unknown) {
+        setDetailError(
+          err instanceof Error ? err.message : "Support-Nachricht konnte nicht geladen werden",
+        );
+      }
       return;
     }
 
-    try {
-      setDetailError(null);
-      const msg = await fetchSupportMessage(supportId);
-      setSelected(msg);
-      setReplyText(msg.replyText ?? "");
-    } catch (err: any) {
-      console.error(err);
-      setDetailError(err.message || "Fehler beim Laden der Support-Nachricht");
-      setSelected(null);
+    if (n.actionHref) {
+      navigate(n.actionHref);
+      return;
     }
+
+    setDetailError("Kein Ziel für diese Notification verfügbar.");
   }
 
   async function handleSendReply() {
-    if (!selected) return;
-    if (!replyText.trim()) {
-      setDetailError("Bitte Antworttext eingeben.");
-      return;
-    }
-
+    if (!selected || !replyText.trim()) return;
     try {
       setSavingReply(true);
-      setDetailError(null);
       const updated = await replySupportMessage(selected.id, {
         replyText: replyText.trim(),
         status: "answered",
       });
       setSelected(updated);
-    } catch (err: any) {
-      console.error(err);
-      setDetailError(err.message || "Fehler beim Senden der Antwort");
+    } catch (err: unknown) {
+      setDetailError(
+        err instanceof Error ? err.message : "Antwort konnte nicht gesendet werden",
+      );
     } finally {
       setSavingReply(false);
     }
@@ -107,190 +150,184 @@ export default function NotificationsPage() {
 
   return (
     <div className="admin-page">
-      <h1 className="admin-page-title">Notifications</h1>
-      <p className="admin-page-subtitle">
-        Ereignisse aus Portal & Cloud – z.&nbsp;B. neue Trial-Anfragen oder
-        Konto-Änderungen.
-      </p>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          justifyContent: "space-between",
+          gap: 12,
+          alignItems: "flex-start",
+        }}
+      >
+        <div>
+          <h1 className="admin-page-title">Notifications</h1>
+          <p className="admin-page-subtitle">
+            Ereignisse aus Portal & Cloud — mit Direktlinks zu Kunde, Lizenz, Zahlung
+            und Support.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button type="button" className="admin-btn admin-btn--ghost" onClick={() => void load()}>
+            aktualisieren
+          </button>
+          <button
+            type="button"
+            className="admin-btn admin-btn--primary"
+            onClick={() => void handleMarkAllRead()}
+            disabled={!items.some((n) => !n.isRead)}
+          >
+            Alle als gelesen
+          </button>
+        </div>
+      </div>
 
       {error && (
-        <div className="admin-error" style={{ marginTop: 16, background: colors.errorBg, borderColor: `${colors.error}40`, color: colors.error }}>
+        <div className="admin-error" style={{ marginTop: 16, color: colors.error }}>
           {error}
         </div>
       )}
 
-      <div
-        style={{
-          marginTop: 24,
-          borderRadius: 12,
-          border: `1px solid ${colors.border}`,
-          overflow: "hidden",
-          background: colors.bgSecondary,
-        }}
-      >
+      {detailError && !selected && (
         <div
           style={{
-            padding: "12px 16px",
-            borderBottom: `1px solid ${colors.border}`,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            fontSize: 14,
-            background: colors.bgTertiary,
+            marginTop: 16,
+            padding: 12,
+            borderRadius: 8,
+            background: colors.errorBg,
+            color: colors.error,
+            fontSize: 13,
           }}
         >
-          <span style={{ color: colors.text, fontWeight: 600 }}>Letzte Ereignisse</span>
-          <button
-            type="button"
-            onClick={load}
-            className="admin-btn admin-btn--ghost"
-            style={{
-              fontSize: 12,
-              borderColor: colors.border,
-              background: colors.bgSecondary,
-              color: colors.textSecondary,
-              fontWeight: 500,
-            }}
-          >
-            aktualisieren
-          </button>
+          {detailError}
         </div>
+      )}
 
-        {loading ? (
-          <div style={{ padding: 16, fontSize: 13, color: colors.textSecondary }}>
-            Wird geladen …
-          </div>
-        ) : items.length === 0 ? (
-          <div style={{ padding: 16, fontSize: 13, color: colors.textSecondary }}>
-            Noch keine Notifications vorhanden.
-          </div>
-        ) : (
-          <table className="admin-table" style={{ fontSize: 13 }}>
-            <thead>
-              <tr
-                style={{
-                  background: colors.bgTertiary,
-                  borderBottom: `1px solid ${colors.border}`,
-                }}
-              >
-                <th style={{ textAlign: "left", padding: "10px 12px", color: colors.textSecondary, fontWeight: 600 }}>
-                  Titel
-                </th>
-                <th style={{ textAlign: "left", padding: "10px 12px", color: colors.textSecondary, fontWeight: 600 }}>
-                  Typ
-                </th>
-                <th style={{ textAlign: "left", padding: "10px 12px", color: colors.textSecondary, fontWeight: 600 }}>
-                  Kunde
-                </th>
-                <th style={{ textAlign: "left", padding: "10px 12px", color: colors.textSecondary, fontWeight: 600 }}>
-                  Status
-                </th>
-                <th style={{ textAlign: "left", padding: "10px 12px", color: colors.textSecondary, fontWeight: 600 }}>
-                  Zeit
-                </th>
-                <th style={{ padding: "10px 12px", color: colors.textSecondary, fontWeight: 600 }}>Aktion</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((n) => (
-                <tr
-                  key={n.id}
-                  style={{
-                    borderBottom: `1px solid ${colors.border}`,
-                    background: n.isRead ? "transparent" : colors.bgTertiary,
-                    transition: "background-color 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(139,92,246,0.08)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = n.isRead ? "transparent" : colors.bgTertiary;
-                  }}
-                >
-                  <td style={{ padding: "10px 12px", color: colors.text, fontWeight: n.isRead ? 400 : 500 }}>{n.title}</td>
-                  <td style={{ padding: "10px 12px", color: colors.textSecondary }}>
-                    {n.kind || n.source || "info"}
-                  </td>
-                  <td style={{ padding: "10px 12px", color: colors.textSecondary, fontSize: 12 }}>
-                    {n.customerName ||
-                      n.customerEmail ||
-                      n.customerId ||
-                      "unknown"}
-                  </td>
-                  <td style={{ padding: "10px 12px" }}>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        padding: "3px 10px",
-                        borderRadius: 12,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        background: n.isRead ? "rgba(148,163,184,0.2)" : "rgba(139,92,246,0.16)",
-                        color: n.isRead ? colors.textSecondary : "#c4b5fd",
-                        border: n.isRead ? "none" : "1px solid rgba(139,92,246,0.35)",
-                      }}
-                    >
-                      {n.isRead ? "gelesen" : "neu"}
-                    </span>
-                  </td>
-                  <td
-                    style={{
-                      padding: "10px 12px",
-                      color: colors.textSecondary,
-                      whiteSpace: "nowrap",
-                      fontSize: 12,
-                    }}
-                  >
-                    {formatDate(n.createdAt)}
-                  </td>
-                  <td
-                    style={{
-                      padding: "8px 10px",
-                      textAlign: "right",
-                      display: "flex",
-                      gap: 8,
-                      justifyContent: "flex-end",
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleOpen(n)}
-                      className="admin-btn admin-btn--ghost"
-                      style={{
-                        fontSize: 11,
-                        borderColor: colors.border,
-                        background: colors.bgSecondary,
-                        color: colors.textSecondary,
-                        fontWeight: 500,
-                      }}
-                    >
-                      öffnen
-                    </button>
-                    {!n.isRead && (
-                      <button
-                        type="button"
-                        onClick={() => handleMarkRead(n.id)}
-                        className="admin-btn admin-btn--ghost"
+      {loading ? (
+        <p style={{ marginTop: 24, color: colors.textSecondary }}>Wird geladen …</p>
+      ) : items.length === 0 ? (
+        <p style={{ marginTop: 24, color: colors.textSecondary }}>
+          Noch keine Notifications vorhanden.
+        </p>
+      ) : (
+        grouped.map(({ group, label, items: groupItems }) => (
+          <section key={group} style={{ marginTop: 24 }}>
+            <h2
+              style={{
+                fontSize: 14,
+                fontWeight: 600,
+                color: colors.textSecondary,
+                marginBottom: 8,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+              }}
+            >
+              {label}
+            </h2>
+            <div
+              style={{
+                borderRadius: 12,
+                border: `1px solid ${colors.border}`,
+                overflow: "hidden",
+                background: colors.bgSecondary,
+              }}
+            >
+              <table className="admin-table" style={{ fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: colors.bgTertiary }}>
+                    <th style={{ width: 40 }} />
+                    <th>Titel</th>
+                    <th>Typ</th>
+                    <th>Kunde</th>
+                    <th>Status</th>
+                    <th>Zeit</th>
+                    <th>Aktion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {groupItems.map((n) => {
+                    const Icon = notificationIcon(n.type ?? "", n.category);
+                    return (
+                      <tr
+                        key={n.id}
                         style={{
-                          fontSize: 11,
-                          borderColor: colors.border,
-                          background: colors.bgSecondary,
-                          color: colors.textSecondary,
-                          fontWeight: 500,
+                          background: n.isRead ? "transparent" : colors.bgTertiary,
                         }}
                       >
-                        als gelesen
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+                        <td style={{ padding: "10px 12px", color: colors.accent }}>
+                          <Icon size={16} />
+                        </td>
+                        <td style={{ padding: "10px 12px", color: colors.text, fontWeight: n.isRead ? 400 : 600 }}>
+                          {n.title}
+                          {n.body && (
+                            <div style={{ fontSize: 11, color: colors.textSecondary, marginTop: 2 }}>
+                              {n.body}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: "10px 12px", color: colors.textSecondary }}>
+                          {notificationCategoryLabel(n.category ?? "other")}
+                        </td>
+                        <td style={{ padding: "10px 12px", fontSize: 12, color: colors.textSecondary }}>
+                          {n.customerName && <div>{n.customerName}</div>}
+                          {n.customerEmail && (
+                            <div style={{ opacity: 0.85 }}>{n.customerEmail}</div>
+                          )}
+                          {!n.customerName && !n.customerEmail && n.customerId && (
+                            <Link to={`/customers/${n.customerId}`} style={{ color: colors.accent }}>
+                              Kunde öffnen
+                            </Link>
+                          )}
+                        </td>
+                        <td style={{ padding: "10px 12px" }}>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              padding: "3px 10px",
+                              borderRadius: 12,
+                              background: n.isRead
+                                ? "rgba(148,163,184,0.2)"
+                                : "rgba(139,92,246,0.16)",
+                              color: n.isRead ? colors.textSecondary : "#c4b5fd",
+                            }}
+                          >
+                            {n.isRead ? "gelesen" : "neu"}
+                          </span>
+                        </td>
+                        <td style={{ padding: "10px 12px", fontSize: 12, color: colors.textSecondary, whiteSpace: "nowrap" }}>
+                          {formatDate(n.createdAt)}
+                        </td>
+                        <td style={{ padding: "8px 10px" }}>
+                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                            <button
+                              type="button"
+                              className="admin-btn admin-btn--ghost"
+                              style={{ fontSize: 11 }}
+                              onClick={() => void handleOpen(n)}
+                            >
+                              {n.actionLabel ?? "öffnen"}
+                            </button>
+                            {!n.isRead && (
+                              <button
+                                type="button"
+                                className="admin-btn admin-btn--ghost"
+                                style={{ fontSize: 11 }}
+                                onClick={() => void handleMarkRead(n.id)}
+                              >
+                                gelesen
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ))
+      )}
 
-      {/* Detail-Panel für ausgewählte Support-Nachricht */}
       {selected && (
         <div
           style={{
@@ -301,13 +338,12 @@ export default function NotificationsPage() {
             background: colors.bgSecondary,
           }}
         >
-          <h2 style={{ fontSize: 16, marginBottom: 8, color: colors.text, fontWeight: 600 }}>Support-Anfrage</h2>
+          <h2 style={{ fontSize: 16, marginBottom: 8, color: colors.text }}>Support-Anfrage</h2>
           <p style={{ fontSize: 13, color: colors.textSecondary, marginBottom: 12 }}>
             {selected.customerName || selected.customerEmail || selected.customerId}
             {" · "}
             {formatDate(selected.createdAt)}
           </p>
-
           <div
             style={{
               marginBottom: 12,
@@ -317,118 +353,37 @@ export default function NotificationsPage() {
               background: colors.bgTertiary,
             }}
           >
-            <div
-              style={{
-                fontSize: 14,
-                fontWeight: 600,
-                marginBottom: 4,
-                color: colors.text,
-              }}
-            >
+            <div style={{ fontWeight: 600, marginBottom: 4, color: colors.text }}>
               {selected.subject}
             </div>
-            <div
-              style={{
-                fontSize: 13,
-                color: colors.textSecondary,
-                whiteSpace: "pre-wrap",
-                lineHeight: 1.6,
-              }}
-            >
+            <div style={{ fontSize: 13, color: colors.textSecondary, whiteSpace: "pre-wrap" }}>
               {selected.message}
             </div>
           </div>
-
-          {selected.replyText && (
-            <div
-              style={{
-                marginBottom: 12,
-                padding: 12,
-                borderRadius: 8,
-                border: "1px solid rgba(139,92,246,0.35)",
-                background: "rgba(139,92,246,0.12)",
-                fontSize: 13,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  color: "#c4b5fd",
-                  marginBottom: 4,
-                  fontWeight: 600,
-                }}
-              >
-                Deine bisherige Antwort{" "}
-                {selected.repliedAt
-                  ? `(${formatDate(selected.repliedAt)})`
-                  : ""}
-              </div>
-              <div style={{ whiteSpace: "pre-wrap", color: "#ddd6fe" }}>
-                {selected.replyText}
-              </div>
-            </div>
-          )}
-
-          {detailError && (
-            <div
-              style={{
-                marginBottom: 12,
-                padding: "8px 10px",
-                borderRadius: 8,
-                background: colors.errorBg,
-                border: `1px solid ${colors.error}50`,
-                fontSize: 13,
-                color: colors.error,
-              }}
-            >
-              {detailError}
-            </div>
-          )}
-
-          <div style={{ marginTop: 8 }}>
-            <label
-              style={{
-                fontSize: 13,
-                display: "block",
-                marginBottom: 4,
-                color: colors.textSecondary,
-                fontWeight: 500,
-              }}
-            >
-              Antwort an den Kunden
-            </label>
-            <textarea
-              rows={5}
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Antworttext, der im Kundenportal unter der Support-Anfrage angezeigt wird…"
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                borderRadius: 8,
-                border: `1px solid ${colors.border}`,
-                background: colors.bg,
-                color: colors.text,
-                fontSize: 14,
-                resize: "vertical",
-              }}
-            />
-          </div>
-
-          <div className="mt-3 flex w-full flex-col gap-2 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              className="admin-btn admin-btn--ghost w-full sm:w-auto"
-              onClick={() => setSelected(null)}
-            >
+          <textarea
+            rows={5}
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            placeholder="Antwort an den Kunden…"
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              borderRadius: 8,
+              border: `1px solid ${colors.border}`,
+              background: colors.bg,
+              color: colors.text,
+              fontSize: 14,
+            }}
+          />
+          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <button type="button" className="admin-btn admin-btn--ghost" onClick={() => setSelected(null)}>
               schließen
             </button>
             <button
               type="button"
-              className="admin-btn admin-btn--primary w-full sm:w-auto"
-              onClick={handleSendReply}
+              className="admin-btn admin-btn--primary"
+              onClick={() => void handleSendReply()}
               disabled={savingReply}
-              style={{ opacity: savingReply ? 0.7 : 1 }}
             >
               {savingReply ? "Wird gesendet…" : "Antwort senden"}
             </button>

@@ -31,6 +31,7 @@ import { registerPortalLicensesRoutes } from "./routes/portal-licenses.js";
 import { registerPortalInvoiceRoutes } from "./routes/portal-invoices.js";
 
 import { registerAdminNotificationsRoutes } from "./routes/admin-notifications.js";
+import { registerAdminAnalyticsRoutes } from "./routes/admin/analytics.js";
 import { registerAdminAuthRoutes } from "./routes/admin-auth.js";
 import { registerAdminSettingsRoutes } from "./routes/admin-settings.js";
 
@@ -148,6 +149,7 @@ export async function buildServer() {
   // Admin-Notifications (Admin-JWT)
   // ---------------------------------------------------------------------------
   await registerAdminNotificationsRoutes(app);
+  await registerAdminAnalyticsRoutes(app);
 
   // ---------------------------------------------------------------------------
   // Admin-APIs (interne Cloud-Admin-Oberfläche)

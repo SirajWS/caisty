@@ -170,18 +170,24 @@ export function adminMe<TRes = any>(): Promise<TRes> {
 
 export interface AdminNotification {
   id: string;
+  type?: string;
   kind?: string;
   source?: string;
   subject?: string;
   title: string;
+  body?: string;
   message?: string;
   description?: string;
   customerId?: string;
+  licenseId?: string;
   customerName?: string;
   customerEmail?: string;
   createdAt: string;
   isRead?: boolean;
-  data?: any;
+  data?: Record<string, unknown>;
+  actionHref?: string | null;
+  actionLabel?: string;
+  category?: string;
 }
 
 export interface AdminSupportMessage {
@@ -238,6 +244,13 @@ export function replySupportMessage(
   return apiPost<typeof body, AdminSupportMessage>(
     `/admin/support-messages/${id}/reply`,
     body,
+  );
+}
+
+export function markAllNotificationsRead(): Promise<{ ok: boolean; count: number }> {
+  return apiPost<Record<string, never>, { ok: boolean; count: number }>(
+    "/admin/notifications/read-all",
+    {},
   );
 }
 

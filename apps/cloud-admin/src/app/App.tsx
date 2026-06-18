@@ -10,6 +10,7 @@ import {
   useNavigate,
 } from "react-router-dom";
 import {
+  BarChart3,
   Bell,
   Cable,
   CreditCard,
@@ -43,6 +44,7 @@ import LicenseDetailPage from "../pages/Licenses/LicenseDetailPage";
 import PortalLicensesPage from "../pages/Licenses/PortalLicensesPage";
 
 import NotificationsPage from "../pages/Notifications/NotificationsPage";
+import AnalyticsPage from "../pages/AnalyticsPage";
 import NotificationBell from "../components/NotificationBell";
 import { CaistyLogo } from "../components/CaistyLogo.tsx";
 
@@ -73,6 +75,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/licenses", label: "Licenses", icon: <KeyRound size={18} /> },
   { to: "/licenses/portal", label: "Portal Licenses", icon: <KeyRound size={18} /> },
   { to: "/notifications", label: "Notifications", icon: <Bell size={18} /> },
+  { to: "/analytics", label: "Analytics", icon: <BarChart3 size={18} /> },
 ];
 
 function AppShell({ children }: { children: React.ReactElement }) {
@@ -173,13 +176,6 @@ function AppShell({ children }: { children: React.ReactElement }) {
 
           <div className="admin-topbar-right">
             <NotificationBell />
-            <Link
-              to="/notifications"
-              className="admin-icon-btn"
-              aria-label="Notifications"
-            >
-              <Bell size={16} />
-            </Link>
             <button
               type="button"
               onClick={toggleTheme}
@@ -235,6 +231,7 @@ function AppRoutes() {
       <Route path="/licenses/portal" element={<ProtectedPage><PortalLicensesPage /></ProtectedPage>} />
       <Route path="/licenses/:id" element={<ProtectedPage><LicenseDetailPage /></ProtectedPage>} />
       <Route path="/notifications" element={<ProtectedPage><NotificationsPage /></ProtectedPage>} />
+      <Route path="/analytics" element={<ProtectedPage><AnalyticsPage /></ProtectedPage>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -1,17 +1,30 @@
 import React, { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Bell } from "lucide-react";
+import type { AdminNotification } from "../lib/api";
 import {
-  AdminNotification,
   fetchNotifications,
   markNotificationRead,
 } from "../lib/api";
-import { Link } from "react-router-dom";
+import {
+  DATE_GROUP_LABELS,
+  groupNotificationDate,
+  notificationCategoryLabel,
+  notificationIcon,
+  type DateGroup,
+} from "../lib/notificationUi";
+import { useTheme, themeColors } from "../theme/ThemeContext";
 
 function formatDate(value: string) {
-  const d = new Date(value);
-  return d.toLocaleString();
+  return new Date(value).toLocaleString("de-DE");
 }
 
+const GROUP_ORDER: DateGroup[] = ["today", "yesterday", "week", "older"];
+
 export default function NotificationBell() {
+  const { theme } = useTheme();
+  const colors = themeColors[theme];
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<AdminNotification[]>([]);
@@ -23,255 +36,194 @@ export default function NotificationBell() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetchNotifications({ limit: 10 });
-      // neueste zuerst
+      const res = await fetchNotifications({ limit: 15 });
       const sorted = [...res.items].sort((a, b) =>
         a.createdAt < b.createdAt ? 1 : -1,
       );
       setItems(sorted);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Fehler beim Laden der Notifications");
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Fehler beim Laden der Notifications",
+      );
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
-  async function handleMarkRead(id: string) {
+  async function handleMarkRead(id: string, e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
     try {
       await markNotificationRead(id);
       setItems((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
-    } catch (err) {
-      console.error(err);
+    } catch {
+      // ignore
     }
   }
 
+  function handleItemClick(n: AdminNotification) {
+    if (n.actionHref) {
+      setOpen(false);
+      navigate(n.actionHref);
+      if (!n.isRead) void markNotificationRead(n.id);
+    }
+  }
+
+  const grouped = GROUP_ORDER.map((group) => ({
+    group,
+    label: DATE_GROUP_LABELS[group],
+    items: items.filter((n) => groupNotificationDate(n.createdAt) === group),
+  })).filter((g) => g.items.length > 0);
+
   return (
-    <div style={{ position: "relative" }}>
+    <div className="notification-bell">
       <button
         type="button"
         onClick={() => setOpen((x) => !x)}
-        style={{
-          position: "relative",
-          width: 32,
-          height: 32,
-          borderRadius: 999,
-          border: "1px solid #374151",
-          background: "#020617",
-          color: "#e5e7eb",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 16,
-        }}
+        className="admin-icon-btn notification-bell__trigger"
         title="Notifications"
+        aria-expanded={open}
       >
-        🔔
+        <Bell size={16} />
         {unreadCount > 0 && (
-          <span
-            style={{
-              position: "absolute",
-              top: -3,
-              right: -3,
-              minWidth: 16,
-              height: 16,
-              borderRadius: 999,
-              background: "#ef4444",
-              color: "#f9fafb",
-              fontSize: 10,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "0 4px",
-            }}
-          >
-            {unreadCount}
-          </span>
+          <span className="notification-bell__badge">{unreadCount}</span>
         )}
       </button>
 
       {open && (
         <div
+          className="notification-bell__dropdown"
           style={{
-            position: "absolute",
-            right: 0,
-            marginTop: 8,
-            width: 340,
-            maxHeight: 360,
-            overflowY: "auto",
-            background: "#020617",
-            borderRadius: 12,
-            border: "1px solid #1f2937",
-            boxShadow: "0 18px 45px rgba(0,0,0,0.55)",
-            zIndex: 40,
+            background: colors.bgSecondary,
+            borderColor: colors.border,
           }}
         >
           <div
-            style={{
-              padding: "10px 12px",
-              borderBottom: "1px solid #111827",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              fontSize: 13,
-            }}
+            className="notification-bell__header"
+            style={{ borderColor: colors.border, color: colors.text }}
           >
             <span>Notifications</span>
             <button
               type="button"
-              onClick={load}
-              style={{
-                fontSize: 11,
-                border: "none",
-                background: "transparent",
-                color: "#9ca3af",
-                cursor: "pointer",
-              }}
+              onClick={() => void load()}
+              className="notification-bell__refresh"
+              style={{ color: colors.textSecondary }}
             >
               aktualisieren
             </button>
           </div>
 
           {loading && (
-            <div
-              style={{
-                padding: 12,
-                fontSize: 13,
-                color: "#9ca3af",
-              }}
-            >
+            <p className="notification-bell__empty" style={{ color: colors.textSecondary }}>
               Wird geladen …
-            </div>
+            </p>
           )}
 
           {error && (
-            <div
-              style={{
-                padding: 12,
-                fontSize: 12,
-                color: "#fecaca",
-              }}
-            >
+            <p className="notification-bell__empty" style={{ color: colors.error }}>
               {error}
-            </div>
+            </p>
           )}
 
           {!loading && !error && items.length === 0 && (
-            <div
-              style={{
-                padding: 12,
-                fontSize: 13,
-                color: "#9ca3af",
-              }}
-            >
-              Keine Notifications vorhanden.
-            </div>
+            <p className="notification-bell__empty" style={{ color: colors.textSecondary }}>
+              Keine Notifications.
+            </p>
           )}
 
           {!loading &&
-            !error &&
-            items.map((n) => (
-              <div
-                key={n.id}
-                style={{
-                  padding: 12,
-                  borderBottom: "1px solid #111827",
-                  background: n.isRead ? "#020617" : "#020617",
-                }}
-              >
+            grouped.map(({ group, label, items: groupItems }) => (
+              <div key={group}>
                 <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: 8,
-                    marginBottom: 4,
-                  }}
+                  className="notification-bell__group-label"
+                  style={{ color: colors.textSecondary }}
                 >
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: n.isRead ? 400 : 600,
-                    }}
-                  >
-                    {n.title}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 10,
-                      color: "#6b7280",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {formatDate(n.createdAt)}
-                  </div>
+                  {label}
                 </div>
-                {n.body && (
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "#d1d5db",
-                      marginBottom: 6,
-                    }}
-                  >
-                    {n.body}
-                  </div>
-                )}
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    fontSize: 11,
-                    color: "#9ca3af",
-                    gap: 8,
-                  }}
-                >
-                  <span>{n.type}</span>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <Link
-                      to="/licenses"
-                      style={{ color: "#60a5fa", textDecoration: "none" }}
+                {groupItems.map((n) => {
+                  const Icon = notificationIcon(
+                    n.type ?? "",
+                    n.category,
+                  );
+                  const catLabel = notificationCategoryLabel(
+                    n.category ?? "other",
+                  );
+                  return (
+                    <button
+                      key={n.id}
+                      type="button"
+                      className="notification-bell__item"
+                      style={{
+                        background: n.isRead ? "transparent" : colors.bgTertiary,
+                        borderColor: colors.border,
+                      }}
+                      onClick={() => handleItemClick(n)}
                     >
-                      Details
-                    </Link>
-                    {!n.isRead && (
-                      <button
-                        type="button"
-                        onClick={() => handleMarkRead(n.id)}
-                        style={{
-                          border: "none",
-                          background: "transparent",
-                          color: "#a5b4fc",
-                          cursor: "pointer",
-                        }}
-                      >
-                        als gelesen
-                      </button>
-                    )}
-                  </div>
-                </div>
+                      <div className="notification-bell__item-icon" style={{ color: colors.accent }}>
+                        <Icon size={16} />
+                      </div>
+                      <div className="notification-bell__item-body">
+                        <div
+                          className="notification-bell__item-title"
+                          style={{
+                            color: colors.text,
+                            fontWeight: n.isRead ? 400 : 600,
+                          }}
+                        >
+                          {catLabel}
+                        </div>
+                        <div
+                          className="notification-bell__item-sub"
+                          style={{ color: colors.textSecondary }}
+                        >
+                          {n.title}
+                        </div>
+                        {(n.customerName || n.customerEmail) && (
+                          <div
+                            className="notification-bell__item-meta"
+                            style={{ color: colors.textSecondary }}
+                          >
+                            {n.customerName ?? n.customerEmail}
+                          </div>
+                        )}
+                      </div>
+                      <div className="notification-bell__item-actions">
+                        <span style={{ color: colors.textSecondary, fontSize: 10 }}>
+                          {formatDate(n.createdAt)}
+                        </span>
+                        {!n.isRead && (
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => void handleMarkRead(n.id, e)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") void handleMarkRead(n.id, e as unknown as React.MouseEvent);
+                            }}
+                            style={{ color: colors.accent, fontSize: 10 }}
+                          >
+                            gelesen
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             ))}
 
           <div
-            style={{
-              padding: 8,
-              textAlign: "center",
-              fontSize: 11,
-              borderTop: "1px solid #111827",
-            }}
+            className="notification-bell__footer"
+            style={{ borderColor: colors.border }}
           >
             <Link
               to="/notifications"
-              style={{ color: "#60a5fa", textDecoration: "none" }}
+              style={{ color: colors.accent }}
               onClick={() => setOpen(false)}
             >
               alle anzeigen
