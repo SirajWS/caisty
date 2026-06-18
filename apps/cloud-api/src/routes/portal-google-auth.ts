@@ -225,6 +225,12 @@ export async function registerPortalGoogleAuthRoutes(app: FastifyInstance) {
       if (existingProvider) {
         // Fall 1: Provider-Verknüpfung existiert → Login
         const customer = existingProvider.customer;
+        if (!customer.emailVerifiedAt) {
+          await db
+            .update(customers)
+            .set({ emailVerifiedAt: new Date() })
+            .where(eq(customers.id, customer.id));
+        }
         const token = signPortalToken({
           customerId: customer.id,
           orgId: customer.orgId!,
@@ -280,6 +286,13 @@ export async function registerPortalGoogleAuthRoutes(app: FastifyInstance) {
           }
         }
 
+        if (!existingCustomer.emailVerifiedAt) {
+          await db
+            .update(customers)
+            .set({ emailVerifiedAt: new Date() })
+            .where(eq(customers.id, existingCustomer.id));
+        }
+
         const token = signPortalToken({
           customerId: existingCustomer.id,
           orgId: existingCustomer.orgId!,
@@ -306,8 +319,9 @@ export async function registerPortalGoogleAuthRoutes(app: FastifyInstance) {
           orgId: org.id,
           name: orgName,
           email: email,
-          passwordHash: null, // Kein Passwort für Google-User
+          passwordHash: null,
           portalStatus: "active",
+          emailVerifiedAt: new Date(),
         })
         .returning({
           id: customers.id,

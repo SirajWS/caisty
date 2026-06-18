@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { portalRegister, getGoogleAuthUrl } from "../lib/portalApi";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
@@ -12,7 +12,6 @@ export default function RegisterPage() {
   const layoutT = translations[language].common.layout;
   const { theme } = useTheme();
   const isLight = theme === "light";
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const noiseFilterId = React.useId().replace(/:/g, "");
   const [name, setName] = React.useState("");
@@ -20,6 +19,8 @@ export default function RegisterPage() {
   const [password, setPassword] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [registered, setRegistered] = React.useState(false);
+  const [registeredEmail, setRegisteredEmail] = React.useState("");
 
   React.useEffect(() => {
     const errorParam = searchParams.get("error");
@@ -46,10 +47,10 @@ export default function RegisterPage() {
     setSubmitting(true);
 
     try {
-      await portalRegister({ name, email, password });
-      navigate("/portal", { replace: true });
+      const result = await portalRegister({ name, email, password });
+      setRegisteredEmail(result.customer.email);
+      setRegistered(true);
     } catch (err) {
-      console.error(err);
       setError(err instanceof Error ? err.message : translations[language].auth.register.genericError);
     } finally {
       setSubmitting(false);
@@ -62,6 +63,65 @@ export default function RegisterPage() {
     "border-white/[0.08] bg-white/[0.04] text-white placeholder:text-slate-500";
   const inputLight =
     "border-slate-200 bg-slate-50 text-[#0f172a] placeholder:text-[#64748b] focus:border-orange-500";
+
+  if (registered) {
+    return (
+      <div
+        className={`login-page relative left-1/2 z-0 flex w-screen max-w-none -translate-x-1/2 flex-col items-center justify-center px-4 py-12 sm:py-16 min-h-[calc(100vh-3.75rem)] ${
+          isLight ? "login-page--light" : ""
+        }`}
+      >
+        <div className="login-page__mesh" aria-hidden />
+        <div className="relative z-10 w-full max-w-[420px]">
+          <div
+            className={`login-page__card login-font-heading w-full rounded-[24px] border p-10 text-center shadow-[0_32px_80px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.04)] backdrop-blur-xl ${
+              isLight
+                ? "border-black/[0.08] border-t border-t-slate-100 bg-white shadow-slate-200/60"
+                : "border border-white/[0.08] border-t-white/[0.12] bg-[rgba(15,21,32,0.85)]"
+            }`}
+          >
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/20">
+              <svg
+                className="h-6 w-6 text-emerald-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+            <h1
+              className={`login-font-heading text-2xl font-semibold tracking-tight ${
+                isLight ? "text-slate-900" : "text-white"
+              }`}
+            >
+              {t.successTitle}
+            </h1>
+            <p className={`mt-2 text-[13px] leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+              {t.successBody}
+            </p>
+            {registeredEmail && (
+              <p className={`mt-3 text-xs ${isLight ? "text-slate-500" : "text-slate-500"}`}>
+                {registeredEmail}
+              </p>
+            )}
+            <Link
+              to="/login"
+              className="login-font-heading mt-8 flex h-11 w-full items-center justify-center rounded-xl bg-orange-500 text-sm font-semibold text-white transition-all duration-200 ease-out hover:-translate-y-px hover:bg-orange-600 hover:shadow-[0_8px_24px_rgba(249,115,22,0.35)]"
+            >
+              {t.successLoginLink}
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

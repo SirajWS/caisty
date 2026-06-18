@@ -22,6 +22,7 @@ import { registerBillingRoutes } from "./routes/billing.js";
 import { registerPortalAuthRoutes } from "./routes/portalAuthRoutes.js";
 import { registerPortalGoogleAuthRoutes } from "./routes/portal-google-auth.js";
 import { registerPortalPasswordResetRoutes } from "./routes/portal-password-reset.js";
+import { registerEmailVerificationRoutes } from "./routes/portal-email-verification.js";
 import { registerPortalDataRoutes } from "./routes/portal-data.js";
 import { registerPortalSupportRoutes } from "./routes/portal-support.js";
 import { registerPortalTrialLicenseRoutes } from "./routes/portal-trial-license.js";
@@ -66,6 +67,7 @@ export async function buildServer() {
       url === "/auth/login" ||
       url.startsWith("/admin/auth/") || // Admin-Auth-Routes (login, forgot-password, reset-password)
       url.startsWith("/portal/") || // Portal-API (Portal-JWT)
+      url.startsWith("/api/auth/") || // Email verification (public)
       url.startsWith("/api/billing/") || // Billing-API (Portal-JWT, handled in route)
       (url === "/webhooks/paypal" && method === "POST") ||
       (url === "/webhooks/stripe" && method === "POST") ||
@@ -128,6 +130,7 @@ export async function buildServer() {
   await registerPortalAuthRoutes(app);
   await registerPortalGoogleAuthRoutes(app); // Google OAuth
   await registerPortalPasswordResetRoutes(app); // Password Reset
+  await registerEmailVerificationRoutes(app); // Email verification
   await registerPortalDataRoutes(app);
   await registerPortalTrialLicenseRoutes(app);
   await registerPortalSupportRoutes(app);

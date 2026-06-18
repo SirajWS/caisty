@@ -11,9 +11,21 @@ const API_BASE = RAW_API_BASE.replace(/\/+$/, "");
 
 // Debug-Log, damit wir in Browser-Konsole sehen, was wirklich benutzt wird
 // (kannst du später wieder entfernen, wenn alles läuft)
-console.log("Caisty Portal API_BASE =", API_BASE);
+// console.log("Caisty Portal API_BASE =", API_BASE);
 
 const PORTAL_TOKEN_KEY = "caisty.portal.token";
+
+export class PortalAuthError extends Error {
+  readonly reason?: string;
+  readonly code?: string;
+
+  constructor(message: string, reason?: string, code?: string) {
+    super(message);
+    this.name = "PortalAuthError";
+    this.reason = reason;
+    this.code = code;
+  }
+}
 
 export type PortalStatus = "active" | "pending" | "blocked";
 export type LicenseStatus = "active" | "revoked" | "expired";
@@ -46,9 +58,21 @@ export interface PortalCustomer {
 
 interface AuthResponse {
   ok: boolean;
-  token: string;
-  customer: PortalCustomer;
+  token?: string;
+  customer?: PortalCustomer;
   message?: string;
+  reason?: string;
+  code?: string;
+  requiresVerification?: boolean;
+  verifyLink?: string;
+}
+
+export interface PortalRegisterResult {
+  ok: true;
+  requiresVerification: true;
+  message: string;
+  customer: { id: string; email: string; name: string };
+  verifyLink?: string;
 }
 
 // ---------- Token-Storage ----------
@@ -88,7 +112,7 @@ export async function portalRegister(input: {
   name: string;
   email: string;
   password: string;
-}): Promise<PortalCustomer> {
+}): Promise<PortalRegisterResult> {
   const res = await fetch(`${API_BASE}/portal/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -98,11 +122,35 @@ export async function portalRegister(input: {
   const data = (await res.json()) as AuthResponse;
 
   if (!res.ok || !data.ok) {
-    throw new Error(data.message ?? "Registrierung fehlgeschlagen.");
+    if (data.reason === "email_taken") {
+      throw new PortalAuthError(
+        "An account with this email already exists.",
+        "email_taken",
+      );
+    }
+    throw new PortalAuthError(
+      data.message ?? "Registrierung fehlgeschlagen.",
+      data.reason,
+    );
   }
 
-  storePortalToken(data.token);
-  return data.customer;
+  if (!data.requiresVerification || !data.customer) {
+    throw new PortalAuthError("Unexpected registration response.");
+  }
+
+  return {
+    ok: true,
+    requiresVerification: true,
+    message:
+      data.message ??
+      "Account created. Please check your inbox and verify your email address.",
+    customer: {
+      id: data.customer.id,
+      email: data.customer.email,
+      name: data.customer.name,
+    },
+    verifyLink: data.verifyLink,
+  };
 }
 
 export async function portalLogin(input: {
@@ -115,22 +163,78 @@ export async function portalLogin(input: {
     body: JSON.stringify(input),
   });
 
-  const data = (await res.json()) as AuthResponse & {
-    reason?: string;
-    message?: string;
-  };
+  const data = (await res.json()) as AuthResponse;
 
   if (!res.ok || !data.ok) {
     const errorMessage =
       data.message ||
       (data.reason === "google_auth_required"
         ? "Dieses Konto wurde mit Google erstellt. Bitte melde dich mit Google an."
-        : "Login fehlgeschlagen.");
-    throw new Error(errorMessage);
+        : data.reason === "email_not_verified"
+          ? "Please verify your email address before logging in."
+          : "Login fehlgeschlagen.");
+    throw new PortalAuthError(errorMessage, data.reason, data.code);
+  }
+
+  if (!data.token || !data.customer) {
+    throw new PortalAuthError("Login fehlgeschlagen.");
   }
 
   storePortalToken(data.token);
   return data.customer;
+}
+
+interface VerifyEmailResponse {
+  ok: boolean;
+  message?: string;
+  email?: string;
+  error?: string;
+}
+
+export async function verifyEmail(token: string): Promise<VerifyEmailResponse> {
+  const res = await fetch(`${API_BASE}/api/auth/verify-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+
+  const data = (await res.json()) as VerifyEmailResponse;
+
+  if (!res.ok || !data.ok) {
+    throw new Error(
+      data.error === "INVALID_OR_EXPIRED_TOKEN" ||
+        data.error === "TOKEN_ALREADY_USED"
+        ? "INVALID_OR_EXPIRED_TOKEN"
+        : data.error || "Verification failed.",
+    );
+  }
+
+  return data;
+}
+
+interface ResendVerificationResponse {
+  ok: boolean;
+  message?: string;
+  error?: string;
+  verifyLink?: string;
+}
+
+export async function resendVerificationEmail(
+  email: string,
+): Promise<ResendVerificationResponse> {
+  const res = await fetch(`${API_BASE}/api/auth/resend-verification`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  const data = (await res.json()) as ResendVerificationResponse;
+
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || "Could not resend verification email.");
+  }
+
+  return data;
 }
 
 // Google OAuth Login

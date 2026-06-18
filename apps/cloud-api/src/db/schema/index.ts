@@ -3,6 +3,7 @@ export * from "./users";
 export * from "./customers";
 export * from "./customerAuthProviders";
 export * from "./passwordResets";
+export * from "./emailVerifications";
 export * from "./subscriptions";
 export * from "./invoices";
 export * from "./devices";

@@ -8,10 +8,14 @@ import { customers } from "../db/schema/customers.js";
 import { orgs } from "../db/schema/orgs.js";
 import { licenses } from "../db/schema/licenses.js";
 import { subscriptions } from "../db/schema/subscriptions.js";
-import { notificationService } from "../billing/NotificationService.js";
 import { customerAuthProviders } from "../db/schema/customerAuthProviders.js";
 import { signPortalToken, verifyPortalToken } from "../lib/portalJwt.js";
 import { inferPaidBillingPeriodFromPriceCents } from "../lib/inferPaidBillingPeriodFromPriceCents.js";
+import {
+  issueEmailVerificationToken,
+  isCustomerEmailVerified,
+} from "../lib/emailVerification.js";
+import { ENV } from "../config/env.js";
 
 function makeSlug(name: string): string {
   const base = name
@@ -63,9 +67,50 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
       .from(customers)
       .where(eq(customers.email, email));
 
-    if (existing) {
+    if (existing && isCustomerEmailVerified(existing)) {
       reply.code(409);
       return { ok: false, reason: "email_taken" as const };
+    }
+
+    if (existing && !isCustomerEmailVerified(existing)) {
+      const passwordHash = await bcrypt.hash(password, 10);
+      const [customer] = await db
+        .update(customers)
+        .set({
+          name,
+          passwordHash,
+          portalStatus: "pending_verification",
+        })
+        .where(eq(customers.id, existing.id))
+        .returning({
+          id: customers.id,
+          orgId: customers.orgId,
+          name: customers.name,
+          email: customers.email,
+          portalStatus: customers.portalStatus,
+        });
+
+      const issued = await issueEmailVerificationToken(
+        customer.id,
+        customer.email,
+        request.log,
+      );
+
+      const response: Record<string, unknown> = {
+        ok: true,
+        requiresVerification: true,
+        message:
+          "Account created. Please check your inbox and verify your email address.",
+        customer: {
+          id: customer.id,
+          email: customer.email,
+          name: customer.name,
+        },
+      };
+      if (ENV.NODE_ENV === "development" && issued?.verifyLink) {
+        response.verifyLink = issued.verifyLink;
+      }
+      return response;
     }
 
     // Org anlegen
@@ -86,7 +131,8 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
         name,
         email,
         passwordHash,
-        portalStatus: "active",
+        portalStatus: "pending_verification",
+        emailVerifiedAt: null,
       })
       .returning({
         id: customers.id,
@@ -104,20 +150,27 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
       providerEmail: email,
     });
 
-    const token = signPortalToken({
-      customerId: customer.id,
-      orgId: customer.orgId!,
-    });
+    const issued = await issueEmailVerificationToken(
+      customer.id,
+      customer.email,
+      request.log,
+    );
 
-    // Notification für Admin: Neues Portal-Konto
-    await notificationService.notifyPortalSignup({
-      orgId: customer.orgId!,
-      customerId: customer.id,
-      customerName: customer.name || undefined,
-      customerEmail: customer.email,
-    });
-
-    return { ok: true, token, customer };
+    const response: Record<string, unknown> = {
+      ok: true,
+      requiresVerification: true,
+      message:
+        "Account created. Please check your inbox and verify your email address.",
+      customer: {
+        id: customer.id,
+        email: customer.email,
+        name: customer.name,
+      },
+    };
+    if (ENV.NODE_ENV === "development" && issued?.verifyLink) {
+      response.verifyLink = issued.verifyLink;
+    }
+    return response;
   });
 
   // POST /portal/login
@@ -161,6 +214,17 @@ export async function registerPortalAuthRoutes(app: FastifyInstance) {
     if (!valid) {
       reply.code(401);
       return { ok: false, reason: "invalid_credentials" as const };
+    }
+
+    if (!isCustomerEmailVerified(customer)) {
+      reply.code(403);
+      return {
+        ok: false,
+        reason: "email_not_verified" as const,
+        code: "EMAIL_NOT_VERIFIED",
+        message:
+          "Please verify your email address before logging in.",
+      };
     }
 
     // Stelle sicher, dass Provider-Verknüpfung existiert (für bestehende Accounts)

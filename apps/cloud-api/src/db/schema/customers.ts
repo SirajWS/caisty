@@ -39,6 +39,9 @@ export const customers = pgTable("customers", {
   /** Stripe Customer ID (cus_...) after Checkout / Portal; used for Billing Portal sessions */
   stripeCustomerId: text("stripe_customer_id"),
 
+  /** Set when the customer confirmed their email (null = must verify before password login). */
+  emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
+
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

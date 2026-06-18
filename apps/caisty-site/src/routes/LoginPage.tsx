@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { portalLogin, getGoogleAuthUrl } from "../lib/portalApi";
+import { portalLogin, getGoogleAuthUrl, PortalAuthError, resendVerificationEmail } from "../lib/portalApi";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
 import { useTheme } from "../lib/theme";
@@ -23,6 +23,8 @@ export default function LoginPage() {
   const [password, setPassword] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [showResend, setShowResend] = React.useState(false);
+  const [resendStatus, setResendStatus] = React.useState<"idle" | "sending" | "sent">("idle");
 
   React.useEffect(() => {
     const errorParam = searchParams.get("error");
@@ -46,6 +48,8 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setShowResend(false);
+    setResendStatus("idle");
     setSubmitting(true);
 
     try {
@@ -53,10 +57,29 @@ export default function LoginPage() {
       const target = location.state?.from || "/portal";
       navigate(target, { replace: true });
     } catch (err) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : translations[language].auth.login.genericError);
+      if (
+        err instanceof PortalAuthError &&
+        (err.code === "EMAIL_NOT_VERIFIED" || err.reason === "email_not_verified")
+      ) {
+        setShowResend(true);
+        setError(t.errors.portalEmailNotVerified);
+      } else {
+        setError(err instanceof Error ? err.message : translations[language].auth.login.genericError);
+      }
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleResendVerification() {
+    if (!email.trim()) return;
+    setResendStatus("sending");
+    try {
+      await resendVerificationEmail(email.trim().toLowerCase());
+      setResendStatus("sent");
+    } catch {
+      setResendStatus("idle");
+      setError(t.resendError);
     }
   }
 
@@ -158,6 +181,32 @@ export default function LoginPage() {
                   ⚠
                 </span>
                 <span>{error}</span>
+              </div>
+            )}
+
+            {showResend && (
+              <div
+                className={`rounded-xl border px-3 py-2.5 text-xs ${
+                  isLight
+                    ? "border-orange-200 bg-orange-50 text-orange-800"
+                    : "border-orange-500/20 bg-orange-500/[0.08] text-orange-200"
+                }`}
+              >
+                <p>{t.resendHint}</p>
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resendStatus === "sending" || resendStatus === "sent"}
+                  className={`mt-2 font-medium underline-offset-2 hover:underline disabled:cursor-not-allowed disabled:opacity-60 ${
+                    isLight ? "text-orange-700" : "text-orange-300"
+                  }`}
+                >
+                  {resendStatus === "sending"
+                    ? t.resendSending
+                    : resendStatus === "sent"
+                      ? t.resendSent
+                      : t.resendButton}
+                </button>
               </div>
             )}
 

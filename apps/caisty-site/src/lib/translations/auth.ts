@@ -21,12 +21,19 @@ const authLocales = {
         missingToken: "Anmeldung fehlgeschlagen: Token fehlt. Bitte versuche es erneut.",
         googleAuthFailed: "Google-Anmeldung wurde abgebrochen.",
         emailNotVerified: "Deine Google-E-Mail ist nicht verifiziert. Bitte verifiziere sie zuerst.",
+        portalEmailNotVerified:
+          "Bitte bestätige zuerst deine E-Mail-Adresse, bevor du dich anmeldest.",
         duplicateProvider:
           "Dieses Google-Konto ist bereits mit einem anderen Konto verknüpft. Bitte verwende ein anderes Google-Konto oder melde dich mit E-Mail und Passwort an.",
         dbMigrationRequired: "Datenbank-Migration erforderlich. Bitte kontaktiere den Support.",
         invalidCustomer: "Ungültiges Konto. Bitte kontaktiere den Support.",
       },
       genericError: "Login fehlgeschlagen. Bitte erneut versuchen.",
+      resendHint: "Keine E-Mail erhalten?",
+      resendButton: "Bestätigungs-E-Mail erneut senden",
+      resendSending: "Wird gesendet…",
+      resendSent: "E-Mail gesendet. Bitte Posteingang prüfen.",
+      resendError: "Bestätigungs-E-Mail konnte nicht gesendet werden. Bitte später erneut versuchen.",
     },
     register: {
       title: "Caisty-Konto erstellen",
@@ -52,6 +59,10 @@ const authLocales = {
         missingCode: "Google-Authentifizierung fehlgeschlagen: Code fehlt. Bitte versuche es erneut.",
       },
       genericError: "Registrierung fehlgeschlagen. Bitte erneut versuchen.",
+      successTitle: "Konto erstellt",
+      successBody:
+        "Bitte prüfe dein Postfach und bestätige deine E-Mail-Adresse, um dein Konto zu aktivieren.",
+      successLoginLink: "Zum Login",
     },
     forgotPassword: {
       title: "Passwort zurücksetzen",
@@ -96,6 +107,20 @@ const authLocales = {
         "Passwort wurde zurückgesetzt, aber Login fehlgeschlagen. Bitte melde dich manuell an.",
       genericError: "Fehler beim Zurücksetzen des Passworts. Bitte erneut versuchen.",
     },
+    verifyEmail: {
+      loadingTitle: "E-Mail wird bestätigt…",
+      loadingBody: "Bitte einen Moment warten.",
+      successTitle: "E-Mail bestätigt",
+      successBody: "Dein Konto ist jetzt aktiv. Du kannst dich anmelden.",
+      goToLogin: "Zum Login",
+      missingTitle: "Bestätigungslink fehlt",
+      missingBody: "Öffne den Link aus der Bestätigungs-E-Mail oder registriere dich erneut.",
+      invalidTitle: "Ungültiger oder abgelaufener Link",
+      invalidBody:
+        "Dieser Bestätigungslink ist ungültig oder abgelaufen. Fordere eine neue E-Mail an oder registriere dich erneut.",
+      createAccount: "Konto erstellen",
+      genericError: "E-Mail-Bestätigung fehlgeschlagen. Bitte erneut versuchen.",
+    },
   },
   en: {
     login: {
@@ -116,12 +141,19 @@ const authLocales = {
         missingToken: "Sign-in failed: token missing. Please try again.",
         googleAuthFailed: "Google sign-in was cancelled.",
         emailNotVerified: "Your Google email is not verified. Please verify it first.",
+        portalEmailNotVerified:
+          "Please verify your email address before logging in.",
         duplicateProvider:
           "This Google account is already linked to another account. Use a different Google account or sign in with email and password.",
         dbMigrationRequired: "Database migration required. Please contact support.",
         invalidCustomer: "Invalid account. Please contact support.",
       },
       genericError: "Sign-in failed. Please try again.",
+      resendHint: "Didn't receive the email?",
+      resendButton: "Resend verification email",
+      resendSending: "Sending…",
+      resendSent: "Email sent. Please check your inbox.",
+      resendError: "Could not resend verification email. Please try again later.",
     },
     register: {
       title: "Create your Caisty account",
@@ -147,6 +179,10 @@ const authLocales = {
         missingCode: "Google authentication failed: code missing. Please try again.",
       },
       genericError: "Registration failed. Please try again.",
+      successTitle: "Account created",
+      successBody:
+        "Please check your inbox and verify your email address to activate your account.",
+      successLoginLink: "Sign in",
     },
     forgotPassword: {
       title: "Reset password",
@@ -187,6 +223,20 @@ const authLocales = {
       errResetNoLogin: "Password was reset but sign-in failed. Please sign in manually.",
       genericError: "Could not reset password. Please try again.",
     },
+    verifyEmail: {
+      loadingTitle: "Verifying your email…",
+      loadingBody: "Please wait a moment.",
+      successTitle: "Email verified",
+      successBody: "Your account is now active. You can sign in.",
+      goToLogin: "Sign in",
+      missingTitle: "Verification link missing",
+      missingBody: "Open the link from your verification email or create a new account.",
+      invalidTitle: "Invalid or expired link",
+      invalidBody:
+        "This verification link is invalid or has expired. Request a new email or register again.",
+      createAccount: "Create account",
+      genericError: "Email verification failed. Please try again.",
+    },
   },
   fr: {
     login: {
@@ -207,12 +257,19 @@ const authLocales = {
         missingToken: "Échec de la connexion : jeton manquant. Veuillez réessayer.",
         googleAuthFailed: "La connexion Google a été annulée.",
         emailNotVerified: "Votre e-mail Google n’est pas vérifié. Veuillez d’abord le vérifier.",
+        portalEmailNotVerified:
+          "Veuillez confirmer votre adresse e-mail avant de vous connecter.",
         duplicateProvider:
           "Ce compte Google est déjà lié à un autre compte. Utilisez un autre compte Google ou connectez-vous par e-mail et mot de passe.",
         dbMigrationRequired: "Migration de base de données requise. Contactez le support.",
         invalidCustomer: "Compte invalide. Contactez le support.",
       },
       genericError: "Échec de la connexion. Veuillez réessayer.",
+      resendHint: "Vous n’avez pas reçu l’e-mail ?",
+      resendButton: "Renvoyer l’e-mail de confirmation",
+      resendSending: "Envoi…",
+      resendSent: "E-mail envoyé. Consultez votre boîte de réception.",
+      resendError: "Impossible de renvoyer l’e-mail. Veuillez réessayer plus tard.",
     },
     register: {
       title: "Créer un compte Caisty",
@@ -238,6 +295,10 @@ const authLocales = {
         missingCode: "Échec de l’authentification Google : code manquant. Veuillez réessayer.",
       },
       genericError: "L’inscription a échoué. Veuillez réessayer.",
+      successTitle: "Compte créé",
+      successBody:
+        "Consultez votre boîte mail et confirmez votre adresse e-mail pour activer votre compte.",
+      successLoginLink: "Connexion",
     },
     forgotPassword: {
       title: "Réinitialiser le mot de passe",
@@ -281,6 +342,20 @@ const authLocales = {
         "Mot de passe réinitialisé, mais la connexion a échoué. Connectez-vous manuellement.",
       genericError: "Échec de la réinitialisation. Veuillez réessayer.",
     },
+    verifyEmail: {
+      loadingTitle: "Vérification de l’e-mail…",
+      loadingBody: "Veuillez patienter.",
+      successTitle: "E-mail confirmé",
+      successBody: "Votre compte est maintenant actif. Vous pouvez vous connecter.",
+      goToLogin: "Connexion",
+      missingTitle: "Lien de confirmation manquant",
+      missingBody: "Ouvrez le lien reçu par e-mail ou créez un nouveau compte.",
+      invalidTitle: "Lien invalide ou expiré",
+      invalidBody:
+        "Ce lien est invalide ou expiré. Demandez un nouvel e-mail ou inscrivez-vous à nouveau.",
+      createAccount: "Créer un compte",
+      genericError: "Échec de la confirmation. Veuillez réessayer.",
+    },
   },
   ar: {
     login: {
@@ -300,12 +375,19 @@ const authLocales = {
         missingToken: "فشل تسجيل الدخول: الرمز مفقود. حاول مرة أخرى.",
         googleAuthFailed: "تم إلغاء تسجيل الدخول عبر Google.",
         emailNotVerified: "بريدك الإلكتروني من Google غير مُحقّق. يُرجى التحقق منه أولاً.",
+        portalEmailNotVerified:
+          "يُرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.",
         duplicateProvider:
           "حساب Google هذا مرتبط بحساب آخر. استخدم حساب Google آخر أو سجّل الدخول بالبريد وكلمة المرور.",
         dbMigrationRequired: "يلزم ترحيل قاعدة البيانات. تواصل مع الدعم.",
         invalidCustomer: "حساب غير صالح. تواصل مع الدعم.",
       },
       genericError: "فشل تسجيل الدخول. حاول مرة أخرى.",
+      resendHint: "لم تصلك الرسالة؟",
+      resendButton: "إعادة إرسال بريد التأكيد",
+      resendSending: "جارٍ الإرسال…",
+      resendSent: "تم الإرسال. تحقق من بريدك.",
+      resendError: "تعذر إعادة إرسال بريد التأكيد. حاول لاحقًا.",
     },
     register: {
       title: "إنشاء حساب Caisty",
@@ -330,6 +412,9 @@ const authLocales = {
         missingCode: "فشل مصادقة Google: الرمز مفقود. حاول مرة أخرى.",
       },
       genericError: "فشل التسجيل. حاول مرة أخرى.",
+      successTitle: "تم إنشاء الحساب",
+      successBody: "تحقق من بريدك وأكّد عنوان بريدك الإلكتروني لتفعيل حسابك.",
+      successLoginLink: "تسجيل الدخول",
     },
     forgotPassword: {
       title: "إعادة تعيين كلمة المرور",
@@ -369,6 +454,19 @@ const authLocales = {
       errPasswordsMismatch: "كلمتا المرور غير متطابقتين.",
       errResetNoLogin: "تم إعادة التعيين لكن فشل تسجيل الدخول. سجّل الدخول يدويًا.",
       genericError: "فشل إعادة التعيين. حاول مرة أخرى.",
+    },
+    verifyEmail: {
+      loadingTitle: "جارٍ تأكيد البريد…",
+      loadingBody: "يُرجى الانتظار.",
+      successTitle: "تم تأكيد البريد",
+      successBody: "حسابك نشط الآن. يمكنك تسجيل الدخول.",
+      goToLogin: "تسجيل الدخول",
+      missingTitle: "رابط التأكيد مفقود",
+      missingBody: "افتح الرابط من بريد التأكيد أو أنشئ حسابًا جديدًا.",
+      invalidTitle: "رابط غير صالح أو منتهٍ",
+      invalidBody: "رابط التأكيد غير صالح أو منتهٍ. اطلب بريدًا جديدًا أو سجّل مرة أخرى.",
+      createAccount: "إنشاء حساب",
+      genericError: "فشل تأكيد البريد. حاول مرة أخرى.",
     },
   },
 };

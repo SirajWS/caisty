@@ -103,6 +103,76 @@ export async function sendEmail(options: {
 }
 
 /**
+ * Sends email verification for new portal signups.
+ */
+export async function sendEmailVerificationEmail(
+  email: string,
+  verifyLink: string,
+): Promise<void> {
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+    .content { background: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
+    .button { display: inline-block; background: #f97316; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; font-weight: 600; }
+    .footer { margin-top: 20px; font-size: 12px; color: #64748b; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Caisty Portal</h1>
+      <p>Verify your email</p>
+    </div>
+    <div class="content">
+      <p>Hello,</p>
+      <p>Please confirm your email address to activate your Caisty account.</p>
+      <p>This link expires in 24 hours.</p>
+      <p style="text-align: center;">
+        <a href="${verifyLink}" class="button">Verify email</a>
+      </p>
+      <p>Or copy and paste this link into your browser:</p>
+      <p style="word-break: break-all; color: #64748b; font-size: 12px;">${verifyLink}</p>
+      <p>If you did not create a Caisty account, you can safely ignore this email.</p>
+    </div>
+    <div class="footer">
+      <p>Caisty Portal</p>
+      <p>Questions: support@caisty.com</p>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  const text = [
+    "Hello,",
+    "",
+    "Please confirm your email address to activate your Caisty account.",
+    "",
+    "This link expires in 24 hours.",
+    "",
+    verifyLink,
+    "",
+    "If you did not create a Caisty account, you can safely ignore this email.",
+    "",
+    "Caisty Portal",
+    "Questions: support@caisty.com",
+  ].join("\n");
+
+  await sendEmail({
+    to: email,
+    subject: "Verify your Caisty email address",
+    html,
+    text,
+  });
+}
+
+/**
  * Sends a password-reset email for portal customers.
  */
 export async function sendPasswordResetEmail(
