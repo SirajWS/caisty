@@ -38,8 +38,8 @@ function StatusBadge(props: {
   );
 }
 
-function shiftiqFeatures(m: ProductMenuCopy): string[] {
-  return [m.shiftiqFeature1, m.shiftiqFeature2, m.shiftiqFeature3, m.shiftiqFeature4, m.shiftiqFeature5];
+function worktrackFeatures(m: ProductMenuCopy): string[] {
+  return [m.worktrackFeature1, m.worktrackFeature2, m.worktrackFeature3, m.worktrackFeature4, m.worktrackFeature5];
 }
 
 function productNavPill(isLight: boolean): string {
@@ -70,7 +70,7 @@ function DesktopMegaPanel(props: {
   const secondaryBtn = isLight
     ? "inline-flex min-h-[2.25rem] items-center justify-center rounded-lg border border-slate-200 bg-white px-4 text-[12px] font-semibold text-slate-800 no-underline shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#f97316]"
     : "inline-flex min-h-[2.25rem] items-center justify-center rounded-lg border border-white/15 bg-white/[0.06] px-4 text-[12px] font-semibold text-slate-100 no-underline transition-colors hover:border-white/25 hover:bg-white/[0.1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#f97316]";
-  const shiftiqFooter = isLight
+  const worktrackFooter = isLight
     ? "mt-3.5 flex w-full min-h-[2.5rem] items-center justify-center rounded-lg border border-slate-200 bg-white py-2.5 text-center text-[12px] font-semibold text-slate-800 no-underline shadow-sm transition-colors hover:border-[#f97316] hover:bg-orange-50 hover:text-[#c2410c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#f97316]"
     : "mt-3.5 flex w-full min-h-[2.5rem] items-center justify-center rounded-lg border border-white/15 bg-white/[0.05] py-2.5 text-center text-[12px] font-semibold text-slate-100 no-underline transition-colors hover:border-orange-500/40 hover:bg-orange-500/10 hover:text-orange-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#f97316]";
 
@@ -115,7 +115,7 @@ function DesktopMegaPanel(props: {
         </div>
       </div>
 
-      {/* Right — ShiftIQ preview */}
+      {/* Right — WorkTrack preview */}
       <div
         className={
           isLight
@@ -130,14 +130,14 @@ function DesktopMegaPanel(props: {
           />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className={heading}>{m.shiftiqTitle}</h3>
+              <h3 className={heading}>{m.worktrackTitle}</h3>
               <StatusBadge tone="soon" isLight={isLight}>
-                {m.shiftiqStatus}
+                {m.worktrackStatus}
               </StatusBadge>
             </div>
-            <p className={`mt-1.5 text-[12px] leading-snug ${bodyMuted}`}>{m.shiftiqDescription}</p>
-            <ul className={`mt-3 space-y-1.5 text-[12px] leading-snug ${listText}`} aria-label={m.shiftiqTitle}>
-              {shiftiqFeatures(m).map((line, i) => (
+            <p className={`mt-1.5 text-[12px] leading-snug ${bodyMuted}`}>{m.worktrackDescription}</p>
+            <ul className={`mt-3 space-y-1.5 text-[12px] leading-snug ${listText}`} aria-label={m.worktrackTitle}>
+              {worktrackFeatures(m).map((line, i) => (
                 <li key={i} className="flex gap-2">
                   <span className={`shrink-0 font-bold ${check}`} aria-hidden>
                     ✓
@@ -146,8 +146,8 @@ function DesktopMegaPanel(props: {
                 </li>
               ))}
             </ul>
-            <Link to="/shiftiq" onClick={props.onPick} role="menuitem" className={shiftiqFooter}>
-              {m.shiftiqNavCta}
+            <Link to="/worktrack" onClick={props.onPick} role="menuitem" className={worktrackFooter}>
+              {m.worktrackNavCta}
             </Link>
           </div>
         </div>
@@ -156,7 +156,7 @@ function DesktopMegaPanel(props: {
   );
 }
 
-/** Desktop: «Product» mega menu (Caisty POS + ShiftIQ preview). */
+/** Desktop: «Product» mega menu (Caisty POS + WorkTrack preview). */
 export function DesktopProductNavDropdown(props: {
   navProductLabel: string;
   productMenu: ProductMenuCopy;
@@ -260,7 +260,7 @@ const mobilePill = (isLight: boolean) =>
       : "border-white/10 bg-white/[0.06] text-slate-200 hover:border-[#fb923c]/35 hover:bg-white/[0.1]"
   }`;
 
-/** Mobile: «Product» accordion — Caisty POS actions + ShiftIQ preview (no link). */
+/** Mobile: «Product» accordion — Caisty POS actions + WorkTrack preview. */
 export function MobileProductNavGroup(props: {
   navProductLabel: string;
   productMenu: ProductMenuCopy;
@@ -347,12 +347,12 @@ export function MobileProductNavGroup(props: {
           </div>
           <div className={`border-t pt-2 ${props.isLight ? "border-slate-200/80" : "border-white/[0.08]"}`}>
             <p className={`text-xs font-semibold uppercase tracking-wide ${props.isLight ? "text-slate-500" : "text-slate-400"}`}>
-              {m.shiftiqTitle}
+              {m.worktrackTitle}
             </p>
-            <p className={`mt-0.5 text-[10px] font-bold uppercase text-slate-400`}>{m.shiftiqStatus}</p>
-            <p className={`mt-1 text-[11px] leading-snug ${props.isLight ? "text-slate-600" : "text-slate-400"}`}>{m.shiftiqDescription}</p>
+            <p className={`mt-0.5 text-[10px] font-bold uppercase text-slate-400`}>{m.worktrackStatus}</p>
+            <p className={`mt-1 text-[11px] leading-snug ${props.isLight ? "text-slate-600" : "text-slate-400"}`}>{m.worktrackDescription}</p>
             <ul className={`mt-2 space-y-1 text-[11px] ${props.isLight ? "text-slate-600" : "text-slate-400"}`}>
-              {shiftiqFeatures(m).map((line, i) => (
+              {worktrackFeatures(m).map((line, i) => (
                 <li key={i} className="flex gap-1.5">
                   <span className="font-bold text-emerald-600" aria-hidden>
                     ✓
@@ -362,7 +362,7 @@ export function MobileProductNavGroup(props: {
               ))}
             </ul>
             <Link
-              to="/shiftiq"
+              to="/worktrack"
               onClick={props.onCloseMobile}
               className={`mt-2 flex w-full min-h-[2.5rem] items-center justify-center rounded-lg border py-2 text-[11px] font-semibold no-underline ${
                 props.isLight
@@ -370,7 +370,7 @@ export function MobileProductNavGroup(props: {
                   : "border-white/15 bg-white/[0.06] text-slate-100 hover:border-[#fb923c]/40"
               }`}
             >
-              {m.shiftiqNavCta}
+              {m.worktrackNavCta}
             </Link>
           </div>
         </div>

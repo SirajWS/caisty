@@ -14,7 +14,7 @@ export const companyTn: CompanyCopy = {
   mock: {
     caption: "Suite produits",
     liveBadge: "Plateforme",
-    items: ["Caisty POS", "ShiftIQ", "Portail cloud", "Licences", "Factures", "Appareils"],
+    items: ["Caisty POS", "WorkTrack", "Portail cloud", "Licences", "Factures", "Appareils"],
     footerNote: "Nous développons nos propres produits logiciels — pas une agence web.",
   },
   about: {
@@ -48,8 +48,8 @@ export const companyTn: CompanyCopy = {
       ],
       ctaLearn: "Ouvrir Caisty POS",
     },
-    shiftiq: {
-      name: "ShiftIQ",
+    worktrack: {
+      name: "WorkTrack",
       description: "Gestion des équipes et suivi du temps pour les organisations en croissance.",
       features: ["Suivi du temps", "Planification des shifts", "Pointage employés", "Gestion d’équipe", "Rapports"],
       ctaDisabled: "Bientôt disponible",
@@ -105,7 +105,7 @@ export const companyTn: CompanyCopy = {
     colStatus: "Statut",
     rows: [
       { product: "Caisty POS", status: "Disponible", variant: "available" },
-      { product: "ShiftIQ", status: "Bientôt disponible", variant: "soon" },
+      { product: "WorkTrack", status: "Bientôt disponible", variant: "soon" },
       { product: "Modules CRM futurs", status: "Planifié", variant: "planned" },
       { product: "Outils d’automatisation", status: "Planifié", variant: "planned" },
       { product: "Assistant IA métier", status: "En recherche", variant: "research" },

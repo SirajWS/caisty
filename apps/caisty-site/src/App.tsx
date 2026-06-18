@@ -11,7 +11,7 @@ import TermsPage from "./routes/TermsPage";
 import PrivacyPage from "./routes/PrivacyPage";
 import ImprintPage from "./routes/ImprintPage";
 import CompanyPage from "./routes/CompanyPage";
-import ShiftIQPage from "./routes/ShiftIQPage";
+import WorkTrackPage from "./routes/WorkTrackPage";
 
 import { COMPANY_HOME, POS_LANDING_PATH } from "./config/marketingRoutes";
 import PortalLayout from "./routes/PortalLayout";
@@ -41,7 +41,8 @@ export default function App() {
           <Route path="/caisty-pos" element={<LandingPage />} />
           <Route path="/product" element={<Navigate to={POS_LANDING_PATH} replace />} />
           <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/shiftiq" element={<ShiftIQPage />} />
+          <Route path="/worktrack" element={<WorkTrackPage />} />
+          <Route path="/shiftiq" element={<Navigate to="/worktrack" replace />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />

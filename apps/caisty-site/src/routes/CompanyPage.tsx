@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Bot, Cloud, Monitor, Smartphone, type LucideIcon } from "lucide-react";
+import { Bot, Cloud, MapPinned, Monitor, ShieldCheck, Smartphone, Sparkles, type LucideIcon } from "lucide-react";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
 import { companyTn } from "../lib/translations/companyTn";
@@ -11,6 +11,9 @@ import { POS_LANDING_PATH } from "../config/marketingRoutes";
 import { applyCompanySiteMeta } from "../lib/siteDocumentMeta";
 
 const sectionShell = "w-full max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8";
+const sectionPad = "py-16 sm:py-20";
+
+const aboutHighlightIcons: LucideIcon[] = [MapPinned, Sparkles, ShieldCheck];
 
 const whatWeDoIcons: Record<"cloud" | "monitor" | "bot" | "smartphone", LucideIcon> = {
   cloud: Cloud,
@@ -39,18 +42,26 @@ export default function CompanyPage() {
       {/* Hero */}
       <section className={`relative overflow-x-clip border-b ${isLight ? "border-slate-200/80" : "border-white/[0.06]"}`}>
         <div
-          className={`pointer-events-none absolute inset-0 ${isLight ? "bg-gradient-to-br from-orange-500/[0.12] via-transparent to-slate-200/40" : "bg-gradient-to-br from-orange-500/10 via-transparent to-transparent"}`}
+          className={`pointer-events-none absolute inset-0 ${isLight ? "bg-gradient-to-br from-orange-500/[0.14] via-transparent to-slate-200/50" : "bg-gradient-to-br from-orange-500/12 via-transparent to-transparent"}`}
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -top-24 end-0 h-72 w-72 rounded-full bg-[#f97316]/20 blur-3xl"
+          aria-hidden
+        />
+        <div
+          className={`pointer-events-none absolute bottom-0 start-0 h-56 w-56 rounded-full ${isLight ? "bg-slate-300/30" : "bg-orange-600/10"} blur-3xl`}
           aria-hidden
         />
         <div className={`${sectionShell} relative z-[1] pt-12 pb-16 sm:pt-16 sm:pb-20`}>
           <div className="grid gap-12 lg:gap-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] items-start">
             <div className="space-y-6 min-w-0">
               <div
-                className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold tracking-wide ${
-                  isLight ? "border-slate-200 bg-white text-slate-700 shadow-sm" : "border-white/10 bg-white/[0.06] text-slate-200"
+                className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold tracking-wide shadow-sm ${
+                  isLight ? "border-slate-200/90 bg-white text-slate-700" : "border-white/10 bg-white/[0.06] text-slate-200"
                 }`}
               >
-                <span className="h-1.5 w-1.5 rounded-full shrink-0 bg-[#f97316]" aria-hidden />
+                <span className="h-1.5 w-1.5 rounded-full shrink-0 bg-[#f97316] shadow-[0_0_0_3px_rgba(249,115,22,0.25)]" aria-hidden />
                 {t.hero.badge}
               </div>
               <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] xl:text-5xl font-bold tracking-tight text-[var(--color-text-primary)] lp-font-heading leading-[1.12]">
@@ -81,7 +92,7 @@ export default function CompanyPage() {
       </section>
 
       {/* About */}
-      <section className={`${sectionShell} py-14 sm:py-16 border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
+      <section className={`${sectionShell} ${sectionPad} border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
         <div className="flex items-start gap-3 mb-8 lg:mb-10">
           <span className="lp-section-accent" aria-hidden />
           <h2 className="lp-section-h2">{t.about.title}</h2>
@@ -95,23 +106,32 @@ export default function CompanyPage() {
             ))}
           </div>
           <div className="grid gap-3 sm:gap-4 min-w-0">
-            {t.about.highlights.map((h) => (
+            {t.about.highlights.map((h, i) => {
+              const Icon = aboutHighlightIcons[i] ?? Sparkles;
+              return (
               <div
                 key={h.title}
-                className={`rounded-2xl border p-4 sm:p-5 ${isLight ? "border-slate-200 bg-white shadow-sm" : "border-white/10 bg-[#0f172a]/60"}`}
+                className={`rounded-2xl border p-4 sm:p-5 transition-shadow hover:shadow-md ${isLight ? "border-slate-200 bg-white shadow-sm hover:border-orange-100" : "border-white/10 bg-[#0f172a]/60 hover:border-white/15"}`}
               >
+                <div
+                  className={`mb-3 inline-flex h-9 w-9 items-center justify-center rounded-xl border ${isLight ? "border-orange-200/80 bg-orange-50 text-[#c2410c]" : "border-orange-500/25 bg-orange-500/10 text-orange-200"}`}
+                  aria-hidden
+                >
+                  <Icon className="h-4 w-4" strokeWidth={2} />
+                </div>
                 <h3 className={`text-sm font-bold lp-font-heading mb-1.5 ${isLight ? "text-slate-900" : "text-slate-100"}`}>
                   {h.title}
                 </h3>
                 <p className={`text-xs sm:text-sm leading-relaxed m-0 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{h.body}</p>
               </div>
-            ))}
+            );
+            })}
           </div>
         </div>
       </section>
 
       {/* Products */}
-      <section className={`${sectionShell} py-14 sm:py-16 border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
+      <section className={`${sectionShell} ${sectionPad} border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
         <div className="flex items-start gap-3 mb-10">
           <span className="lp-section-accent" aria-hidden />
           <h2 className="lp-section-h2">{t.products.title}</h2>
@@ -130,16 +150,16 @@ export default function CompanyPage() {
               ctaVariant="primary"
             />
           </div>
-          <div id="shiftiq" className="scroll-mt-28 lg:scroll-mt-32 min-w-0">
+          <div id="worktrack" className="scroll-mt-28 lg:scroll-mt-32 min-w-0">
             <ProductCardLink
-              to="/shiftiq"
+              to="/worktrack"
               isLight={isLight}
-              name={t.products.shiftiq.name}
-              description={t.products.shiftiq.description}
+              name={t.products.worktrack.name}
+              description={t.products.worktrack.description}
               status={t.products.statusComingSoon}
               statusTone="soon"
-              features={t.products.shiftiq.features}
-              ctaLabel={t.products.shiftiq.ctaDisabled}
+              features={t.products.worktrack.features}
+              ctaLabel={t.products.worktrack.ctaDisabled}
               ctaVariant="muted"
             />
           </div>
@@ -147,7 +167,7 @@ export default function CompanyPage() {
       </section>
 
       {/* What we do */}
-      <section className={`${sectionShell} py-14 sm:py-16 border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
+      <section className={`${sectionShell} ${sectionPad} border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
         <div className="flex flex-col gap-3 mb-8 sm:mb-10 max-w-3xl">
           <div className="flex items-start gap-3">
             <span className="lp-section-accent" aria-hidden />
@@ -163,10 +183,10 @@ export default function CompanyPage() {
             return (
               <div
                 key={item.title}
-                className={`flex flex-col gap-3 rounded-2xl border p-5 sm:p-6 h-full ${isLight ? "border-slate-200 bg-white shadow-sm" : "border-white/10 bg-[#0f172a]/60"}`}
+                className={`flex flex-col gap-3 rounded-2xl border p-5 sm:p-6 h-full transition-shadow hover:shadow-md ${isLight ? "border-slate-200 bg-white shadow-sm hover:border-orange-100" : "border-white/10 bg-[#0f172a]/60 hover:border-white/15"}`}
               >
                 <div
-                  className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border ${isLight ? "border-slate-200 bg-orange-50 text-[#c2410c]" : "border-white/10 bg-[#f97316]/15 text-orange-200"}`}
+                  className={`inline-flex h-11 w-11 items-center justify-center rounded-xl border shadow-sm ${isLight ? "border-orange-200/80 bg-gradient-to-br from-orange-50 to-white text-[#c2410c]" : "border-orange-500/30 bg-gradient-to-br from-orange-500/20 to-orange-500/5 text-orange-200"}`}
                   aria-hidden
                 >
                   <Icon className="h-5 w-5" strokeWidth={2} />
@@ -184,7 +204,7 @@ export default function CompanyPage() {
       </section>
 
       {/* Why companies choose Caisty */}
-      <section className={`${sectionShell} py-14 sm:py-16 border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
+      <section className={`${sectionShell} ${sectionPad} border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
         <div className="flex items-start gap-3 mb-8">
           <span className="lp-section-accent" aria-hidden />
           <h2 className="lp-section-h2">{t.whyChoose.title}</h2>
@@ -193,9 +213,9 @@ export default function CompanyPage() {
           {t.whyChoose.points.map((pt, i) => (
             <div
               key={i}
-              className={`flex gap-3 rounded-2xl border p-4 sm:p-5 ${isLight ? "border-slate-200 bg-white shadow-sm" : "border-white/10 bg-[#0f172a]/60"}`}
+              className={`flex gap-3 rounded-2xl border p-4 sm:p-5 transition-colors hover:border-orange-200/60 ${isLight ? "border-slate-200 bg-white shadow-sm" : "border-white/10 bg-[#0f172a]/60 hover:border-white/15"}`}
             >
-              <span className="text-[#f97316] font-bold shrink-0 mt-0.5" aria-hidden>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-orange-500/15 text-[#f97316] font-bold text-sm mt-0.5" aria-hidden>
                 ✓
               </span>
               <p className={`text-sm font-semibold leading-snug ${isLight ? "text-slate-800" : "text-slate-200"}`}>{pt}</p>
@@ -205,7 +225,7 @@ export default function CompanyPage() {
       </section>
 
       {/* Product roadmap */}
-      <section className={`${sectionShell} py-14 sm:py-16 border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
+      <section className={`${sectionShell} ${sectionPad} border-b ${isLight ? "border-slate-200/90" : "border-white/[0.06]"}`}>
         <div className="flex flex-col gap-3 mb-8 max-w-3xl">
           <div className="flex items-start gap-3">
             <span className="lp-section-accent" aria-hidden />
@@ -231,7 +251,7 @@ export default function CompanyPage() {
             </thead>
             <tbody>
               {t.roadmap.rows.map((row) => (
-                <tr key={row.product} className={`border-b last:border-0 ${isLight ? "border-slate-100" : "border-white/[0.06]"}`}>
+                <tr key={row.product} className={`border-b last:border-0 transition-colors ${isLight ? "border-slate-100 hover:bg-orange-50/40" : "border-white/[0.06] hover:bg-white/[0.04]"}`}>
                   <td className={`p-3 sm:p-4 font-semibold ${isLight ? "text-slate-800" : "text-slate-200"}`}>{row.product}</td>
                   <td className="p-3 sm:p-4">
                     <RoadmapStatusBadge
@@ -256,7 +276,11 @@ export default function CompanyPage() {
           </div>
           <p className={`text-xs sm:text-sm font-medium m-0 sm:ps-9 ${isLight ? "text-slate-500" : "text-slate-500"}`}>{t.technology.lead}</p>
         </div>
-        <TechStackCardGrid title="" items={t.technology.stack} isLight={isLight} compact />
+        <div className={`rounded-2xl border p-4 sm:p-5 ${isLight ? "border-slate-200/80 bg-slate-50/50" : "border-white/[0.06] bg-white/[0.02]"}`}>
+          <div className="opacity-85 saturate-[0.92] hover:opacity-100 hover:saturate-100 transition-[opacity,saturate] duration-300">
+            <TechStackCardGrid title="" items={t.technology.stack} isLight={isLight} compact />
+          </div>
+        </div>
       </section>
 
       {/* Contact CTA — dark band */}
@@ -328,11 +352,11 @@ function HeroMockPanel(props: {
             {mock.caption}
           </div>
           <div
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[10px] sm:text-xs font-medium ${
-              isLight ? "bg-slate-100 text-slate-700" : "bg-white/[0.08] text-slate-200"
+            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] sm:text-xs font-semibold tracking-wide ${
+              isLight ? "border-slate-200/90 bg-white text-slate-700 shadow-sm" : "border-white/10 bg-white/[0.06] text-slate-200"
             }`}
           >
-            <span className="h-2 w-2 rounded-full shrink-0 bg-[#f97316]" />
+            <span className="h-1.5 w-1.5 rounded-full shrink-0 bg-[#f97316] shadow-[0_0_0_3px_rgba(249,115,22,0.25)]" />
             {mock.liveBadge}
           </div>
         </div>

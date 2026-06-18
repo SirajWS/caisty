@@ -6,11 +6,11 @@ import { applyCompanySiteMeta } from "../lib/siteDocumentMeta";
 
 const shell = "w-full max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-8";
 
-export default function ShiftIQPage() {
+export default function WorkTrackPage() {
   const { language } = useLanguage();
   const { theme } = useTheme();
   const isLight = theme === "light";
-  const t = translations[language].shiftiqPage;
+  const t = translations[language].worktrackPage;
 
   useEffect(() => {
     document.title = `${t.documentTitle} | Caisty`;
@@ -21,7 +21,7 @@ export default function ShiftIQPage() {
 
   return (
     <div
-      className={`shiftiq-page min-h-screen w-full max-w-[100vw] overflow-x-clip ${isLight ? "bg-[#f8fafc]" : "bg-[#0b1220]"}`}
+      className={`worktrack-page min-h-screen w-full max-w-[100vw] overflow-x-clip ${isLight ? "bg-[#f8fafc]" : "bg-[#0b1220]"}`}
     >
       <section className={`relative border-b ${isLight ? "border-slate-200/80" : "border-white/[0.06]"}`}>
         <div
@@ -57,7 +57,7 @@ export default function ShiftIQPage() {
                 isLight ? "border-slate-200 bg-white shadow-sm text-slate-800" : "border-white/10 bg-[#0f172a]/60 text-slate-200"
               }`}
             >
-              <span className="text-emerald-500 font-bold shrink-0" aria-hidden>
+              <span className="text-[#f97316] font-bold shrink-0" aria-hidden>
                 ✓
               </span>
               {f}

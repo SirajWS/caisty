@@ -7,14 +7,14 @@ import type { PricingTranslations } from "./pricing";
 import type { AuthTranslations } from "./auth";
 import type { PortalTranslations } from "./portal";
 import type { CompanyCopy } from "./company";
-import type { ShiftIQPageCopy } from "./shiftiqPage";
+import type { WorkTrackPageCopy } from "./worktrackPage";
 import { common } from "./common";
 import { landing } from "./landing";
 import { pricing } from "./pricing";
 import { auth } from "./auth";
 import { portal } from "./portal";
 import { company } from "./company";
-import { shiftiqPage } from "./shiftiqPage";
+import { worktrackPage } from "./worktrackPage";
 
 // Exportiere Types und Languages
 export type { Language, TranslationSchema };
@@ -30,7 +30,7 @@ export const translations: Record<
     auth: AuthTranslations;
     portal: PortalTranslations;
     company: CompanyCopy;
-    shiftiqPage: ShiftIQPageCopy;
+    worktrackPage: WorkTrackPageCopy;
   }
 > = {
   de: {
@@ -40,7 +40,7 @@ export const translations: Record<
     auth: auth.de,
     portal: portal.de,
     company: company.de,
-    shiftiqPage: shiftiqPage.de,
+    worktrackPage: worktrackPage.de,
   },
   en: {
     common: common.en,
@@ -49,7 +49,7 @@ export const translations: Record<
     auth: auth.en,
     portal: portal.en,
     company: company.en,
-    shiftiqPage: shiftiqPage.en,
+    worktrackPage: worktrackPage.en,
   },
   fr: {
     common: common.fr,
@@ -58,7 +58,7 @@ export const translations: Record<
     auth: auth.fr,
     portal: portal.fr,
     company: company.fr,
-    shiftiqPage: shiftiqPage.fr,
+    worktrackPage: worktrackPage.fr,
   },
   ar: {
     common: common.ar,
@@ -67,7 +67,7 @@ export const translations: Record<
     auth: auth.ar,
     portal: portal.ar,
     company: company.ar,
-    shiftiqPage: shiftiqPage.ar,
+    worktrackPage: worktrackPage.ar,
   },
 };
 

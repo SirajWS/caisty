@@ -16,7 +16,7 @@ const companyLocales = {
     mock: {
       caption: "Product suite",
       liveBadge: "Platform",
-      items: ["Caisty POS", "ShiftIQ", "Cloud portal", "Licenses", "Invoices", "Devices"],
+      items: ["Caisty POS", "WorkTrack", "Cloud portal", "Licenses", "Invoices", "Devices"],
       footerNote: "We build our own business products — not a web agency.",
     },
     about: {
@@ -50,8 +50,8 @@ const companyLocales = {
         ],
         ctaLearn: "Open Caisty POS",
       },
-      shiftiq: {
-        name: "ShiftIQ",
+      worktrack: {
+        name: "WorkTrack",
         description: "Workforce management and employee time tracking for growing teams.",
         features: ["Time tracking", "Shift planning", "Employee check-in", "Team management", "Reports"],
         ctaDisabled: "Coming soon",
@@ -107,7 +107,7 @@ const companyLocales = {
       colStatus: "Status",
       rows: [
         { product: "Caisty POS", status: "Available", variant: "available" as const },
-        { product: "ShiftIQ", status: "Coming soon", variant: "soon" as const },
+        { product: "WorkTrack", status: "Coming soon", variant: "soon" as const },
         { product: "Future CRM modules", status: "Planned", variant: "planned" as const },
         { product: "Automation tools", status: "Planned", variant: "planned" as const },
         { product: "AI business assistant", status: "In research", variant: "research" as const },
@@ -137,7 +137,7 @@ const companyLocales = {
     mock: {
       caption: "Suite produits",
       liveBadge: "Plateforme",
-      items: ["Caisty POS", "ShiftIQ", "Portail cloud", "Licences", "Factures", "Appareils"],
+      items: ["Caisty POS", "WorkTrack", "Portail cloud", "Licences", "Factures", "Appareils"],
       footerNote: "Nous développons nos propres produits logiciels — pas une agence web.",
     },
     about: {
@@ -171,8 +171,8 @@ const companyLocales = {
         ],
         ctaLearn: "Ouvrir Caisty POS",
       },
-      shiftiq: {
-        name: "ShiftIQ",
+      worktrack: {
+        name: "WorkTrack",
         description: "Gestion des équipes et suivi du temps pour les organisations en croissance.",
         features: ["Suivi du temps", "Planification des shifts", "Pointage employés", "Gestion d’équipe", "Rapports"],
         ctaDisabled: "Bientôt disponible",
@@ -228,7 +228,7 @@ const companyLocales = {
       colStatus: "Statut",
       rows: [
         { product: "Caisty POS", status: "Disponible", variant: "available" as const },
-        { product: "ShiftIQ", status: "Bientôt disponible", variant: "soon" as const },
+        { product: "WorkTrack", status: "Bientôt disponible", variant: "soon" as const },
         { product: "Modules CRM futurs", status: "Planifié", variant: "planned" as const },
         { product: "Outils d’automatisation", status: "Planifié", variant: "planned" as const },
         { product: "Assistant IA métier", status: "En recherche", variant: "research" as const },
@@ -258,7 +258,7 @@ const companyLocales = {
     mock: {
       caption: "Produktfamilie",
       liveBadge: "Plattform",
-      items: ["Caisty POS", "ShiftIQ", "Cloud-Portal", "Lizenzen", "Rechnungen", "Geräte"],
+      items: ["Caisty POS", "WorkTrack", "Cloud-Portal", "Lizenzen", "Rechnungen", "Geräte"],
       footerNote: "Eigene Business-Software-Produkte — keine Webagentur.",
     },
     about: {
@@ -292,8 +292,8 @@ const companyLocales = {
         ],
         ctaLearn: "Caisty POS öffnen",
       },
-      shiftiq: {
-        name: "ShiftIQ",
+      worktrack: {
+        name: "WorkTrack",
         description: "Workforce-Management und Zeiterfassung für wachsende Teams.",
         features: ["Zeiterfassung", "Schichtplanung", "Check-in", "Teamverwaltung", "Reports"],
         ctaDisabled: "Demnächst",
@@ -349,7 +349,7 @@ const companyLocales = {
       colStatus: "Status",
       rows: [
         { product: "Caisty POS", status: "Verfügbar", variant: "available" as const },
-        { product: "ShiftIQ", status: "Demnächst", variant: "soon" as const },
+        { product: "WorkTrack", status: "Demnächst", variant: "soon" as const },
         { product: "Zukünftige CRM-Module", status: "Geplant", variant: "planned" as const },
         { product: "Automatisierungstools", status: "Geplant", variant: "planned" as const },
         { product: "KI-Assistent fürs Business", status: "In Forschung", variant: "research" as const },
@@ -379,7 +379,7 @@ const companyLocales = {
     mock: {
       caption: "حزمة المنتجات",
       liveBadge: "المنصة",
-      items: ["Caisty POS", "ShiftIQ", "بوابة سحابية", "التراخيص", "الفواتير", "الأجهزة"],
+      items: ["Caisty POS", "WorkTrack", "بوابة سحابية", "التراخيص", "الفواتير", "الأجهزة"],
       footerNote: "نطوّر منتجاتنا البرمجية بأنفسنا — وليس وكالة ويب.",
     },
     about: {
@@ -406,8 +406,8 @@ const companyLocales = {
         features: ["دفع سريع", "الطلبات والمنتجات", "طباعة الإيصالات", "بوابة سحابية", "الفواتير والتراخيص"],
         ctaLearn: "فتح Caisty POS",
       },
-      shiftiq: {
-        name: "ShiftIQ",
+      worktrack: {
+        name: "WorkTrack",
         description: "إدارة القوى العاملة وتتبع وقت الموظفين للفرق النامية.",
         features: ["تتبع الوقت", "تخطيط الورديات", "تسجيل الحضور", "إدارة الفريق", "التقارير"],
         ctaDisabled: "قريباً",
@@ -460,7 +460,7 @@ const companyLocales = {
       colStatus: "الحالة",
       rows: [
         { product: "Caisty POS", status: "متاح", variant: "available" as const },
-        { product: "ShiftIQ", status: "قريباً", variant: "soon" as const },
+        { product: "WorkTrack", status: "قريباً", variant: "soon" as const },
         { product: "وحدات CRM مستقبلية", status: "مخطط", variant: "planned" as const },
         { product: "أدوات أتمتة", status: "مخطط", variant: "planned" as const },
         { product: "مساعد أعمال بالذكاء الاصطناعي", status: "قيد البحث", variant: "research" as const },

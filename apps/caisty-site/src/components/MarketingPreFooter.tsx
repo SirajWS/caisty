@@ -69,13 +69,13 @@ export default function MarketingPreFooter() {
             </div>
             <div className={card}>
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <h3 className={`text-base font-bold ${isLight ? "text-slate-900" : "text-white"}`}>{pm.shiftiqTitle}</h3>
+                <h3 className={`text-base font-bold ${isLight ? "text-slate-900" : "text-white"}`}>{pm.worktrackTitle}</h3>
                 <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600 ring-1 ring-slate-200">
-                  {pm.shiftiqStatus}
+                  {pm.worktrackStatus}
                 </span>
               </div>
               <ul className={`space-y-2 text-sm mb-5 ${muted}`}>
-                {p.shiftiqHighlights.map((line) => (
+                {p.worktrackHighlights.map((line) => (
                   <li key={line} className="flex gap-2">
                     <span className="text-[#f97316] font-bold" aria-hidden>
                       ✓
@@ -86,16 +86,16 @@ export default function MarketingPreFooter() {
               </ul>
               <div className="flex flex-col gap-2">
                 <Link
-                  to="/shiftiq"
+                  to="/worktrack"
                   className={`inline-flex min-h-[44px] w-full items-center justify-center rounded-full border text-sm font-semibold no-underline transition-colors sm:w-auto sm:px-6 ${
                     isLight
                       ? "border-slate-200 bg-white text-slate-900 hover:border-[#f97316] hover:bg-orange-50 hover:text-[#c2410c]"
                       : "border-white/15 bg-white/[0.06] text-white hover:border-[#f97316] hover:bg-white/[0.1]"
                   }`}
                 >
-                  {pm.shiftiqNavCta}
+                  {pm.worktrackNavCta}
                 </Link>
-                <p className={`text-center text-[10px] font-bold uppercase tracking-wide ${muted}`}>{p.shiftiqCtaDisabled}</p>
+                <p className={`text-center text-[10px] font-bold uppercase tracking-wide ${muted}`}>{p.worktrackCtaDisabled}</p>
               </div>
             </div>
           </div>

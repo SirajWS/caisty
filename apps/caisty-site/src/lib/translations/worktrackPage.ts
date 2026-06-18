@@ -1,12 +1,12 @@
 import type { Language } from "./types";
 import type { TranslationSchema } from "./types";
 
-const shiftiqLocales = {
+const worktrackLocales = {
   en: {
-    documentTitle: "ShiftIQ",
+    documentTitle: "WorkTrack",
     hero: {
       badge: "Coming soon",
-      title: "ShiftIQ",
+      title: "WorkTrack",
       subtitle: "Workforce management and employee time tracking for modern teams.",
     },
     featuresTitle: "Planned capabilities",
@@ -20,7 +20,7 @@ const shiftiqLocales = {
       "Leave management",
       "Workforce insights",
     ],
-    whyTitle: "Why ShiftIQ",
+    whyTitle: "Why WorkTrack",
     whyBody: [
       "Employee time tracking",
       "Workforce scheduling",
@@ -31,10 +31,10 @@ const shiftiqLocales = {
     ctaContact: "Contact us",
   },
   fr: {
-    documentTitle: "ShiftIQ",
+    documentTitle: "WorkTrack",
     hero: {
       badge: "Bientôt disponible",
-      title: "ShiftIQ",
+      title: "WorkTrack",
       subtitle: "Gestion des équipes et suivi du temps de travail pour les organisations modernes.",
     },
     featuresTitle: "Fonctionnalités prévues",
@@ -42,27 +42,27 @@ const shiftiqLocales = {
       "Suivi du temps",
       "Planning des shifts",
       "Pointage employés",
-      "Gestion d’équipe",
+      "Gestion d'équipe",
       "Présences",
       "Rapports",
       "Gestion des congés",
       "Indicateurs RH",
     ],
-    whyTitle: "Pourquoi ShiftIQ",
+    whyTitle: "Pourquoi WorkTrack",
     whyBody: [
       "Suivi du temps des employés",
       "Planification des équipes",
-      "Gestion d’équipe",
+      "Gestion d'équipe",
       "Rapports dans le cloud",
     ],
     ctaComingSoon: "Bientôt disponible",
     ctaContact: "Nous contacter",
   },
   de: {
-    documentTitle: "ShiftIQ",
+    documentTitle: "WorkTrack",
     hero: {
       badge: "Demnächst verfügbar",
-      title: "ShiftIQ",
+      title: "WorkTrack",
       subtitle: "Workforce-Management und Zeiterfassung für moderne Teams.",
     },
     featuresTitle: "Geplante Funktionen",
@@ -76,7 +76,7 @@ const shiftiqLocales = {
       "Urlaubsverwaltung",
       "Workforce-Insights",
     ],
-    whyTitle: "Warum ShiftIQ",
+    whyTitle: "Warum WorkTrack",
     whyBody: [
       "Zeiterfassung für Mitarbeitende",
       "Personaleinsatzplanung",
@@ -87,10 +87,10 @@ const shiftiqLocales = {
     ctaContact: "Kontakt",
   },
   ar: {
-    documentTitle: "ShiftIQ",
+    documentTitle: "WorkTrack",
     hero: {
       badge: "قريباً",
-      title: "ShiftIQ",
+      title: "WorkTrack",
       subtitle: "إدارة القوى العاملة وتتبع وقت الموظفين للفرق الحديثة.",
     },
     featuresTitle: "القدرات المخطط لها",
@@ -104,7 +104,7 @@ const shiftiqLocales = {
       "إدارة الإجازات",
       "رؤى القوى العاملة",
     ],
-    whyTitle: "لماذا ShiftIQ",
+    whyTitle: "لماذا WorkTrack",
     whyBody: [
       "تتبع وقت الموظفين",
       "جدولة القوى العاملة",
@@ -116,5 +116,5 @@ const shiftiqLocales = {
   },
 };
 
-export type ShiftIQPageCopy = TranslationSchema<(typeof shiftiqLocales)["en"]>;
-export const shiftiqPage: Record<Language, ShiftIQPageCopy> = shiftiqLocales;
+export type WorkTrackPageCopy = TranslationSchema<(typeof worktrackLocales)["en"]>;
+export const worktrackPage: Record<Language, WorkTrackPageCopy> = worktrackLocales;

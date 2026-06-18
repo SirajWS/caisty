@@ -196,12 +196,12 @@ export default function SiteLayout() {
                     </p>
                   </div>
                   <div>
-                    <Link to="/shiftiq" className="font-semibold text-[#f97316] hover:underline no-underline">
-                      {t.footer.productShiftiqName}
+                    <Link to="/worktrack" className="font-semibold text-[#f97316] hover:underline no-underline">
+                      {t.footer.productWorktrackName}
                     </Link>
-                    <span className="text-xs font-normal text-slate-500 ms-1">{t.footer.productShiftiqSuffix}</span>
+                    <span className="text-xs font-normal text-slate-500 ms-1">{t.footer.productWorktrackSuffix}</span>
                     <p className={`mt-0.5 text-xs leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                      {t.footer.productShiftiqBlurb}
+                      {t.footer.productWorktrackBlurb}
                     </p>
                   </div>
                 </div>
