@@ -126,6 +126,23 @@ export async function registerBillingRoutes(app: FastifyInstance) {
       const { plan, period } = parseCheckoutPlanId(body.planId);
       const currency = (body.currency ?? "EUR") as Currency;
 
+      if (body.provider === "stripe") {
+        const { describeStripePriceSelection } = await import(
+          "../config/stripePrices.js"
+        );
+        request.log.info(
+          {
+            checkoutPriceMap: describeStripePriceSelection({
+              planId: body.planId,
+              plan,
+              billingPeriod: period,
+              currency,
+            }),
+          },
+          "billing/checkout stripe price selection",
+        );
+      }
+
       const paidTier = await getActivePaidLicenseTierForCustomer(
         String(payload.customerId),
       );

@@ -5,7 +5,10 @@ import type {
   ProviderEnv,
   WebhookHandleResult,
 } from "../../types.js";
-import { getStripePriceId } from "../../../config/stripePrices.js";
+import {
+  describeStripePriceSelection,
+  getStripePriceId,
+} from "../../../config/stripePrices.js";
 import { ENV } from "../../../config/env.js";
 
 export class StripeProvider implements PaymentProvider {
@@ -37,8 +40,18 @@ export class StripeProvider implements PaymentProvider {
     const period = req.planId.includes("yearly") ? "yearly" : "monthly";
     const currency = (req.currency ?? "EUR") as "EUR" | "TND";
 
-    // Get Stripe Price ID from config
     const stripePriceId = getStripePriceId(plan, currency, period);
+
+    // TEMP: debug Stripe price mapping (prefix only, no secrets)
+    console.info(
+      "[stripe-checkout-price-map]",
+      describeStripePriceSelection({
+        planId: req.planId,
+        plan,
+        billingPeriod: period,
+        currency,
+      }),
+    );
 
     if (!stripePriceId) {
       throw new Error(

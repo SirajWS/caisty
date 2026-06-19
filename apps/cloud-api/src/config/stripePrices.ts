@@ -39,6 +39,30 @@ export const STRIPE_PRICES: Record<
   },
 };
 
+export function getStripePriceEnvVarName(
+  plan: "starter" | "pro",
+  currency: "EUR" | "TND",
+  period: "monthly" | "yearly",
+): string {
+  return `STRIPE_PRICE_${plan.toUpperCase()}_${period.toUpperCase()}_${currency}`;
+}
+
+/** Safe for logs — never log full price IDs in production. */
+export function formatStripePriceIdPrefix(priceId: string | null | undefined): string {
+  const id = String(priceId ?? "").trim();
+  if (!id) return "(empty)";
+  return id.length <= 16 ? id : `${id.slice(0, 16)}…`;
+}
+
+export interface StripePriceSelectionDebug {
+  planId: string;
+  plan: "starter" | "pro";
+  billingPeriod: "monthly" | "yearly";
+  currency: "EUR" | "TND";
+  envVarName: string;
+  priceIdPrefix: string;
+}
+
 /**
  * Get Stripe Price ID for a plan
  * @param plan - "starter" | "pro"
@@ -53,5 +77,23 @@ export function getStripePriceId(
 ): StripePriceId | null {
   const priceId = STRIPE_PRICES[currency][plan][period];
   return priceId || null;
+}
+
+export function describeStripePriceSelection(params: {
+  planId: string;
+  plan: "starter" | "pro";
+  billingPeriod: "monthly" | "yearly";
+  currency?: "EUR" | "TND";
+}): StripePriceSelectionDebug {
+  const currency = params.currency ?? "EUR";
+  const priceId = getStripePriceId(params.plan, currency, params.billingPeriod);
+  return {
+    planId: params.planId,
+    plan: params.plan,
+    billingPeriod: params.billingPeriod,
+    currency,
+    envVarName: getStripePriceEnvVarName(params.plan, currency, params.billingPeriod),
+    priceIdPrefix: formatStripePriceIdPrefix(priceId),
+  };
 }
 
