@@ -213,7 +213,7 @@ export async function registerPortalInvoiceRoutes(app: FastifyInstance) {
       const breakdown = portalInvoiceDisplayBreakdown(
         invForCalc,
         subscriptionPlan,
-        null,
+        subscriptionBillingPeriod,
       );
 
       const { renderInvoiceHtml } = await import("../invoices/renderInvoiceHtml.js");

@@ -9,12 +9,20 @@ import {
   correctLegacyInvoiceAmounts,
   isLegacyAdditiveVatBreakdown,
   legacyAddedVatGrossCents,
+  oldCatalogAddedVatGrossCents,
 } from "./vatAmountBreakdown.js";
 
 const OPEN_INVOICE_STATUSES = new Set(["open", "draft", "pending"]);
 
-/** Legacy wrong gross cents (catalog × 1.19) for period inference. */
+/** Legacy wrong gross cents for period inference (old net×1.19 and new gross×1.19). */
 export const LEGACY_GROSS_CENTS: Partial<
+  Record<"starter" | "pro", Partial<Record<BillingPeriod, number>>>
+> = {
+  starter: { monthly: 1189, yearly: 11781 },
+  pro: { monthly: 2379, yearly: 23681 },
+};
+
+const NEW_LEGACY_GROSS_CENTS: Partial<
   Record<"starter" | "pro", Partial<Record<BillingPeriod, number>>>
 > = {
   starter: { monthly: 1784, yearly: 17731 },
@@ -59,8 +67,14 @@ function inferBillingPeriodFromStoredGross(
     const legacyWrong = legacyAddedVatGrossCents(plan, currency, period);
     if (Math.abs(grossCents - legacyWrong) <= 2) return period;
 
+    const oldLegacyWrong = oldCatalogAddedVatGrossCents(plan, currency, period);
+    if (Math.abs(grossCents - oldLegacyWrong) <= 2) return period;
+
     const legacy = LEGACY_GROSS_CENTS[plan]?.[period];
     if (legacy != null && Math.abs(grossCents - legacy) <= 2) return period;
+
+    const newLegacy = NEW_LEGACY_GROSS_CENTS[plan]?.[period];
+    if (newLegacy != null && Math.abs(grossCents - newLegacy) <= 2) return period;
   }
   return null;
 }
@@ -158,7 +172,9 @@ export function portalInvoiceDisplayBreakdown(
       if (
         explicitNet != null &&
         explicitTax != null &&
-        explicitNet + explicitTax === storedGross
+        explicitNet + explicitTax === storedGross &&
+        Math.abs(explicitNet - catalog.netCents) <= 2 &&
+        Math.abs(explicitTax - catalog.taxCents) <= 2
       ) {
         return {
           grossCents: storedGross,
@@ -172,7 +188,7 @@ export function portalInvoiceDisplayBreakdown(
     }
   }
 
-  if (plan && billingPeriod && OPEN_INVOICE_STATUSES.has(st)) {
+  if (plan && billingPeriod && cur === "EUR" && OPEN_INVOICE_STATUSES.has(st)) {
     const catalog = catalogNetTaxGrossCents(plan, cur, billingPeriod);
     return { ...catalog, billingPeriod };
   }

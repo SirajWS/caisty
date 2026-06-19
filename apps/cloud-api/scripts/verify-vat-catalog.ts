@@ -40,7 +40,33 @@ const legacy = portalInvoiceDisplayBreakdown(
 console.log("legacy starter_monthly display:", legacy);
 if (legacy.grossCents !== 1499 || legacy.netCents !== 1260 || legacy.taxCents !== 239) {
   ok = false;
-  console.error("LEGACY DISPLAY FAILED");
+  console.error("LEGACY DISPLAY FAILED (1784 pattern)");
+}
+
+const oldLegacy = portalInvoiceDisplayBreakdown(
+  {
+    status: "paid",
+    amountCents: 1189,
+    amountGrossCents: 1189,
+    amountNetCents: 999,
+    amountTaxCents: 190,
+    planName: "Starter",
+    billingPeriod: "monthly",
+    provider: "stripe",
+    currency: "EUR",
+  },
+  "starter",
+  "monthly",
+);
+
+console.log("old legacy starter_monthly display:", oldLegacy);
+if (
+  oldLegacy.grossCents !== 1499 ||
+  oldLegacy.netCents !== 1260 ||
+  oldLegacy.taxCents !== 239
+) {
+  ok = false;
+  console.error("LEGACY DISPLAY FAILED (1189 pattern)");
 }
 
 process.exit(ok ? 0 : 1);
