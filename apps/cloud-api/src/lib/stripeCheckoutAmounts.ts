@@ -76,6 +76,7 @@ function normalizeInclusiveAmounts(
         };
       }
     }
+  }
 
   const netCents = Math.round(grossCents / (1 + PORTAL_CHECKOUT_VAT_RATE));
   return {
