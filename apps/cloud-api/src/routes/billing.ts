@@ -127,19 +127,18 @@ export async function registerBillingRoutes(app: FastifyInstance) {
       const currency = (body.currency ?? "EUR") as Currency;
 
       if (body.provider === "stripe") {
-        const { describeStripePriceSelection } = await import(
-          "../config/stripePrices.js"
-        );
-        request.log.info(
-          {
-            checkoutPriceMap: describeStripePriceSelection({
-              planId: body.planId,
-              plan,
-              billingPeriod: period,
-              currency,
-            }),
+        const { describeStripePriceSelection, logStripeCheckoutPriceMap } =
+          await import("../config/stripePrices.js");
+        logStripeCheckoutPriceMap(
+          describeStripePriceSelection({
+            planId: body.planId,
+            plan,
+            billingPeriod: period,
+            currency,
+          }),
+          (_tag, payload) => {
+            request.log.info(payload, "[stripe-checkout-price-map]");
           },
-          "billing/checkout stripe price selection",
         );
       }
 

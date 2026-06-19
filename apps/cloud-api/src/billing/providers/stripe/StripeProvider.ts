@@ -8,7 +8,9 @@ import type {
 import {
   describeStripePriceSelection,
   getStripePriceId,
+  logStripeCheckoutPriceMap,
 } from "../../../config/stripePrices.js";
+import { parseCheckoutPlanId } from "../../../lib/billingPeriod.js";
 import { ENV } from "../../../config/env.js";
 
 export class StripeProvider implements PaymentProvider {
@@ -34,29 +36,15 @@ export class StripeProvider implements PaymentProvider {
       throw new Error("Stripe secret key not configured. Please set STRIPE_SECRET_KEY_TEST or STRIPE_SECRET_KEY_LIVE in .env");
     }
 
-    // Parse planId (format: "starter_monthly" or "pro_yearly" etc.)
-    const planIdParts = req.planId.split("_");
-    const plan = planIdParts[0] as "starter" | "pro";
-    const period = req.planId.includes("yearly") ? "yearly" : "monthly";
+    const { plan, period: billingPeriod } = parseCheckoutPlanId(req.planId);
     const currency = (req.currency ?? "EUR") as "EUR" | "TND";
 
-    const stripePriceId = getStripePriceId(plan, currency, period);
-
-    // TEMP: debug Stripe price mapping (prefix only, no secrets)
-    console.info(
-      "[stripe-checkout-price-map]",
-      describeStripePriceSelection({
-        planId: req.planId,
-        plan,
-        billingPeriod: period,
-        currency,
-      }),
-    );
+    const stripePriceId = getStripePriceId(plan, currency, billingPeriod);
 
     if (!stripePriceId) {
       throw new Error(
-        `Stripe Price ID not configured for ${plan}_${period} (${currency}). ` +
-        `Please set STRIPE_PRICE_${plan.toUpperCase()}_${period.toUpperCase()}_${currency} in .env`
+        `Stripe Price ID not configured for ${plan}_${billingPeriod} (${currency}). ` +
+        `Please set STRIPE_PRICE_${plan.toUpperCase()}_${billingPeriod.toUpperCase()}_${currency} in .env`
       );
     }
 
@@ -91,6 +79,15 @@ export class StripeProvider implements PaymentProvider {
       params.append("metadata[subscriptionId]", String(req.metadata.subscriptionId));
     }
     if (req.metadata?.invoiceId) params.append("metadata[invoiceId]", String(req.metadata.invoiceId));
+
+    logStripeCheckoutPriceMap(
+      describeStripePriceSelection({
+        planId: req.planId,
+        plan,
+        billingPeriod,
+        currency,
+      }),
+    );
 
     const sessionRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",

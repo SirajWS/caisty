@@ -49,18 +49,40 @@ export function getStripePriceEnvVarName(
 
 /** Safe for logs — never log full price IDs in production. */
 export function formatStripePriceIdPrefix(priceId: string | null | undefined): string {
-  const id = String(priceId ?? "").trim();
-  if (!id) return "(empty)";
+  const raw = String(priceId ?? "").trim();
+  if (!raw) return "(empty)";
+  const match = raw.match(/^(price_[a-zA-Z0-9]+)/);
+  const id = match?.[1] ?? raw.split(/\s+/)[0] ?? raw;
   return id.length <= 16 ? id : `${id.slice(0, 16)}…`;
 }
 
-export interface StripePriceSelectionDebug {
+export interface StripeCheckoutPriceMapLog {
   planId: string;
   plan: "starter" | "pro";
   billingPeriod: "monthly" | "yearly";
   currency: "EUR" | "TND";
   envVarName: string;
   priceIdPrefix: string;
+}
+
+/** Production-safe stdout log before Stripe Checkout Session creation. */
+export function logStripeCheckoutPriceMap(
+  entry: StripeCheckoutPriceMapLog,
+  logFn: (tag: string, payload: StripeCheckoutPriceMapLog) => void = (
+    tag,
+    payload,
+  ) => {
+    console.info(tag, payload);
+  },
+): void {
+  logFn("[stripe-checkout-price-map]", {
+    planId: entry.planId,
+    plan: entry.plan,
+    billingPeriod: entry.billingPeriod,
+    currency: entry.currency,
+    envVarName: entry.envVarName,
+    priceIdPrefix: entry.priceIdPrefix,
+  });
 }
 
 /**
@@ -84,7 +106,7 @@ export function describeStripePriceSelection(params: {
   plan: "starter" | "pro";
   billingPeriod: "monthly" | "yearly";
   currency?: "EUR" | "TND";
-}): StripePriceSelectionDebug {
+}): StripeCheckoutPriceMapLog {
   const currency = params.currency ?? "EUR";
   const priceId = getStripePriceId(params.plan, currency, params.billingPeriod);
   return {
