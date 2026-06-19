@@ -42,11 +42,13 @@ function normalizeInclusiveAmounts(
     }
     const legacy = correctLegacyInvoiceAmounts(
       grossCents,
+      amounts.netCents,
+      amounts.taxCents,
       parsed.plan,
       currency,
       parsed.period,
     );
-    if (legacy && Math.abs(grossCents - legacy.grossCents) > 2) {
+    if (legacy) {
       return {
         grossCents: legacy.grossCents,
         netCents: legacy.netCents,
@@ -56,8 +58,24 @@ function normalizeInclusiveAmounts(
   }
 
   if (amounts.taxCents > 0 && amounts.netCents > 0) {
-    return amounts;
-  }
+    const parsed = parsePlanFromPlanId(planId);
+    if (parsed && currency === "EUR") {
+      const legacy = correctLegacyInvoiceAmounts(
+        grossCents,
+        amounts.netCents,
+        amounts.taxCents,
+        parsed.plan,
+        currency,
+        parsed.period,
+      );
+      if (legacy) {
+        return {
+          grossCents: legacy.grossCents,
+          netCents: legacy.netCents,
+          taxCents: legacy.taxCents,
+        };
+      }
+    }
 
   const netCents = Math.round(grossCents / (1 + PORTAL_CHECKOUT_VAT_RATE));
   return {

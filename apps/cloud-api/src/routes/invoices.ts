@@ -23,6 +23,7 @@ function invoiceRowBreakdown(inv: Record<string, unknown>, sub: Record<string, u
       planName: inv.planName as string,
       currency: inv.currency as string,
       billingPeriod: inv.billingPeriod as string,
+      provider: inv.provider as string,
     },
     sub?.plan ? String(sub.plan) : null,
     (sub?.billingPeriod as BillingPeriod | null) ?? null,

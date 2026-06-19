@@ -45,6 +45,7 @@ export function renderInvoiceHtml(
         planName: invoice.planName,
         currency: invoice.currency,
         billingPeriod: invoice.billingPeriod,
+        provider: invoice.provider,
       },
       context.subscriptionPlan ?? null,
       context.subscriptionBillingPeriod ?? null,

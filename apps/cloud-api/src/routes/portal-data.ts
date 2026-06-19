@@ -119,8 +119,7 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
           const st = String(inv.status ?? "").toLowerCase();
           if (
             st === "open" &&
-            String(inv.provider ?? "") === "stripe" &&
-            String(sub?.status ?? "") === "pending"
+            String(inv.provider ?? "").toLowerCase() === "stripe"
           ) {
             return false;
           }
@@ -145,6 +144,7 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
             planName: inv.planName,
             currency: inv.currency,
             billingPeriod: inv.billingPeriod,
+            provider: inv.provider,
           },
           sub?.plan ?? null,
           (sub?.billingPeriod as BillingPeriod | null) ?? null,

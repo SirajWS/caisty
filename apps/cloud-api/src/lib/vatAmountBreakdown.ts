@@ -29,7 +29,7 @@ export function catalogNetTaxGrossCents(
   };
 }
 
-/** Pre–2026-06 bug: VAT was added on top of catalog price (gross × 1.19). */
+/** Pre–2026-06 bug: VAT was added on top of catalog price (catalog × 1.19). */
 export function legacyAddedVatGrossCents(
   plan: "starter" | "pro",
   currency: Currency,
@@ -39,34 +39,67 @@ export function legacyAddedVatGrossCents(
   return Math.round(inclusiveGross * (1 + PORTAL_CHECKOUT_VAT_RATE));
 }
 
-/** Detect legacy invoice rows that stored catalog price before tax was extracted. */
+/**
+ * Detect invoices where catalog gross was stored as "net" and 19% VAT added on top.
+ * Example: net 1499, tax 285, gross 1784 (should be gross 1499, net 1260, tax 239).
+ */
+export function isLegacyAdditiveVatBreakdown(
+  grossCents: number,
+  netCents: number,
+  taxCents: number,
+  plan: "starter" | "pro",
+  currency: Currency,
+  period: BillingPeriod,
+): boolean {
+  const catalog = catalogNetTaxGrossCents(plan, currency, period);
+  const wrongGross = legacyAddedVatGrossCents(plan, currency, period);
+
+  if (Math.abs(grossCents - wrongGross) <= 2) {
+    return true;
+  }
+
+  const additiveTax = Math.round(catalog.grossCents * PORTAL_CHECKOUT_VAT_RATE);
+  if (
+    Math.abs(netCents - catalog.grossCents) <= 2 &&
+    Math.abs(taxCents - additiveTax) <= 2 &&
+    Math.abs(grossCents - catalog.grossCents - additiveTax) <= 2
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 export function isLegacyMisclassifiedAmountCents(
   amountCents: number,
   plan: "starter" | "pro",
   currency: Currency,
   period: BillingPeriod,
 ): boolean {
-  const catalog = catalogNetTaxGrossCents(plan, currency, period);
-  const oldWrongGross = legacyAddedVatGrossCents(plan, currency, period);
   return (
-    Math.abs(amountCents - oldWrongGross) <= 2 ||
-    Math.abs(amountCents - catalog.grossCents) <= 2
+    Math.abs(amountCents - legacyAddedVatGrossCents(plan, currency, period)) <= 2 ||
+    Math.abs(amountCents - catalogNetTaxGrossCents(plan, currency, period).grossCents) <= 2
   );
 }
 
 export function correctLegacyInvoiceAmounts(
-  amountCents: number,
+  grossCents: number,
+  netCents: number,
+  taxCents: number,
   plan: "starter" | "pro",
   currency: Currency,
   period: BillingPeriod,
 ): NetTaxGrossCents | null {
-  if (!isLegacyMisclassifiedAmountCents(amountCents, plan, currency, period)) {
+  if (
+    !isLegacyAdditiveVatBreakdown(grossCents, netCents, taxCents, plan, currency, period) &&
+    !isLegacyMisclassifiedAmountCents(grossCents, plan, currency, period)
+  ) {
     return null;
   }
   return catalogNetTaxGrossCents(plan, currency, period);
 }
 
-/** @deprecated Use correctLegacyInvoiceAmounts — kept for stripeCheckoutAmounts import. */
+/** @deprecated */
 export function isNetOnlyStripeAmountCents(
   amountCents: number,
   plan: "starter" | "pro",
@@ -76,12 +109,12 @@ export function isNetOnlyStripeAmountCents(
   return isLegacyMisclassifiedAmountCents(amountCents, plan, currency, period);
 }
 
-/** @deprecated Use correctLegacyInvoiceAmounts */
+/** @deprecated */
 export function correctNetOnlyToGrossCents(
   amountCents: number,
   plan: "starter" | "pro",
   currency: Currency,
   period: BillingPeriod,
 ): NetTaxGrossCents | null {
-  return correctLegacyInvoiceAmounts(amountCents, plan, currency, period);
+  return correctLegacyInvoiceAmounts(amountCents, amountCents, 0, plan, currency, period);
 }

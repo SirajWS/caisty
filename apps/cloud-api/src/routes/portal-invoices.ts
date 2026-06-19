@@ -90,6 +90,7 @@ export async function registerPortalInvoiceRoutes(app: FastifyInstance) {
         planName: inv.planName,
         currency: inv.currency,
         billingPeriod: inv.billingPeriod,
+        provider: inv.provider,
       };
       const subBillingPeriod = (sub?.billingPeriod as BillingPeriod | null) ?? null;
       const breakdown = portalInvoiceDisplayBreakdown(
@@ -207,6 +208,7 @@ export async function registerPortalInvoiceRoutes(app: FastifyInstance) {
         planName: inv.planName,
         currency: inv.currency,
         billingPeriod: inv.billingPeriod,
+        provider: inv.provider,
       };
       const breakdown = portalInvoiceDisplayBreakdown(
         invForCalc,
