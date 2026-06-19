@@ -1,6 +1,10 @@
 import type { Currency } from "../config/pricing.js";
+import { PORTAL_CHECKOUT_VAT_RATE } from "../config/pricing.js";
 import { parseBillingPeriodFromPlanId } from "./billingPeriod.js";
-import { correctNetOnlyToGrossCents } from "./vatAmountBreakdown.js";
+import {
+  catalogNetTaxGrossCents,
+  correctLegacyInvoiceAmounts,
+} from "./vatAmountBreakdown.js";
 
 export interface StripeAmountBreakdown {
   grossCents: number;
@@ -18,25 +22,48 @@ function parsePlanFromPlanId(
   return { plan, period: parseBillingPeriodFromPlanId(planId) };
 }
 
-function applyNetOnlyCorrection(
+function normalizeInclusiveAmounts(
   amounts: StripeAmountBreakdown,
   planId: string | undefined,
-  currency: Currency = "EUR",
+  currency: Currency,
 ): StripeAmountBreakdown {
-  if (amounts.taxCents > 0) return amounts;
+  const grossCents = amounts.grossCents;
+  if (grossCents <= 0) return amounts;
+
   const parsed = parsePlanFromPlanId(planId);
-  if (!parsed || currency !== "EUR") return amounts;
-  const corrected = correctNetOnlyToGrossCents(
-    amounts.grossCents,
-    parsed.plan,
-    currency,
-    parsed.period,
-  );
-  if (!corrected) return amounts;
+  if (parsed && currency === "EUR") {
+    const catalog = catalogNetTaxGrossCents(parsed.plan, currency, parsed.period);
+    if (Math.abs(grossCents - catalog.grossCents) <= 2) {
+      return {
+        grossCents: catalog.grossCents,
+        netCents: catalog.netCents,
+        taxCents: catalog.taxCents,
+      };
+    }
+    const legacy = correctLegacyInvoiceAmounts(
+      grossCents,
+      parsed.plan,
+      currency,
+      parsed.period,
+    );
+    if (legacy && Math.abs(grossCents - legacy.grossCents) > 2) {
+      return {
+        grossCents: legacy.grossCents,
+        netCents: legacy.netCents,
+        taxCents: legacy.taxCents,
+      };
+    }
+  }
+
+  if (amounts.taxCents > 0 && amounts.netCents > 0) {
+    return amounts;
+  }
+
+  const netCents = Math.round(grossCents / (1 + PORTAL_CHECKOUT_VAT_RATE));
   return {
-    grossCents: corrected.grossCents,
-    netCents: corrected.netCents,
-    taxCents: corrected.taxCents,
+    grossCents,
+    netCents,
+    taxCents: grossCents - netCents,
   };
 }
 
@@ -48,18 +75,29 @@ export function amountsFromStripeCheckoutSession(
   const totalDetails = session.total_details as
     | { amount_tax?: number }
     | undefined;
-  const taxCents = Number(totalDetails?.amount_tax ?? 0);
+  const taxFromStripe = Number(totalDetails?.amount_tax ?? 0);
   const subtotal = Number(session.amount_subtotal ?? 0);
-  const netCents = subtotal > 0 ? subtotal : Math.max(0, grossCents - taxCents);
   const currency = String(session.currency ?? "eur").toUpperCase() as Currency;
+  const cur: Currency = currency === "TND" ? "TND" : "EUR";
 
   const metadata = session.metadata as Record<string, string> | undefined;
   const effectivePlanId = planId ?? metadata?.planId;
 
-  return applyNetOnlyCorrection(
+  let netCents = subtotal > 0 ? subtotal : Math.max(0, grossCents - taxFromStripe);
+  let taxCents = taxFromStripe;
+
+  if (taxFromStripe > 0 && subtotal > 0 && subtotal + taxFromStripe <= grossCents + 2) {
+    netCents = subtotal;
+    taxCents = taxFromStripe;
+  } else if (taxFromStripe <= 0 && grossCents > 0) {
+    netCents = Math.round(grossCents / (1 + PORTAL_CHECKOUT_VAT_RATE));
+    taxCents = grossCents - netCents;
+  }
+
+  return normalizeInclusiveAmounts(
     { grossCents, netCents, taxCents },
     effectivePlanId,
-    currency === "TND" ? "TND" : "EUR",
+    cur,
   );
 }
 
@@ -72,18 +110,26 @@ export function amountsFromStripeInvoice(
     | Array<{ amount?: number }>
     | undefined;
   const taxFromLines = taxAmounts?.[0]?.amount;
-  const taxCents = Number(invoice.tax ?? taxFromLines ?? 0);
+  const taxFromStripe = Number(invoice.tax ?? taxFromLines ?? 0);
   const subtotal = Number(invoice.subtotal ?? 0);
-  const netCents = subtotal > 0 ? subtotal : Math.max(0, grossCents - taxCents);
   const currency = String(invoice.currency ?? "eur").toUpperCase() as Currency;
+  const cur: Currency = currency === "TND" ? "TND" : "EUR";
 
   const metadata = invoice.metadata as Record<string, string> | undefined;
   const effectivePlanId = planId ?? metadata?.planId;
 
-  return applyNetOnlyCorrection(
+  let netCents = subtotal > 0 ? subtotal : Math.max(0, grossCents - taxFromStripe);
+  let taxCents = taxFromStripe;
+
+  if (taxFromStripe <= 0 && grossCents > 0) {
+    netCents = Math.round(grossCents / (1 + PORTAL_CHECKOUT_VAT_RATE));
+    taxCents = grossCents - netCents;
+  }
+
+  return normalizeInclusiveAmounts(
     { grossCents, netCents, taxCents },
     effectivePlanId,
-    currency === "TND" ? "TND" : "EUR",
+    cur,
   );
 }
 

@@ -7,17 +7,17 @@ import {
 import type { BillingPeriod } from "./billingPeriod.js";
 import {
   catalogNetTaxGrossCents,
-  isNetOnlyStripeAmountCents,
+  correctLegacyInvoiceAmounts,
 } from "./vatAmountBreakdown.js";
 
 const OPEN_INVOICE_STATUSES = new Set(["open", "draft", "pending"]);
 
-/** Legacy gross cents (102 € / 204 € net + 19 % VAT) from pre-2026-06 pricing. */
+/** Legacy gross cents from pre–2026-06 pricing (VAT added on top of catalog). */
 export const LEGACY_GROSS_CENTS: Partial<
   Record<"starter" | "pro", Partial<Record<BillingPeriod, number>>>
 > = {
-  starter: { yearly: 12138 },
-  pro: { yearly: 24276 },
+  starter: { monthly: 1784, yearly: 12138 },
+  pro: { monthly: 2974, yearly: 24276 },
 };
 
 function inferStarterPro(
@@ -147,7 +147,7 @@ export function portalInvoiceDisplayBreakdown(
       plan &&
       billingPeriod &&
       explicitTax === 0 &&
-      isNetOnlyStripeAmountCents(explicitNet, plan, cur, billingPeriod)
+      correctLegacyInvoiceAmounts(explicitNet, plan, cur, billingPeriod)
     ) {
       const corrected = catalogNetTaxGrossCents(plan, cur, billingPeriod);
       return {

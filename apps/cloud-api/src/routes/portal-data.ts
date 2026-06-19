@@ -111,7 +111,25 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
         .where(eq(invoices.customerId, payload.customerId))
         .orderBy(desc(invoices.createdAt));
 
-      return rows.map((r: any) => {
+      return rows
+        .filter((r: any) => {
+          const inv = r.inv as any;
+          const sub = r.sub as any;
+          if (!inv) return false;
+          const st = String(inv.status ?? "").toLowerCase();
+          if (
+            st === "open" &&
+            String(inv.provider ?? "") === "stripe" &&
+            String(sub?.status ?? "") === "pending"
+          ) {
+            return false;
+          }
+          if (st === "canceled" || st === "cancelled") {
+            return false;
+          }
+          return true;
+        })
+        .map((r: any) => {
         const inv = r.inv as any;
         const sub = r.sub as any;
         if (!inv) {

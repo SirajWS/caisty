@@ -26,7 +26,7 @@ import {
 } from "../lib/checkoutPlanEligibility.js";
 import { ensurePaidLicenseAfterSuccessfulPayment } from "../lib/finalizePaidLicenseAfterPayment.js";
 import { persistStripeSubscriptionAfterCheckoutSession } from "../lib/persistStripeSubscriptionFromSession.js";
-import { syncPaidInvoiceFromStripeCheckoutSession } from "../lib/syncPaidInvoiceFromStripe.js";
+import { ensureStripePaidInvoiceFromCheckoutSession } from "../lib/ensureStripePaidInvoice.js";
 
 interface PortalJwtPayload {
   customerId: string;
@@ -191,7 +191,7 @@ export async function registerBillingRoutes(app: FastifyInstance) {
           );
       }
 
-      // Cleanup pending subscriptions
+      // Cleanup pending subscriptions and abandoned Stripe checkout invoices
       await db
         .update(subscriptions as any)
         .set({ status: "cancelled" } as any)
@@ -201,6 +201,19 @@ export async function registerBillingRoutes(app: FastifyInstance) {
             eq(subscriptions.status as any, "pending"),
           ),
         );
+
+      if (body.provider === "stripe") {
+        await db
+          .update(invoices as any)
+          .set({ status: "canceled", dueAt: null } as any)
+          .where(
+            and(
+              eq(invoices.customerId as any, payload.customerId),
+              eq(invoices.status as any, "open"),
+              eq(invoices.provider as any, "stripe"),
+            ),
+          );
+      }
 
       const amounts = catalogNetTaxGrossCents(plan, currency, period);
       const priceCents = amounts.grossCents;
@@ -233,55 +246,61 @@ export async function registerBillingRoutes(app: FastifyInstance) {
         throw new Error("Failed to create subscription");
       }
 
-      // Create invoice
-      const invoiceNumber = await generateInvoiceNumber();
       const planName = plan === "starter" ? "Starter" : plan === "pro" ? "Pro" : plan;
       const paymentMethod = body.provider === "stripe" ? "card" : "paypal";
-      
-      // Fälligkeitsdatum nur setzen bei "open" Status (nicht bei "paid")
-      const invoiceStatus = "open";
-      const dueAt = invoiceStatus === "open" ? addDays(now, 14) : null;
-      
-      const [inv] = await db
-        .insert(invoices)
-        .values({
-          orgId: customer.orgId,
-          customerId: payload.customerId,
-          subscriptionId: sub.id,
-          number: invoiceNumber,
-          amountCents: amounts.grossCents,
-          amountGrossCents: amounts.grossCents,
-          amountNetCents: amounts.netCents,
-          amountTaxCents: amounts.taxCents,
-          currency,
-          status: invoiceStatus,
-          issuedAt: now,
-          dueAt: dueAt,
-          provider: body.provider,
-          providerEnv: body.provider === "stripe" ? stripeProvider.env : paypalProvider.env,
-          planName: planName,
-          billingPeriod: period,
-          paymentMethod: paymentMethod,
-        } as any)
-        .returning();
 
-      if (!inv || !inv.id) {
-        throw new Error("Failed to create invoice");
+      const checkoutMetadata: Record<string, string> = {
+        ...(body.metadata ?? {}),
+        subscriptionId: String(sub.id),
+        planId: body.planId,
+        customerId: String(payload.customerId),
+      };
+
+      let invoiceId: string | undefined;
+
+      // PayPal: pre-create open invoice (legacy capture flow). Stripe: invoice only after payment.
+      if (body.provider !== "stripe") {
+        const invoiceNumber = await generateInvoiceNumber();
+        const dueAt = addDays(now, 14);
+
+        const [inv] = await db
+          .insert(invoices)
+          .values({
+            orgId: customer.orgId,
+            customerId: payload.customerId,
+            subscriptionId: sub.id,
+            number: invoiceNumber,
+            amountCents: amounts.grossCents,
+            amountGrossCents: amounts.grossCents,
+            amountNetCents: amounts.netCents,
+            amountTaxCents: amounts.taxCents,
+            currency,
+            status: "open",
+            issuedAt: now,
+            dueAt,
+            provider: body.provider,
+            providerEnv: paypalProvider.env,
+            planName,
+            billingPeriod: period,
+            paymentMethod,
+          } as any)
+          .returning();
+
+        if (!inv?.id) {
+          throw new Error("Failed to create invoice");
+        }
+        invoiceId = String(inv.id);
+        checkoutMetadata.invoiceId = invoiceId;
       }
 
-      // 2) Get checkout URL from provider
-      // Store invoiceId in metadata so PayPal can return it
       const result = await billingService.checkout(
         {
           ...body,
           customerId: payload.customerId,
-          metadata: {
-            ...body.metadata,
-            invoiceId: inv.id,
-          },
+          metadata: checkoutMetadata,
         },
         finalIdempotencyKey,
-        payload.orgId
+        payload.orgId,
       );
 
       return {
@@ -289,7 +308,8 @@ export async function registerBillingRoutes(app: FastifyInstance) {
         checkoutUrl: result.checkoutUrl,
         provider: result.provider,
         providerEnv: result.providerEnv,
-        invoiceId: inv.id, // Return invoiceId for frontend
+        subscriptionId: String(sub.id),
+        ...(invoiceId ? { invoiceId } : {}),
       };
     } catch (err: any) {
       app.log.error({ err, body, customerId: payload.customerId }, "billing/checkout failed");
@@ -480,19 +500,14 @@ export async function registerBillingRoutes(app: FastifyInstance) {
           };
         }
 
-        // Extract invoiceId from metadata (Stripe metadata is flat key/value, not JSON)
         const metadata = session.metadata || {};
-        finalInvoiceId = metadata.invoiceId || invoiceId;
         paymentId = session.id;
 
-        if (!finalInvoiceId) {
-          reply.code(400);
-          return {
-            ok: false,
-            error: "invoice_id_missing",
-            message: "Invoice ID could not be determined from Stripe session metadata",
-          };
-        }
+        const ensured = await ensureStripePaidInvoiceFromCheckoutSession({
+          session: session as Record<string, unknown>,
+          providerEnv: stripeProvider.env,
+        });
+        finalInvoiceId = ensured.invoiceId;
       } else {
         // PayPal flow
         if (!orderId) {
@@ -552,14 +567,6 @@ export async function registerBillingRoutes(app: FastifyInstance) {
           internalSubscriptionId: inv.subscriptionId,
           session: stripeCheckoutSession,
           providerEnv: stripeProvider.env,
-        });
-
-        await syncPaidInvoiceFromStripeCheckoutSession({
-          invoiceId: String(inv.id),
-          subscriptionId: inv.subscriptionId,
-          session: stripeCheckoutSession as Record<string, unknown>,
-          providerRef: paymentId,
-          markPaid: true,
         });
       } else {
         // Update invoice to paid (PayPal / non-Stripe)

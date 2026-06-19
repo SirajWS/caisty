@@ -249,7 +249,14 @@ const PortalCheckoutPage: React.FC = () => {
       }
 
       if (checkoutData.invoiceId) {
+      if (checkoutData.invoiceId) {
         sessionStorage.setItem("pendingInvoiceId", checkoutData.invoiceId);
+      } else {
+        sessionStorage.removeItem("pendingInvoiceId");
+      }
+      if (checkoutData.subscriptionId) {
+        sessionStorage.setItem("pendingSubscriptionId", checkoutData.subscriptionId);
+      }
       }
 
       if (checkoutData.checkoutUrl) {

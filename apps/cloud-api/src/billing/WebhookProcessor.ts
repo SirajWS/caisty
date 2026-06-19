@@ -12,6 +12,8 @@ import {
   persistStripeSubscriptionAfterCheckoutSession,
   invoiceProviderEnvToStripeEnv,
 } from "../lib/persistStripeSubscriptionFromSession.js";
+import { ensureStripePaidInvoiceFromCheckoutSession } from "../lib/ensureStripePaidInvoice.js";
+import { ENV } from "../config/env.js";
 import { syncPaidInvoiceFromStripeCheckoutSession, syncPaidInvoiceFromStripeInvoice } from "../lib/syncPaidInvoiceFromStripe.js";
 import { parseBillingPeriodFromPlanId } from "../lib/billingPeriod.js";
 
@@ -355,16 +357,26 @@ export class WebhookProcessor {
    */
   private async handleStripeCheckoutCompleted(session: any): Promise<ProcessedWebhookResult> {
     const sessionId = session.id;
-    const invoiceId = session.metadata?.invoiceId;
+    const providerEnv = (ENV.STRIPE_ENV === "live" ? "live" : "test") as "test" | "live";
 
-    if (!invoiceId) {
+    let ensured: Awaited<ReturnType<typeof ensureStripePaidInvoiceFromCheckoutSession>>;
+    try {
+      ensured = await ensureStripePaidInvoiceFromCheckoutSession({
+        session: session as Record<string, unknown>,
+        providerEnv,
+      });
+    } catch (err: unknown) {
       return {
         success: false,
-        message: "Invoice ID not found in Stripe session metadata",
+        message:
+          err instanceof Error
+            ? err.message
+            : "Could not create or resolve invoice from Stripe checkout",
       };
     }
 
-    // Invoice finden
+    const invoiceId = ensured.invoiceId;
+
     const [inv] = await db
       .select()
       .from(invoices)
@@ -374,7 +386,7 @@ export class WebhookProcessor {
     if (!inv) {
       return {
         success: false,
-        message: `Invoice ${invoiceId} not found`,
+        message: `Invoice ${invoiceId} not found after Stripe checkout`,
       };
     }
 
@@ -385,16 +397,7 @@ export class WebhookProcessor {
       providerEnv: invoiceProviderEnvToStripeEnv(inv.providerEnv),
     });
 
-    await syncPaidInvoiceFromStripeCheckoutSession({
-      invoiceId: String(invoiceId),
-      subscriptionId: inv.subscriptionId,
-      session: session as Record<string, unknown>,
-      providerRef: sessionId,
-      markPaid: inv.status !== "paid",
-    });
-
-    // Wenn bereits bezahlt, Beträge trotzdem von Stripe nachziehen (Legacy-Preise)
-    if (inv.status === "paid") {
+    if (inv.status === "paid" && !ensured.created) {
       return {
         success: true,
         message: `Invoice ${invoiceId} already paid (amounts synced from Stripe)`,
@@ -420,25 +423,39 @@ export class WebhookProcessor {
       }
     }
 
-    // Payment-Record erstellen
-    const amountCents = Number(session.amount_total || inv.amountCents);
+    const amountCents = Number(inv.amountGrossCents ?? inv.amountCents ?? session.amount_total ?? 0);
 
-    const [payment] = await db
-      .insert(payments)
-      .values({
-        orgId: inv.orgId,
-        customerId: inv.customerId,
-        subscriptionId: inv.subscriptionId || null,
-        provider: "stripe",
-        providerEnv: inv.providerEnv || "test",
-        providerPaymentId: sessionId,
-        providerStatus: "paid",
-        amountCents: amountCents,
-        currency: inv.currency || "EUR",
-        status: "succeeded",
-        amountGrossCents: amountCents,
-      } as any)
-      .returning();
+    const [existingPayment] = await db
+      .select({ id: payments.id })
+      .from(payments)
+      .where(
+        and(
+          eq(payments.provider as any, "stripe"),
+          eq(payments.providerPaymentId as any, sessionId),
+        ),
+      )
+      .limit(1);
+
+    let payment = existingPayment;
+    if (!existingPayment) {
+      const [inserted] = await db
+        .insert(payments)
+        .values({
+          orgId: inv.orgId,
+          customerId: inv.customerId,
+          subscriptionId: inv.subscriptionId || null,
+          provider: "stripe",
+          providerEnv: inv.providerEnv || "test",
+          providerPaymentId: sessionId,
+          providerStatus: "paid",
+          amountCents,
+          currency: inv.currency || "EUR",
+          status: "succeeded",
+          amountGrossCents: amountCents,
+        } as any)
+        .returning();
+      payment = inserted;
+    }
 
     // Lizenz erstellen / Upgrade (Starter → Pro): gleiche Logik wie PayPal/Capture
     let createdLicenseId: string | undefined;
@@ -461,7 +478,7 @@ export class WebhookProcessor {
         invoiceId: String(inv.id),
         invoiceNumber: inv.number,
         sessionId: sessionId,
-        amountCents: amountCents,
+        amountCents,
         currency: inv.currency || "EUR",
         licenseId: createdLicenseId,
       });

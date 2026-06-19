@@ -56,18 +56,26 @@ export function getPlanPrice(
 }
 
 /**
- * VAT rate applied in the customer portal checkout (must match caisty-site).
- * Invoice amounts and PayPal capture use gross (net × (1 + rate)).
+ * VAT rate for extracting included tax from catalog gross prices (EUR).
  */
 export const PORTAL_CHECKOUT_VAT_RATE = 0.19;
 
-/** Gross amount in cents charged to the customer (incl. VAT). */
+/** Catalog list price in cents — VAT-inclusive (matches Stripe live prices). */
 export function grossPlanAmountCents(
   plan: "starter" | "pro",
   currency: Currency = "EUR",
   period: "monthly" | "yearly" = "monthly",
 ): number {
-  const net = getPlanPrice(plan, currency, period);
-  return Math.round(net * (1 + PORTAL_CHECKOUT_VAT_RATE) * 100);
+  return Math.round(getPlanPrice(plan, currency, period) * 100);
+}
+
+/** Net portion extracted from VAT-inclusive catalog gross. */
+export function netPlanAmountCents(
+  plan: "starter" | "pro",
+  currency: Currency = "EUR",
+  period: "monthly" | "yearly" = "monthly",
+): number {
+  const grossCents = grossPlanAmountCents(plan, currency, period);
+  return Math.round(grossCents / (1 + PORTAL_CHECKOUT_VAT_RATE));
 }
 

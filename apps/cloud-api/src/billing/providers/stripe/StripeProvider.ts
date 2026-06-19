@@ -74,6 +74,9 @@ export class StripeProvider implements PaymentProvider {
     // Add metadata as flat key/value pairs (Stripe requirement)
     if (req.planId) params.append("metadata[planId]", String(req.planId));
     if (req.customerId) params.append("metadata[customerId]", String(req.customerId || ""));
+    if (req.metadata?.subscriptionId) {
+      params.append("metadata[subscriptionId]", String(req.metadata.subscriptionId));
+    }
     if (req.metadata?.invoiceId) params.append("metadata[invoiceId]", String(req.metadata.invoiceId));
 
     const sessionRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
