@@ -18,12 +18,12 @@ export const PRICING: Record<Currency, {
 }> = {
   EUR: {
     starter: {
-      monthly: 9.99,
-      yearly: 99,
+      monthly: 14.99,
+      yearly: 149,
     },
     pro: {
-      monthly: 19.99,
-      yearly: 199,
+      monthly: 24.99,
+      yearly: 299,
     },
     trial: {
       monthly: 0,

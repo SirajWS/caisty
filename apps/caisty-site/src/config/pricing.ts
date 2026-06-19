@@ -26,12 +26,12 @@ export const PRICING: Record<Currency, {
 }> = {
   EUR: {
     starter: {
-      monthly: 9.99,
-      yearly: 99,
+      monthly: 14.99,
+      yearly: 149,
     },
     pro: {
-      monthly: 19.99,
-      yearly: 199,
+      monthly: 24.99,
+      yearly: 299,
     },
     trial: {
       monthly: 0,
@@ -75,5 +75,38 @@ export function formatPrice(amount: number, currency: Currency): string {
     return `${amount.toFixed(2)} ${symbol}`;
   }
   return `${amount} ${symbol}`;
+}
+
+type DisplayLanguage = "en" | "fr" | "de" | "ar";
+
+/** Locale-aware amount for marketing pages (comma in de/fr, dot in en/ar). */
+export function formatPlanDisplayAmount(
+  amount: number,
+  language: DisplayLanguage,
+  period: "monthly" | "yearly",
+): string {
+  const wholeNumber = period === "yearly" && Number.isInteger(amount);
+  if (wholeNumber) {
+    return String(Math.round(amount));
+  }
+  const useComma = language === "de" || language === "fr";
+  const fixed = amount.toFixed(2);
+  return useComma ? fixed.replace(".", ",") : fixed;
+}
+
+/** Full price line for landing/pricing cards, e.g. `14,99 € / Monat`. */
+export function formatLandingPlanPriceLine(
+  amount: number,
+  currency: Currency,
+  language: DisplayLanguage,
+  period: "monthly" | "yearly",
+  periodSuffix: string,
+): string {
+  const symbol = CURRENCY_SYMBOLS[currency];
+  const formatted = formatPlanDisplayAmount(amount, language, period);
+  if (currency === "TND") {
+    return `${formatted} ${symbol}${periodSuffix}`;
+  }
+  return `${formatted} ${symbol}${periodSuffix}`;
 }
 

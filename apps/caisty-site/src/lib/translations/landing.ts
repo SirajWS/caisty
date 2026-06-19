@@ -85,7 +85,7 @@ const landingLocales = {
         name: "Starter",
         badge: "1 device",
         recommended: "Recommended",
-        priceLine: "9.99 € / month",
+        priceLine: "14.99 € / month",
         subline: "1 device included",
         features: [
           "Perfect for one location",
@@ -98,7 +98,7 @@ const landingLocales = {
       pro: {
         name: "Pro",
         badge: "Multi-device",
-        priceLine: "19.99 € / month",
+        priceLine: "24.99 € / month",
         subline: "3 devices included",
         features: [
           "All Starter features",
@@ -362,7 +362,7 @@ const landingLocales = {
         name: "Starter",
         badge: "1 appareil",
         recommended: "Recommandé",
-        priceLine: "9,99 € / mois",
+        priceLine: "14,99 € / mois",
         subline: "1 appareil inclus",
         features: [
           "Parfait pour un seul lieu",
@@ -375,7 +375,7 @@ const landingLocales = {
       pro: {
         name: "Pro",
         badge: "Multi-appareils",
-        priceLine: "19,99 € / mois",
+        priceLine: "24,99 € / mois",
         subline: "3 appareils inclus",
         features: [
           "Toutes les fonctionnalités Starter",
@@ -641,7 +641,7 @@ const landingLocales = {
         name: "Starter",
         badge: "1 Gerät",
         recommended: "Empfohlen",
-        priceLine: "9,99 € / Monat",
+        priceLine: "14,99 € / Monat",
         subline: "1 Gerät inklusive",
         features: [
           "Perfekt für einen Standort",
@@ -654,7 +654,7 @@ const landingLocales = {
       pro: {
         name: "Pro",
         badge: "Mehrere Geräte",
-        priceLine: "19,99 € / Monat",
+        priceLine: "24,99 € / Monat",
         subline: "3 Geräte inklusive",
         features: [
           "Alle Starter-Funktionen",
@@ -915,7 +915,7 @@ const landingLocales = {
         name: "Starter",
         badge: "جهاز واحد",
         recommended: "موصى به",
-        priceLine: "9.99 € / شهر",
+        priceLine: "14.99 € / شهر",
         subline: "جهاز واحد مشمول",
         features: [
           "مثالي لموقع واحد",
@@ -928,7 +928,7 @@ const landingLocales = {
       pro: {
         name: "Pro",
         badge: "أجهزة متعددة",
-        priceLine: "19.99 € / شهر",
+        priceLine: "24.99 € / شهر",
         subline: "3 أجهزة مشمولة",
         features: [
           "جميع ميزات Starter",

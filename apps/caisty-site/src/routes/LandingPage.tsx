@@ -1,19 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { formatLandingPlanPriceLine, PRICING } from "../config/pricing";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
 import { landingTn } from "../lib/translations/landingTn";
 import { getSiteMarket } from "../lib/siteMarket";
 import { useTheme } from "../lib/theme";
+import { useCurrency } from "../lib/useCurrency";
 import { applyCaistyPosProductMeta, applyCompanySiteMeta } from "../lib/siteDocumentMeta";
+
+type BillingPeriod = "monthly" | "yearly";
 
 export default function LandingPage() {
   const { language } = useLanguage();
   const location = useLocation();
   const { theme } = useTheme();
+  const { currency } = useCurrency();
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("monthly");
   const market = getSiteMarket();
   const isLight = theme === "light";
   const t = market === "tn" ? landingTn : translations[language].landing;
+  const pricingCopy = translations[language].pricing;
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const landingRef = useRef<HTMLDivElement>(null);
@@ -79,6 +86,18 @@ export default function LandingPage() {
     const step = Math.min(220, Math.max(120, el.clientWidth * 0.45));
     el.scrollBy({ left: direction * step, behavior: "smooth" });
   };
+
+  const planPriceSuffix =
+    billingPeriod === "monthly" ? pricingCopy.priceMonthlySuffix : pricingCopy.priceYearlySuffix;
+
+  const landingPlanPriceLine = (plan: "starter" | "pro") =>
+    formatLandingPlanPriceLine(
+      PRICING[currency][plan][billingPeriod],
+      currency,
+      language,
+      billingPeriod,
+      planPriceSuffix,
+    );
 
   const stepGallery = (delta: -1 | 1) => {
     setGalleryIndex((i) => {
@@ -587,6 +606,53 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
+        <div className="lp-reveal mt-8 flex justify-center">
+          <div
+            className={`inline-flex items-center rounded-full border p-1 text-[11px] sm:text-xs ${
+              isLight ? "border-slate-200 bg-slate-50" : "border-slate-700 bg-slate-900/80"
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => setBillingPeriod("monthly")}
+              className={[
+                "px-3 py-1.5 rounded-full transition",
+                billingPeriod === "monthly"
+                  ? isLight
+                    ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/80"
+                    : "bg-slate-800 text-slate-50"
+                  : isLight
+                    ? "text-slate-500"
+                    : "text-slate-400",
+              ].join(" ")}
+            >
+              {pricingCopy.billing.monthly}
+            </button>
+            <button
+              type="button"
+              onClick={() => setBillingPeriod("yearly")}
+              className={[
+                "px-3 py-1.5 rounded-full transition flex items-center gap-1",
+                billingPeriod === "yearly"
+                  ? isLight
+                    ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/80"
+                    : "bg-slate-800 text-slate-50"
+                  : isLight
+                    ? "text-slate-600"
+                    : "text-slate-400",
+              ].join(" ")}
+            >
+              {pricingCopy.billing.yearly}
+              <span
+                className={`hidden sm:inline text-[10px] ${
+                  isLight ? "text-orange-600" : "text-orange-300"
+                }`}
+              >
+                {pricingCopy.billing.discount}
+              </span>
+            </button>
+          </div>
+        </div>
         <div className="lp-reveal lp-reveal-stagger grid gap-5 lg:grid-cols-3 mt-10">
           <div className="lp-reveal-item w-full min-w-0">
             <PlanCard
@@ -602,7 +668,7 @@ export default function LandingPage() {
               name={t.plans.starter.name}
               badge={t.plans.starter.badge}
               recommended={t.plans.starter.recommended}
-              priceLine={t.plans.starter.priceLine}
+              priceLine={landingPlanPriceLine("starter")}
               subline={t.plans.starter.subline}
               features={t.plans.starter.features}
               highlight
@@ -612,7 +678,7 @@ export default function LandingPage() {
             <PlanCard
               name={t.plans.pro.name}
               badge={t.plans.pro.badge}
-              priceLine={t.plans.pro.priceLine}
+              priceLine={landingPlanPriceLine("pro")}
               subline={t.plans.pro.subline}
               features={t.plans.pro.features}
             />
