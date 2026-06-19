@@ -29,9 +29,14 @@ export const portalDe: PortalTranslations = {
     perYear: "pro Jahr",
     recommended: "Empfohlen",
     subtotal: "Zwischensumme",
+    subtotalInclVat: "Zwischensumme (inkl. MwSt.)",
     vat19: "MwSt. (19%)",
+    includedVat19: "Enthaltene MwSt. (19%)",
     total: "Gesamtbetrag",
+    totalDue: "Zu zahlen",
     incVat: "inkl. MwSt.",
+    perMonthInclVat: "pro Monat inkl. MwSt.",
+    perYearInclVat: "pro Jahr inkl. MwSt.",
     billingPeriod: "Abrechnungszeitraum",
     paymentMethod: "Zahlungsmethode",
     available: "Verfügbar",
@@ -156,7 +161,7 @@ export const portalDe: PortalTranslations = {
     proDesc:
       "Für Betriebe mit mehreren Kassen oder kleinen Filialketten. Mehrere Geräte unter einer Lizenz, erweiterte Auswertungen (geplant), priorisierter Support.",
     vatFootnote:
-      "Die folgenden Informationen orientieren sich an der aktuellen Preisliste. Alle Preise verstehen sich zzgl. MwSt.",
+      "Die folgenden Informationen orientieren sich an der aktuellen Preisliste. Alle Preise verstehen sich inkl. MwSt., soweit anwendbar.",
     invoicesLineStart: "Die eigentliche Abrechnung und Rechnungsdokumente findest du unter",
     invoicesLineEnd:
       ". In dieser Version können Rechnungen noch manuell erzeugt werden.",

@@ -29,9 +29,14 @@ export const portalFr: PortalTranslations = {
     perYear: "par an",
     recommended: "Recommandé",
     subtotal: "Sous-total",
+    subtotalInclVat: "Sous-total (TVA incluse)",
     vat19: "TVA (19 %)",
+    includedVat19: "TVA incluse (19 %)",
     total: "Total",
+    totalDue: "À payer",
     incVat: "TVA incluse",
+    perMonthInclVat: "par mois TVA incluse",
+    perYearInclVat: "par an TVA incluse",
     billingPeriod: "Période de facturation",
     paymentMethod: "Mode de paiement",
     available: "Disponible",
@@ -157,7 +162,7 @@ export const portalFr: PortalTranslations = {
     proDesc:
       "Pour plusieurs caisses ou petites chaînes. Plusieurs appareils par licence, analyses avancées (prévu), support prioritaire.",
     vatFootnote:
-      "Les informations suivent la grille tarifaire actuelle. Tous les prix sont hors taxes.",
+      "Les informations suivent la grille tarifaire actuelle. Tous les montants incluent la TVA le cas échéant.",
     invoicesLineStart: "La facturation réelle et les documents se trouvent sous",
     invoicesLineEnd:
       ". Dans cette version, les factures peuvent encore être créées manuellement.",

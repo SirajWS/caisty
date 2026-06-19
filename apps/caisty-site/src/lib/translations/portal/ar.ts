@@ -29,9 +29,14 @@ export const portalAr: PortalTranslations = {
     perYear: "سنويًا",
     recommended: "موصى به",
     subtotal: "المجموع الفرعي",
+    subtotalInclVat: "المجموع الفرعي (شامل الضريبة)",
     vat19: "ضريبة القيمة المضافة (19٪)",
+    includedVat19: "الضريبة المضمنة (19٪)",
     total: "الإجمالي",
+    totalDue: "المبلغ المستحق",
     incVat: "شامل الضريبة",
+    perMonthInclVat: "شهريًا شامل الضريبة",
+    perYearInclVat: "سنويًا شامل الضريبة",
     billingPeriod: "فترة الفوترة",
     paymentMethod: "طريقة الدفع",
     available: "متاح",
@@ -155,7 +160,7 @@ export const portalAr: PortalTranslations = {
     proDesc:
       "لعدة كاشيرات أو سلاسل صغيرة. عدة أجهزة لكل ترخيص، تقارير متقدمة (مخطط)، دعم ذو أولوية.",
     vatFootnote:
-      "المعلومات وفق قائمة الأسعار الحالية. جميع الأسعار لا تشمل الضريبة.",
+      "المعلومات وفق قائمة الأسعار الحالية. جميع المبالغ تشمل ضريبة القيمة المضافة حيث ينطبق ذلك.",
     invoicesLineStart: "الفوترة والمستندات الفعلية تحت",
     invoicesLineEnd:
       ". في هذا الإصدار قد تُنشأ الفواتير يدويًا.",

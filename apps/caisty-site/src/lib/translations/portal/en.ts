@@ -30,9 +30,14 @@ export const portalEn = {
     perYear: "per year",
     recommended: "Recommended",
     subtotal: "Subtotal",
+    subtotalInclVat: "Subtotal (incl. VAT)",
     vat19: "VAT (19%)",
+    includedVat19: "Included VAT (19%)",
     total: "Total",
+    totalDue: "Amount due",
     incVat: "incl. VAT",
+    perMonthInclVat: "per month incl. VAT",
+    perYearInclVat: "per year incl. VAT",
     billingPeriod: "Billing period",
     paymentMethod: "Payment method",
     available: "Available",
@@ -156,7 +161,7 @@ export const portalEn = {
     proDesc:
       "For businesses with multiple tills or small chains. Multiple devices per license, advanced reporting (planned), priority support.",
     vatFootnote:
-      "Information follows the current price list. All prices exclude VAT.",
+      "Prices follow the current price list. All amounts include VAT where applicable.",
     invoicesLineStart: "Actual billing and invoice documents are under",
     invoicesLineEnd:
       ". In this version invoices may still be created manually.",

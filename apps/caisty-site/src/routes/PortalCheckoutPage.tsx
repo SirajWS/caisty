@@ -2,6 +2,7 @@
 import React from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { PRICING, formatPrice } from "../config/pricing";
+import { breakdownVatInclusive } from "../lib/vatDisplay";
 import { useCurrency } from "../lib/useCurrency";
 import {
   fetchPortalLicenses,
@@ -148,6 +149,16 @@ const PortalCheckoutPage: React.FC = () => {
 
   const { tier: plan, period: billingPeriod, planId } = parsedPlan;
   const planPrice = PRICING[currency][plan][billingPeriod];
+  const vatBreakdown =
+    currency === "EUR" ? breakdownVatInclusive(planPrice) : null;
+  const periodLabel =
+    billingPeriod === "yearly"
+      ? currency === "EUR"
+        ? t.labels.perYearInclVat
+        : t.labels.perYear
+      : currency === "EUR"
+        ? t.labels.perMonthInclVat
+        : t.labels.perMonth;
   const planName = plan === "starter" ? "Starter" : "Pro";
   const planDescription =
     plan === "starter" ? t.checkout.planStarterDesc : t.checkout.planProDesc;
@@ -334,28 +345,39 @@ const PortalCheckoutPage: React.FC = () => {
                     {formatPrice(planPrice, currency)}
                   </div>
                   <div className="text-xs text-slate-400">
-                    {billingPeriod === "yearly" ? t.labels.perYear : t.labels.perMonth}
+                    {periodLabel}
                   </div>
                 </div>
               </div>
 
               <div className="pt-4 border-t border-slate-800 space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-300">{t.labels.subtotal}</span>
-                  <span className="text-slate-100">{formatPrice(planPrice, currency)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-300">{t.labels.vat19}</span>
-                  <span className="text-slate-100">
-                    {formatPrice(planPrice * 0.19, currency)}
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-                  <span className="text-base font-semibold text-slate-50">{t.labels.total}</span>
-                  <span className="text-xl font-semibold text-orange-400">
-                    {formatPrice(planPrice * 1.19, currency)}
-                  </span>
-                </div>
+                {vatBreakdown ? (
+                  <>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-300">{t.labels.subtotalInclVat}</span>
+                      <span className="text-slate-100">{formatPrice(planPrice, currency)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-slate-300">{t.labels.includedVat19}</span>
+                      <span className="text-slate-100">
+                        {formatPrice(vatBreakdown.includedVat, currency)}
+                      </span>
+                    </div>
+                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                      <span className="text-base font-semibold text-slate-50">{t.labels.totalDue}</span>
+                      <span className="text-xl font-semibold text-orange-400">
+                        {formatPrice(planPrice, currency)}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-base font-semibold text-slate-50">{t.labels.total}</span>
+                    <span className="text-xl font-semibold text-orange-400">
+                      {formatPrice(planPrice, currency)}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -409,14 +431,21 @@ const PortalCheckoutPage: React.FC = () => {
 
             <div className="pt-4 border-t border-slate-800">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-300">{t.labels.total}</span>
+                <span className="text-sm text-slate-300">
+                  {vatBreakdown ? t.labels.totalDue : t.labels.total}
+                </span>
                 <span className="text-xl font-semibold text-orange-400">
-                  {formatPrice(planPrice * 1.19, currency)}
+                  {formatPrice(planPrice, currency)}
                 </span>
               </div>
-              <div className="text-xs text-slate-500">
-                {t.labels.incVat}
-              </div>
+              {vatBreakdown && (
+                <div className="text-xs text-slate-500">
+                  {t.labels.includedVat19}: {formatPrice(vatBreakdown.includedVat, currency)}
+                </div>
+              )}
+              {!vatBreakdown && (
+                <div className="text-xs text-slate-500">{t.labels.incVat}</div>
+              )}
             </div>
 
             <button

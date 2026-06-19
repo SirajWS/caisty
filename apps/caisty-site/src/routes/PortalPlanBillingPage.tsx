@@ -54,6 +54,14 @@ const PortalPlanBillingPage: React.FC = () => {
   const starterPrice = PRICING[currency].starter[billingPeriod];
   const proPrice = PRICING[currency].pro[billingPeriod];
   const currencySymbol = CURRENCY_SYMBOLS[currency];
+  const planPeriodLabel =
+    billingPeriod === "yearly"
+      ? currency === "EUR"
+        ? t.labels.perYearInclVat
+        : t.labels.perYear
+      : currency === "EUR"
+        ? t.labels.perMonthInclVat
+        : t.labels.perMonth;
 
   function formatDate(value: string | null | undefined): string {
     if (!value) return t.labels.dash;
@@ -497,7 +505,7 @@ const PortalPlanBillingPage: React.FC = () => {
                 </span>
               </div>
               <div className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                {billingPeriod === "yearly" ? t.labels.perYear : t.labels.perMonth}
+                {planPeriodLabel}
               </div>
             </div>
 
@@ -541,7 +549,7 @@ const PortalPlanBillingPage: React.FC = () => {
                 </span>
               </div>
               <div className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                {billingPeriod === "yearly" ? t.labels.perYear : t.labels.perMonth}
+                {planPeriodLabel}
               </div>
             </div>
 
