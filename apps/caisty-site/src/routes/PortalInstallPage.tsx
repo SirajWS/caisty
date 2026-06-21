@@ -15,9 +15,19 @@ import { portalLocaleTag } from "../lib/portalLocale";
 import { pickPrimaryPortalLicense } from "../lib/portalLicensePick";
 import { portalCardShell, portalLicenseStatusBadge, portalPrimaryCta } from "../lib/portalUi";
 
-const WINDOWS_INSTALL_URL =
-  import.meta.env.VITE_POS_WINDOWS_URL ||
-  "https://www.caisty.com/downloads/Caisty.PoS_0.2.8_x64-setup.exe";
+const WINDOWS_INSTALL_VERSION = "0.2.8";
+
+const WINDOWS_INSTALL_DEFAULT_URL = `https://www.caisty.com/downloads/Caisty.PoS_${WINDOWS_INSTALL_VERSION}_x64-setup.exe`;
+
+function resolveWindowsInstallUrl(): string {
+  const envUrl = String(import.meta.env.VITE_POS_WINDOWS_URL ?? "").trim();
+  if (!envUrl || envUrl.includes("0.2.7")) {
+    return WINDOWS_INSTALL_DEFAULT_URL;
+  }
+  return envUrl;
+}
+
+const WINDOWS_INSTALL_URL = resolveWindowsInstallUrl();
 
 const WINDOWS_DEMO_URL =
   import.meta.env.VITE_POS_WINDOWS_DEMO_URL || null;
