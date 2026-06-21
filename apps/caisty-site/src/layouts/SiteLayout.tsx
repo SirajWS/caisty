@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Outlet, Link, NavLink, useLocation } from "react-router-dom";
 import LanguageSelector from "../components/LanguageSelector";
 import ThemeToggle from "../components/ThemeToggle";
-import { DesktopProductNavDropdown, MobileProductNavGroup } from "../components/ProductNavDropdown";
 import MarketingPreFooter from "../components/MarketingPreFooter";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
@@ -12,11 +11,16 @@ import { ICON_COLORS } from "../components/TechStackCardGrid";
 import { tunisiaWhatsappUrl } from "../config/marketContact";
 import { COMPANY_HOME, POS_LANDING_PATH } from "../config/marketingRoutes";
 import { CaistyLogo } from "../components/CaistyLogo";
+import {
+  DesktopCaistyPosQuickAccessMenu,
+  MobileCaistyPosQuickAccessMenu,
+} from "../components/CaistyPosQuickAccessMenu";
 
 export default function SiteLayout() {
   const { theme } = useTheme();
   const { language } = useLanguage();
   const t = translations[language].common;
+  const productMenu = t.productMenu;
   const isLight = theme === "light";
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -78,11 +82,15 @@ export default function SiteLayout() {
               <NavLink to={COMPANY_HOME} end className={navLinkClass}>
                 {t.nav.company}
               </NavLink>
-              <DesktopProductNavDropdown
-                navProductLabel={t.nav.product}
-                productMenu={t.productMenu}
+              <DesktopCaistyPosQuickAccessMenu
+                label={productMenu.posTitle}
+                registerLabel={t.buttons.register}
+                loginLabel={t.buttons.login}
                 isLight={isLight}
               />
+              <NavLink to="/worktrack" className={navLinkClass}>
+                {productMenu.worktrackTitle}
+              </NavLink>
             </nav>
 
             <div className="hidden lg:flex items-center gap-3 shrink-0">
@@ -139,13 +147,22 @@ export default function SiteLayout() {
                 >
                   {t.nav.company}
                 </NavLink>
-                <MobileProductNavGroup
-                  navProductLabel={t.nav.product}
-                  productMenu={t.productMenu}
+                <MobileCaistyPosQuickAccessMenu
+                  label={productMenu.posTitle}
+                  registerLabel={t.buttons.register}
+                  loginLabel={t.buttons.login}
                   isLight={isLight}
-                  mobileMenuOpen={mobileOpen}
-                  onCloseMobile={closeMobile}
+                  onNavigate={closeMobile}
                 />
+                <NavLink
+                  to="/worktrack"
+                  onClick={closeMobile}
+                  className={({ isActive }) =>
+                    `text-sm font-medium py-2 no-underline ${isActive ? "text-[#f97316]" : isLight ? "text-slate-700" : "text-slate-200"}`
+                  }
+                >
+                  {productMenu.worktrackTitle}
+                </NavLink>
                 {isTN && waUrl && (
                   <a
                     href={waUrl}

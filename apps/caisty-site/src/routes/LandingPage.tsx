@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { Beer, Package, Sandwich, Shield, ShoppingBag, type LucideIcon } from "lucide-react";
 import { formatLandingPlanPriceLine, PRICING } from "../config/pricing";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
@@ -10,6 +11,8 @@ import { useCurrency } from "../lib/useCurrency";
 import { applyCaistyPosProductMeta, applyCompanySiteMeta } from "../lib/siteDocumentMeta";
 
 type BillingPeriod = "monthly" | "yearly";
+
+const FOR_WHOM_ICONS: LucideIcon[] = [Package, Beer, ShoppingBag, Sandwich];
 
 export default function LandingPage() {
   const { language } = useLanguage();
@@ -459,18 +462,18 @@ export default function LandingPage() {
           <h2 className="lp-section-h2">{t.forWhom.title}</h2>
         </div>
         <div className="lp-reveal lp-reveal-stagger grid gap-5 sm:grid-cols-2 lg:grid-cols-4 text-sm">
-          <div className="lp-reveal-item">
-            <FeatureCard title={t.forWhom.target1Title} text={t.forWhom.target1Text} />
-          </div>
-          <div className="lp-reveal-item">
-            <FeatureCard title={t.forWhom.target2Title} text={t.forWhom.target2Text} />
-          </div>
-          <div className="lp-reveal-item">
-            <FeatureCard title={t.forWhom.target3Title} text={t.forWhom.target3Text} />
-          </div>
-          <div className="lp-reveal-item">
-            <FeatureCard title={t.forWhom.target4Title} text={t.forWhom.target4Text} />
-          </div>
+          {(
+            [
+              { title: t.forWhom.target1Title, text: t.forWhom.target1Text },
+              { title: t.forWhom.target2Title, text: t.forWhom.target2Text },
+              { title: t.forWhom.target3Title, text: t.forWhom.target3Text },
+              { title: t.forWhom.target4Title, text: t.forWhom.target4Text },
+            ] as const
+          ).map((item, i) => (
+            <div key={item.title} className="lp-reveal-item">
+              <FeatureCard title={item.title} text={item.text} icon={FOR_WHOM_ICONS[i]} centered />
+            </div>
+          ))}
         </div>
       </section>
 
@@ -817,7 +820,10 @@ export default function LandingPage() {
       {/* Fiscal */}
       <section id="fiscal" className={`${sectionShell} py-16 sm:py-24 scroll-mt-20`}>
         <div className={`lp-reveal lp-fiscal-box border p-6 sm:p-8 space-y-4 text-sm leading-relaxed ${isLight ? "border-slate-200" : "border-white/10"}`}>
-          <h2 className="lp-font-heading text-base sm:text-lg font-bold text-[var(--color-text-primary)]">{t.fiscal.title}</h2>
+          <h2 className="flex items-center gap-2.5 lp-font-heading text-base sm:text-lg font-bold text-[#f97316]">
+            <Shield className="h-5 w-5 shrink-0" strokeWidth={2} aria-hidden />
+            {t.fiscal.title}
+          </h2>
           <p className="text-[var(--color-text-muted)]">{t.fiscal.lead}</p>
           <ul className="list-disc ps-5 space-y-1.5 text-[var(--color-text-muted)]">
             {t.fiscal.countries.map((c) => (
@@ -866,11 +872,26 @@ export default function LandingPage() {
   );
 }
 
-function FeatureCard(props: { title: string; text: string }) {
+function FeatureCard(props: { title: string; text: string; icon?: LucideIcon; centered?: boolean }) {
   const { theme } = useTheme();
   const isLight = theme === "light";
+  const Icon = props.icon;
+  const centered = props.centered && Icon;
+
   return (
-    <div className={`lp-surface-card lp-card-over p-6 sm:p-7 space-y-3 h-full ${isLight ? "bg-white shadow-sm" : ""}`}>
+    <div
+      className={`lp-surface-card lp-card-over p-6 sm:p-7 space-y-3 h-full ${isLight ? "bg-white shadow-sm" : ""} ${centered ? "text-center" : ""}`}
+    >
+      {Icon ? (
+        <div
+          className={`relative z-[1] inline-flex h-11 w-11 items-center justify-center rounded-xl border ${
+            centered ? "mx-auto" : ""
+          } ${isLight ? "border-orange-200/80 bg-orange-50 text-[#c2410c]" : "border-orange-500/25 bg-orange-500/10 text-orange-200"}`}
+          aria-hidden
+        >
+          <Icon className="h-5 w-5" strokeWidth={2} />
+        </div>
+      ) : null}
       <div className="relative z-[1] text-sm font-bold text-[var(--color-text-primary)] lp-font-heading">{props.title}</div>
       <p className={`relative z-[1] text-sm leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>{props.text}</p>
     </div>
