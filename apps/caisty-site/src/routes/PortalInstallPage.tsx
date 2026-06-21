@@ -17,7 +17,7 @@ import { portalCardShell, portalLicenseStatusBadge, portalPrimaryCta } from "../
 
 const WINDOWS_INSTALL_URL =
   import.meta.env.VITE_POS_WINDOWS_URL ||
-  "https://www.caisty.com/downloads/Caisty.PoS_0.2.7_x64-setup.exe";
+  "https://www.caisty.com/downloads/Caisty.PoS_0.2.8_x64-setup.exe";
 
 const WINDOWS_DEMO_URL =
   import.meta.env.VITE_POS_WINDOWS_DEMO_URL || null;
