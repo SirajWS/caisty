@@ -236,8 +236,11 @@ export default function CustomerDetailPage() {
   }, [customerId, loadCustomerData]);
 
   async function handleDeleteDevice(device: Device) {
+    const hasLicense = device.licenseIds.length > 0;
     const confirmed = window.confirm(
-      "Dieses Gerät wirklich löschen? Dadurch wird ein Device-Slot für den Kunden frei.",
+      hasLicense
+        ? "Dieses Gerät ist mit einer Lizenz verbunden. Entfernen gibt einen Device-Slot frei."
+        : "Dieses Gerät wirklich entfernen? Wenn es mit keiner Lizenz verbunden ist, wird es endgültig gelöscht.",
     );
     if (!confirmed) return;
 

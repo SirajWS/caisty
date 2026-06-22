@@ -1,7 +1,12 @@
 // apps/cloud-admin/src/pages/SubscriptionsListPage.tsx
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiGet, apiDelete, fetchAdminInvoiceHtml } from "../lib/api";
+import {
+  apiDelete,
+  apiDeletePendingSubscription,
+  apiGet,
+  fetchAdminInvoiceHtml,
+} from "../lib/api";
 import { useTheme, themeColors } from "../theme/ThemeContext";
 
 type Subscription = {
@@ -79,8 +84,15 @@ export default function SubscriptionsListPage() {
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
   const [showCancelled, setShowCancelled] = useState(false);
+
+  const loadSubscriptions = useCallback(async () => {
+    const data = await apiGet<SubscriptionsResponse>("/subscriptions");
+    setItems(data.items ?? []);
+    setTotal(data.total ?? data.items?.length ?? 0);
+  }, []);
 
   // Filter subscriptions by status
   const activeSubscriptions = items.filter(
@@ -97,12 +109,7 @@ export default function SubscriptionsListPage() {
       try {
         setLoading(true);
         setError(null);
-
-        const data = await apiGet<SubscriptionsResponse>("/subscriptions");
-        if (cancelled) return;
-
-        setItems(data.items ?? []);
-        setTotal(data.total ?? data.items?.length ?? 0);
+        await loadSubscriptions();
       } catch (err) {
         console.error("Error loading subscriptions", err);
         if (!cancelled) {
@@ -120,7 +127,36 @@ export default function SubscriptionsListPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadSubscriptions]);
+
+  async function handleDeletePendingSubscription(subscription: Subscription) {
+    if (
+      !window.confirm(
+        "Diese pending Subscription wirklich löschen? Es wird keine aktive Lizenz gelöscht.",
+      )
+    ) {
+      return;
+    }
+
+    setDeleteBusyId(subscription.id);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await apiDeletePendingSubscription(subscription.id);
+      setSuccess("Pending Subscription wurde gelöscht.");
+      await loadSubscriptions();
+    } catch (err) {
+      console.error("Error deleting pending subscription", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Pending Subscription konnte nicht gelöscht werden.",
+      );
+    } finally {
+      setDeleteBusyId(null);
+    }
+  }
 
   return (
     <div className="admin-page">
@@ -181,6 +217,20 @@ export default function SubscriptionsListPage() {
           }}
         >
           {error}
+        </div>
+      )}
+
+      {success && (
+        <div
+          className="admin-error-banner"
+          style={{
+            backgroundColor: "rgba(34, 197, 94, 0.1)",
+            borderColor: "rgba(34, 197, 94, 0.3)",
+            color: "#86efac",
+            marginBottom: 16,
+          }}
+        >
+          {success}
         </div>
       )}
 
@@ -414,6 +464,16 @@ export default function SubscriptionsListPage() {
                   </td>
                   <td>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      {s.status?.toLowerCase() === "pending" && (
+                        <button
+                          type="button"
+                          className="admin-btn admin-btn--danger"
+                          disabled={deleteBusyId === s.id}
+                          onClick={() => void handleDeletePendingSubscription(s)}
+                        >
+                          {deleteBusyId === s.id ? "Lösche…" : "Löschen"}
+                        </button>
+                      )}
                       {s.customerStatus === "inactive" && s.customerId && (
                         <button
                           onClick={async () => {
@@ -454,7 +514,8 @@ export default function SubscriptionsListPage() {
                           {deleteBusyId === s.customerId ? "..." : "Kunde löschen"}
                         </button>
                       )}
-                      {s.customerStatus !== "inactive" && (
+                      {s.status?.toLowerCase() !== "pending" &&
+                        s.customerStatus !== "inactive" && (
                         <span style={{ color: colors.textSecondary }}>—</span>
                       )}
                     </div>

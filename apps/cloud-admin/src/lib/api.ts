@@ -181,6 +181,16 @@ export function apiDeleteDevice(deviceId: string): Promise<{
   return apiDelete(`/admin/devices/${encodeURIComponent(deviceId)}`);
 }
 
+/** Admin: pending Subscription entfernen. */
+export function apiDeletePendingSubscription(subscriptionId: string): Promise<{
+  ok: boolean;
+  message?: string;
+}> {
+  return apiDelete(
+    `/admin/subscriptions/${encodeURIComponent(subscriptionId)}`,
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Admin Auth – 👉 diese Funktionen solltest du im Login-Formular benutzen
 // ---------------------------------------------------------------------------

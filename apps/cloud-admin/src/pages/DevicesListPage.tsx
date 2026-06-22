@@ -1,7 +1,7 @@
 // apps/cloud-admin/src/pages/DevicesListPage.tsx
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiGet } from "../lib/api";
+import { apiDeleteDevice, apiGet } from "../lib/api";
 import { useTheme, themeColors } from "../theme/ThemeContext";
 
 type LicenseInfo = {
@@ -42,13 +42,26 @@ function formatDateTime(value: string | null) {
 
 const MAX_LICENSES_INLINE = 4;
 
+function deviceDeleteConfirmMessage(hasLicense: boolean): string {
+  return hasLicense
+    ? "Dieses Gerät ist mit einer Lizenz verbunden. Entfernen gibt einen Device-Slot frei."
+    : "Dieses Gerät wirklich entfernen? Wenn es mit keiner Lizenz verbunden ist, wird es endgültig gelöscht.";
+}
+
 export default function DevicesListPage() {
   const { theme } = useTheme();
   const colors = themeColors[theme];
   const [rows, setRows] = useState<DeviceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
   const [copiedFingerprint, setCopiedFingerprint] = useState<string | null>(null);
+
+  const loadDevices = useCallback(async () => {
+    const res = await apiGet<DevicesResponse>("/devices");
+    setRows(res.items ?? []);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,9 +70,7 @@ export default function DevicesListPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await apiGet<DevicesResponse>("/devices");
-        if (cancelled) return;
-        setRows(res.items ?? []);
+        await loadDevices();
       } catch (err) {
         console.error("Error loading devices", err);
         if (!cancelled) {
@@ -75,7 +86,29 @@ export default function DevicesListPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadDevices]);
+
+  async function handleDeleteDevice(device: DeviceRow) {
+    const hasLicense = (device.licenses?.length ?? 0) > 0;
+    if (!window.confirm(deviceDeleteConfirmMessage(hasLicense))) return;
+
+    setDeleteBusyId(device.id);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await apiDeleteDevice(device.id);
+      setSuccess("Gerät wurde entfernt.");
+      await loadDevices();
+    } catch (err) {
+      console.error("Error deleting device", err);
+      setError(
+        err instanceof Error ? err.message : "Gerät konnte nicht entfernt werden.",
+      );
+    } finally {
+      setDeleteBusyId(null);
+    }
+  }
 
   // etwas hübsch sortieren: zuerst Kunde, dann Name
   const sortedRows = [...rows].sort((a, b) => {
@@ -119,6 +152,20 @@ export default function DevicesListPage() {
           }}
         >
           {error}
+        </div>
+      )}
+
+      {success && (
+        <div
+          className="admin-error-banner"
+          style={{
+            backgroundColor: "rgba(34, 197, 94, 0.1)",
+            borderColor: "rgba(34, 197, 94, 0.3)",
+            color: "#86efac",
+            marginBottom: 16,
+          }}
+        >
+          {success}
         </div>
       )}
 
@@ -170,6 +217,7 @@ export default function DevicesListPage() {
                   <th style={{ color: colors.textSecondary }}>
                     Letzter Kontakt
                   </th>
+                  <th style={{ color: colors.textSecondary }}>Aktionen</th>
                 </tr>
               </thead>
               <tbody>
@@ -315,6 +363,16 @@ export default function DevicesListPage() {
                         }}
                       >
                         {formatDateTime(lastContact)}
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="admin-btn admin-btn--danger"
+                          disabled={deleteBusyId === d.id}
+                          onClick={() => void handleDeleteDevice(d)}
+                        >
+                          {deleteBusyId === d.id ? "Entferne…" : "Entfernen"}
+                        </button>
                       </td>
                     </tr>
                   );
