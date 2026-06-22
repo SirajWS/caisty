@@ -1,7 +1,7 @@
 // apps/cloud-admin/src/pages/Customers/CustomerDetailPage.tsx
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { apiGet } from "../../lib/api";
+import { apiDelete, apiGet } from "../../lib/api";
 
 type CloudCustomerProfile = {
   accountName?: string;
@@ -67,6 +67,7 @@ type DeviceRow = {
 
 // Aggregierte Device-Ansicht pro Hardware-Gerät
 type Device = {
+  deviceId: string; // echte DB-ID für DELETE
   id: string; // Gruppenschlüssel (fingerprint oder Fallback id)
   fingerprint?: string | null;
   name: string;
@@ -122,6 +123,90 @@ export default function CustomerDetailPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+
+  const loadCustomerData = useCallback(async () => {
+    if (!customerId) return;
+
+    const customerIdParam = customerId;
+
+    const [customerRes, subsRes, licRes, devRes] = await Promise.all([
+      apiGet<CustomerResponse>(`/customers/${customerIdParam}`),
+      apiGet<ListResponse<Subscription>>("/subscriptions"),
+      apiGet<ListResponse<License>>(
+        `/licenses?customerId=${encodeURIComponent(customerIdParam)}`,
+      ),
+      apiGet<ListResponse<DeviceRow>>("/devices"),
+    ]);
+
+    setCustomer(customerRes.item);
+    setSubscriptions(
+      (subsRes.items ?? []).filter((s) => s.customerId === customerId),
+    );
+    setLicenses(licRes.items ?? []);
+
+    const rowsForCustomer = (devRes.items ?? []).filter(
+      (d) => d.customerId === customerId,
+    );
+
+    const grouped: Record<string, Device> = {};
+
+    for (const row of rowsForCustomer) {
+      const groupKey = row.fingerprint || row.id;
+      const existing = grouped[groupKey];
+
+      if (!existing) {
+        grouped[groupKey] = {
+          deviceId: row.id,
+          id: groupKey,
+          fingerprint: row.fingerprint,
+          name: row.name,
+          type: row.type,
+          status: row.status,
+          licenseIds: row.licenseId ? [row.licenseId] : [],
+          lastHeartbeatAt: row.lastHeartbeatAt,
+          createdAt: row.createdAt,
+        };
+      } else {
+        if (row.status === "active") {
+          existing.status = row.status;
+        }
+
+        if (row.lastHeartbeatAt) {
+          const newTs = new Date(row.lastHeartbeatAt).getTime();
+          const oldTs = existing.lastHeartbeatAt
+            ? new Date(existing.lastHeartbeatAt).getTime()
+            : 0;
+          if (!Number.isNaN(newTs) && newTs > oldTs) {
+            existing.lastHeartbeatAt = row.lastHeartbeatAt;
+          }
+        }
+
+        if (row.createdAt) {
+          const newTs = new Date(row.createdAt).getTime();
+          const oldTs = existing.createdAt
+            ? new Date(existing.createdAt).getTime()
+            : Number.POSITIVE_INFINITY;
+          if (!Number.isNaN(newTs) && newTs < oldTs) {
+            existing.createdAt = row.createdAt;
+          }
+        }
+
+        if (row.licenseId && !existing.licenseIds.includes(row.licenseId)) {
+          existing.licenseIds.push(row.licenseId);
+        }
+      }
+    }
+
+    const aggregatedDevices = Object.values(grouped).sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return tb - ta;
+    });
+
+    setDevices(aggregatedDevices);
+  }, [customerId]);
 
   useEffect(() => {
     if (!customerId) return;
@@ -132,88 +217,7 @@ export default function CustomerDetailPage() {
       try {
         setLoading(true);
         setError(null);
-
-        const customerIdParam = customerId as string; // customerId ist bereits geprüft
-
-        const [customerRes, subsRes, licRes, devRes] = await Promise.all([
-          apiGet<CustomerResponse>(`/customers/${customerIdParam}`),
-          apiGet<ListResponse<Subscription>>("/subscriptions"),
-          apiGet<ListResponse<License>>(`/licenses?customerId=${encodeURIComponent(customerIdParam)}`),
-          apiGet<ListResponse<DeviceRow>>("/devices"),
-        ]);
-
-        if (cancelled) return;
-
-        setCustomer(customerRes.item);
-        setSubscriptions(
-          (subsRes.items ?? []).filter((s) => s.customerId === customerId),
-        );
-        // Licenses sind bereits nach customerId gefiltert
-        setLicenses(licRes.items ?? []);
-
-        // Devices nur für diesen Kunden, dann nach fingerprint gruppieren
-        const rowsForCustomer = (devRes.items ?? []).filter(
-          (d) => d.customerId === customerId,
-        );
-
-        const grouped: Record<string, Device> = {};
-
-        for (const row of rowsForCustomer) {
-          const groupKey = row.fingerprint || row.id;
-          const existing = grouped[groupKey];
-
-          if (!existing) {
-            grouped[groupKey] = {
-              id: groupKey,
-              fingerprint: row.fingerprint,
-              name: row.name,
-              type: row.type,
-              status: row.status,
-              licenseIds: row.licenseId ? [row.licenseId] : [],
-              lastHeartbeatAt: row.lastHeartbeatAt,
-              createdAt: row.createdAt,
-            };
-          } else {
-            // Status: "active" gewinnt
-            if (row.status === "active") {
-              existing.status = row.status;
-            }
-
-            // Letztes Signal: neuestes Datum
-            if (row.lastHeartbeatAt) {
-              const newTs = new Date(row.lastHeartbeatAt).getTime();
-              const oldTs = existing.lastHeartbeatAt
-                ? new Date(existing.lastHeartbeatAt).getTime()
-                : 0;
-              if (!Number.isNaN(newTs) && newTs > oldTs) {
-                existing.lastHeartbeatAt = row.lastHeartbeatAt;
-              }
-            }
-
-            // createdAt: frühestes Datum
-            if (row.createdAt) {
-              const newTs = new Date(row.createdAt).getTime();
-              const oldTs = existing.createdAt
-                ? new Date(existing.createdAt).getTime()
-                : Number.POSITIVE_INFINITY;
-              if (!Number.isNaN(newTs) && newTs < oldTs) {
-                existing.createdAt = row.createdAt;
-              }
-            }
-
-            if (row.licenseId && !existing.licenseIds.includes(row.licenseId)) {
-              existing.licenseIds.push(row.licenseId);
-            }
-          }
-        }
-
-        const aggregatedDevices = Object.values(grouped).sort((a, b) => {
-          const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return tb - ta;
-        });
-
-        setDevices(aggregatedDevices);
+        await loadCustomerData();
       } catch (err) {
         console.error("Error loading customer detail", err);
         if (!cancelled) {
@@ -229,22 +233,45 @@ export default function CustomerDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [customerId]);
+  }, [customerId, loadCustomerData]);
+
+  async function handleDeleteDevice(device: Device) {
+    const confirmed = window.confirm(
+      "Dieses Gerät wirklich löschen? Dadurch wird ein Device-Slot für den Kunden frei.",
+    );
+    if (!confirmed) return;
+
+    setDeleteBusyId(device.deviceId);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      await apiDelete(`/devices/${encodeURIComponent(device.deviceId)}`);
+      setSuccess("Gerät wurde entfernt.");
+      await loadCustomerData();
+    } catch (err) {
+      console.error("Error deleting device", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Gerät konnte nicht gelöscht werden.",
+      );
+    } finally {
+      setDeleteBusyId(null);
+    }
+  }
 
   const subscriptionsCount = subscriptions.length;
   const licensesCount = licenses.length;
   const devicesCount = devices.length;
-
-  const activeDevices = useMemo(
-    () => devices.filter((d) => d.status === "active").length,
-    [devices],
-  );
 
   const mainLicense = useMemo(() => {
     if (licenses.length === 0) return null;
     const active = licenses.find((l) => l.status === "active");
     return active ?? licenses[0];
   }, [licenses]);
+
+  const deviceSlotLimit = mainLicense?.maxDevices ?? null;
 
   if (!customerId) {
     return (
@@ -271,6 +298,19 @@ export default function CustomerDetailPage() {
       </div>
 
       {error && <div className="admin-error-banner">{error}</div>}
+      {success && (
+        <div
+          className="admin-error-banner"
+          style={{
+            color: "#86efac",
+            background: "rgba(34, 197, 94, 0.1)",
+            borderColor: "rgba(34, 197, 94, 0.3)",
+            marginBottom: 16,
+          }}
+        >
+          {success}
+        </div>
+      )}
 
       {loading ? (
         <div className="admin-card" style={{ padding: 24 }}>
@@ -362,9 +402,10 @@ export default function CustomerDetailPage() {
                   <div>{licensesCount}</div>
                 </div>
                 <div>
-                  <div style={{ color: "#9ca3af" }}>Devices (aktiv)</div>
+                  <div style={{ color: "#9ca3af" }}>Devices</div>
                   <div>
-                    {activeDevices} / {devicesCount}
+                    {devicesCount}
+                    {deviceSlotLimit != null ? ` / ${deviceSlotLimit}` : ""}
                   </div>
                 </div>
               </div>
@@ -624,12 +665,13 @@ export default function CustomerDetailPage() {
                   <th>License(s)</th>
                   <th>Letztes Signal</th>
                   <th>Erstellt am</th>
+                  <th>Aktionen</th>
                 </tr>
               </thead>
               <tbody>
                 {devices.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: "center", padding: 16 }}>
+                    <td colSpan={7} style={{ textAlign: "center", padding: 16 }}>
                       Keine Devices für diesen Kunden.
                     </td>
                   </tr>
@@ -680,6 +722,18 @@ export default function CustomerDetailPage() {
                       </td>
                       <td>{formatDate(d.lastHeartbeatAt)}</td>
                       <td>{formatDate(d.createdAt)}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="admin-btn admin-btn--danger"
+                          disabled={deleteBusyId === d.deviceId}
+                          onClick={() => void handleDeleteDevice(d)}
+                        >
+                          {deleteBusyId === d.deviceId
+                            ? "Entferne…"
+                            : "Entfernen"}
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
