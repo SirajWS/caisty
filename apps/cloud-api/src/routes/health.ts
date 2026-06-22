@@ -12,6 +12,10 @@ export async function registerHealthRoute(app: FastifyInstance) {
         ok: true,
         ts: new Date().toISOString(),
         database: "connected",
+        adminDeleteRoutes: [
+          "DELETE /admin/devices/:deviceId",
+          "DELETE /admin/subscriptions/:subscriptionId",
+        ],
       };
     } catch (err: any) {
       request.log.error({ err }, "Health check failed - database not reachable");

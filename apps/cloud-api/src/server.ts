@@ -32,6 +32,8 @@ import { registerPortalInvoiceRoutes } from "./routes/portal-invoices.js";
 
 import { registerAdminNotificationsRoutes } from "./routes/admin-notifications.js";
 import { registerAdminAnalyticsRoutes } from "./routes/admin/analytics.js";
+import { registerAdminSubscriptionsRoutes } from "./routes/admin/subscriptions.js";
+import { registerAdminDevicesRoutes } from "./routes/admin/devices.js";
 import { registerAdminAuthRoutes } from "./routes/admin-auth.js";
 import { registerAdminSettingsRoutes } from "./routes/admin-settings.js";
 
@@ -150,6 +152,8 @@ export async function buildServer() {
   // ---------------------------------------------------------------------------
   await registerAdminNotificationsRoutes(app);
   await registerAdminAnalyticsRoutes(app);
+  await registerAdminSubscriptionsRoutes(app);
+  await registerAdminDevicesRoutes(app);
 
   // ---------------------------------------------------------------------------
   // Admin-APIs (interne Cloud-Admin-Oberfläche)
@@ -178,6 +182,22 @@ export async function buildServer() {
   // ---------------------------------------------------------------------------
   await registerTestEmailRoutes(app);
   await registerTestResetTokenRoutes(app);
+
+  // Sanity-check: 401/403/404(not_found) means route exists; Fastify route-404 does not.
+  const routeProbe = await app.inject({
+    method: "DELETE",
+    url: "/admin/subscriptions/00000000-0000-0000-0000-000000000000",
+  });
+  if (
+    routeProbe.statusCode === 404 &&
+    routeProbe.body.includes("Route DELETE:")
+  ) {
+    app.log.error(
+      "CRITICAL: DELETE /admin/subscriptions/:subscriptionId is NOT registered",
+    );
+  } else {
+    app.log.info("Admin DELETE routes OK (devices + pending subscriptions)");
+  }
 
   return app;
 }
