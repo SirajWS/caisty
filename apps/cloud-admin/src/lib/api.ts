@@ -36,7 +36,41 @@ export async function fetchAdminInvoiceHtml(invoiceId: string): Promise<string> 
   return res.text();
 }
 
-type ApiErrorShape = { error?: string; message?: string };
+type ApiErrorShape = { error?: string; message?: string; statusCode?: number };
+
+function formatApiError(
+  status: number,
+  path: string,
+  data: ApiErrorShape,
+): string {
+  const serverMessage = (data.message || data.error || "").trim();
+
+  if (status === 403) {
+    return (
+      serverMessage ||
+      "Keine Berechtigung für diese Aktion (403). Bitte erneut als Admin anmelden."
+    );
+  }
+
+  if (status === 404) {
+    if (
+      serverMessage.includes("Route") &&
+      serverMessage.toLowerCase().includes("not found")
+    ) {
+      return `API-Route nicht gefunden (404): ${path}. Die cloud-api auf Production ist vermutlich nicht auf dem neuesten Stand — bitte neu deployen und Hard-Reload im Browser.`;
+    }
+    return serverMessage || `Ressource nicht gefunden (404): ${path}`;
+  }
+
+  if (status >= 500) {
+    return (
+      serverMessage ||
+      `Serverfehler (${status}). Bitte cloud-api-Logs prüfen oder später erneut versuchen.`
+    );
+  }
+
+  return serverMessage || `Anfrage fehlgeschlagen (${status}): ${path}`;
+}
 
 export type ListResponse<T> = {
   items: T[];
@@ -92,13 +126,12 @@ async function request<T>(
       const ct = res.headers.get("content-type") ?? "";
       if (ct.includes("application/json")) {
         const data = (await res.json()) as ApiErrorShape;
-        if (data.message || data.error) {
-          // Prefer server `message` (often Postgres detail); `error` is often a short code.
-          message = data.message || data.error || message;
-        }
+        message = formatApiError(res.status, path, data);
+      } else {
+        message = formatApiError(res.status, path, {});
       }
     } catch {
-      // ignore JSON parse errors
+      message = formatApiError(res.status, path, {});
     }
     throw new Error(message);
   }
@@ -138,6 +171,14 @@ export function apiPatch<TReq, TRes>(
 
 export function apiDelete<T = any>(path: string): Promise<T> {
   return request<T>(path, { method: "DELETE" });
+}
+
+/** Admin: Device aus Lizenz entfernen (Slot freigeben). */
+export function apiDeleteDevice(deviceId: string): Promise<{
+  ok: boolean;
+  message?: string;
+}> {
+  return apiDelete(`/admin/devices/${encodeURIComponent(deviceId)}`);
 }
 
 // ---------------------------------------------------------------------------

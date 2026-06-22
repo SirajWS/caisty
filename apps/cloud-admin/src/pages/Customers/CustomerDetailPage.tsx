@@ -1,7 +1,7 @@
 // apps/cloud-admin/src/pages/Customers/CustomerDetailPage.tsx
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { apiDelete, apiGet } from "../../lib/api";
+import { apiDeleteDevice, apiGet } from "../../lib/api";
 
 type CloudCustomerProfile = {
   accountName?: string;
@@ -246,7 +246,7 @@ export default function CustomerDetailPage() {
     setSuccess(null);
 
     try {
-      await apiDelete(`/devices/${encodeURIComponent(device.deviceId)}`);
+      await apiDeleteDevice(device.deviceId);
       setSuccess("Gerät wurde entfernt.");
       await loadCustomerData();
     } catch (err) {
