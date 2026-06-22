@@ -347,6 +347,7 @@ export const portalFr: PortalTranslations = {
     payPaypal: "Payer avec PayPal",
     payCard: "Payer par carte",
     paypalName: "PayPal",
+    paypalNameSoon: "PayPal (bientôt)",
     cardName: "Carte bancaire",
     termsPrefix: "En payant, vous acceptez nos",
     conjunctionAnd: "et",
@@ -380,8 +381,9 @@ export const portalFr: PortalTranslations = {
   },
   checkoutCancel: {
     title: "Paiement annulé",
-    body: "Le paiement a été annulé. Redirection vers les forfaits…",
+    body: "Le paiement a été annulé. Redirection vers vos factures…",
     toPlans: "Voir les forfaits",
+    toInvoices: "Voir les factures",
   },
   upgradeResult: {
     successTitle: "Merci pour votre paiement !",

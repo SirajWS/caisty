@@ -339,6 +339,7 @@ export const portalAr: PortalTranslations = {
     payPaypal: "الدفع عبر PayPal",
     payCard: "الدفع بالبطاقة",
     paypalName: "PayPal",
+    paypalNameSoon: "PayPal (قريبًا)",
     cardName: "بطاقة ائتمان",
     termsPrefix: "بالدفع توافق على",
     conjunctionAnd: "و",
@@ -371,8 +372,9 @@ export const portalAr: PortalTranslations = {
   },
   checkoutCancel: {
     title: "تم إلغاء الدفع",
-    body: "أُلغيت عملية الدفع. ستتم إعادتك إلى الخطط قريبًا.",
+    body: "أُلغيت عملية الدفع. ستتم إعادتك إلى الفواتير قريبًا.",
     toPlans: "الذهاب إلى الخطط",
+    toInvoices: "الذهاب إلى الفواتير",
   },
   upgradeResult: {
     successTitle: "شكرًا على الدفع!",

@@ -552,6 +552,30 @@ export function getPortalInvoiceHtmlUrl(id: string): string {
   return `${API_BASE}/portal/invoices/${id}/html`;
 }
 
+export async function fetchPortalInvoiceHtml(id: string): Promise<string> {
+  const token = getStoredPortalToken();
+  if (!token) {
+    throw new Error("Nicht angemeldet.");
+  }
+
+  const res = await fetch(getPortalInvoiceHtmlUrl(id), {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (res.status === 401) {
+    clearPortalToken();
+    throw new Error("Nicht angemeldet.");
+  }
+
+  if (!res.ok) {
+    throw new Error(`Rechnungs-HTML konnte nicht geladen werden (${res.status}).`);
+  }
+
+  return res.text();
+}
+
 // ---------- Trial-Lizenz einmalig anlegen ----------
 
 export interface PortalLicenseCreateResponse {

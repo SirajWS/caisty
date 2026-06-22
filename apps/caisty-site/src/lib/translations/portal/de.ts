@@ -346,6 +346,7 @@ export const portalDe: PortalTranslations = {
     payPaypal: "Mit PayPal bezahlen",
     payCard: "Mit Kreditkarte bezahlen",
     paypalName: "PayPal",
+    paypalNameSoon: "PayPal (SOON)",
     cardName: "Kreditkarte",
     termsPrefix: 'Durch Klicken auf "Bezahlen" stimmst du unseren',
     conjunctionAnd: "und",
@@ -380,8 +381,9 @@ export const portalDe: PortalTranslations = {
   },
   checkoutCancel: {
     title: "Zahlung abgebrochen",
-    body: "Die Zahlung wurde abgebrochen. Du wirst gleich zurück zu den Plänen weitergeleitet.",
+    body: "Die Zahlung wurde abgebrochen. Du wirst gleich zu deinen Rechnungen weitergeleitet.",
     toPlans: "Zu den Plänen",
+    toInvoices: "Zu den Rechnungen",
   },
   upgradeResult: {
     successTitle: "Danke für deine Zahlung!",

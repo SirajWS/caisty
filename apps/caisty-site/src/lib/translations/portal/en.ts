@@ -337,6 +337,7 @@ export const portalEn = {
     payPaypal: "Pay with PayPal",
     payCard: "Pay with card",
     paypalName: "PayPal",
+    paypalNameSoon: "PayPal (SOON)",
     cardName: "Card",
     termsPrefix: "By paying you agree to our",
     conjunctionAnd: "and",
@@ -369,8 +370,9 @@ export const portalEn = {
   },
   checkoutCancel: {
     title: "Payment cancelled",
-    body: "The payment was cancelled. You will be redirected to plans shortly.",
+    body: "The payment was cancelled. You will be redirected to your invoices shortly.",
     toPlans: "Go to plans",
+    toInvoices: "Go to invoices",
   },
   upgradeResult: {
     successTitle: "Thank you for your payment!",

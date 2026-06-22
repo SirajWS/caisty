@@ -20,6 +20,10 @@ import {
 
 type PaymentMethod = "paypal" | "card";
 
+/** Nur mit VITE_ENABLE_PAYPAL_CHECKOUT=true aktivieren (Sandbox-Tests). */
+const PAYPAL_CHECKOUT_ENABLED =
+  import.meta.env.VITE_ENABLE_PAYPAL_CHECKOUT === "true";
+
 const CHECKOUT_PLAN_IDS = new Set([
   "starter",
   "pro",
@@ -60,7 +64,8 @@ const PortalCheckoutPage: React.FC = () => {
   );
   const isValidPlan = Boolean(parsedPlan);
 
-  const [selectedPaymentMethod] = React.useState<PaymentMethod>("card");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    React.useState<PaymentMethod>(PAYPAL_CHECKOUT_ENABLED ? "paypal" : "card");
   const [processing, setProcessing] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [portalLicenses, setPortalLicenses] = React.useState<PortalLicense[]>([]);
@@ -249,14 +254,12 @@ const PortalCheckoutPage: React.FC = () => {
       }
 
       if (checkoutData.invoiceId) {
-      if (checkoutData.invoiceId) {
         sessionStorage.setItem("pendingInvoiceId", checkoutData.invoiceId);
       } else {
         sessionStorage.removeItem("pendingInvoiceId");
       }
       if (checkoutData.subscriptionId) {
         sessionStorage.setItem("pendingSubscriptionId", checkoutData.subscriptionId);
-      }
       }
 
       if (checkoutData.checkoutUrl) {
@@ -393,22 +396,87 @@ const PortalCheckoutPage: React.FC = () => {
             <h2 className="text-lg font-semibold mb-4">{t.checkout.paymentMethod}</h2>
 
             <div className="space-y-3">
-              <div
-                className="flex items-start gap-3 p-4 rounded-xl border-2 border-orange-500/50 bg-orange-500/10"
+              {PAYPAL_CHECKOUT_ENABLED ? (
+                <label
+                  className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors ${
+                    selectedPaymentMethod === "paypal"
+                      ? "border-orange-500/50 bg-orange-500/10"
+                      : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="paypal"
+                    checked={selectedPaymentMethod === "paypal"}
+                    onChange={() => setSelectedPaymentMethod("paypal")}
+                    className="mt-1 accent-orange-500"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-semibold text-slate-50">
+                        {t.checkout.paypalName}
+                      </span>
+                      <span className="inline-flex items-center rounded-full bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 text-[10px] font-medium text-orange-300">
+                        Sandbox
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400">{t.checkout.paypalHint}</p>
+                  </div>
+                  <div className="text-2xl font-bold text-[#003087]">P</div>
+                </label>
+              ) : (
+                <div
+                  className="flex items-start gap-3 p-4 rounded-xl border border-slate-800 bg-slate-950/40 opacity-60 cursor-not-allowed"
+                  aria-disabled="true"
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="paypal"
+                    disabled
+                    className="mt-1 opacity-40"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-semibold text-slate-400">
+                        {t.checkout.paypalNameSoon}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500">{t.checkout.paypalHint}</p>
+                  </div>
+                  <div className="text-2xl font-bold text-slate-600">P</div>
+                </div>
+              )}
+
+              <label
+                className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors ${
+                  selectedPaymentMethod === "card"
+                    ? "border-orange-500/50 bg-orange-500/10"
+                    : "border-slate-800 bg-slate-950/60 hover:border-slate-700"
+                }`}
               >
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="card"
+                  checked={selectedPaymentMethod === "card"}
+                  onChange={() => setSelectedPaymentMethod("card")}
+                  className="mt-1 accent-orange-500"
+                />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-semibold text-slate-50">{t.checkout.cardTitle}</span>
+                    <span className="text-sm font-semibold text-slate-50">
+                      {t.checkout.cardTitle}
+                    </span>
                     <span className="inline-flex items-center rounded-full bg-orange-500/10 border border-orange-500/30 px-2 py-0.5 text-[10px] font-medium text-orange-300">
                       {t.labels.available}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400">
-                    {t.checkout.cardHint}
-                  </p>
+                  <p className="text-xs text-slate-400">{t.checkout.cardHint}</p>
                 </div>
                 <div className="text-2xl">💳</div>
-              </div>
+              </label>
             </div>
           </section>
         </div>
@@ -431,7 +499,9 @@ const PortalCheckoutPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-slate-400">{t.labels.paymentMethod}</span>
                 <span className="text-slate-100 font-medium">
-                  {t.checkout.cardName}
+                  {selectedPaymentMethod === "paypal"
+                    ? t.checkout.paypalName
+                    : t.checkout.cardName}
                 </span>
               </div>
             </div>

@@ -10,10 +10,13 @@ export default function PortalCheckoutCancelPage() {
   const t = getPortalTranslations(language);
 
   useEffect(() => {
-    sessionStorage.removeItem("pendingInvoiceId");
+    const invoiceId = sessionStorage.getItem("pendingInvoiceId");
+    const destination = invoiceId
+      ? `/portal/invoices/${invoiceId}`
+      : "/portal/invoices";
 
     const timer = setTimeout(() => {
-      navigate("/portal/plan", { replace: true });
+      navigate(destination, { replace: true });
     }, 2000);
 
     return () => clearTimeout(timer);
@@ -47,10 +50,15 @@ export default function PortalCheckoutCancelPage() {
         </p>
         <button
           type="button"
-          onClick={() => navigate("/portal/plan")}
+          onClick={() => {
+            const invoiceId = sessionStorage.getItem("pendingInvoiceId");
+            navigate(
+              invoiceId ? `/portal/invoices/${invoiceId}` : "/portal/invoices",
+            );
+          }}
           className="w-full rounded-full bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 transition-colors"
         >
-          {t.checkoutCancel.toPlans}
+          {t.checkoutCancel.toInvoices}
         </button>
       </div>
     </div>
