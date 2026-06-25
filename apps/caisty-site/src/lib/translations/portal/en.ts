@@ -277,6 +277,7 @@ export const portalEn = {
     winB2: "Wizard-style installer",
     winB3: "Optimized for mouse & touchscreen",
     winDownload: "Download Caisty POS for Windows",
+    winUnavailable: "Windows installer is currently unavailable.",
     linuxTitle: "Linux",
     linuxDesc: "For lightweight till boxes or custom Linux setups.",
     linuxB1: "AppImage / .deb package",

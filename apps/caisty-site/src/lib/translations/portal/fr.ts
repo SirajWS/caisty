@@ -285,6 +285,7 @@ export const portalFr: PortalTranslations = {
     winB2: "Assistant d’installation",
     winB3: "Optimisé souris & tactile",
     winDownload: "Télécharger Caisty POS pour Windows",
+    winUnavailable: "L'installateur Windows n'est pas disponible pour le moment.",
     linuxTitle: "Linux",
     linuxDesc: "Pour caisses légères ou configurations Linux personnalisées.",
     linuxB1: "Paquet AppImage / .deb",

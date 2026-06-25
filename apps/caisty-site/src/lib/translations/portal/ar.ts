@@ -278,6 +278,7 @@ export const portalAr: PortalTranslations = {
     winB2: "مثبّت بأسلوب معالج",
     winB3: "محسّن للفأرة والشاشة اللمسية",
     winDownload: "تنزيل Caisty POS لـ Windows",
+    winUnavailable: "مثبت Windows غير متاح حاليًا.",
     linuxTitle: "Linux",
     linuxDesc: "لصناديق كاشير خفيفة أو إعدادات Linux مخصصة.",
     linuxB1: "حزمة AppImage / .deb",

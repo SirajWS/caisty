@@ -15,19 +15,10 @@ import { portalLocaleTag } from "../lib/portalLocale";
 import { pickPrimaryPortalLicense } from "../lib/portalLicensePick";
 import { portalCardShell, portalLicenseStatusBadge, portalPrimaryCta } from "../lib/portalUi";
 
-const WINDOWS_INSTALL_VERSION = "0.2.8";
-
-const WINDOWS_INSTALL_DEFAULT_URL = `https://www.caisty.com/downloads/Caisty.PoS_${WINDOWS_INSTALL_VERSION}_x64-setup.exe`;
-
-function resolveWindowsInstallUrl(): string {
+function getWindowsInstallUrl(): string | null {
   const envUrl = String(import.meta.env.VITE_POS_WINDOWS_URL ?? "").trim();
-  if (!envUrl || envUrl.includes("0.2.7")) {
-    return WINDOWS_INSTALL_DEFAULT_URL;
-  }
-  return envUrl;
+  return envUrl || null;
 }
-
-const WINDOWS_INSTALL_URL = resolveWindowsInstallUrl();
 
 const WINDOWS_DEMO_URL =
   import.meta.env.VITE_POS_WINDOWS_DEMO_URL || null;
@@ -73,6 +64,8 @@ const PortalInstallPage: React.FC = () => {
     () => pickPrimaryPortalLicense(licenses),
     [licenses],
   );
+
+  const windowsInstallUrl = getWindowsInstallUrl();
 
   return (
     <div className="space-y-10">
@@ -165,14 +158,24 @@ const PortalInstallPage: React.FC = () => {
               </li>
             </ul>
             <div className="mt-3">
-              <a
-                href={WINDOWS_INSTALL_URL}
-                target="_blank"
-                rel="noreferrer noopener"
-                className={`no-underline w-full ${portalPrimaryCta()} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 ${isLight ? "ring-offset-white" : "ring-offset-[#0B1220]"}`}
-              >
-                {t.install.winDownload}
-              </a>
+              {windowsInstallUrl ? (
+                <a
+                  href={windowsInstallUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className={`no-underline w-full ${portalPrimaryCta()} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 ${isLight ? "ring-offset-white" : "ring-offset-[#0B1220]"}`}
+                >
+                  {t.install.winDownload}
+                </a>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full justify-center text-xs font-medium opacity-50 cursor-not-allowed"
+                  disabled
+                >
+                  {t.install.winUnavailable}
+                </Button>
+              )}
             </div>
           </div>
 
