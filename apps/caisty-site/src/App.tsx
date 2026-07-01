@@ -12,9 +12,14 @@ import TermsPage from "./routes/TermsPage";
 import PrivacyPage from "./routes/PrivacyPage";
 import ImprintPage from "./routes/ImprintPage";
 import CompanyPage from "./routes/CompanyPage";
+import ContactPage from "./routes/ContactPage";
+import CookiePolicyPage from "./routes/CookiePolicyPage";
+import EulaPage from "./routes/EulaPage";
+import DpaPage from "./routes/DpaPage";
+import SubprocessorsPage from "./routes/SubprocessorsPage";
 import WorkTrackPage from "./routes/WorkTrackPage";
 
-import { COMPANY_HOME, POS_LANDING_PATH } from "./config/marketingRoutes";
+import { COMPANY_HOME, LEGAL_PATHS, POS_LANDING_PATH } from "./config/marketingRoutes";
 import PortalLayout from "./routes/PortalLayout";
 import PortalDashboard from "./routes/PortalDashboard";
 import PortalLicensesPage from "./routes/PortalLicensesPage";
@@ -49,9 +54,16 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/terms" element={<Navigate to={LEGAL_PATHS.terms} replace />} />
+          <Route path="/privacy" element={<Navigate to={LEGAL_PATHS.privacy} replace />} />
+          <Route path={LEGAL_PATHS.terms} element={<TermsPage />} />
+          <Route path={LEGAL_PATHS.privacy} element={<PrivacyPage />} />
+          <Route path={LEGAL_PATHS.cookie} element={<CookiePolicyPage />} />
+          <Route path={LEGAL_PATHS.eula} element={<EulaPage />} />
+          <Route path={LEGAL_PATHS.dpa} element={<DpaPage />} />
+          <Route path={LEGAL_PATHS.subprocessors} element={<SubprocessorsPage />} />
           <Route path="/imprint" element={<ImprintPage />} />
+          <Route path="/contact" element={<ContactPage />} />
         </Route>
 
         {/* Google OAuth Success - AUSSERHALB PortalLayout (keine Auth-Prüfung) */}

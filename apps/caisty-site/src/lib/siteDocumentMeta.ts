@@ -7,6 +7,11 @@ const COMPANY_META_DESCRIPTION =
 const COMPANY_OG_DESCRIPTION =
   "Modern cloud software products for restaurants, retail businesses and growing teams.";
 
+/** Contact page (`/contact`). */
+export const CONTACT_SITE_TITLE = "Contact – Caisty";
+const CONTACT_META_DESCRIPTION =
+  "Get in touch with Caisty for general inquiries, partnerships or technical support.";
+
 /** Caisty POS product landing (`/caisty-pos`). */
 export const POS_PRODUCT_SITE_TITLE = "Caisty POS – Modern cloud POS software";
 const POS_META_DESCRIPTION = "Modern POS software for restaurants, cafés and small shops.";
@@ -41,6 +46,18 @@ export function applyCompanySiteMeta() {
   setMetaContentById("seo-og-type", "website");
   setMetaContentById("seo-twitter-title", COMPANY_SITE_TITLE);
   setMetaContentById("seo-twitter-description", COMPANY_OG_DESCRIPTION);
+}
+
+/** Contact page: call on `/contact` mount. */
+export function applyContactSiteMeta() {
+  document.title = CONTACT_SITE_TITLE;
+  setMetaContentById("seo-meta-description", CONTACT_META_DESCRIPTION);
+  setMetaContentById("seo-og-title", CONTACT_SITE_TITLE);
+  setMetaContentById("seo-og-description", CONTACT_META_DESCRIPTION);
+  setMetaContentById("seo-og-url", companyOgUrl());
+  setMetaContentById("seo-og-type", "website");
+  setMetaContentById("seo-twitter-title", CONTACT_SITE_TITLE);
+  setMetaContentById("seo-twitter-description", CONTACT_META_DESCRIPTION);
 }
 
 /** POS product page: call on `/caisty-pos` mount; restore company meta on unmount if needed. */

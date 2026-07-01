@@ -266,6 +266,37 @@ export const portalEn = {
       "You can request an export of data stored at Caisty (e.g. for privacy requests). In a later version you will trigger this directly in the portal.",
     dataExportContact: "Until then, please contact {{email}}.",
   },
+  legal: {
+    title: "Legal Documents",
+    subtitle: "These documents govern your use of the Caisty platform and services.",
+    open: "Open",
+    documents: {
+      terms: {
+        title: "Terms & Conditions",
+        description: "General terms governing the use of Caisty services.",
+      },
+      privacy: {
+        title: "Privacy Policy",
+        description: "How Caisty collects, processes and protects personal data.",
+      },
+      cookie: {
+        title: "Cookie Policy",
+        description: "Information about cookies and similar technologies.",
+      },
+      eula: {
+        title: "End User License Agreement (EULA)",
+        description: "Software license agreement for Caisty POS.",
+      },
+      dpa: {
+        title: "Data Processing Agreement (DPA)",
+        description: "GDPR Article 28 data processing agreement.",
+      },
+      imprint: {
+        title: "Imprint",
+        description: "Legal company information and contact details.",
+      },
+    },
+  },
   install: {
     title: "Install Caisty POS",
     subtitlePrefix: "Download the installer, install Caisty POS on your till PC, and connect it to your account",
@@ -340,11 +371,8 @@ export const portalEn = {
     paypalName: "PayPal",
     paypalNameSoon: "PayPal (SOON)",
     cardName: "Card",
-    termsPrefix: "By paying you agree to our",
-    conjunctionAnd: "and",
-    termsLink: "Terms",
-    privacyLink: "Privacy policy",
-    termsSuffix: ".",
+    legalConsentRequired:
+      "Please accept the Terms & Conditions, Privacy Policy and EULA to continue.",
     alreadyHavePlan:
       "You already have this plan active. Please pick a different option on Plan & billing.",
     downgradeNotAvailable:

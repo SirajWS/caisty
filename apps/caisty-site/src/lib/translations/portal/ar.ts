@@ -265,6 +265,37 @@ export const portalAr: PortalTranslations = {
       "يمكنك طلب تصدير للبيانات المخزّنة لدى Caisty (مثل طلبات الخصوصية). في إصدار لاحق ستتمكن من تشغيل ذلك من هنا.",
     dataExportContact: "حتى ذلك الحين يرجى التواصل مع {{email}}.",
   },
+  legal: {
+    title: "المستندات القانونية",
+    subtitle: "تحكم هذه المستندات في استخدامك لمنصة Caisty وخدماتها.",
+    open: "فتح",
+    documents: {
+      terms: {
+        title: "الشروط والأحكام",
+        description: "الشروط العامة لاستخدام خدمات Caisty.",
+      },
+      privacy: {
+        title: "سياسة الخصوصية",
+        description: "كيف تجمع Caisty وتعالج وتحمي البيانات الشخصية.",
+      },
+      cookie: {
+        title: "سياسة ملفات تعريف الارتباط",
+        description: "معلومات عن ملفات تعريف الارتباط والتقنيات المماثلة.",
+      },
+      eula: {
+        title: "اتفاقية ترخيص المستخدم",
+        description: "اتفاقية ترخيص برمجيات Caisty POS.",
+      },
+      dpa: {
+        title: "اتفاقية معالجة البيانات",
+        description: "اتفاقية معالجة بيانات وفق المادة 28 من GDPR.",
+      },
+      imprint: {
+        title: "البيانات القانونية",
+        description: "معلومات الشركة القانونية وبيانات الاتصال.",
+      },
+    },
+  },
   install: {
     title: "تثبيت Caisty POS",
     subtitlePrefix:
@@ -342,11 +373,8 @@ export const portalAr: PortalTranslations = {
     paypalName: "PayPal",
     paypalNameSoon: "PayPal (قريبًا)",
     cardName: "بطاقة ائتمان",
-    termsPrefix: "بالدفع توافق على",
-    conjunctionAnd: "و",
-    termsLink: "الشروط",
-    privacyLink: "سياسة الخصوصية",
-    termsSuffix: ".",
+    legalConsentRequired:
+      "يرجى قبول الشروط وسياسة الخصوصية واتفاقية الترخيص للمتابعة.",
     alreadyHavePlan:
       "لديك هذه الخطة نشطة بالفعل. اختر خيارًا آخر ضمن الخطط والفوترة.",
     downgradeNotAvailable:

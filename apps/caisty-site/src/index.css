@@ -1077,3 +1077,21 @@ a {
     width: 100%;
   }
 }
+
+.site-modal-body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.site-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.site-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.site-modal-body::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+}

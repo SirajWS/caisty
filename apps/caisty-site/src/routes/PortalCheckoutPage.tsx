@@ -17,6 +17,7 @@ import {
   evaluateCheckoutEligibility,
   type PaidPlanContext,
 } from "../lib/checkoutPlanEligibility";
+import { LegalAgreementCheckbox } from "../components/LegalAgreementCheckbox";
 
 type PaymentMethod = "paypal" | "card";
 
@@ -73,6 +74,7 @@ const PortalCheckoutPage: React.FC = () => {
   const [paidBillingPeriod, setPaidBillingPeriod] = React.useState<
     "monthly" | "yearly" | null
   >(null);
+  const [legalAccepted, setLegalAccepted] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -171,6 +173,12 @@ const PortalCheckoutPage: React.FC = () => {
   async function handlePayment() {
     try {
       setError(null);
+
+      if (!legalAccepted) {
+        setError(t.checkout.legalConsentRequired);
+        return;
+      }
+
       setProcessing(true);
 
       const provider = selectedPaymentMethod === "card" ? "stripe" : "paypal";
@@ -525,10 +533,17 @@ const PortalCheckoutPage: React.FC = () => {
               )}
             </div>
 
+            <LegalAgreementCheckbox
+              checked={legalAccepted}
+              onChange={setLegalAccepted}
+              variant="portal-dark"
+              id="checkout-legal-consent"
+            />
+
             <button
               type="button"
               onClick={handlePayment}
-              disabled={processing || licensesLoading || checkoutBlocked}
+              disabled={processing || licensesLoading || checkoutBlocked || !legalAccepted}
               className="w-full inline-flex items-center justify-center rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60 transition-colors"
             >
               {processing
@@ -537,18 +552,6 @@ const PortalCheckoutPage: React.FC = () => {
                   ? t.checkout.payPaypal
                   : t.checkout.payCard}
             </button>
-
-            <p className="text-[11px] text-slate-500 text-center">
-              {t.checkout.termsPrefix}{" "}
-              <Link to="/terms" className="text-orange-300 hover:text-orange-200">
-                {t.checkout.termsLink}
-              </Link>{" "}
-              {t.checkout.conjunctionAnd}{" "}
-              <Link to="/privacy" className="text-orange-300 hover:text-orange-200">
-                {t.checkout.privacyLink}
-              </Link>
-              {t.checkout.termsSuffix}
-            </p>
           </div>
         </div>
       </div>

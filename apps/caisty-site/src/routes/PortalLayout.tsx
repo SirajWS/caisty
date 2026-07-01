@@ -29,6 +29,7 @@ import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
 import { CaistyLogo } from "../components/CaistyLogo";
+import CookieBanner from "../components/CookieBanner";
 
 export interface PortalOutletContext {
   customer: PortalCustomer;
@@ -247,6 +248,7 @@ export default function PortalLayout() {
           </div>
         </main>
       </div>
+      <CookieBanner />
     </div>
   );
 }

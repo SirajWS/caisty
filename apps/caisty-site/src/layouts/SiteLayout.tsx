@@ -3,13 +3,15 @@ import { Outlet, Link, NavLink, useLocation } from "react-router-dom";
 import LanguageSelector from "../components/LanguageSelector";
 import ThemeToggle from "../components/ThemeToggle";
 import MarketingPreFooter from "../components/MarketingPreFooter";
+import { FooterModals } from "../components/FooterModals";
+import CookieBanner from "../components/CookieBanner";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
 import { FOOTER_TECH_STRIP } from "../lib/translations/common";
 import { ICON_COLORS } from "../components/TechStackCardGrid";
 import { tunisiaWhatsappUrl } from "../config/marketContact";
-import { COMPANY_HOME, POS_LANDING_PATH } from "../config/marketingRoutes";
+import { COMPANY_HOME, LEGAL_PATHS, POS_LANDING_PATH } from "../config/marketingRoutes";
 import { CaistyLogo } from "../components/CaistyLogo";
 import {
   DesktopCaistyPosQuickAccessMenu,
@@ -23,6 +25,7 @@ export default function SiteLayout() {
   const productMenu = t.productMenu;
   const isLight = theme === "light";
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [footerModal, setFooterModal] = useState<null | "company" | "contact">(null);
 
   const baseBg = isLight ? "bg-[#f8fafc] text-slate-900" : "bg-[#0b1220] text-slate-50";
   const baseBorder = isLight ? "border-[#e2e8f0]" : "border-white/[0.08]";
@@ -48,6 +51,14 @@ export default function SiteLayout() {
           ? "text-slate-600 hover:text-[#0b1220]"
           : "text-slate-300 hover:text-white",
     ].join(" ");
+
+  const footerLinkClass = `text-sm text-start hover:text-[#f97316] transition-colors no-underline bg-transparent border-0 p-0 cursor-pointer font-inherit ${
+    isLight ? "text-slate-600" : "text-slate-400"
+  }`;
+
+  const footerNavLinkClass = `text-sm hover:text-[#f97316] transition-colors no-underline ${
+    isLight ? "text-slate-600" : "text-slate-400"
+  }`;
 
   return (
     <div className={`min-h-screen flex flex-col w-full min-w-0 ${baseBg}`}>
@@ -195,9 +206,8 @@ export default function SiteLayout() {
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5 lg:gap-12">
             <div className="sm:col-span-2 lg:col-span-2 space-y-4 min-w-0">
               <h2 className={`text-lg font-bold tracking-tight ${strongText}`}>{t.footer.companyBrand}</h2>
-              <p className={`text-sm font-semibold ${isLight ? "text-slate-800" : "text-slate-100"}`}>{t.footer.companyTagline}</p>
               <p className={`text-sm leading-relaxed max-w-lg ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                {t.footer.companyIntro}
+                {t.footer.companyTagline}
               </p>
               <div className="pt-1">
                 <h3 className={`text-xs font-bold uppercase tracking-wider mb-2 ${isLight ? "text-slate-500" : "text-slate-500"}`}>
@@ -216,7 +226,6 @@ export default function SiteLayout() {
                     <Link to="/worktrack" className="font-semibold text-[#f97316] hover:underline no-underline">
                       {t.footer.productWorktrackName}
                     </Link>
-                    <span className="text-xs font-normal text-slate-500 ms-1">{t.footer.productWorktrackSuffix}</span>
                     <p className={`mt-0.5 text-xs leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
                       {t.footer.productWorktrackBlurb}
                     </p>
@@ -227,27 +236,36 @@ export default function SiteLayout() {
             <div className="space-y-3 min-w-0">
               <h3 className={`text-xs font-bold uppercase tracking-wide ${strongText}`}>{t.footer.colCompany}</h3>
               <nav className={`flex flex-col gap-2 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                <Link to={COMPANY_HOME} className="hover:text-[#f97316] transition-colors no-underline">
+                <button type="button" className={footerLinkClass} onClick={() => setFooterModal("company")}>
                   {t.footer.linkCompany}
-                </Link>
-                <a href="mailto:info@caisty.com" className="hover:text-[#f97316] transition-colors no-underline break-all">
+                </button>
+                <button type="button" className={footerLinkClass} onClick={() => setFooterModal("contact")}>
                   {t.footer.linkContact}
-                </a>
+                </button>
               </nav>
             </div>
             <div className="space-y-3 min-w-0">
               <h3 className={`text-xs font-bold uppercase tracking-wide ${strongText}`}>{t.footer.colLegal}</h3>
-              <div className={`flex flex-col gap-2 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                <Link to="/terms" className="hover:text-[#f97316] transition-colors no-underline">
+              <nav className={`flex flex-col gap-2 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+                <Link to={LEGAL_PATHS.terms} target="_blank" rel="noopener noreferrer" className={footerNavLinkClass}>
                   {t.footer.terms}
                 </Link>
-                <Link to="/privacy" className="hover:text-[#f97316] transition-colors no-underline">
+                <Link to={LEGAL_PATHS.privacy} target="_blank" rel="noopener noreferrer" className={footerNavLinkClass}>
                   {t.footer.privacy}
                 </Link>
-                <Link to="/imprint" className="hover:text-[#f97316] transition-colors no-underline">
+                <Link to={LEGAL_PATHS.cookie} target="_blank" rel="noopener noreferrer" className={footerNavLinkClass}>
+                  {t.footer.cookiePolicy}
+                </Link>
+                <Link to={LEGAL_PATHS.eula} target="_blank" rel="noopener noreferrer" className={footerNavLinkClass}>
+                  {t.footer.eula}
+                </Link>
+                <Link to={LEGAL_PATHS.dpa} target="_blank" rel="noopener noreferrer" className={footerNavLinkClass}>
+                  {t.footer.dpa}
+                </Link>
+                <Link to={LEGAL_PATHS.imprint} target="_blank" rel="noopener noreferrer" className={footerNavLinkClass}>
                   {t.footer.imprint}
                 </Link>
-              </div>
+              </nav>
             </div>
             <div className="space-y-3 min-w-0">
               <h3 className={`text-xs font-bold uppercase tracking-wide ${strongText}`}>{t.footer.followTitle}</h3>
@@ -288,10 +306,19 @@ export default function SiteLayout() {
               })}
             </div>
             <span>{t.footer.copyright}</span>
-            <span className="leading-relaxed max-w-3xl">{t.footer.companyNote}</span>
+            <span className="leading-relaxed max-w-3xl">{t.footer.developedIn}</span>
           </div>
         </div>
       </footer>
+
+      <FooterModals
+        active={footerModal}
+        onClose={() => setFooterModal(null)}
+        isLight={isLight}
+        copy={t.footer}
+      />
+
+      <CookieBanner />
     </div>
   );
 }

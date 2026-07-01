@@ -7,6 +7,7 @@ import type { PricingTranslations } from "./pricing";
 import type { AuthTranslations } from "./auth";
 import type { PortalTranslations } from "./portal";
 import type { CompanyCopy } from "./company";
+import type { ContactCopy } from "./contact";
 import type { WorkTrackPageCopy } from "./worktrackPage";
 import { common } from "./common";
 import { landing } from "./landing";
@@ -14,6 +15,7 @@ import { pricing } from "./pricing";
 import { auth } from "./auth";
 import { portal } from "./portal";
 import { company } from "./company";
+import { contact } from "./contact";
 import { worktrackPage } from "./worktrackPage";
 
 // Exportiere Types und Languages
@@ -30,6 +32,7 @@ export const translations: Record<
     auth: AuthTranslations;
     portal: PortalTranslations;
     company: CompanyCopy;
+    contact: ContactCopy;
     worktrackPage: WorkTrackPageCopy;
   }
 > = {
@@ -40,6 +43,7 @@ export const translations: Record<
     auth: auth.de,
     portal: portal.de,
     company: company.de,
+    contact: contact.de,
     worktrackPage: worktrackPage.de,
   },
   en: {
@@ -49,6 +53,7 @@ export const translations: Record<
     auth: auth.en,
     portal: portal.en,
     company: company.en,
+    contact: contact.en,
     worktrackPage: worktrackPage.en,
   },
   fr: {
@@ -58,6 +63,7 @@ export const translations: Record<
     auth: auth.fr,
     portal: portal.fr,
     company: company.fr,
+    contact: contact.fr,
     worktrackPage: worktrackPage.fr,
   },
   ar: {
@@ -67,6 +73,7 @@ export const translations: Record<
     auth: auth.ar,
     portal: portal.ar,
     company: company.ar,
+    contact: contact.ar,
     worktrackPage: worktrackPage.ar,
   },
 };

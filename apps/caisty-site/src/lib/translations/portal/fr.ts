@@ -271,6 +271,37 @@ export const portalFr: PortalTranslations = {
       "Vous pouvez demander une exportation des données stockées chez Caisty (ex. demandes RGPD). Dans une prochaine version, vous le déclencherez ici.",
     dataExportContact: "En attendant, écrivez à {{email}}.",
   },
+  legal: {
+    title: "Documents juridiques",
+    subtitle: "Ces documents régissent votre utilisation de la plateforme et des services Caisty.",
+    open: "Ouvrir",
+    documents: {
+      terms: {
+        title: "Conditions générales",
+        description: "Conditions générales d'utilisation des services Caisty.",
+      },
+      privacy: {
+        title: "Politique de confidentialité",
+        description: "Comment Caisty collecte, traite et protège les données personnelles.",
+      },
+      cookie: {
+        title: "Politique cookies",
+        description: "Informations sur les cookies et technologies similaires.",
+      },
+      eula: {
+        title: "Contrat de licence utilisateur (CLUF)",
+        description: "Contrat de licence logicielle pour Caisty POS.",
+      },
+      dpa: {
+        title: "Accord de traitement des données (DPA)",
+        description: "Accord de sous-traitance conforme à l'article 28 du RGPD.",
+      },
+      imprint: {
+        title: "Mentions légales",
+        description: "Informations légales sur l'entreprise et coordonnées.",
+      },
+    },
+  },
   install: {
     title: "Installer Caisty POS",
     subtitlePrefix:
@@ -350,11 +381,8 @@ export const portalFr: PortalTranslations = {
     paypalName: "PayPal",
     paypalNameSoon: "PayPal (bientôt)",
     cardName: "Carte bancaire",
-    termsPrefix: "En payant, vous acceptez nos",
-    conjunctionAnd: "et",
-    termsLink: "conditions",
-    privacyLink: "confidentialité",
-    termsSuffix: ".",
+    legalConsentRequired:
+      "Veuillez accepter les Conditions générales, la Politique de confidentialité et le CLUF pour continuer.",
     alreadyHavePlan:
       "Vous avez déjà ce forfait actif. Choisissez une autre option sous Forfaits & facturation.",
     downgradeNotAvailable:

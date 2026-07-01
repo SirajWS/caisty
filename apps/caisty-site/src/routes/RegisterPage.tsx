@@ -5,6 +5,7 @@ import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
 import { useTheme } from "../lib/theme";
 import { CaistyLogo } from "../components/CaistyLogo";
+import { LegalAgreementCheckbox } from "../components/LegalAgreementCheckbox";
 
 export default function RegisterPage() {
   const { language } = useLanguage();
@@ -21,6 +22,7 @@ export default function RegisterPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [registered, setRegistered] = React.useState(false);
   const [registeredEmail, setRegisteredEmail] = React.useState("");
+  const [legalAccepted, setLegalAccepted] = React.useState(false);
 
   React.useEffect(() => {
     const errorParam = searchParams.get("error");
@@ -44,6 +46,12 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!legalAccepted) {
+      setError(translations[language].common.legalConsent.required);
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -223,6 +231,13 @@ export default function RegisterPage() {
               />
             </div>
 
+            <LegalAgreementCheckbox
+              checked={legalAccepted}
+              onChange={setLegalAccepted}
+              variant={isLight ? "auth-light" : "auth-dark"}
+              id="register-legal-consent"
+            />
+
             {error && (
               <div
                 className="flex gap-2 rounded-xl border border-red-500/20 bg-red-500/[0.08] px-3 py-2.5 text-xs text-[#fca5a5]"
@@ -237,7 +252,7 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !legalAccepted}
               className="login-font-heading flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-orange-500 text-sm font-semibold text-white transition-all duration-200 ease-out hover:-translate-y-px hover:bg-orange-600 hover:shadow-[0_8px_24px_rgba(249,115,22,0.35)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             >
               {submitting && <span className="login-page__spinner" aria-hidden />}
@@ -258,12 +273,17 @@ export default function RegisterPage() {
 
           <button
             type="button"
+            disabled={!legalAccepted}
             onClick={() => {
+              if (!legalAccepted) {
+                setError(translations[language].common.legalConsent.required);
+                return;
+              }
               const base = getGoogleAuthUrl();
               const url = `${base}?state=register`;
               window.location.href = url;
             }}
-            className={`login-font-heading mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl border text-sm transition-all duration-200 ease-out ${
+            className={`login-font-heading mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl border text-sm transition-all duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-50 ${
               isLight
                 ? "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-slate-100"
                 : "border-white/10 bg-white/[0.06] text-slate-200 hover:border-white/20 hover:bg-white/10"

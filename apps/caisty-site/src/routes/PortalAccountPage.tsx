@@ -11,6 +11,7 @@ import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
 import { portalLocaleTag } from "../lib/portalLocale";
 import { portalCardShell, portalInnerCard, portalInputClass, portalLicenseStatusBadge, portalMutedLink, portalPrimaryCta, portalTextLink } from "../lib/portalUi";
+import { PortalLegalDocumentsSection } from "../components/PortalLegalDocumentsSection";
 
 const SUPPORT_EMAIL =
   import.meta.env.VITE_PUBLIC_SUPPORT_EMAIL ?? "support@caisty.com";
@@ -322,6 +323,10 @@ const PortalAccountPage: React.FC = () => {
             </p>
           </div>
         </form>
+      </section>
+
+      <section className={`${portalCardShell(isLight)}`}>
+        <PortalLegalDocumentsSection />
       </section>
 
       <section className={`${portalCardShell(isLight)} space-y-3 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>

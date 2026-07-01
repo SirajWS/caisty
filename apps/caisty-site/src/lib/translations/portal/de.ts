@@ -270,6 +270,37 @@ export const portalDe: PortalTranslations = {
       "Du kannst jederzeit einen Export deiner bei Caisty gespeicherten Daten anfordern (z. B. für Datenschutz-Anfragen). In einer späteren Version kannst du das direkt hier im Portal auslösen.",
     dataExportContact: "Bis dahin wende dich bitte an {{email}}.",
   },
+  legal: {
+    title: "Rechtliche Dokumente",
+    subtitle: "Diese Dokumente regeln die Nutzung der Caisty-Plattform und -Services.",
+    open: "Öffnen",
+    documents: {
+      terms: {
+        title: "Allgemeine Geschäftsbedingungen",
+        description: "Allgemeine Bedingungen für die Nutzung der Caisty-Services.",
+      },
+      privacy: {
+        title: "Datenschutzerklärung",
+        description: "Wie Caisty personenbezogene Daten erhebt, verarbeitet und schützt.",
+      },
+      cookie: {
+        title: "Cookie-Richtlinie",
+        description: "Informationen zu Cookies und ähnlichen Technologien.",
+      },
+      eula: {
+        title: "Endbenutzer-Lizenzvertrag (EULA)",
+        description: "Software-Lizenzvereinbarung für Caisty POS.",
+      },
+      dpa: {
+        title: "Auftragsverarbeitungsvertrag (AVV)",
+        description: "Auftragsverarbeitungsvertrag gemäß Art. 28 DSGVO.",
+      },
+      imprint: {
+        title: "Impressum",
+        description: "Rechtliche Unternehmensangaben und Kontaktdaten.",
+      },
+    },
+  },
   install: {
     title: "Caisty POS installieren",
     subtitlePrefix:
@@ -349,11 +380,8 @@ export const portalDe: PortalTranslations = {
     paypalName: "PayPal",
     paypalNameSoon: "PayPal (SOON)",
     cardName: "Kreditkarte",
-    termsPrefix: 'Durch Klicken auf "Bezahlen" stimmst du unseren',
-    conjunctionAnd: "und",
-    termsLink: "AGB",
-    privacyLink: "Datenschutzbestimmungen",
-    termsSuffix: "zu.",
+    legalConsentRequired:
+      "Bitte akzeptiere die AGB, die Datenschutzerklärung und die EULA, um fortzufahren.",
     alreadyHavePlan:
       "Du hast diesen Plan bereits aktiv. Bitte wähle auf „Plan & Abrechnung“ eine andere Option.",
     downgradeNotAvailable:
