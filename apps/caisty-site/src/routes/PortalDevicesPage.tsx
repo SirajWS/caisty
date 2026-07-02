@@ -5,6 +5,7 @@ import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
 import { portalLocaleTag } from "../lib/portalLocale";
 import { portalConnectionBadge, portalTableShell } from "../lib/portalUi";
+import { formatDeviceStatus } from "../lib/caistyTerminology";
 
 function isSameCalendarDay(a: Date, b: Date): boolean {
   return (
@@ -77,6 +78,13 @@ const PortalDevicesPage: React.FC = () => {
         <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
           {t.devices.subtitle}
         </p>
+        <p
+          className={`text-xs ${
+            isLight ? "text-slate-500" : "text-slate-500"
+          }`}
+        >
+          {t.layout.cloudManaged} · {t.labels.deviceBinding}
+        </p>
       </header>
 
       {loading ? (
@@ -98,7 +106,7 @@ const PortalDevicesPage: React.FC = () => {
                   <th>{t.labels.name}</th>
                   <th>{t.labels.deviceId}</th>
                   <th>{t.labels.license}</th>
-                  <th>{t.labels.lastSeen}</th>
+                  <th>{t.labels.lastHeartbeat}</th>
                   <th>{t.labels.status}</th>
                 </tr>
               </thead>
@@ -132,7 +140,7 @@ const PortalDevicesPage: React.FC = () => {
                         )}
                       </td>
                       <td>
-                        <span className={portalConnectionBadge(String(d.status ?? ""), isLight)}>{d.status}</span>
+                        <span className={portalConnectionBadge(String(d.status ?? ""), isLight)}>{formatDeviceStatus(d.status)}</span>
                       </td>
                     </tr>
                   );

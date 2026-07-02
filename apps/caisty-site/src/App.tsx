@@ -35,6 +35,7 @@ import PortalCheckoutCancelPage from "./routes/PortalCheckoutCancelPage";
 import PortalLoginSuccessPage from "./routes/PortalLoginSuccessPage";
 import PortalSupportPage from "./routes/PortalSupportPage";
 import PortalUpgradeResultPage from "./routes/PortalUpgradeResultPage";
+import PortalBusinessPage from "./routes/PortalBusinessPage";
 
 export default function App() {
   return (
@@ -80,6 +81,7 @@ export default function App() {
           <Route path="devices" element={<PortalDevicesPage />} />
           <Route path="invoices" element={<PortalInvoicesPage />} />
           <Route path="invoices/:id" element={<PortalInvoiceDetailPage />} />
+          <Route path="business" element={<PortalBusinessPage />} />
           <Route path="support" element={<PortalSupportPage />} />
           <Route path="account" element={<PortalAccountPage />} />
           <Route path="install" element={<PortalInstallPage />} />

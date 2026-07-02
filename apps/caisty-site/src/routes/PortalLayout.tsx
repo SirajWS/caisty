@@ -7,6 +7,7 @@ import {
   useOutletContext,
 } from "react-router-dom";
 import {
+  Building2,
   CreditCard,
   HardDrive,
   KeyRound,
@@ -51,12 +52,13 @@ function usePortalNavItems(): NavItem[] {
   const t = getPortalTranslations(language);
   return [
     { to: "/portal", label: t.layout.navDashboard, icon: <LayoutDashboard size={18} />, end: true },
+    { to: "/portal/account", label: t.layout.navAccount, icon: <User size={18} /> },
+    { to: "/portal/business", label: t.layout.navBusiness, icon: <Building2 size={18} /> },
     { to: "/portal/licenses", label: t.layout.navLicenses, icon: <KeyRound size={18} /> },
-    { to: "/portal/plan", label: t.layout.navPlans, icon: <CreditCard size={18} /> },
     { to: "/portal/devices", label: t.layout.navDevices, icon: <HardDrive size={18} /> },
+    { to: "/portal/plan", label: t.layout.navPlans, icon: <CreditCard size={18} /> },
     { to: "/portal/invoices", label: t.layout.navInvoices, icon: <Receipt size={18} /> },
     { to: "/portal/support", label: t.layout.navSupport, icon: <LifeBuoy size={18} /> },
-    { to: "/portal/account", label: t.layout.navAccount, icon: <User size={18} /> },
   ];
 }
 

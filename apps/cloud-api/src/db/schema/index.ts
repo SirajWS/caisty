@@ -17,3 +17,5 @@ export * from "./adminPermissions";
 export * from "./billingCustomers";
 export * from "./invoiceLines";
 export * from "./idempotencyKeys";
+export * from "./businessProfiles";
+export * from "./fiscalConfigurations";

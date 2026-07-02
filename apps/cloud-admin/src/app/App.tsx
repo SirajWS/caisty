@@ -20,6 +20,7 @@ import {
   LayoutDashboard,
   Menu,
   Receipt,
+  ShieldCheck,
   Users,
   X,
 } from "lucide-react";
@@ -45,6 +46,7 @@ import PortalLicensesPage from "../pages/Licenses/PortalLicensesPage";
 
 import NotificationsPage from "../pages/Notifications/NotificationsPage";
 import AnalyticsPage from "../pages/AnalyticsPage";
+import FiscalCompliancePage from "../pages/Fiscal/FiscalCompliancePage";
 import NotificationBell from "../components/NotificationBell";
 import { CaistyLogo } from "../components/CaistyLogo.tsx";
 
@@ -67,14 +69,15 @@ type NavItem = { to: string; label: string; icon: React.ReactNode };
 const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
   { to: "/customers", label: "Customers", icon: <Users size={18} /> },
-  { to: "/subscriptions", label: "Subscriptions", icon: <CreditCard size={18} /> },
-  { to: "/invoices", label: "Invoices", icon: <Receipt size={18} /> },
-  { to: "/devices", label: "Devices", icon: <HardDrive size={18} /> },
-  { to: "/payments", label: "Payments", icon: <CreditCard size={18} /> },
-  { to: "/webhooks", label: "Webhooks", icon: <Cable size={18} /> },
+  { to: "/fiscal", label: "Fiscal / Compliance", icon: <ShieldCheck size={18} /> },
   { to: "/licenses", label: "Licenses", icon: <KeyRound size={18} /> },
-  { to: "/licenses/portal", label: "Portal Licenses", icon: <KeyRound size={18} /> },
-  { to: "/notifications", label: "Notifications", icon: <Bell size={18} /> },
+  { to: "/devices", label: "Devices", icon: <HardDrive size={18} /> },
+  { to: "/subscriptions", label: "Billing · Subscriptions", icon: <CreditCard size={18} /> },
+  { to: "/invoices", label: "Billing · Invoices", icon: <Receipt size={18} /> },
+  { to: "/payments", label: "Billing · Payments", icon: <CreditCard size={18} /> },
+  { to: "/webhooks", label: "Webhooks", icon: <Cable size={18} /> },
+  { to: "/licenses/portal", label: "Portal licenses", icon: <KeyRound size={18} /> },
+  { to: "/notifications", label: "Support · Notifications", icon: <Bell size={18} /> },
   { to: "/analytics", label: "Analytics", icon: <BarChart3 size={18} /> },
 ];
 
@@ -221,6 +224,7 @@ function AppRoutes() {
       <Route path="/" element={<ProtectedPage><DashboardPage /></ProtectedPage>} />
       <Route path="/customers" element={<ProtectedPage><CustomersListPage /></ProtectedPage>} />
       <Route path="/customers/:customerId" element={<ProtectedPage><CustomerDetailPage /></ProtectedPage>} />
+      <Route path="/fiscal" element={<ProtectedPage><FiscalCompliancePage /></ProtectedPage>} />
       <Route path="/subscriptions" element={<ProtectedPage><SubscriptionsListPage /></ProtectedPage>} />
       <Route path="/invoices" element={<ProtectedPage><InvoicesListPage /></ProtectedPage>} />
       <Route path="/invoices/:id" element={<ProtectedPage><InvoiceDetailPage /></ProtectedPage>} />

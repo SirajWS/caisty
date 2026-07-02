@@ -1,6 +1,5 @@
 // apps/caisty-site/src/routes/PortalAccountPage.tsx
 import React from "react";
-import { Link } from "react-router-dom";
 import {
   changePortalPassword,
   updatePortalAccount,
@@ -9,8 +8,7 @@ import { usePortalOutlet } from "./PortalLayout";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
-import { portalLocaleTag } from "../lib/portalLocale";
-import { portalCardShell, portalInnerCard, portalInputClass, portalLicenseStatusBadge, portalMutedLink, portalPrimaryCta, portalTextLink } from "../lib/portalUi";
+import { portalCardShell, portalInputClass, portalPrimaryCta, portalTextLink } from "../lib/portalUi";
 import { PortalLegalDocumentsSection } from "../components/PortalLegalDocumentsSection";
 
 const SUPPORT_EMAIL =
@@ -21,15 +19,7 @@ const PortalAccountPage: React.FC = () => {
   const { theme } = useTheme();
   const { language } = useLanguage();
   const t = getPortalTranslations(language);
-  const locale = portalLocaleTag(language);
   const isLight = theme === "light";
-
-  function formatDate(value: string | null | undefined): string {
-    if (!value) return t.labels.dash;
-    const d = new Date(value);
-    if (Number.isNaN(d.getTime())) return t.labels.dash;
-    return d.toLocaleString(locale);
-  }
 
   const [name, setName] = React.useState(customer.name);
   const [email, setEmail] = React.useState(customer.email);
@@ -56,8 +46,6 @@ const PortalAccountPage: React.FC = () => {
     setName(customer.name);
     setEmail(customer.email);
   }, [customer.name, customer.email]);
-
-  const primaryLicense = customer.primaryLicense ?? null;
 
   async function handleProfileSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -173,10 +161,10 @@ const PortalAccountPage: React.FC = () => {
           </span>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3 text-xs">
+        <div className="grid gap-6 md:grid-cols-1 text-xs">
           <form
             onSubmit={handleProfileSubmit}
-            className="space-y-4 md:col-span-2"
+            className="space-y-4"
           >
             <div className="grid gap-4 md:grid-cols-2">
               <LabeledInput
@@ -211,44 +199,6 @@ const PortalAccountPage: React.FC = () => {
               {profileSaving ? t.account.saveBusy : t.account.save}
             </button>
           </form>
-
-          <div className={`rounded-xl p-4 space-y-3 text-sm ${portalInnerCard(isLight)}`}>
-            <div className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>
-              {t.account.activeLicense}
-            </div>
-            {primaryLicense ? (
-              <>
-                <div className={`font-mono text-sm font-medium break-all ${isLight ? "text-slate-900" : "text-slate-100"}`}>
-                  {primaryLicense.key}
-                </div>
-                <div className={`flex flex-wrap items-center gap-2 ${isLight ? "text-slate-600" : "text-slate-300"}`}>
-                  <span className="font-medium capitalize">{primaryLicense.plan}</span>
-                  <span className={portalLicenseStatusBadge(primaryLicense.status, isLight)}>
-                    {primaryLicense.status}
-                  </span>
-                </div>
-                <div className={isLight ? "text-slate-500" : "text-slate-400"}>
-                  {t.labels.validUntil}:{" "}
-                  {primaryLicense.validUntil
-                    ? formatDate(primaryLicense.validUntil)
-                    : t.labels.dash}
-                </div>
-                <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-500"}`}>
-                  {t.account.licenseHint}
-                </p>
-                <Link
-                  to="/portal/licenses"
-                  className={`inline-block text-xs font-medium no-underline ${portalMutedLink(isLight)}`}
-                >
-                  {t.layout.navLicenses} →
-                </Link>
-              </>
-            ) : (
-              <p className={isLight ? "text-slate-500" : "text-slate-400"}>
-                {t.account.noLicenseBody}
-              </p>
-            )}
-          </div>
         </div>
       </section>
 

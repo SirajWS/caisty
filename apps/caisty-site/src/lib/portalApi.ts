@@ -1,5 +1,7 @@
 // apps/caisty-site/src/lib/portalApi.ts
 
+import { mapPortalApiError } from "./caistyTerminology";
+
 // Basis-URL für das Portal-Backend
 // Development: http://localhost:3333
 // Production: https://api.caisty.com
@@ -801,4 +803,187 @@ export async function fetchPortalSupportMessages(): Promise<
   }
 
   return (data.items || data.messages || []) as PortalSupportMessage[];
+}
+
+// ---------- Business profile ----------
+
+export type PortalBusinessAddress = {
+  street?: string;
+  city?: string;
+  zip?: string;
+  country?: string;
+};
+
+export type PortalFiscalStatus =
+  | "not_required"
+  | "required"
+  | "required_coming_soon"
+  | "pending_setup"
+  | "active"
+  | "error";
+
+export type PortalComplianceStatus =
+  | "incomplete"
+  | "ready"
+  | "action_required";
+
+export type PortalPosConfigurationStatus = "not_ready" | "ready";
+
+export interface PortalBusinessProfile {
+  companyName: string;
+  legalName: string;
+  country: string | null;
+  currency: string;
+  defaultLanguage: string;
+  businessAddress: PortalBusinessAddress;
+  vatId: string;
+  taxId: string;
+  fiscalStatus: PortalFiscalStatus;
+  fiscalProvider: string;
+  fiscalProviderDisplayKey: string;
+  providerType?: string;
+  providerLabel?: string;
+  fiscalRequired?: boolean;
+  fiscalEnvironment: string;
+  complianceStatus: PortalComplianceStatus;
+  posConfigurationStatus: PortalPosConfigurationStatus;
+  fiscalProfileKey?: string;
+  fiscalConfigurationLabel?: string;
+  /** @deprecated use fiscalConfigurationLabel */
+  fiscalPackage: string;
+  receiptMode: "standard" | "certified" | "standard_until_certified" | "certified_germany";
+  supportedExports?: string[];
+  posDownloadAllowed?: boolean;
+  fiscalNotice?: string | null;
+  mode?: "api_service" | "standard" | "coming_soon";
+  posReadiness: PortalPosConfigurationStatus;
+}
+
+export type PortalPosFiscalConfig = {
+  country: string | null;
+  currency: string;
+  fiscalRequired: boolean;
+  providerKey: string;
+  providerLabel: string;
+  providerType: string;
+  fiscalStatus: string;
+  receiptMode: string;
+  fiscalConfigurationLabel: string;
+  posDownloadAllowed: boolean;
+  fiscalNotice: string | null;
+  supportedExports: string[];
+  mode: string;
+};
+
+export type PortalBusinessPatch = {
+  companyName?: string;
+  legalName?: string;
+  country?: string | null;
+  currency?: string;
+  defaultLanguage?: string;
+  businessAddress?: PortalBusinessAddress;
+  vatId?: string;
+  taxId?: string;
+};
+
+type PortalBusinessResponse = {
+  ok: boolean;
+  business?: PortalBusinessProfile;
+  error?: string;
+  message?: string;
+};
+
+export async function fetchPortalBusiness(): Promise<PortalBusinessProfile> {
+  const token = getStoredPortalToken();
+  if (!token) throw new Error("Nicht angemeldet.");
+
+  const res = await fetch(`${API_BASE}/portal/business`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (res.status === 401) {
+    clearPortalToken();
+    throw new Error("Nicht angemeldet.");
+  }
+
+  const data = (await res.json()) as PortalBusinessResponse;
+
+  if (!res.ok || !data.ok || !data.business) {
+    throw new Error(
+      mapPortalApiError(
+        new Error(data.message ?? data.error ?? "business_profile_missing"),
+        {
+          businessMissing:
+            "Complete your Business profile.",
+          default:
+            data.message ??
+            (data.error === "migration_required"
+              ? "Business profile storage is not ready. Please contact support or apply the latest database migration."
+              : "Business profile could not be loaded."),
+        },
+      ),
+    );
+  }
+
+  return data.business;
+}
+
+export async function updatePortalBusiness(
+  patch: PortalBusinessPatch,
+): Promise<PortalBusinessProfile> {
+  const token = getStoredPortalToken();
+  if (!token) throw new Error("Nicht angemeldet.");
+
+  const res = await fetch(`${API_BASE}/portal/business`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(patch),
+  });
+
+  if (res.status === 401) {
+    clearPortalToken();
+    throw new Error("Nicht angemeldet.");
+  }
+
+  const data = (await res.json()) as PortalBusinessResponse;
+
+  if (!res.ok || !data.ok || !data.business) {
+    throw new Error(
+      data.message ??
+        (data.error === "migration_required"
+          ? "Business profile storage is not ready. Please contact support or apply the latest database migration."
+          : data.error ?? "Business profile could not be saved."),
+    );
+  }
+
+  return data.business;
+}
+
+export async function fetchPortalBusinessPosConfig(): Promise<PortalPosFiscalConfig> {
+  const token = getStoredPortalToken();
+  if (!token) throw new Error("Nicht angemeldet.");
+
+  const res = await fetch(`${API_BASE}/portal/business/pos-config`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (res.status === 401) {
+    clearPortalToken();
+    throw new Error("Nicht angemeldet.");
+  }
+
+  const data = (await res.json()) as {
+    ok: boolean;
+    config?: PortalPosFiscalConfig;
+    error?: string;
+  };
+
+  if (!res.ok || !data.ok || !data.config) {
+    throw new Error(data.error ?? "POS configuration could not be loaded.");
+  }
+
+  return data.config;
 }

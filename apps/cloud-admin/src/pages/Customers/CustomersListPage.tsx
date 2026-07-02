@@ -3,6 +3,17 @@ import { useEffect, useMemo, useState } from "react";
 import { apiGet, apiPatch, apiDelete } from "../../lib/api";
 import { Link } from "react-router-dom";
 import { useTheme, themeColors } from "../../theme/ThemeContext";
+import {
+  fetchFiscalOverview,
+  type AdminFiscalOverviewItem,
+} from "../../lib/fiscalApi";
+import {
+  fiscalStatusBadgeClass,
+  formatFiscalStatus,
+  formatProviderLabel,
+  formatReceiptMode,
+  providerTypeLabel,
+} from "../../lib/caistyTerminology";
 
 type Customer = {
   id: string;
@@ -38,6 +49,11 @@ export default function CustomersListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [countryFilter, setCountryFilter] = useState("");
+  const [fiscalStatusFilter, setFiscalStatusFilter] = useState("");
+  const [fiscalByCustomer, setFiscalByCustomer] = useState<
+    Record<string, AdminFiscalOverviewItem>
+  >({});
 
   // Geräte-Anzahl pro Kunde (nach Hardware-ID gruppiert)
   const [deviceCounts, setDeviceCounts] = useState<Record<string, number>>(
@@ -54,9 +70,21 @@ export default function CustomersListPage() {
         setLoading(true);
         setError(null);
 
-        const [customersRes, devicesRes] = await Promise.all([
+        const [customersRes, devicesRes, fiscalRes] = await Promise.all([
           apiGet<CustomersResponse>("/customers"),
           apiGet<DevicesResponse>("/devices"),
+          fetchFiscalOverview(500).catch(() => ({
+            ok: false as const,
+            items: [] as AdminFiscalOverviewItem[],
+            total: 0,
+            summary: {
+              totalProfiles: 0,
+              germanyFiskalyPending: 0,
+              activeSetups: 0,
+              comingSoonCountries: 0,
+              standardReceiptMode: 0,
+            },
+          })),
         ]);
 
         if (cancelled) return;
@@ -80,6 +108,12 @@ export default function CustomersListPage() {
         }
 
         setDeviceCounts(counts);
+
+        const fiscalMap: Record<string, AdminFiscalOverviewItem> = {};
+        for (const row of fiscalRes.items ?? []) {
+          if (row.customerId) fiscalMap[row.customerId] = row;
+        }
+        setFiscalByCustomer(fiscalMap);
       } catch (err) {
         console.error("Error loading customers/devices", err);
         if (!cancelled) {
@@ -99,7 +133,15 @@ export default function CustomersListPage() {
     };
   }, []);
 
-  // aktive vs. inaktive Kunden aufteilen (mit Suche)
+  const countryOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const row of Object.values(fiscalByCustomer)) {
+      if (row.country) set.add(row.country);
+    }
+    return Array.from(set).sort();
+  }, [fiscalByCustomer]);
+
+  // aktive vs. inaktive Kunden aufteilen (mit Suche + Fiscal-Filtern)
   const { activeItems, inactiveItems } = useMemo(() => {
     const term = search.trim().toLowerCase();
 
@@ -111,11 +153,20 @@ export default function CustomersListPage() {
       return id.includes(term) || name.includes(term) || email.includes(term);
     };
 
+    const matchesFiscal = (c: Customer) => {
+      const fiscal = fiscalByCustomer[c.id];
+      if (countryFilter && (fiscal?.country ?? "") !== countryFilter) return false;
+      if (fiscalStatusFilter && (fiscal?.fiscalStatus ?? "") !== fiscalStatusFilter) {
+        return false;
+      }
+      return true;
+    };
+
     const actives: Customer[] = [];
     const inactives: Customer[] = [];
 
     for (const c of items) {
-      if (!matchesSearch(c)) continue;
+      if (!matchesSearch(c) || !matchesFiscal(c)) continue;
       const status = (c.status ?? "").toLowerCase();
       if (status === "inactive") {
         inactives.push(c);
@@ -125,7 +176,7 @@ export default function CustomersListPage() {
     }
 
     return { activeItems: actives, inactiveItems: inactives };
-  }, [items, search]);
+  }, [items, search, countryFilter, fiscalStatusFilter, fiscalByCustomer]);
 
   async function handleArchiveCustomer(c: Customer) {
     const devicesForCustomer = deviceCounts[c.id] ?? 0;
@@ -255,6 +306,46 @@ export default function CustomersListPage() {
             e.currentTarget.style.boxShadow = "none";
           }}
         />
+
+        <select
+          value={countryFilter}
+          onChange={(e) => setCountryFilter(e.target.value)}
+          style={{
+            padding: "6px 10px",
+            borderRadius: 6,
+            border: `1px solid ${colors.borderSecondary}`,
+            background: colors.input,
+            color: colors.text,
+            fontSize: 13,
+          }}
+        >
+          <option value="">All countries</option>
+          {countryOptions.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={fiscalStatusFilter}
+          onChange={(e) => setFiscalStatusFilter(e.target.value)}
+          style={{
+            padding: "6px 10px",
+            borderRadius: 6,
+            border: `1px solid ${colors.borderSecondary}`,
+            background: colors.input,
+            color: colors.text,
+            fontSize: 13,
+          }}
+        >
+          <option value="">All fiscal statuses</option>
+          <option value="not_required">Not required</option>
+          <option value="pending_setup">Pending setup</option>
+          <option value="active">Active</option>
+          <option value="required_coming_soon">Required — coming soon</option>
+          <option value="error">Error</option>
+        </select>
       </div>
 
       {error && (
@@ -294,6 +385,9 @@ export default function CustomersListPage() {
                 <th style={{ color: colors.textSecondary }}>ID</th>
                 <th style={{ color: colors.textSecondary }}>Name</th>
                 <th style={{ color: colors.textSecondary }}>E-Mail</th>
+                <th style={{ color: colors.textSecondary }}>Country</th>
+                <th style={{ color: colors.textSecondary }}>Fiscal status</th>
+                <th style={{ color: colors.textSecondary }}>Provider</th>
                 <th style={{ color: colors.textSecondary }}>Status</th>
                 <th style={{ color: colors.textSecondary }}>Devices</th>
                 <th style={{ color: colors.textSecondary }}>Erstellt am</th>
@@ -304,7 +398,7 @@ export default function CustomersListPage() {
             {loading ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={10}
                   style={{
                     textAlign: "center",
                     padding: 24,
@@ -317,7 +411,7 @@ export default function CustomersListPage() {
             ) : activeItems.length === 0 ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={10}
                   style={{
                     textAlign: "center",
                     padding: 24,
@@ -330,6 +424,7 @@ export default function CustomersListPage() {
             ) : (
               activeItems.map((c) => {
                 const devicesForCustomer = deviceCounts[c.id] ?? 0;
+                const fiscal = fiscalByCustomer[c.id];
 
                 return (
                   <tr
@@ -367,6 +462,62 @@ export default function CustomersListPage() {
                       </Link>
                     </td>
                     <td style={{ color: colors.text }}>{c.email}</td>
+                    <td style={{ color: colors.text }}>
+                      {fiscal?.country ? (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            padding: "2px 8px",
+                            borderRadius: 999,
+                            background: colors.bgTertiary,
+                            border: `1px solid ${colors.border}`,
+                          }}
+                        >
+                          {fiscal.country}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td>
+                      {fiscal ? (
+                        <span
+                          className={`status-badge ${fiscalStatusBadgeClass(fiscal.fiscalStatus)}`}
+                          style={{ fontSize: 11 }}
+                        >
+                          {formatFiscalStatus(fiscal.fiscalStatus)}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td style={{ color: colors.text, maxWidth: 180 }}>
+                      {fiscal ? (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            display: "inline-block",
+                            padding: "2px 8px",
+                            borderRadius: 999,
+                            background: colors.bgTertiary,
+                            border: `1px solid ${colors.border}`,
+                          }}
+                          title={formatProviderLabel(
+                            fiscal.provider,
+                            fiscal.providerLabel,
+                            fiscal.fiscalConfigurationLabel,
+                          )}
+                        >
+                          {fiscal.provider === "fiskaly"
+                            ? "Fiskaly"
+                            : fiscal.providerType === "coming_soon"
+                              ? "Coming soon"
+                              : "Standard"}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
                     <td>
                       <span
                         className={`status-badge status-${

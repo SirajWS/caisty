@@ -2,6 +2,18 @@
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { apiDeleteDevice, apiGet } from "../../lib/api";
+import {
+  FISCAL_ACTION_TOOLTIP,
+  fiscalStatusBadgeClass,
+  formatCloudSyncStatus,
+  formatDeviceStatus,
+  formatFiscalDate,
+  formatFiscalStatus,
+  formatLicenseStatus,
+  formatProviderLabel,
+  formatReceiptMode,
+  providerTypeLabel,
+} from "../../lib/caistyTerminology";
 
 type CloudCustomerProfile = {
   accountName?: string;
@@ -80,6 +92,38 @@ type Device = {
 
 type CustomerResponse = { item: Customer };
 
+type AdminFiscalConfig = {
+  country: string | null;
+  currency: string;
+  fiscalRequired: boolean;
+  provider: string;
+  providerType: string;
+  providerName: string | null;
+  providerLabel: string;
+  fiscalStatus: string;
+  fiscalEnvironment: string;
+  receiptMode: string;
+  fiscalProfileKey: string;
+  fiscalConfigurationLabel: string;
+  posConfigurationStatus: string;
+  posDownloadAllowed: boolean;
+  supportedExports: string[];
+  fiscalNotice: string | null;
+  mode: string;
+  lastSyncAt: string | null;
+  actions: {
+    startSetup: boolean;
+    markActive: boolean;
+    markPending: boolean;
+    viewLogs: boolean;
+  };
+};
+
+type AdminFiscalResponse = {
+  ok: boolean;
+  fiscal?: AdminFiscalConfig;
+};
+
 type ListResponse<T> = {
   items: T[];
   total: number;
@@ -120,6 +164,7 @@ export default function CustomerDetailPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [licenses, setLicenses] = useState<License[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
+  const [fiscal, setFiscal] = useState<AdminFiscalConfig | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -131,16 +176,20 @@ export default function CustomerDetailPage() {
 
     const customerIdParam = customerId;
 
-    const [customerRes, subsRes, licRes, devRes] = await Promise.all([
+    const [customerRes, subsRes, licRes, devRes, fiscalRes] = await Promise.all([
       apiGet<CustomerResponse>(`/customers/${customerIdParam}`),
       apiGet<ListResponse<Subscription>>("/subscriptions"),
       apiGet<ListResponse<License>>(
         `/licenses?customerId=${encodeURIComponent(customerIdParam)}`,
       ),
       apiGet<ListResponse<DeviceRow>>("/devices"),
+      apiGet<AdminFiscalResponse>(
+        `/admin/fiscal/customers/${encodeURIComponent(customerIdParam)}`,
+      ).catch(() => ({ ok: false as const })),
     ]);
 
     setCustomer(customerRes.item);
+    setFiscal(fiscalRes.ok && fiscalRes.fiscal ? fiscalRes.fiscal : null);
     setSubscriptions(
       (subsRes.items ?? []).filter((s) => s.customerId === customerId),
     );
@@ -325,8 +374,20 @@ export default function CustomerDetailPage() {
         </div>
       ) : (
         <>
-          {/* Customer-Card */}
+          {/* Account */}
           <div className="admin-card" style={{ marginBottom: 24 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+                color: "#9ca3af",
+                marginBottom: 12,
+              }}
+            >
+              Account
+            </div>
             <div
               style={{
                 display: "flex",
@@ -412,6 +473,195 @@ export default function CustomerDetailPage() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Business (cloud — Customer Portal source of truth) */}
+            <div
+              className="admin-card"
+              style={{
+                marginTop: 24,
+                padding: 20,
+                fontSize: 13,
+                border: "1px solid rgba(148,163,184,0.25)",
+              }}
+            >
+              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>
+                Business
+              </div>
+              <div style={{ color: "#9ca3af", fontSize: 12, marginBottom: 12 }}>
+                Merchant-editable in Customer Portal · Cloud-managed · POS read-only
+              </div>
+              {!fiscal ? (
+                <div style={{ color: "#9ca3af" }}>
+                  No business profile yet. Merchant must complete Business in the Customer Portal.
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "160px minmax(0, 1fr)",
+                    rowGap: 6,
+                    columnGap: 8,
+                  }}
+                >
+                  <div style={{ color: "#9ca3af" }}>Country</div>
+                  <div>{fiscal.country ?? "—"}</div>
+                  <div style={{ color: "#9ca3af" }}>Currency</div>
+                  <div>{fiscal.currency}</div>
+                  <div style={{ color: "#9ca3af" }}>Sync status</div>
+                  <div>{formatCloudSyncStatus(fiscal.lastSyncAt)}</div>
+                </div>
+              )}
+            </div>
+
+            {/* Fiscal */}
+            <div
+              className="admin-card"
+              style={{
+                marginTop: 24,
+                padding: 20,
+                fontSize: 13,
+                border: "1px solid rgba(148,163,184,0.25)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: 16,
+                  flexWrap: "wrap",
+                  marginBottom: 12,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>
+                    Fiscal
+                  </div>
+                  <div style={{ color: "#9ca3af", fontSize: 12 }}>
+                    Cloud fiscal configuration · internal staff view
+                  </div>
+                </div>
+                {customerId ? (
+                  <Link
+                    to={`/fiscal?customerId=${encodeURIComponent(customerId)}`}
+                    style={{
+                      fontSize: 12,
+                      padding: "8px 12px",
+                      borderRadius: 6,
+                      border: "1px solid rgba(148,163,184,0.35)",
+                      background: "rgba(15,23,42,0.4)",
+                      color: "#a78bfa",
+                      textDecoration: "none",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Open Fiscal Dashboard
+                  </Link>
+                ) : null}
+              </div>
+
+              {!fiscal ? (
+                <div style={{ color: "#9ca3af" }}>
+                  No business / fiscal profile yet. Customer must complete Business setup in the portal.
+                </div>
+              ) : (
+                <>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "160px minmax(0, 1fr)",
+                      rowGap: 6,
+                      columnGap: 8,
+                    }}
+                  >
+                    <div style={{ color: "#9ca3af" }}>Country</div>
+                    <div>{fiscal.country ?? "—"}</div>
+                    <div style={{ color: "#9ca3af" }}>Currency</div>
+                    <div>{fiscal.currency}</div>
+                    <div style={{ color: "#9ca3af" }}>Fiscal provider</div>
+                    <div>
+                      {formatProviderLabel(
+                        fiscal.provider,
+                        fiscal.providerLabel,
+                        fiscal.fiscalConfigurationLabel,
+                      )}
+                    </div>
+                    <div style={{ color: "#9ca3af" }}>Provider type</div>
+                    <div>{providerTypeLabel(fiscal.providerType)}</div>
+                    <div style={{ color: "#9ca3af" }}>Fiscal status</div>
+                    <div>
+                      <span className={`status-badge ${fiscalStatusBadgeClass(fiscal.fiscalStatus)}`}>
+                        {formatFiscalStatus(fiscal.fiscalStatus)}
+                      </span>
+                    </div>
+                    <div style={{ color: "#9ca3af" }}>Receipt mode</div>
+                    <div>{formatReceiptMode(fiscal.receiptMode)}</div>
+                    <div style={{ color: "#9ca3af" }}>Supported exports</div>
+                    <div>
+                      {fiscal.supportedExports.length
+                        ? fiscal.supportedExports.join(", ")
+                        : "—"}
+                    </div>
+                    <div style={{ color: "#9ca3af" }}>POS download allowed</div>
+                    <div>{fiscal.posDownloadAllowed ? "Yes" : "No"}</div>
+                    <div style={{ color: "#9ca3af" }}>Last sync</div>
+                    <div>{formatFiscalDate(fiscal.lastSyncAt)}</div>
+                    {fiscal.fiscalNotice ? (
+                      <>
+                        <div style={{ color: "#9ca3af" }}>Notice</div>
+                        <div style={{ color: "#cbd5e1" }}>{fiscal.fiscalNotice}</div>
+                      </>
+                    ) : null}
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 14,
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 8,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      disabled
+                      title={FISCAL_ACTION_TOOLTIP}
+                      style={{
+                        opacity: 0.5,
+                        cursor: "not-allowed",
+                        fontSize: 12,
+                        padding: "6px 10px",
+                      }}
+                    >
+                      Start setup
+                    </button>
+                    <button
+                      type="button"
+                      disabled
+                      title={FISCAL_ACTION_TOOLTIP}
+                      style={{ opacity: 0.5, cursor: "not-allowed", fontSize: 12, padding: "6px 10px" }}
+                    >
+                      Mark active
+                    </button>
+                    <button
+                      type="button"
+                      disabled
+                      title={FISCAL_ACTION_TOOLTIP}
+                      style={{ opacity: 0.5, cursor: "not-allowed", fontSize: 12, padding: "6px 10px" }}
+                    >
+                      Mark pending
+                    </button>
+                    <button
+                      type="button"
+                      disabled
+                      title={FISCAL_ACTION_TOOLTIP}
+                      style={{ opacity: 0.5, cursor: "not-allowed", fontSize: 12, padding: "6px 10px" }}
+                    >
+                      View logs
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* POS-Profil aus CloudCustomer / Account */}
@@ -553,7 +803,7 @@ export default function CustomerDetailPage() {
                 marginBottom: 12,
               }}
             >
-              <h2 className="admin-section-title">Subscriptions</h2>
+              <h2 className="admin-section-title">Billing · Subscriptions</h2>
             </div>
 
             <table className="admin-table">
@@ -599,7 +849,7 @@ export default function CustomerDetailPage() {
                 marginBottom: 12,
               }}
             >
-              <h2 className="admin-section-title">Licenses</h2>
+              <h2 className="admin-section-title">License</h2>
             </div>
 
             <table className="admin-table">
@@ -634,7 +884,7 @@ export default function CustomerDetailPage() {
                       <td>{l.plan}</td>
                       <td>
                         <span className={`status-badge status-${l.status}`}>
-                          {l.status}
+                          {formatLicenseStatus(l.status)}
                         </span>
                       </td>
                       <td>{l.maxDevices ?? "—"}</td>

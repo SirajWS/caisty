@@ -13,6 +13,7 @@ import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
 import { portalLocaleTag } from "../lib/portalLocale";
 import { portalCardShell, portalInputClass, portalLicenseStatusBadge, portalPrimaryCta, portalTableShell, portalTextLink } from "../lib/portalUi";
+import { formatLicenseStatus } from "../lib/caistyTerminology";
 
 const PortalLicensesPage: React.FC = () => {
   const { language } = useLanguage();
@@ -315,7 +316,7 @@ const StatusBadge: React.FC<{ status: string; isLight?: boolean }> = ({
   status,
   isLight = false,
 }) => {
-  return <span className={portalLicenseStatusBadge(status, isLight)}>{status}</span>;
+  return <span className={portalLicenseStatusBadge(status, isLight)}>{formatLicenseStatus(status)}</span>;
 };
 
 const SkeletonLicenseRow: React.FC<{ isLight?: boolean }> = ({

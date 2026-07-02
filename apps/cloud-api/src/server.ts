@@ -29,6 +29,9 @@ import { registerPortalTrialLicenseRoutes } from "./routes/portal-trial-license.
 import { registerPortalUpgradeRoutes } from "./routes/portal-upgrade.js";
 import { registerPortalLicensesRoutes } from "./routes/portal-licenses.js";
 import { registerPortalInvoiceRoutes } from "./routes/portal-invoices.js";
+import { registerPortalBusinessRoutes } from "./routes/portal-business.js";
+import { registerPosConfigRoutes } from "./routes/pos-config.js";
+import { registerAdminFiscalRoutes } from "./routes/admin/fiscal.js";
 
 import { registerAdminNotificationsRoutes } from "./routes/admin-notifications.js";
 import { registerAdminAnalyticsRoutes } from "./routes/admin/analytics.js";
@@ -77,6 +80,7 @@ export async function buildServer() {
       (url === "/licenses/verify" && method === "POST") ||
       (url === "/devices/bind" && method === "POST") ||
       (url === "/devices/heartbeat" && method === "POST") ||
+      (url === "/pos/config" && method === "GET") ||
       (url.startsWith("/invoices/") && url.endsWith("/html")) || // Invoice HTML-Export (mit Auth im Handler)
       (env.NODE_ENV === "development" && url.startsWith("/test-email")) || // Test-Endpoint nur in Development
       (env.NODE_ENV === "development" && url.startsWith("/test-reset-token")) || // Test-Endpoint nur in Development
@@ -140,6 +144,7 @@ export async function buildServer() {
   await registerPortalUpgradeRoutes(app); // Upgrade + PayPal
   await registerPortalLicensesRoutes(app); // "Meine Lizenzen" (Portal-Liste)
   await registerPortalInvoiceRoutes(app); // Invoice-Details
+  await registerPortalBusinessRoutes(app); // Business profile (company, tax, fiscal)
 
   // ---------------------------------------------------------------------------
   // Admin-Auth (neues Admin-Auth-System)
@@ -154,6 +159,7 @@ export async function buildServer() {
   await registerAdminAnalyticsRoutes(app);
   await registerAdminSubscriptionsRoutes(app);
   await registerAdminDevicesRoutes(app);
+  await registerAdminFiscalRoutes(app);
 
   // ---------------------------------------------------------------------------
   // Admin-APIs (interne Cloud-Admin-Oberfläche)
@@ -169,6 +175,7 @@ export async function buildServer() {
   // Öffentliche License-/Device-API für POS
   // ---------------------------------------------------------------------------
   await registerPublicLicenseRoutes(app);
+  await registerPosConfigRoutes(app);
 
   // ---------------------------------------------------------------------------
   // Payments & Webhooks

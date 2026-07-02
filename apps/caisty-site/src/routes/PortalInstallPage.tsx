@@ -15,9 +15,10 @@ import { portalLocaleTag } from "../lib/portalLocale";
 import { pickPrimaryPortalLicense } from "../lib/portalLicensePick";
 import { portalCardShell, portalLicenseStatusBadge, portalPrimaryCta } from "../lib/portalUi";
 
+import { getPosWindowsDownloadUrl } from "../config/businessCountries";
+
 function getWindowsInstallUrl(): string | null {
-  const envUrl = String(import.meta.env.VITE_POS_WINDOWS_URL ?? "").trim();
-  return envUrl || null;
+  return getPosWindowsDownloadUrl();
 }
 
 const WINDOWS_DEMO_URL =

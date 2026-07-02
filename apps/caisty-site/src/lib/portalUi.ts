@@ -140,3 +140,38 @@ export function portalInputClass(isLight: boolean): string {
       : "border-white/10 bg-white/[0.05] text-slate-100 placeholder:text-slate-500",
   ].join(" ");
 }
+
+/** Cloud status tone (POS Admin Architecture v1.0). */
+export function portalCloudStatusTone(
+  tone: "ok" | "attention" | "action_required" | "unknown",
+  isLight: boolean,
+): string {
+  const base =
+    "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide";
+  switch (tone) {
+    case "ok":
+      return `${base} ${
+        isLight
+          ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+          : "border-emerald-500/30 bg-emerald-500/15 text-emerald-400"
+      }`;
+    case "attention":
+      return `${base} ${
+        isLight
+          ? "border-amber-300 bg-amber-50 text-amber-900"
+          : "border-amber-500/40 bg-amber-500/15 text-amber-200"
+      }`;
+    case "action_required":
+      return `${base} ${
+        isLight
+          ? "border-rose-300 bg-rose-50 text-rose-800"
+          : "border-rose-500/40 bg-rose-500/10 text-rose-300"
+      }`;
+    default:
+      return `${base} ${
+        isLight
+          ? "border-slate-200 bg-slate-100 text-slate-600"
+          : "border-white/10 bg-slate-800/80 text-slate-400"
+      }`;
+  }
+}
