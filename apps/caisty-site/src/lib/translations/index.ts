@@ -9,6 +9,8 @@ import type { PortalTranslations } from "./portal";
 import type { CompanyCopy } from "./company";
 import type { ContactCopy } from "./contact";
 import type { WorkTrackPageCopy } from "./worktrackPage";
+import type { LegalDocumentCopy } from "./legal/shared/types";
+import type { TermsCopy } from "./legal/terms";
 import { common } from "./common";
 import { landing } from "./landing";
 import { pricing } from "./pricing";
@@ -17,6 +19,13 @@ import { portal } from "./portal";
 import { company } from "./company";
 import { contact } from "./contact";
 import { worktrackPage } from "./worktrackPage";
+import { terms } from "./legal/terms";
+import { privacy } from "./legal/privacy";
+import { cookie } from "./legal/cookie";
+import { eula } from "./legal/eula";
+import { dpa } from "./legal/dpa";
+import { imprint } from "./legal/imprint";
+import { subprocessors } from "./legal/subprocessors";
 
 // Exportiere Types und Languages
 export type { Language, TranslationSchema };
@@ -34,6 +43,15 @@ export const translations: Record<
     company: CompanyCopy;
     contact: ContactCopy;
     worktrackPage: WorkTrackPageCopy;
+    legal: {
+      terms: TermsCopy;
+      privacy: LegalDocumentCopy;
+      cookie: LegalDocumentCopy;
+      eula: LegalDocumentCopy;
+      dpa: LegalDocumentCopy;
+      imprint: LegalDocumentCopy;
+      subprocessors: LegalDocumentCopy;
+    };
   }
 > = {
   de: {
@@ -45,6 +63,15 @@ export const translations: Record<
     company: company.de,
     contact: contact.de,
     worktrackPage: worktrackPage.de,
+    legal: {
+      terms: terms.de,
+      privacy: privacy.de,
+      cookie: cookie.de,
+      eula: eula.de,
+      dpa: dpa.de,
+      imprint: imprint.de,
+      subprocessors: subprocessors.de,
+    },
   },
   en: {
     common: common.en,
@@ -55,6 +82,15 @@ export const translations: Record<
     company: company.en,
     contact: contact.en,
     worktrackPage: worktrackPage.en,
+    legal: {
+      terms: terms.en,
+      privacy: privacy.en,
+      cookie: cookie.en,
+      eula: eula.en,
+      dpa: dpa.en,
+      imprint: imprint.en,
+      subprocessors: subprocessors.en,
+    },
   },
   fr: {
     common: common.fr,
@@ -65,6 +101,15 @@ export const translations: Record<
     company: company.fr,
     contact: contact.fr,
     worktrackPage: worktrackPage.fr,
+    legal: {
+      terms: terms.fr,
+      privacy: privacy.fr,
+      cookie: cookie.fr,
+      eula: eula.fr,
+      dpa: dpa.fr,
+      imprint: imprint.fr,
+      subprocessors: subprocessors.fr,
+    },
   },
   ar: {
     common: common.ar,
@@ -75,6 +120,15 @@ export const translations: Record<
     company: company.ar,
     contact: contact.ar,
     worktrackPage: worktrackPage.ar,
+    legal: {
+      terms: terms.ar,
+      privacy: privacy.ar,
+      cookie: cookie.ar,
+      eula: eula.ar,
+      dpa: dpa.ar,
+      imprint: imprint.ar,
+      subprocessors: subprocessors.ar,
+    },
   },
 };
 

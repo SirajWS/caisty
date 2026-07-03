@@ -8,8 +8,6 @@ import CookieBanner from "../components/CookieBanner";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
-import { FOOTER_TECH_STRIP } from "../lib/translations/common";
-import { ICON_COLORS } from "../components/TechStackCardGrid";
 import { tunisiaWhatsappUrl } from "../config/marketContact";
 import { COMPANY_HOME, LEGAL_PATHS, POS_LANDING_PATH } from "../config/marketingRoutes";
 import { CaistyLogo } from "../components/CaistyLogo";
@@ -27,11 +25,6 @@ export default function SiteLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [footerModal, setFooterModal] = useState<null | "company" | "contact">(null);
 
-  const baseBg = isLight ? "bg-[#f8fafc] text-slate-900" : "bg-[#0b1220] text-slate-50";
-  const baseBorder = isLight ? "border-[#e2e8f0]" : "border-white/[0.08]";
-  const strongText = isLight ? "text-[#0b1220]" : "text-white";
-  const headerBg = isLight ? "bg-white/95" : "bg-[#0b1220]/95";
-
   const host = typeof window !== "undefined" ? window.location.hostname : "";
   const isTN = host === "tn.caisty.com";
   const waUrl = typeof window !== "undefined" ? tunisiaWhatsappUrl() : null;
@@ -39,57 +32,42 @@ export default function SiteLayout() {
   const closeMobile = () => setMobileOpen(false);
 
   const { pathname } = useLocation();
-  /** Pre-footer trust + tech band on POS landing and pricing; product cards hidden on POS (see MarketingPreFooter). */
   const showMarketingPreFooter = pathname === POS_LANDING_PATH || pathname === "/pricing";
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    [
-      "text-sm font-medium no-underline transition-colors",
-      isActive
-        ? "text-[#f97316]"
-        : isLight
-          ? "text-slate-600 hover:text-[#0b1220]"
-          : "text-slate-300 hover:text-white",
-    ].join(" ");
+    ["mkt-nav-link", isActive ? "is-active" : ""].filter(Boolean).join(" ");
 
-  const footerLinkClass = `text-sm text-start hover:text-[#f97316] transition-colors no-underline bg-transparent border-0 p-0 cursor-pointer font-inherit ${
-    isLight ? "text-slate-600" : "text-slate-400"
-  }`;
-
-  const footerNavLinkClass = `text-sm hover:text-[#f97316] transition-colors no-underline ${
-    isLight ? "text-slate-600" : "text-slate-400"
-  }`;
+  const footerTextClass = "text-sm transition-colors no-underline";
+  const footerMuted = { color: "var(--mkt-text-muted)" } as const;
+  const footerLinkStyle = { ...footerMuted, background: "transparent", border: 0, padding: 0, cursor: "pointer", font: "inherit", textAlign: "start" as const };
 
   return (
-    <div className={`min-h-screen flex flex-col w-full min-w-0 ${baseBg}`}>
+    <div
+      className={`marketing-site min-h-screen flex flex-col w-full min-w-0 ${isLight ? "" : "marketing-site--dark"}`}
+      style={{ background: "var(--mkt-bg)", color: "var(--mkt-text)" }}
+    >
       <header
-        className={`sticky top-0 z-40 border-b ${baseBorder} ${headerBg} backdrop-blur-md`}
+        className="sticky top-0 z-40 border-b backdrop-blur-xl"
+        style={{
+          borderColor: "var(--mkt-border)",
+          background: isLight ? "color-mix(in srgb, var(--mkt-bg) 88%, transparent)" : "color-mix(in srgb, var(--mkt-bg) 90%, transparent)",
+        }}
       >
-        <div className="max-w-6xl mx-auto w-full min-w-0 px-4 sm:px-5 py-3">
+        <div className="mkt-shell py-3">
           <div className="flex items-center justify-between gap-3 min-w-0">
-            <Link
-              to={COMPANY_HOME}
-              className="flex min-w-0 max-w-full shrink-0 items-center gap-2 no-underline sm:gap-3"
-              onClick={closeMobile}
-            >
-              <div className="flex items-center gap-[10px]">
-                <CaistyLogo className="h-[44px] w-[44px]" />
-                <div className="flex min-w-0 flex-col leading-[1.2]">
-                  <span
-                    className={`text-[18px] font-medium ${isLight ? "text-[#1a1a1a]" : "text-[#f0f0f0]"}`}
-                  >
-                    {t.layout.headerBrand}
-                  </span>
-                  <span className="text-[11px] font-light tracking-[0.5px] text-[#aaaaaa]">
-                    {t.layout.headerSubtitle}
-                  </span>
-                </div>
+            <Link to={COMPANY_HOME} className="flex min-w-0 shrink-0 items-center gap-3 no-underline" onClick={closeMobile}>
+              <CaistyLogo className="h-11 w-11" />
+              <div className="flex min-w-0 flex-col leading-tight">
+                <span className="text-lg font-semibold" style={{ color: "var(--mkt-text)" }}>
+                  {t.layout.headerBrand}
+                </span>
+                <span className="text-xs font-medium" style={{ color: "var(--mkt-text-subtle)" }}>
+                  {t.layout.headerSubtitle}
+                </span>
               </div>
             </Link>
 
-            <nav
-              className={`hidden lg:flex items-center gap-8 ${isLight ? "text-slate-600" : "text-slate-300"}`}
-            >
+            <nav className="hidden lg:flex items-center gap-8">
               <NavLink to={COMPANY_HOME} end className={navLinkClass}>
                 {t.nav.company}
               </NavLink>
@@ -99,21 +77,19 @@ export default function SiteLayout() {
                 loginLabel={t.buttons.login}
                 isLight={isLight}
               />
-              <NavLink to="/worktrack" className={navLinkClass}>
-                {productMenu.worktrackTitle}
+              <NavLink to="/pricing" className={navLinkClass}>
+                {t.nav.pricing}
               </NavLink>
+              <span className="mkt-nav-soon" title={productMenu.worktrackStatus}>
+                {productMenu.worktrackNavSoon}
+              </span>
             </nav>
 
             <div className="hidden lg:flex items-center gap-3 shrink-0">
               {!isTN && <LanguageSelector />}
               <ThemeToggle />
               {isTN && waUrl && (
-                <a
-                  href={waUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`text-xs font-medium no-underline ${isLight ? "text-slate-500 hover:text-[#0b1220]" : "text-slate-400 hover:text-white"}`}
-                >
+                <a href={waUrl} target="_blank" rel="noopener noreferrer" className="mkt-nav-link text-xs">
                   WhatsApp
                 </a>
               )}
@@ -121,16 +97,12 @@ export default function SiteLayout() {
 
             <button
               type="button"
-              className={`lg:hidden inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border ${
-                isLight
-                  ? "border-slate-300 bg-white text-slate-800"
-                  : "border-white/15 bg-white/[0.04] text-slate-100"
-              }`}
+              className="lg:hidden inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border"
+              style={{ borderColor: "var(--mkt-border)", background: "var(--mkt-bg-elevated)", color: "var(--mkt-text)" }}
               aria-expanded={mobileOpen}
               aria-label={mobileOpen ? t.layout.menuClose : t.layout.menuOpen}
               onClick={() => setMobileOpen((o) => !o)}
             >
-              <span className="sr-only">{mobileOpen ? t.layout.menuClose : t.layout.menuOpen}</span>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                 {mobileOpen ? (
                   <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
@@ -143,50 +115,28 @@ export default function SiteLayout() {
         </div>
 
         {mobileOpen && (
-          <div
-            className={`lg:hidden border-t ${baseBorder} ${isLight ? "bg-white" : "bg-[#0b1220]"}`}
-          >
-            <div className="max-w-6xl mx-auto px-4 sm:px-5 pb-4 pt-3 space-y-3">
-              <div className="flex flex-col gap-1">
-                <NavLink
-                  to={COMPANY_HOME}
-                  end
-                  onClick={closeMobile}
-                  className={({ isActive }) =>
-                    `text-sm font-medium py-2 no-underline ${isActive ? "text-[#f97316]" : isLight ? "text-slate-700" : "text-slate-200"}`
-                  }
-                >
-                  {t.nav.company}
-                </NavLink>
-                <MobileCaistyPosQuickAccessMenu
-                  label={productMenu.posTitle}
-                  registerLabel={t.buttons.register}
-                  loginLabel={t.buttons.login}
-                  isLight={isLight}
-                  onNavigate={closeMobile}
-                />
-                <NavLink
-                  to="/worktrack"
-                  onClick={closeMobile}
-                  className={({ isActive }) =>
-                    `text-sm font-medium py-2 no-underline ${isActive ? "text-[#f97316]" : isLight ? "text-slate-700" : "text-slate-200"}`
-                  }
-                >
-                  {productMenu.worktrackTitle}
-                </NavLink>
-                {isTN && waUrl && (
-                  <a
-                    href={waUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={closeMobile}
-                    className={`text-sm font-medium py-2 no-underline ${isLight ? "text-slate-700" : "text-slate-200"}`}
-                  >
-                    WhatsApp
-                  </a>
-                )}
-              </div>
-              <div className={`flex flex-wrap items-center gap-3 pt-3 border-t ${baseBorder}`}>
+          <div className="lg:hidden border-t" style={{ borderColor: "var(--mkt-border)", background: "var(--mkt-bg-elevated)" }}>
+            <div className="mkt-shell pb-4 pt-3 space-y-3">
+              <NavLink to={COMPANY_HOME} end onClick={closeMobile} className={navLinkClass}>
+                {t.nav.company}
+              </NavLink>
+              <MobileCaistyPosQuickAccessMenu
+                label={productMenu.posTitle}
+                registerLabel={t.buttons.register}
+                loginLabel={t.buttons.login}
+                isLight={isLight}
+                onNavigate={closeMobile}
+              />
+              <NavLink to="/pricing" onClick={closeMobile} className={navLinkClass}>
+                {t.nav.pricing}
+              </NavLink>
+              <p className="mkt-nav-soon py-2 m-0">{productMenu.worktrackNavSoon}</p>
+              {isTN && waUrl && (
+                <a href={waUrl} target="_blank" rel="noopener noreferrer" onClick={closeMobile} className={`${footerTextClass} block py-2`} style={footerMuted}>
+                  WhatsApp
+                </a>
+              )}
+              <div className="flex flex-wrap items-center gap-3 pt-3 border-t" style={{ borderColor: "var(--mkt-border)" }}>
                 {!isTN && <LanguageSelector />}
                 <ThemeToggle />
               </div>
@@ -201,122 +151,77 @@ export default function SiteLayout() {
 
       {showMarketingPreFooter ? <MarketingPreFooter /> : null}
 
-      <footer className={`border-t ${baseBorder} ${isLight ? "bg-white" : "bg-[#0b1220]"}`}>
-        <div className="max-w-6xl mx-auto w-full min-w-0 px-4 sm:px-6 lg:px-8 py-12 lg:py-14">
-          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5 lg:gap-12">
-            <div className="sm:col-span-2 lg:col-span-2 space-y-4 min-w-0">
-              <h2 className={`text-lg font-bold tracking-tight ${strongText}`}>{t.footer.companyBrand}</h2>
-              <p className={`text-sm leading-relaxed max-w-lg ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+      <footer className="border-t" style={{ borderColor: "var(--mkt-border)", background: "var(--mkt-bg-elevated)" }}>
+        <div className="mkt-shell py-14 lg:py-16">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-12">
+            <div className="sm:col-span-2 space-y-4 min-w-0">
+              <h2 className="text-lg font-bold tracking-tight" style={{ color: "var(--mkt-text)" }}>
+                {t.footer.companyBrand}
+              </h2>
+              <p className="text-sm leading-relaxed max-w-md m-0" style={{ color: "var(--mkt-text-muted)" }}>
                 {t.footer.companyTagline}
               </p>
-              <div className="pt-1">
-                <h3 className={`text-xs font-bold uppercase tracking-wider mb-2 ${isLight ? "text-slate-500" : "text-slate-500"}`}>
-                  {t.footer.productsHeading}
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <Link to={`${POS_LANDING_PATH}#product`} className="font-semibold text-[#f97316] hover:underline no-underline">
-                      {t.footer.productPosName}
-                    </Link>
-                    <p className={`mt-0.5 text-xs leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                      {t.footer.productPosBlurb}
-                    </p>
-                  </div>
-                  <div>
-                    <Link to="/worktrack" className="font-semibold text-[#f97316] hover:underline no-underline">
-                      {t.footer.productWorktrackName}
-                    </Link>
-                    <p className={`mt-0.5 text-xs leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                      {t.footer.productWorktrackBlurb}
-                    </p>
-                  </div>
-                </div>
+              <div className="pt-2 space-y-2 text-sm">
+                <Link to={POS_LANDING_PATH} className="font-semibold no-underline" style={{ color: "var(--mkt-accent)" }}>
+                  {t.footer.productPosName}
+                </Link>
+                <p className="m-0 text-xs leading-relaxed" style={{ color: "var(--mkt-text-muted)" }}>
+                  {t.footer.productPosBlurb}
+                </p>
+                <p className="m-0 text-xs" style={{ color: "var(--mkt-text-subtle)" }}>
+                  {t.footer.productWorktrackSoon}
+                </p>
               </div>
             </div>
+
             <div className="space-y-3 min-w-0">
-              <h3 className={`text-xs font-bold uppercase tracking-wide ${strongText}`}>{t.footer.colCompany}</h3>
-              <nav className={`flex flex-col gap-2 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                <button type="button" className={footerLinkClass} onClick={() => setFooterModal("company")}>
+              <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--mkt-text-subtle)" }}>
+                {t.footer.colCompany}
+              </h3>
+              <nav className="flex flex-col gap-2">
+                <button type="button" className={footerTextClass} style={footerLinkStyle} onClick={() => setFooterModal("company")}>
                   {t.footer.linkCompany}
                 </button>
-                <button type="button" className={footerLinkClass} onClick={() => setFooterModal("contact")}>
+                <button type="button" className={footerTextClass} style={footerLinkStyle} onClick={() => setFooterModal("contact")}>
                   {t.footer.linkContact}
                 </button>
-              </nav>
-            </div>
-            <div className="space-y-3 min-w-0">
-              <h3 className={`text-xs font-bold uppercase tracking-wide ${strongText}`}>{t.footer.colLegal}</h3>
-              <nav className={`flex flex-col gap-2 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-                <Link to={LEGAL_PATHS.terms} target="_blank" rel="noopener noreferrer" className={footerNavLinkClass}>
-                  {t.footer.terms}
-                </Link>
-                <Link to={LEGAL_PATHS.privacy} target="_blank" rel="noopener noreferrer" className={footerNavLinkClass}>
-                  {t.footer.privacy}
-                </Link>
-                <Link to={LEGAL_PATHS.cookie} target="_blank" rel="noopener noreferrer" className={footerNavLinkClass}>
-                  {t.footer.cookiePolicy}
-                </Link>
-                <Link to={LEGAL_PATHS.eula} target="_blank" rel="noopener noreferrer" className={footerNavLinkClass}>
-                  {t.footer.eula}
-                </Link>
-                <Link to={LEGAL_PATHS.dpa} target="_blank" rel="noopener noreferrer" className={footerNavLinkClass}>
-                  {t.footer.dpa}
-                </Link>
-                <Link to={LEGAL_PATHS.imprint} target="_blank" rel="noopener noreferrer" className={footerNavLinkClass}>
-                  {t.footer.imprint}
+                <Link to="/pricing" className={footerTextClass} style={footerMuted}>
+                  {t.nav.pricing}
                 </Link>
               </nav>
             </div>
+
             <div className="space-y-3 min-w-0">
-              <h3 className={`text-xs font-bold uppercase tracking-wide ${strongText}`}>{t.footer.followTitle}</h3>
-              <div className="flex flex-col gap-2 text-sm" aria-label={t.footer.followTitle}>
-                <span className={`cursor-default ${isLight ? "text-slate-400" : "text-slate-500"}`}>{t.footer.facebook}</span>
-                <span className={`cursor-default ${isLight ? "text-slate-400" : "text-slate-500"}`}>{t.footer.instagram}</span>
-                <span className={`cursor-default ${isLight ? "text-slate-400" : "text-slate-500"}`}>{t.footer.youtube}</span>
-              </div>
+              <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--mkt-text-subtle)" }}>
+                {t.footer.colLegal}
+              </h3>
+              <nav className="flex flex-col gap-2">
+                {(
+                  [
+                    [LEGAL_PATHS.terms, t.footer.terms],
+                    [LEGAL_PATHS.privacy, t.footer.privacy],
+                    [LEGAL_PATHS.cookie, t.footer.cookiePolicy],
+                    [LEGAL_PATHS.eula, t.footer.eula],
+                    [LEGAL_PATHS.dpa, t.footer.dpa],
+                    [LEGAL_PATHS.imprint, t.footer.imprint],
+                  ] as const
+                ).map(([to, label]) => (
+                  <Link key={to} to={to} target="_blank" rel="noopener noreferrer" className={footerTextClass} style={footerMuted}>
+                    {label}
+                  </Link>
+                ))}
+              </nav>
             </div>
           </div>
-          <div
-            className={`mt-10 pt-8 border-t ${baseBorder} flex flex-col gap-4 text-xs sm:text-sm ${isLight ? "text-slate-500" : "text-slate-500"}`}
-          >
-            <div className="flex flex-wrap items-center gap-2 gap-y-2" aria-hidden>
-              {FOOTER_TECH_STRIP.map((item) => {
-                const hex = ICON_COLORS[item.slug] ?? "64748B";
-                return (
-                  <span
-                    key={item.slug}
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 ${
-                      isLight ? "border-slate-200/90 bg-slate-50" : "border-white/10 bg-white/[0.04]"
-                    }`}
-                    title={item.label}
-                  >
-                    <img
-                      src={`https://cdn.simpleicons.org/${item.slug}/${hex}`}
-                      alt=""
-                      width={16}
-                      height={16}
-                      className="h-4 w-4 shrink-0 opacity-90"
-                      loading="lazy"
-                    />
-                    <span className={`text-[10px] font-semibold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
-                      {item.label}
-                    </span>
-                  </span>
-                );
-              })}
-            </div>
+
+          <div className="mt-12 pt-8 border-t flex flex-col gap-2 text-xs sm:text-sm" style={{ borderColor: "var(--mkt-border)", color: "var(--mkt-text-subtle)" }}>
             <span>{t.footer.copyright}</span>
             <span className="leading-relaxed max-w-3xl">{t.footer.developedIn}</span>
           </div>
         </div>
       </footer>
 
-      <FooterModals
-        active={footerModal}
-        onClose={() => setFooterModal(null)}
-        isLight={isLight}
-        copy={t.footer}
-      />
+      <FooterModals active={footerModal} onClose={() => setFooterModal(null)} isLight={isLight} copy={t.footer} />
 
       <CookieBanner />
     </div>

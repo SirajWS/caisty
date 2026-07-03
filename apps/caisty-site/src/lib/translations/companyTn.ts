@@ -3,42 +3,75 @@ import type { CompanyCopy } from "./company";
 
 export const companyTn: CompanyCopy = {
   hero: {
-    badge: "Caisty",
-    headline: "Des logiciels qui aident les entreprises à grandir.",
+    badge: "Cloud-native · Conçu en Allemagne",
+    headline: "Caisse moderne et plateforme cloud pour la Tunisie.",
     subtitle:
-      "Caisty développe des logiciels métier cloud modernes pour simplifier le quotidien des restaurants, cafés, commerces et entreprises en croissance — disponible en Tunisie.",
+      "Caisty réunit caisse tactile, portail client et infrastructure cloud dans un seul produit — fiable, sécurisé et adapté aux cafés, restaurants et commerces.",
+    ctaExplore: "Découvrir Caisty POS",
+    ctaRegister: "Commencer gratuitement",
   },
-  whoWeAre: {
-    title: "Qui sommes-nous",
-    paragraphs: [
-      "Caisty est une société logicielle spécialisée dans des solutions cloud fiables, sécurisées et évolutives pour les entreprises modernes.",
-      "Nos produits visent à réduire la complexité, améliorer la productivité et offrir des outils professionnels simples à utiliser.",
+  trust: {
+    title: "Pourquoi Caisty en Tunisie",
+    subtitle: "Un produit pour le comptoir, l’administratif et le cloud.",
+    points: [
+      {
+        title: "Caisse hors ligne",
+        body: "Encaissez même si la connexion faiblit. Synchronisation automatique au retour du réseau.",
+      },
+      {
+        title: "Portail client",
+        body: "Licences, appareils et facturation dans un espace clair — moins de paperasse.",
+      },
+      {
+        title: "Pensé pour le service",
+        body: "Interface tactile rapide, multilingue et rapports utiles au quotidien.",
+      },
+      {
+        title: "Sécurité cloud",
+        body: "Configuration centralisée et liaison sécurisée des appareils.",
+      },
     ],
-  },
-  mission: {
-    title: "Mission",
-    body: "Notre mission est de créer des logiciels métier simples, fiables et abordables pour que les entreprises se concentrent sur leurs clients plutôt que sur la technologie.",
-  },
-  vision: {
-    title: "Vision",
-    body: "Nous croyons que les logiciels métier doivent être modernes, accessibles et en amélioration continue.",
   },
   whatWeBuild: {
     title: "Ce que nous construisons",
-    items: [
-      "Logiciel de caisse cloud",
-      "Portail client",
-      "Infrastructure cloud",
-      "Outils de gestion d’entreprise",
-      "Solutions workforce à venir",
+    subtitle: "Trois piliers — une plateforme intégrée.",
+    cards: [
+      {
+        id: "pos",
+        title: "Caisty POS",
+        body: "Caisse tactile pour cafés, restaurants et commerces — commandes, stocks et tickets.",
+        cta: "Voir le produit",
+      },
+      {
+        id: "portal",
+        title: "Portail client",
+        body: "Essais, licences, appareils et installation POS en self-service.",
+        cta: "Commencer gratuitement",
+      },
+      {
+        id: "cloud",
+        title: "Plateforme Cloud",
+        body: "Profils entreprise et synchro des appareils via Caisty Cloud.",
+        cta: "Découvrir le POS",
+      },
     ],
   },
-  principles: {
-    title: "Nos principes",
-    items: ["Simplicité", "Fiabilité", "Sécurité", "Transparence", "Amélioration continue"],
+  about: {
+    title: "À propos de Caisty",
+    facts: [
+      { label: "Fondé en", value: "Allemagne" },
+      { label: "Développé en", value: "Allemagne" },
+      { label: "Plateforme", value: "Cloud-native" },
+    ],
+  },
+  tech: {
+    title: "Stack technique",
+    subtitle: "Des outils modernes — du POS desktop à l’API cloud.",
   },
   cta: {
-    headline: "Prêt à découvrir Caisty ?",
+    headline: "Prêt à essayer Caisty POS ?",
+    subline: "Essai gratuit 3 jours — sans engagement.",
     ctaExplore: "Découvrir Caisty POS",
+    ctaRegister: "Commencer gratuitement",
   },
 };

@@ -52,6 +52,91 @@ export const landingTn: LandingCopy = {
     feature6Text:
       "Continuez à encaisser si la connexion faiblit ; synchronisation automatique au retour du réseau.",
   },
+  bento: {
+    title: "Pourquoi choisir Caisty",
+    subtitle: "Des avantages concrets pour cafés, restaurants et commerces en Tunisie.",
+    items: [
+      {
+        id: "offline",
+        title: "Architecture offline-first",
+        body: "Continuez à encaisser si la connexion faiblit ; synchronisation automatique au retour du réseau.",
+      },
+      {
+        id: "verticals",
+        title: "Pensé pour restauration & commerce",
+        body: "Parcours tactiles pour service, cafés et commerces de proximité.",
+      },
+      {
+        id: "portal",
+        title: "Portail client cloud",
+        body: "Licences, appareils, factures et installateurs dans un portail dédié.",
+      },
+      {
+        id: "windows",
+        title: "Application Windows de bureau",
+        body: "Installateur natif pour PC caisse tactile au comptoir.",
+      },
+      {
+        id: "i18n",
+        title: "Support multilingue",
+        body: "Interface en plusieurs langues avec thèmes clair et sombre.",
+      },
+      {
+        id: "germany",
+        title: "Développé en Allemagne",
+        body: "Plateforme cloud-native conçue en Allemagne pour les entreprises européennes.",
+      },
+    ],
+  },
+  security: {
+    title: "Sécurité de confiance",
+    subtitle: "Protection des données, appareils et opérations quotidiennes.",
+    items: [
+      { title: "Sauvegardes cloud", body: "Données métier stockées dans le cloud, accessibles via le portail." },
+      { title: "Connexions chiffrées", body: "Portail et services cloud en HTTPS chiffré." },
+      { title: "PIN & droits par rôle", body: "PIN caissier et admin séparés avec droits adaptés." },
+      { title: "Activation d’appareil", body: "Licences liées aux appareils activés via le portail." },
+      { title: "Protection hors ligne", body: "Encaissez sans réseau ; synchro au retour en ligne." },
+      { title: "Mises à jour automatiques", body: "Mises à jour POS via le flux d’installation du portail." },
+    ],
+  },
+  supportedHardware: {
+    title: "Matériel pris en charge",
+    intro: "Compatible avec le matériel essentiel utilisé au comptoir.",
+    items: ["PC tactiles", "Imprimante tickets 80 mm", "Tiroir-caisses"],
+    note: "D’autres périphériques seront ajoutés progressivement.",
+  },
+  deployment: {
+    title: "Du téléchargement à la vente en quelques minutes",
+    subtitle: "Téléchargez Caisty POS depuis le portail, connectez votre licence et encaissez.",
+    channels: [
+      { title: "Bureau Windows", body: "Installateur Windows pour PC caisse tactile." },
+      { title: "Portail client", body: "Licences, appareils, factures et installateurs en un hub." },
+      { title: "Cloud", body: "Licences et appareils cloud avec synchronisation automatique." },
+      { title: "Mode hors ligne", body: "Vente sans réseau fiable ; données à jour à la reconnexion." },
+    ],
+    platforms: [
+      { label: "Windows", status: "available" as const },
+      { label: "Linux bientôt", status: "soon" as const },
+      { label: "macOS bientôt", status: "soon" as const },
+    ],
+    steps: [
+      "Créer un compte et recevoir la licence d’essai",
+      "Télécharger l’installateur depuis le portail",
+      "Installer Caisty POS sur votre PC de caisse",
+      "Connecter la clé de licence",
+      "Commencer à vendre",
+    ],
+    noteBefore: "La page d’installation détaillée est disponible après connexion sous",
+    noteHighlight: "Installer Caisty POS",
+    noteAfter: "dans le portail client.",
+  },
+  cta: {
+    headline: "Prêt à moderniser votre caisse ?",
+    subline: "Essai gratuit 3 jours — sans engagement.",
+    ctaPrimary: "Commencer gratuitement",
+    ctaSecondary: "Demander une démo",
+  },
   forWhom: {
     title: "Pour qui ?",
     target1Title: "Cafés & salons de thé",
@@ -143,14 +228,15 @@ export const landingTn: LandingCopy = {
     smallLicense: "Licence",
   },
   fiscal: {
-    title: "Usage en Tunisie",
-    lead:
-      "Caisty propose un mode POS générique. Vérifiez toujours les obligations locales (facturation, conservation des données, fiscalité) avec un conseiller ou l’administration compétente avant la mise en production.",
-    countries: ["Tunisie (TND)"],
-    strict:
-      "Les exigences peuvent évoluer. Caisty ne remplace pas un conseil juridique, comptable ou fiscal.",
+    title: "Informations fiscales et exigences par pays",
+    paragraphs: [
+      "Caisty est actuellement en préparation pour une utilisation fiscale certifiée dans les pays aux exigences légales spécifiques.",
+      "Tant que le module fiscal requis n’est pas disponible et activé pour un pays, Caisty ne doit être utilisé qu’en mode POS générique lorsque la loi locale le permet.",
+      "Pour les pays à exigences fiscales strictes, comme l’Allemagne et d’autres marchés réglementés, un matériel ou logiciel fiscal certifié peut être exigé avant toute mise en service en conditions réelles.",
+      "Vérifiez toujours les exigences locales avec votre conseiller fiscal ou l’administration compétente avant la mise en production.",
+    ],
     disclaimer:
-      "Caisty aide pour les tickets, journaux et exports, mais ne remplace pas un professionnel du droit ou des impôts.",
+      "Caisty aide pour les tickets, journaux et exports, mais ne remplace pas un conseil juridique ou fiscal.",
   },
   demo: {
     sectionTitle: "Aperçu POS & portail",
@@ -175,6 +261,9 @@ export const landingTn: LandingCopy = {
     thumbStripLabel: "Miniatures des captures",
     thumbStripScrollPrev: "Faire défiler les miniatures vers la gauche",
     thumbStripScrollNext: "Faire défiler les miniatures vers la droite",
+    heroImageAlt: "Écran de caisse Caisty POS — mode sombre",
+    heroPlaceholderNote: "TODO : capture POS finale",
+    portalDashboardNote: "TODO : capture tableau de bord portail finale",
   },
   portalBand: {
     title: "Portail client (inclus)",

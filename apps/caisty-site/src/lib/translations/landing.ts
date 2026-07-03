@@ -55,6 +55,111 @@ const landingLocales = {
       feature6Text:
         "Keep selling when connectivity is weak or down; changes sync automatically once you are back online.",
     },
+    bento: {
+      title: "Why businesses choose Caisty",
+      subtitle:
+        "Concrete advantages for restaurants, cafés and retail — focused on what the product delivers today.",
+      items: [
+        {
+          id: "offline",
+          title: "Offline-first architecture",
+          body: "Keep selling when the network drops; sales sync automatically when you reconnect.",
+        },
+        {
+          id: "verticals",
+          title: "Built for restaurants & retail",
+          body: "Touch-first workflows for food service, cafés and small shops—not a generic back-office suite.",
+        },
+        {
+          id: "portal",
+          title: "Customer cloud portal",
+          body: "Licenses, devices, invoices and installers in one portal alongside the POS.",
+        },
+        {
+          id: "windows",
+          title: "Windows desktop application",
+          body: "Native installer for touchscreen checkout PCs you already use at the counter.",
+        },
+        {
+          id: "i18n",
+          title: "Multi-language support",
+          body: "POS UI in multiple languages with light and dark themes for your team.",
+        },
+        {
+          id: "germany",
+          title: "Developed in Germany",
+          body: "Cloud-native platform engineered in Germany for European businesses.",
+        },
+      ],
+    },
+    security: {
+      title: "Security you can rely on",
+      subtitle: "Protecting your business data, devices and daily operations.",
+      items: [
+        {
+          title: "Cloud backups",
+          body: "Business data is stored in the cloud and available when you reconnect and sign in to the portal.",
+        },
+        {
+          title: "Encrypted connections",
+          body: "Portal and cloud services use encrypted HTTPS connections.",
+        },
+        {
+          title: "PIN & role permissions",
+          body: "Separate cashier and admin PINs with permission levels suited to counter workflows.",
+        },
+        {
+          title: "Device activation",
+          body: "Licenses are tied to activated devices through the customer portal.",
+        },
+        {
+          title: "Offline protection",
+          body: "Continue checkout when connectivity drops; sales sync when you are back online.",
+        },
+        {
+          title: "Automatic updates",
+          body: "POS updates are delivered through the installer workflow in the customer portal.",
+        },
+      ],
+    },
+    supportedHardware: {
+      title: "Supported hardware",
+      intro: "Works with the essential hardware used at the counter.",
+      items: ["Touchscreen PCs", "80 mm Receipt Printer", "Cash Drawer"],
+      note: "Additional hardware support will be added over time.",
+    },
+    deployment: {
+      title: "From download to checkout in minutes",
+      subtitle:
+        "The Caisty POS installer is available inside the customer portal. Download, connect your license and start selling.",
+      channels: [
+        { title: "Windows Desktop", body: "Native Windows installer for touchscreen checkout PCs." },
+        { title: "Customer Portal", body: "Licenses, devices, invoices and installers in one hub." },
+        { title: "Cloud", body: "Cloud-backed licenses and device management with automatic sync." },
+        { title: "Offline mode", body: "Continue selling when connectivity is weak; data catches up when you reconnect." },
+      ],
+      platforms: [
+        { label: "Windows", status: "available" as const },
+        { label: "Linux soon", status: "soon" as const },
+        { label: "macOS soon", status: "soon" as const },
+      ],
+      steps: [
+        "Create account and receive license",
+        "Download installer from customer portal",
+        "Install Caisty POS on your checkout device",
+        "Connect your license key",
+        "Start selling",
+      ],
+      noteBefore: "The detailed install page appears after sign-in under",
+      noteHighlight: "Install Caisty POS",
+      noteAfter: "in the customer portal.",
+    },
+    cta: {
+      headline: "Ready to modernise your checkout?",
+      subline: "Start with a free 3-day trial — no payment details required.",
+      ctaPrimary: "Start free",
+      ctaSecondary: "View pricing",
+    },
     forWhom: {
       title: "Built for daily business",
       target1Title: "Take-away & street food",
@@ -149,22 +254,13 @@ const landingLocales = {
       smallLicense: "Connect license",
     },
     fiscal: {
-      title: "Fiscal information and international use",
-      lead:
-        "Caisty currently provides a generic POS mode without certified fiscalization. This mode can be used only where local law allows it. Examples of supported generic mode (non-exhaustive):",
-      countries: [
-        "Netherlands (EUR)",
-        "Ireland (EUR)",
-        "Switzerland (CHF)",
-        "United Kingdom (GBP)",
-        "Czech Republic (CZK)",
-        "Tunisia (TND)",
-        "Morocco (MAD)",
-        "Algeria (DZD)",
-        "Libya (LYD)",
+      title: "Fiscal information and country requirements",
+      paragraphs: [
+        "Caisty is currently being prepared for certified fiscal use in countries with specific legal requirements.",
+        "Until the required fiscal module is available and activated for a country, Caisty should only be used in generic POS mode where local law allows it.",
+        "For countries with strict fiscal requirements, such as Germany and other regulated markets, certified fiscal hardware or certified software may be required before using a POS system in live operation.",
+        "Please always confirm local requirements with your tax advisor or local authority before going live.",
       ],
-      strict:
-        "In countries with strict fiscal requirements, such as Germany, Austria, Italy, France, Spain or Portugal, certified fiscal hardware or certified software may be required. Caisty must only be used in these markets once the required fiscal module is available and legally approved. Always confirm local requirements with your tax advisor or local authority.",
       disclaimer:
         "Caisty helps with receipts, journals and exports, but does not replace legal or tax advice.",
     },
@@ -191,6 +287,9 @@ const landingLocales = {
       thumbStripLabel: "Screenshot thumbnails",
       thumbStripScrollPrev: "Scroll thumbnails left",
       thumbStripScrollNext: "Scroll thumbnails right",
+      heroImageAlt: "Caisty POS checkout screen — dark mode",
+      heroPlaceholderNote: "TODO: final POS screenshot",
+      portalDashboardNote: "TODO: final Portal dashboard screenshot",
     },
     portalBand: {
       title: "Customer portal (included)",
@@ -332,6 +431,111 @@ const landingLocales = {
       feature6Text:
         "Continuez à encaisser si la connexion faiblit ou tombe ; les données se synchronisent quand le réseau revient.",
     },
+    bento: {
+      title: "Pourquoi les entreprises choisissent Caisty",
+      subtitle:
+        "Des avantages concrets pour la restauration, les cafés et le commerce — ce que le produit livre aujourd’hui.",
+      items: [
+        {
+          id: "offline",
+          title: "Architecture offline-first",
+          body: "Continuez à encaisser sans réseau ; les ventes se synchronisent au retour en ligne.",
+        },
+        {
+          id: "verticals",
+          title: "Pensé pour restauration & commerce",
+          body: "Parcours tactiles pour service, cafés et petits commerces — pas une suite ERP générique.",
+        },
+        {
+          id: "portal",
+          title: "Portail client cloud",
+          body: "Licences, appareils, factures et installateurs dans un portail à côté du POS.",
+        },
+        {
+          id: "windows",
+          title: "Application Windows de bureau",
+          body: "Installateur natif pour les PC caisse tactile déjà utilisés au comptoir.",
+        },
+        {
+          id: "i18n",
+          title: "Support multilingue",
+          body: "Interface POS en plusieurs langues avec thèmes clair et sombre pour votre équipe.",
+        },
+        {
+          id: "germany",
+          title: "Développé en Allemagne",
+          body: "Plateforme cloud-native conçue en Allemagne pour les entreprises européennes.",
+        },
+      ],
+    },
+    security: {
+      title: "Sécurité de confiance",
+      subtitle: "Protection des données, appareils et opérations quotidiennes.",
+      items: [
+        {
+          title: "Sauvegardes cloud",
+          body: "Les données métier sont stockées dans le cloud et accessibles à la reconnexion via le portail.",
+        },
+        {
+          title: "Connexions chiffrées",
+          body: "Le portail et les services cloud utilisent des connexions HTTPS chiffrées.",
+        },
+        {
+          title: "PIN & droits par rôle",
+          body: "PIN caissier et admin séparés avec niveaux de droits adaptés au comptoir.",
+        },
+        {
+          title: "Activation d’appareil",
+          body: "Les licences sont liées aux appareils activés via le portail client.",
+        },
+        {
+          title: "Protection hors ligne",
+          body: "Continuez à encaisser sans réseau ; les ventes se synchronisent au retour en ligne.",
+        },
+        {
+          title: "Mises à jour automatiques",
+          body: "Les mises à jour POS passent par le flux d’installation du portail client.",
+        },
+      ],
+    },
+    supportedHardware: {
+      title: "Matériel pris en charge",
+      intro: "Compatible avec le matériel essentiel utilisé au comptoir.",
+      items: ["PC tactiles", "Imprimante tickets 80 mm", "Tiroir-caisses"],
+      note: "D’autres périphériques seront ajoutés progressivement.",
+    },
+    deployment: {
+      title: "Du téléchargement à la caisse en quelques minutes",
+      subtitle:
+        "L’installateur Caisty POS est disponible dans le portail client. Téléchargez, connectez votre licence et encaissez.",
+      channels: [
+        { title: "Bureau Windows", body: "Installateur Windows natif pour PC caisse tactile." },
+        { title: "Portail client", body: "Licences, appareils, factures et installateurs en un seul hub." },
+        { title: "Cloud", body: "Licences et gestion d’appareils cloud avec synchronisation automatique." },
+        { title: "Mode hors ligne", body: "Encaissez sans réseau fiable ; les données se rattrapent à la reconnexion." },
+      ],
+      platforms: [
+        { label: "Windows", status: "available" as const },
+        { label: "Linux bientôt", status: "soon" as const },
+        { label: "macOS bientôt", status: "soon" as const },
+      ],
+      steps: [
+        "Créer un compte et recevoir la licence",
+        "Télécharger l’installateur depuis le portail client",
+        "Installer Caisty POS sur votre caisse",
+        "Connecter votre clé de licence",
+        "Commencer à vendre",
+      ],
+      noteBefore: "La page d’installation détaillée apparaît après connexion sous",
+      noteHighlight: "Installer Caisty POS",
+      noteAfter: "dans le portail client.",
+    },
+    cta: {
+      headline: "Prêt à moderniser votre caisse ?",
+      subline: "Commencez par un essai gratuit de 3 jours — sans moyen de paiement.",
+      ctaPrimary: "Commencer gratuitement",
+      ctaSecondary: "Voir les tarifs",
+    },
     forWhom: {
       title: "Pensé pour le quotidien",
       target1Title: "À emporter & street food",
@@ -427,22 +631,13 @@ const landingLocales = {
       smallLicense: "Licence",
     },
     fiscal: {
-      title: "Informations fiscales et usage international",
-      lead:
-        "Caisty propose actuellement un mode POS générique sans fiscalisation certifiée. Ce mode n’est utilisable que là où la loi locale l’autorise. Exemples (liste non exhaustive) :",
-      countries: [
-        "Pays-Bas (EUR)",
-        "Irlande (EUR)",
-        "Suisse (CHF)",
-        "Royaume-Uni (GBP)",
-        "République tchèque (CZK)",
-        "Tunisie (TND)",
-        "Maroc (MAD)",
-        "Algérie (DZD)",
-        "Libye (LYD)",
+      title: "Informations fiscales et exigences par pays",
+      paragraphs: [
+        "Caisty est actuellement en préparation pour une utilisation fiscale certifiée dans les pays aux exigences légales spécifiques.",
+        "Tant que le module fiscal requis n’est pas disponible et activé pour un pays, Caisty ne doit être utilisé qu’en mode POS générique lorsque la loi locale le permet.",
+        "Pour les pays à exigences fiscales strictes, comme l’Allemagne et d’autres marchés réglementés, un matériel ou logiciel fiscal certifié peut être exigé avant toute mise en service en conditions réelles.",
+        "Vérifiez toujours les exigences locales avec votre conseiller fiscal ou l’administration compétente avant la mise en production.",
       ],
-      strict:
-        "Dans les pays à obligations fiscales strictes (Allemagne, Autriche, Italie, France, Espagne, Portugal, etc.), un matériel ou un logiciel certifié peut être obligatoire. N’utilisez Caisty dans ces marchés qu’une fois le module fiscal requis disponible et légalement validé. Vérifiez toujours les exigences locales avec un conseiller fiscal ou l’administration compétente.",
       disclaimer:
         "Caisty aide pour les tickets, journaux et exports, mais ne remplace pas un conseil juridique ou fiscal.",
     },
@@ -469,6 +664,9 @@ const landingLocales = {
       thumbStripLabel: "Miniatures des captures",
       thumbStripScrollPrev: "Faire défiler les miniatures vers la gauche",
       thumbStripScrollNext: "Faire défiler les miniatures vers la droite",
+      heroImageAlt: "Écran de caisse Caisty POS — mode sombre",
+      heroPlaceholderNote: "TODO : capture POS finale",
+      portalDashboardNote: "TODO : capture tableau de bord portail finale",
     },
     portalBand: {
       title: "Portail client (inclus)",
@@ -611,6 +809,111 @@ const landingLocales = {
       feature6Text:
         "Weiterverkaufen bei schwachem oder fehlendem Netz; danach automatische Synchronisation, sobald die Verbindung steht.",
     },
+    bento: {
+      title: "Warum Unternehmen Caisty wählen",
+      subtitle:
+        "Konkrete Vorteile für Gastronomie, Cafés und Einzelhandel — das, was das Produkt heute liefert.",
+      items: [
+        {
+          id: "offline",
+          title: "Offline-first-Architektur",
+          body: "Weiterverkaufen ohne Netz; Umsätze synchronisieren automatisch nach Wiederanbindung.",
+        },
+        {
+          id: "verticals",
+          title: "Für Gastronomie & Einzelhandel",
+          body: "Touch-Workflows für Service, Cafés und kleine Läden — keine generische ERP-Suite.",
+        },
+        {
+          id: "portal",
+          title: "Cloud-Kundenportal",
+          body: "Lizenzen, Geräte, Rechnungen und Installer in einem Portal neben der Kasse.",
+        },
+        {
+          id: "windows",
+          title: "Windows-Desktop-Anwendung",
+          body: "Nativer Installer für Touchscreen-Kassen-PCs, die Sie bereits am Counter nutzen.",
+        },
+        {
+          id: "i18n",
+          title: "Mehrsprachige Unterstützung",
+          body: "POS-Oberfläche in mehreren Sprachen mit Hell- und Dunkelmodus für Ihr Team.",
+        },
+        {
+          id: "germany",
+          title: "Entwickelt in Deutschland",
+          body: "Cloud-native Plattform — in Deutschland entwickelt für europäische Betriebe.",
+        },
+      ],
+    },
+    security: {
+      title: "Sicherheit, auf die Sie bauen können",
+      subtitle: "Schutz für Geschäftsdaten, Geräte und den täglichen Betrieb.",
+      items: [
+        {
+          title: "Cloud-Backups",
+          body: "Geschäftsdaten werden in der Cloud gespeichert und sind nach Anmeldung im Portal verfügbar.",
+        },
+        {
+          title: "Verschlüsselte Verbindungen",
+          body: "Portal und Cloud-Dienste nutzen verschlüsselte HTTPS-Verbindungen.",
+        },
+        {
+          title: "PIN & Rollenrechte",
+          body: "Getrennte Kassierer- und Admin-PINs mit passenden Berechtigungsstufen.",
+        },
+        {
+          title: "Geräteaktivierung",
+          body: "Lizenzen sind über das Kundenportal an aktivierte Geräte gebunden.",
+        },
+        {
+          title: "Offline-Schutz",
+          body: "Weiterverkaufen ohne Netz; Umsätze synchronisieren nach Wiederanbindung.",
+        },
+        {
+          title: "Automatische Updates",
+          body: "POS-Updates werden über den Installer-Workflow im Kundenportal bereitgestellt.",
+        },
+      ],
+    },
+    supportedHardware: {
+      title: "Unterstützte Hardware",
+      intro: "Funktioniert mit der wichtigsten Hardware am Counter.",
+      items: ["Touchscreen-PCs", "80-mm-Bondrucker", "Kassenschublade"],
+      note: "Weitere Hardware-Unterstützung wird schrittweise ergänzt.",
+    },
+    deployment: {
+      title: "Vom Download zur Kasse in Minuten",
+      subtitle:
+        "Der Caisty-POS-Installer ist im Kundenportal verfügbar. Herunterladen, Lizenz verbinden und verkaufen.",
+      channels: [
+        { title: "Windows Desktop", body: "Nativer Windows-Installer für Touchscreen-Kassen-PCs." },
+        { title: "Kundenportal", body: "Lizenzen, Geräte, Rechnungen und Installer in einem Hub." },
+        { title: "Cloud", body: "Cloud-gestützte Lizenzen und Geräteverwaltung mit automatischem Sync." },
+        { title: "Offline-Modus", body: "Weiterverkaufen bei schwachem Netz; Daten holen nach bei Verbindung." },
+      ],
+      platforms: [
+        { label: "Windows", status: "available" as const },
+        { label: "Linux demnächst", status: "soon" as const },
+        { label: "macOS demnächst", status: "soon" as const },
+      ],
+      steps: [
+        "Konto anlegen und Lizenz erhalten",
+        "Installer aus dem Kundenportal laden",
+        "Caisty POS auf dem Kassen-PC installieren",
+        "Lizenzschlüssel verbinden",
+        "Mit dem Verkauf starten",
+      ],
+      noteBefore: "Die Detailseite zur Installation finden Sie nach Anmeldung unter",
+      noteHighlight: "Caisty POS installieren",
+      noteAfter: "im Kundenportal.",
+    },
+    cta: {
+      headline: "Bereit, Ihre Kasse zu modernisieren?",
+      subline: "Starten Sie mit einer kostenlosen 3-Tage-Testversion — ohne Zahlungsdaten.",
+      ctaPrimary: "Kostenlos starten",
+      ctaSecondary: "Preise ansehen",
+    },
     forWhom: {
       title: "Für den täglichen Betrieb gemacht",
       target1Title: "Fast Food & Take-away",
@@ -706,24 +1009,15 @@ const landingLocales = {
       smallLicense: "Lizenz verbinden",
     },
     fiscal: {
-      title: "Fiskalinformationen und internationale Nutzung",
-      lead:
-        "Caisty bietet derzeit einen generischen POS-Modus ohne zertifizierte Fiskalisierung. Dieser Modus darf nur genutzt werden, wo das lokale Recht es erlaubt. Beispiele für unterstützten generischen Modus (nicht abschließend):",
-      countries: [
-        "Niederlande (EUR)",
-        "Irland (EUR)",
-        "Schweiz (CHF)",
-        "Vereinigtes Königreich (GBP)",
-        "Tschechische Republik (CZK)",
-        "Tunesien (TND)",
-        "Marokko (MAD)",
-        "Algerien (DZD)",
-        "Libyen (LYD)",
+      title: "Fiskalische Hinweise und Länderanforderungen",
+      paragraphs: [
+        "Caisty wird derzeit für den zertifizierten fiskalischen Einsatz in Ländern mit besonderen gesetzlichen Anforderungen vorbereitet.",
+        "Bis das erforderliche Fiskalmodul für ein Land verfügbar und aktiviert ist, sollte Caisty nur im allgemeinen POS-Modus verwendet werden, sofern dies nach lokalem Recht erlaubt ist.",
+        "In Ländern mit strengen Fiskalanforderungen, zum Beispiel Deutschland und anderen regulierten Märkten, können zertifizierte Fiskalhardware oder zertifizierte Software erforderlich sein, bevor ein Kassensystem im Live-Betrieb genutzt werden darf.",
+        "Bitte prüfen Sie die lokalen Anforderungen immer mit Ihrem Steuerberater oder der zuständigen Behörde, bevor Sie live gehen.",
       ],
-      strict:
-        "In Ländern mit strengen fiskalen Anforderungen (z. B. Deutschland, Österreich, Italien, Frankreich, Spanien, Portugal) können zertifizierte Hardware oder zertifizierte Software vorgeschrieben sein. Nutzen Sie Caisty in diesen Märkten erst, wenn das erforderliche Fiskalmodul verfügbar und rechtlich zugelassen ist. Klären Sie Anforderungen immer mit Steuerberatung oder Behörde.",
       disclaimer:
-        "Caisty unterstützt bei Belegen, Journalen und Exporten, ersetzt aber keine Rechts- oder Steuerberatung.",
+        "Caisty unterstützt bei Belegen, Journalen und Exporten, ersetzt jedoch keine Rechts- oder Steuerberatung.",
     },
     demo: {
       sectionTitle: "POS-Screenshots",
@@ -748,6 +1042,9 @@ const landingLocales = {
       thumbStripLabel: "Miniatur-Ansichten",
       thumbStripScrollPrev: "Miniaturen nach links scrollen",
       thumbStripScrollNext: "Miniaturen nach rechts scrollen",
+      heroImageAlt: "Caisty-POS-Kassenansicht — Dunkelmodus",
+      heroPlaceholderNote: "TODO: finales POS-Screenshot",
+      portalDashboardNote: "TODO: finales Portal-Dashboard-Screenshot",
     },
     portalBand: {
       title: "Kundenportal (inklusive)",
@@ -885,6 +1182,110 @@ const landingLocales = {
       feature6Text:
         "تابع البيع عند ضعف الاتصال أو انقطاعه؛ تُزامن التغييرات تلقائياً عند عودة الشبكة.",
     },
+    bento: {
+      title: "لماذا تختار الشركات Caisty",
+      subtitle: "مزايا ملموسة للمطاعم والمقاهي والتجزئة — ما يقدمه المنتج اليوم فعلاً.",
+      items: [
+        {
+          id: "offline",
+          title: "بنية دون اتصال أولاً",
+          body: "تابع البيع عند انقطاع الشبكة؛ تُزامن المبيعات تلقائياً عند العودة للإنترنت.",
+        },
+        {
+          id: "verticals",
+          title: "للمطاعم والتجزئة",
+          body: "سير عمل باللمس للخدمة والمقاهي والمتاجر الصغيرة — ليس نظام ERP عاماً.",
+        },
+        {
+          id: "portal",
+          title: "بوابة عملاء سحابية",
+          body: "تراخيص وأجهزة وفواتير ومثبتات في بوابة واحدة بجانب نقاط البيع.",
+        },
+        {
+          id: "windows",
+          title: "تطبيق سطح مكتب Windows",
+          body: "مثبّت أصلي لأجهزة كاشير باللمس التي تستخدمها بالفعل عند المنضدة.",
+        },
+        {
+          id: "i18n",
+          title: "دعم متعدد اللغات",
+          body: "واجهة POS بعدة لغات مع سمات فاتحة وداكنة لفريقك.",
+        },
+        {
+          id: "germany",
+          title: "مطوّر في ألمانيا",
+          body: "منصة سحابية أصلية — هندست في ألمانيا للشركات الأوروبية.",
+        },
+      ],
+    },
+    security: {
+      title: "أمان يمكنك الاعتماد عليه",
+      subtitle: "حماية بيانات عملك وأجهزتك وعملياتك اليومية.",
+      items: [
+        {
+          title: "نسخ احتياطي سحابي",
+          body: "تُخزَّن بيانات العمل في السحابة وتكون متاحة عند إعادة الاتصال وتسجيل الدخول للبوابة.",
+        },
+        {
+          title: "اتصالات مشفرة",
+          body: "تستخدم البوابة والخدمات السحابية اتصالات HTTPS مشفرة.",
+        },
+        {
+          title: "PIN وصلاحيات الأدوار",
+          body: "رموز PIN منفصلة للكاشير والمسؤول بمستويات صلاحية مناسبة.",
+        },
+        {
+          title: "تفعيل الأجهزة",
+          body: "ترتبط التراخيص بالأجهزة المفعّلة عبر بوابة العملاء.",
+        },
+        {
+          title: "حماية دون اتصال",
+          body: "تابع البيع عند انقطاع الشبكة؛ تُزامن المبيعات عند العودة للإنترنت.",
+        },
+        {
+          title: "تحديثات تلقائية",
+          body: "تُسلَّم تحديثات POS عبر سير عمل المثبّت في بوابة العملاء.",
+        },
+      ],
+    },
+    supportedHardware: {
+      title: "الأجهزة المدعومة",
+      intro: "يعمل مع الأجهزة الأساسية المستخدمة عند الكاشير.",
+      items: ["أجهزة كاشير باللمس", "طابعة إيصالات 80 مم", "درج نقد"],
+      note: "سيُضاف دعم أجهزة إضافية تدريجياً.",
+    },
+    deployment: {
+      title: "من التحميل إلى الكاشير في دقائق",
+      subtitle:
+        "مثبّت Caisty POS متاح داخل بوابة العملاء. حمّل، اربط الترخيص وابدأ البيع.",
+      channels: [
+        { title: "سطح مكتب Windows", body: "مثبّت Windows أصلي لأجهزة كاشير باللمس." },
+        { title: "بوابة العملاء", body: "تراخيص وأجهزة وفواتير ومثبتات في مركز واحد." },
+        { title: "السحابة", body: "تراخيص وإدارة أجهزة سحابية مع مزامنة تلقائية." },
+        { title: "وضع دون اتصال", body: "تابع البيع بلا شبكة موثوقة؛ تُحدَّث البيانات عند العودة." },
+      ],
+      platforms: [
+        { label: "Windows", status: "available" as const },
+        { label: "Linux قريباً", status: "soon" as const },
+        { label: "macOS قريباً", status: "soon" as const },
+      ],
+      steps: [
+        "إنشاء حساب واستلام الترخيص",
+        "تحميل المثبّت من بوابة العملاء",
+        "تثبيت Caisty POS على جهاز الكاشير",
+        "ربط مفتاح الترخيص",
+        "بدء البيع",
+      ],
+      noteBefore: "صفحة التثبيت التفصيلية تظهر بعد تسجيل الدخول تحت",
+      noteHighlight: "تثبيت Caisty POS",
+      noteAfter: "في بوابة العملاء.",
+    },
+    cta: {
+      headline: "مستعد لتحديث الكاشير؟",
+      subline: "ابدأ بتجربة مجانية 3 أيام — دون بيانات دفع.",
+      ctaPrimary: "ابدأ مجاناً",
+      ctaSecondary: "عرض الأسعار",
+    },
     forWhom: {
       title: "مصمم للعمل اليومي",
       target1Title: "الوجبات الجاهزة والطعام الشارعي",
@@ -978,22 +1379,13 @@ const landingLocales = {
       smallLicense: "ربط الترخيص",
     },
     fiscal: {
-      title: "معلومات ضريبية واستخدام دولي",
-      lead:
-        "يوفر Caisty حالياً وضع نقاط بيع عاماً دون تخصيص ضريبي معتمد. يُستخدم هذا الوضع فقط حيث يسمح القانون المحلي. أمثلة على الوضع العام (غير شاملة):",
-      countries: [
-        "هولندا (EUR)",
-        "أيرلندا (EUR)",
-        "سويسرا (CHF)",
-        "المملكة المتحدة (GBP)",
-        "التشيك (CZK)",
-        "تونس (TND)",
-        "المغرب (MAD)",
-        "الجزائر (DZD)",
-        "ليبيا (LYD)",
+      title: "معلومات ضريبية ومتطلبات البلدان",
+      paragraphs: [
+        "يُجهَّز Caisty حالياً للاستخدام الضريبي المعتمد في البلدان ذات المتطلبات القانونية الخاصة.",
+        "حتى يتوفر الوحدة الضريبية المطلوبة ويُفعَّل في بلد ما، يجب استخدام Caisty في وضع نقاط البيع العام فقط حيث يسمح القانون المحلي بذلك.",
+        "في البلدان ذات المتطلبات الضريبية الصارمة، مثل ألمانيا وأسواق أخرى خاضعة للتنظيم، قد تُطلب أجهزة أو برمجيات ضريبية معتمدة قبل تشغيل نظام نقاط البيع في الإنتاج الفعلي.",
+        "يرجى دائماً التحقق من المتطلبات المحلية مع مستشارك الضريبي أو الجهة المختصة قبل البدء في التشغيل الفعلي.",
       ],
-      strict:
-        "في البلدان ذات متطلبات ضريبية صارمة مثل ألمانيا والنمسا وإيطاليا وفرنسا وإسبانيا والبرتغال قد تُطلب أجهزة أو برمجيات معتمدة. لا تستخدم Caisty في هذه الأسواق إلا بعد توفر الوحدة الضريبية المطلوبة والموافقة القانونية. تأكد دائماً من المتطلبات مع مستشارك الضريبي أو الجهة المختصة.",
       disclaimer:
         "يساعد Caisty على الإيصالات والدفاتر والتصدير، ولا يغني عن استشارة قانونية أو ضريبية.",
     },
@@ -1020,6 +1412,9 @@ const landingLocales = {
       thumbStripLabel: "صور مصغّرة للقطات",
       thumbStripScrollPrev: "تمرير المصغّرات إلى اليسار",
       thumbStripScrollNext: "تمرير المصغّرات إلى اليمين",
+      heroImageAlt: "شاشة كاشير Caisty POS — الوضع الداكن",
+      heroPlaceholderNote: "TODO: لقطة POS نهائية",
+      portalDashboardNote: "TODO: لقطة لوحة البوابة النهائية",
     },
     portalBand: {
       title: "بوابة العملاء (مشمولة)",

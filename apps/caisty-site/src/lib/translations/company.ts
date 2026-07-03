@@ -1,170 +1,302 @@
-// Company page (Caisty) — en, fr, de, ar
+// Company page — en, fr, de, ar
 import type { Language } from "./types";
 import type { TranslationSchema } from "./types";
 
 const companyLocales = {
   en: {
     hero: {
-      badge: "Caisty",
-      headline: "Building software that helps businesses grow.",
+      badge: "Cloud-native · Built in Germany",
+      headline: "Modern POS and cloud platform for restaurants and retail.",
       subtitle:
-        "Caisty develops modern cloud-based business software designed to simplify daily operations for restaurants, cafés, retail businesses and growing companies.",
+        "Caisty brings touchscreen POS, customer portal and cloud infrastructure together in one product — reliable, secure and simple to operate.",
+      ctaExplore: "Explore Caisty POS",
+      ctaRegister: "Start free",
     },
-    whoWeAre: {
-      title: "Who we are",
-      paragraphs: [
-        "Caisty is a software company focused on developing reliable, secure and scalable cloud solutions for modern businesses.",
-        "Our products are designed to reduce complexity, improve productivity and provide businesses with professional tools that are easy to use.",
+    trust: {
+      title: "Why businesses choose Caisty",
+      subtitle: "One product for the counter, back office and cloud — without enterprise complexity.",
+      points: [
+        {
+          title: "Offline-first POS",
+          body: "Keep selling when connectivity drops. Changes sync automatically when you are back online.",
+        },
+        {
+          title: "Cloud customer portal",
+          body: "Licenses, devices, invoices and installers in one hub — less admin, more time on the floor.",
+        },
+        {
+          title: "Built for real operations",
+          body: "Touch-first workflows, multi-language UI and practical reporting for busy service teams.",
+        },
+        {
+          title: "Secure by design",
+          body: "Cloud-managed configuration, device binding and subscription controls you can trust.",
+        },
       ],
-    },
-    mission: {
-      title: "Mission",
-      body: "Our mission is to build simple, reliable and affordable business software that helps companies focus on their customers instead of their technology.",
-    },
-    vision: {
-      title: "Vision",
-      body: "We believe business software should be modern, accessible and continuously improving.",
     },
     whatWeBuild: {
       title: "What we build",
-      items: [
-        "Cloud POS Software",
-        "Customer Portal",
-        "Cloud Infrastructure",
-        "Business Management Tools",
-        "Future Workforce Solutions",
+      subtitle: "Three pillars — one integrated platform.",
+      cards: [
+        {
+          id: "pos",
+          title: "Caisty POS",
+          body: "Touchscreen point of sale for restaurants, cafés and retail — orders, inventory, receipts and staff workflows.",
+          cta: "View product",
+        },
+        {
+          id: "portal",
+          title: "Customer Portal",
+          body: "Self-service hub for trials, licenses, devices, billing and POS installation — included with every plan.",
+          cta: "Start free",
+        },
+        {
+          id: "cloud",
+          title: "Cloud Platform",
+          body: "Central business profiles, fiscal configuration and device sync — Caisty Cloud keeps every location aligned.",
+          cta: "Explore POS",
+        },
       ],
     },
-    principles: {
-      title: "Our principles",
-      items: ["Simplicity", "Reliability", "Security", "Transparency", "Continuous Improvement"],
+    about: {
+      title: "About Caisty",
+      facts: [
+        { label: "Founded in", value: "Germany" },
+        { label: "Developed in", value: "Germany" },
+        { label: "Platform", value: "Cloud-native" },
+      ],
+    },
+    tech: {
+      title: "Technology stack",
+      subtitle: "Built with proven, modern tools — from desktop POS to cloud API.",
     },
     cta: {
-      headline: "Ready to discover Caisty?",
+      headline: "Ready to see Caisty POS in action?",
+      subline: "Start with a free trial — no payment details required.",
       ctaExplore: "Explore Caisty POS",
+      ctaRegister: "Start free",
     },
   },
   fr: {
     hero: {
-      badge: "Caisty",
-      headline: "Des logiciels qui aident les entreprises à grandir.",
+      badge: "Cloud-native · Conçu en Allemagne",
+      headline: "Caisse moderne et plateforme cloud pour restaurants et commerces.",
       subtitle:
-        "Caisty développe des logiciels métier cloud modernes pour simplifier le quotidien des restaurants, cafés, commerces et entreprises en croissance.",
+        "Caisty réunit caisse tactile, portail client et infrastructure cloud dans un seul produit — fiable, sécurisé et simple à utiliser.",
+      ctaExplore: "Découvrir Caisty POS",
+      ctaRegister: "Commencer gratuitement",
     },
-    whoWeAre: {
-      title: "Qui sommes-nous",
-      paragraphs: [
-        "Caisty est une société logicielle spécialisée dans des solutions cloud fiables, sécurisées et évolutives pour les entreprises modernes.",
-        "Nos produits visent à réduire la complexité, améliorer la productivité et offrir des outils professionnels simples à utiliser.",
+    trust: {
+      title: "Pourquoi choisir Caisty",
+      subtitle: "Un produit pour le comptoir, l’administratif et le cloud — sans la complexité enterprise.",
+      points: [
+        {
+          title: "Caisse hors ligne",
+          body: "Continuez à encaisser sans connexion. Les données se synchronisent au retour du réseau.",
+        },
+        {
+          title: "Portail client cloud",
+          body: "Licences, appareils, factures et installateur dans un seul espace — moins d’admin, plus de service.",
+        },
+        {
+          title: "Pensé pour le terrain",
+          body: "Interface tactile, multilingue et rapports utiles pour les équipes en rush.",
+        },
+        {
+          title: "Sécurité intégrée",
+          body: "Configuration cloud, liaison des appareils et abonnements sous contrôle.",
+        },
       ],
-    },
-    mission: {
-      title: "Mission",
-      body: "Notre mission est de créer des logiciels métier simples, fiables et abordables pour que les entreprises se concentrent sur leurs clients plutôt que sur la technologie.",
-    },
-    vision: {
-      title: "Vision",
-      body: "Nous croyons que les logiciels métier doivent être modernes, accessibles et en amélioration continue.",
     },
     whatWeBuild: {
       title: "Ce que nous construisons",
-      items: [
-        "Logiciel de caisse cloud",
-        "Portail client",
-        "Infrastructure cloud",
-        "Outils de gestion d’entreprise",
-        "Solutions workforce à venir",
+      subtitle: "Trois piliers — une plateforme intégrée.",
+      cards: [
+        {
+          id: "pos",
+          title: "Caisty POS",
+          body: "Caisse tactile pour restaurants, cafés et commerces — commandes, stocks, tickets et équipes.",
+          cta: "Voir le produit",
+        },
+        {
+          id: "portal",
+          title: "Portail client",
+          body: "Espace self-service pour essais, licences, appareils, facturation et installation POS.",
+          cta: "Commencer gratuitement",
+        },
+        {
+          id: "cloud",
+          title: "Plateforme Cloud",
+          body: "Profils entreprise, configuration fiscale et synchro des appareils — tout centralisé dans Caisty Cloud.",
+          cta: "Découvrir le POS",
+        },
       ],
     },
-    principles: {
-      title: "Nos principes",
-      items: ["Simplicité", "Fiabilité", "Sécurité", "Transparence", "Amélioration continue"],
+    about: {
+      title: "À propos de Caisty",
+      facts: [
+        { label: "Fondé en", value: "Allemagne" },
+        { label: "Développé en", value: "Allemagne" },
+        { label: "Plateforme", value: "Cloud-native" },
+      ],
+    },
+    tech: {
+      title: "Stack technique",
+      subtitle: "Des outils modernes et éprouvés — du POS desktop à l’API cloud.",
     },
     cta: {
-      headline: "Prêt à découvrir Caisty ?",
+      headline: "Prêt à découvrir Caisty POS ?",
+      subline: "Essai gratuit — sans carte bancaire.",
       ctaExplore: "Découvrir Caisty POS",
+      ctaRegister: "Commencer gratuitement",
     },
   },
   de: {
     hero: {
-      badge: "Caisty",
-      headline: "Software, die Unternehmen beim Wachsen hilft.",
+      badge: "Cloud-native · Entwickelt in Deutschland",
+      headline: "Moderne Kasse und Cloud-Plattform für Gastronomie und Einzelhandel.",
       subtitle:
-        "Caisty entwickelt moderne cloudbasierte Business-Software, die den Alltag für Restaurants, Cafés, Einzelhandel und wachsende Unternehmen vereinfacht.",
+        "Caisty vereint Touch-POS, Kundenportal und Cloud-Infrastruktur in einem Produkt — zuverlässig, sicher und einfach im Alltag.",
+      ctaExplore: "Caisty POS entdecken",
+      ctaRegister: "Kostenlos starten",
     },
-    whoWeAre: {
-      title: "Wer wir sind",
-      paragraphs: [
-        "Caisty ist ein Softwareunternehmen mit Fokus auf zuverlässige, sichere und skalierbare Cloud-Lösungen für moderne Betriebe.",
-        "Unsere Produkte reduzieren Komplexität, steigern die Produktivität und bieten professionelle Werkzeuge, die einfach zu bedienen sind.",
+    trust: {
+      title: "Warum Unternehmen Caisty wählen",
+      subtitle: "Ein Produkt für Kasse, Verwaltung und Cloud — ohne Enterprise-Komplexität.",
+      points: [
+        {
+          title: "Offline-first POS",
+          body: "Weiterverkaufen bei Verbindungsproblemen. Änderungen synchronisieren automatisch nach dem Reconnect.",
+        },
+        {
+          title: "Cloud-Kundenportal",
+          body: "Lizenzen, Geräte, Rechnungen und Installer an einem Ort — weniger Admin, mehr Zeit im Betrieb.",
+        },
+        {
+          title: "Für den Praxis-Alltag",
+          body: "Touch-Workflows, Mehrsprachigkeit und sinnvolle Reports für Teams unter Zeitdruck.",
+        },
+        {
+          title: "Sicher by Design",
+          body: "Cloud-Konfiguration, Gerätebindung und Abo-Steuerung, denen Sie vertrauen können.",
+        },
       ],
-    },
-    mission: {
-      title: "Mission",
-      body: "Unsere Mission ist es, einfache, zuverlässige und erschwingliche Business-Software zu entwickeln, damit sich Unternehmen auf ihre Kunden statt auf Technologie konzentrieren können.",
-    },
-    vision: {
-      title: "Vision",
-      body: "Wir sind überzeugt, dass Business-Software modern, zugänglich und kontinuierlich besser werden sollte.",
     },
     whatWeBuild: {
       title: "Was wir entwickeln",
-      items: [
-        "Cloud-POS-Software",
-        "Kundenportal",
-        "Cloud-Infrastruktur",
-        "Business-Management-Tools",
-        "Zukünftige Workforce-Lösungen",
+      subtitle: "Drei Säulen — eine integrierte Plattform.",
+      cards: [
+        {
+          id: "pos",
+          title: "Caisty POS",
+          body: "Touch-Kasse für Restaurants, Cafés und Retail — Bestellungen, Bestand, Belege und Team-Workflows.",
+          cta: "Produkt ansehen",
+        },
+        {
+          id: "portal",
+          title: "Kundenportal",
+          body: "Self-Service für Trials, Lizenzen, Geräte, Abrechnung und POS-Installation — in jedem Plan enthalten.",
+          cta: "Kostenlos starten",
+        },
+        {
+          id: "cloud",
+          title: "Cloud Platform",
+          body: "Zentrale Business-Profile, Fiskal-Konfiguration und Geräte-Sync — Caisty Cloud hält Standorte konsistent.",
+          cta: "POS entdecken",
+        },
       ],
     },
-    principles: {
-      title: "Unsere Prinzipien",
-      items: ["Einfachheit", "Zuverlässigkeit", "Sicherheit", "Transparenz", "Kontinuierliche Verbesserung"],
+    about: {
+      title: "Über Caisty",
+      facts: [
+        { label: "Gegründet in", value: "Deutschland" },
+        { label: "Entwickelt in", value: "Deutschland" },
+        { label: "Plattform", value: "Cloud-native" },
+      ],
+    },
+    tech: {
+      title: "Technologie-Stack",
+      subtitle: "Moderne, bewährte Tools — vom Desktop-POS bis zur Cloud-API.",
     },
     cta: {
-      headline: "Bereit, Caisty kennenzulernen?",
+      headline: "Bereit, Caisty POS zu sehen?",
+      subline: "Kostenlos testen — keine Zahlungsdaten nötig.",
       ctaExplore: "Caisty POS entdecken",
+      ctaRegister: "Kostenlos starten",
     },
   },
   ar: {
     hero: {
-      badge: "Caisty",
-      headline: "نبني برمجيات تساعد الشركات على النمو.",
+      badge: "سحابي · مطوّر في ألمانيا",
+      headline: "نقطة بيع حديثة ومنصة سحابية للمطاعم والتجزئة.",
       subtitle:
-        "تطوّر Caisty برمجيات أعمال سحابية حديثة لتبسيط العمليات اليومية للمطاعم والمقاهي والتجزئة والشركات النامية.",
+        "تجمع Caisty بين نقطة البيع اللمسية وبوابة العملاء والبنية السحابية في منتج واحد — موثوق وآمن وسهل التشغيل.",
+      ctaExplore: "استكشف Caisty POS",
+      ctaRegister: "ابدأ مجاناً",
     },
-    whoWeAre: {
-      title: "من نحن",
-      paragraphs: [
-        "Caisty شركة برمجيات تركز على تطوير حلول سحابية موثوقة وآمنة وقابلة للتوسع للشركات الحديثة.",
-        "منتجاتنا مصممة لتقليل التعقيد وتحسين الإنتاجية وتوفير أدوات احترافية سهلة الاستخدام.",
+    trust: {
+      title: "لماذا تختار الشركات Caisty",
+      subtitle: "منتج واحد للكاشير والإدارة والسحابة — بدون تعقيد المؤسسات الكبيرة.",
+      points: [
+        {
+          title: "نقطة بيع بدون اتصال",
+          body: "واصل البيع عند ضعف الشبكة. تتم المزامنة تلقائياً عند عودة الاتصال.",
+        },
+        {
+          title: "بوابة عملاء سحابية",
+          body: "التراخيص والأجهزة والفواتير والمثبّت في مركز واحد — إدارة أقل ووقت أكثر للخدمة.",
+        },
+        {
+          title: "مصمم للعمل اليومي",
+          body: "واجهة لمسية متعددة اللغات وتقارير عملية للفرق المشغولة.",
+        },
+        {
+          title: "أمان مدمج",
+          body: "إعدادات سحابية وربط الأجهزة وضوابط اشتراك يمكن الاعتماد عليها.",
+        },
       ],
-    },
-    mission: {
-      title: "مهمتنا",
-      body: "مهمتنا بناء برمجيات أعمال بسيطة وموثوقة وبأسعار معقولة تساعد الشركات على التركيز على عملائها بدلاً من التكنولوجيا.",
-    },
-    vision: {
-      title: "رؤيتنا",
-      body: "نؤمن أن برمجيات الأعمال يجب أن تكون حديثة وسهلة الوصول وفي تحسّن مستمر.",
     },
     whatWeBuild: {
       title: "ما نبنيه",
-      items: [
-        "برمجيات نقاط بيع سحابية",
-        "بوابة العملاء",
-        "بنية تحتية سحابية",
-        "أدوات إدارة الأعمال",
-        "حلول قوى عاملة مستقبلية",
+      subtitle: "ثلاث ركائز — منصة متكاملة واحدة.",
+      cards: [
+        {
+          id: "pos",
+          title: "Caisty POS",
+          body: "نقطة بيع لمسية للمطاعم والمقاهي والتجزئة — الطلبات والمخزون والإيصالات وسير عمل الفريق.",
+          cta: "عرض المنتج",
+        },
+        {
+          id: "portal",
+          title: "بوابة العملاء",
+          body: "خدمة ذاتية للتجارب والتراخيص والأجهزة والفوترة وتثبيت POS — ضمن كل خطة.",
+          cta: "ابدأ مجاناً",
+        },
+        {
+          id: "cloud",
+          title: "المنصة السحابية",
+          body: "ملفات الأعمال والإعداد الضريبي ومزامنة الأجهزة — Caisty Cloud توحّد كل المواقع.",
+          cta: "استكشف POS",
+        },
       ],
     },
-    principles: {
-      title: "مبادئنا",
-      items: ["البساطة", "الموثوقية", "الأمان", "الشفافية", "التحسين المستمر"],
+    about: {
+      title: "عن Caisty",
+      facts: [
+        { label: "تأسست في", value: "ألمانيا" },
+        { label: "مطوّرة في", value: "ألمانيا" },
+        { label: "المنصة", value: "سحابية أصلية" },
+      ],
+    },
+    tech: {
+      title: "المكدس التقني",
+      subtitle: "أدوات حديثة ومجرّبة — من POS سطح المكتب إلى API السحابة.",
     },
     cta: {
-      headline: "هل أنت مستعد لاكتشاف Caisty؟",
+      headline: "هل أنت مستعد لرؤية Caisty POS؟",
+      subline: "تجربة مجانية — بدون بيانات دفع.",
       ctaExplore: "استكشف Caisty POS",
+      ctaRegister: "ابدأ مجاناً",
     },
   },
 };
