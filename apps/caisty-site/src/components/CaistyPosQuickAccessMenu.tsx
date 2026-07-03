@@ -38,7 +38,7 @@ function posNavLinkClass(isActive: boolean, isLight: boolean): string {
 function useQuickAccessOpenState() {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const leaveTimer = useRef<number | null>(null);
 
   const clearLeave = () => {
     if (leaveTimer.current) window.clearTimeout(leaveTimer.current);

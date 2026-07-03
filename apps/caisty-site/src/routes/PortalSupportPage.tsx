@@ -9,7 +9,7 @@ import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
 import { portalLocaleTag } from "../lib/portalLocale";
-import { portalCardShell, portalInputClass, portalPrimaryCta } from "../lib/portalUi";
+import { portalCardShell, portalInputClass, portalPageShell, portalPageSubtitle, portalPageTitle, portalPrimaryCta } from "../lib/portalUi";
 
 export default function PortalSupportPage() {
   const [subject, setSubject] = useState("");
@@ -77,12 +77,10 @@ export default function PortalSupportPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-2">
-        <h1 className={`text-2xl sm:text-3xl font-semibold tracking-tight ${isLight ? "text-[#0B1220]" : "text-white"}`}>{t.support.title}</h1>
-        <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-          {t.support.subtitle}
-        </p>
+    <div className={portalPageShell()}>
+      <header className="space-y-1">
+        <h1 className={portalPageTitle(isLight)}>{t.support.title}</h1>
+        <p className={portalPageSubtitle(isLight)}>{t.support.subtitle}</p>
       </header>
 
       <div className={portalCardShell(isLight)}>
@@ -97,7 +95,7 @@ export default function PortalSupportPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <div className="flex flex-col gap-2">
             <label className={`text-sm font-medium ${isLight ? "text-slate-700" : "text-slate-300"}`}>{t.support.subjectLabel}</label>
             <input
@@ -114,7 +112,7 @@ export default function PortalSupportPage() {
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              rows={5}
+              rows={4}
               placeholder={t.support.messagePlaceholder}
               className={`min-h-[8rem] resize-y ${portalInputClass(isLight)}`}
             />

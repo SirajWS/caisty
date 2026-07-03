@@ -3,17 +3,26 @@ import { useCallback, useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { apiDeleteDevice, apiGet } from "../../lib/api";
 import {
+  Button,
+  Card,
+  DataTable,
+  FiscalStatusPill,
+  PageHeader,
+} from "../../components/ui";
+import {
+  AccountStatusPill,
+  DeviceStatusPill,
+  LicenseStatusPill,
+  SubscriptionStatusPill,
+} from "../../lib/adminStatusPills";
+import {
   FISCAL_ACTION_TOOLTIP,
-  fiscalStatusBadgeClass,
-  formatCloudSyncStatus,
-  formatDeviceStatus,
   formatFiscalDate,
-  formatFiscalStatus,
-  formatLicenseStatus,
   formatProviderLabel,
   formatReceiptMode,
   providerTypeLabel,
 } from "../../lib/caistyTerminology";
+import type { AdminFiscalOverviewItem } from "../../lib/fiscalApi";
 
 type CloudCustomerProfile = {
   accountName?: string;
@@ -119,8 +128,25 @@ type AdminFiscalConfig = {
   };
 };
 
+type AdminBusinessConfig = {
+  companyName: string;
+  legalName: string;
+  country: string | null;
+  currency: string;
+  defaultLanguage: string;
+  street: string;
+  city: string;
+  postalCode: string;
+  vatId: string;
+  taxNumber: string;
+  configVersion: number;
+  updatedAt: string;
+  complianceStatus: string;
+};
+
 type AdminFiscalResponse = {
   ok: boolean;
+  business?: AdminBusinessConfig;
   fiscal?: AdminFiscalConfig;
 };
 
@@ -135,7 +161,21 @@ function formatDate(value?: string | null) {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("de-DE");
+  return d.toLocaleString("en-GB");
+}
+
+function fiscalForPill(
+  fiscal: AdminFiscalConfig,
+  customerId: string,
+  customer: Customer,
+): AdminFiscalOverviewItem {
+  return {
+    ...fiscal,
+    customerId,
+    customerName: customer.name,
+    customerEmail: customer.email,
+    orgId: "",
+  };
 }
 
 function hasProfileData(profile?: CloudCustomerProfile | null): boolean {
@@ -165,6 +205,7 @@ export default function CustomerDetailPage() {
   const [licenses, setLicenses] = useState<License[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   const [fiscal, setFiscal] = useState<AdminFiscalConfig | null>(null);
+  const [business, setBusiness] = useState<AdminBusinessConfig | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -190,6 +231,7 @@ export default function CustomerDetailPage() {
 
     setCustomer(customerRes.item);
     setFiscal(fiscalRes.ok && fiscalRes.fiscal ? fiscalRes.fiscal : null);
+    setBusiness(fiscalRes.ok && fiscalRes.business ? fiscalRes.business : null);
     setSubscriptions(
       (subsRes.items ?? []).filter((s) => s.customerId === customerId),
     );
@@ -270,7 +312,7 @@ export default function CustomerDetailPage() {
       } catch (err) {
         console.error("Error loading customer detail", err);
         if (!cancelled) {
-          setError("Fehler beim Laden der Kundendetails.");
+          setError("Failed to load customer details.");
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -288,8 +330,8 @@ export default function CustomerDetailPage() {
     const hasLicense = device.licenseIds.length > 0;
     const confirmed = window.confirm(
       hasLicense
-        ? "Dieses Gerät ist mit einer Lizenz verbunden. Entfernen gibt einen Device-Slot frei."
-        : "Dieses Gerät wirklich entfernen? Wenn es mit keiner Lizenz verbunden ist, wird es endgültig gelöscht.",
+        ? "This device is linked to a license. Removing it will free a device slot."
+        : "Remove this device? If it is not linked to a license, it will be deleted permanently.",
     );
     if (!confirmed) return;
 
@@ -299,14 +341,14 @@ export default function CustomerDetailPage() {
 
     try {
       await apiDeleteDevice(device.deviceId);
-      setSuccess("Gerät wurde entfernt.");
+      setSuccess("Device removed.");
       await loadCustomerData();
     } catch (err) {
       console.error("Error deleting device", err);
       setError(
         err instanceof Error
           ? err.message
-          : "Gerät konnte nicht gelöscht werden.",
+          : "Could not delete device.",
       );
     } finally {
       setDeleteBusyId(null);
@@ -328,24 +370,21 @@ export default function CustomerDetailPage() {
   if (!customerId) {
     return (
       <div className="admin-page">
-        <p>Kunden-ID fehlt in der URL.</p>
+        <p>Customer ID missing from URL.</p>
       </div>
     );
   }
 
   return (
     <div className="admin-page">
-      <h1 className="admin-page-title">Customer Details</h1>
-      <p className="admin-page-subtitle">
-        Basisdaten und zugehörige Subscriptions, Licenses und Devices.
-      </p>
+      <PageHeader
+        title="Customer Details"
+        subtitle="Basic data and associated subscriptions, licenses, and devices."
+      />
 
       <div style={{ marginTop: 8, marginBottom: 16 }}>
-        <Link
-          to="/customers"
-          style={{ fontSize: 13, color: "#a855f7", textDecoration: "none" }}
-        >
-          ← zurück zur Übersicht
+        <Link to="/customers" className="ds-link">
+          ← Back to overview
         </Link>
       </div>
 
@@ -365,17 +404,18 @@ export default function CustomerDetailPage() {
       )}
 
       {loading ? (
-        <div className="admin-card" style={{ padding: 24 }}>
-          Lädt Kundendaten…
-        </div>
+        <Card>
+          <div style={{ padding: 24 }}>Loading customer data…</div>
+        </Card>
       ) : !customer ? (
-        <div className="admin-card" style={{ padding: 24 }}>
-          Kunde wurde nicht gefunden.
-        </div>
+        <Card>
+          <div style={{ padding: 24 }}>Customer not found.</div>
+        </Card>
       ) : (
         <>
           {/* Account */}
-          <div className="admin-card" style={{ marginBottom: 24 }}>
+          <div style={{ marginBottom: 24 }}>
+          <Card>
             <div
               style={{
                 fontSize: 12,
@@ -421,17 +461,11 @@ export default function CustomerDetailPage() {
                   <div>
                     <div style={{ color: "#9ca3af" }}>Status</div>
                     <div>
-                      <span
-                        className={`status-badge status-${
-                          customer.status ?? "unknown"
-                        }`}
-                      >
-                        {customer.status ?? "—"}
-                      </span>
+                      <AccountStatusPill status={customer.status} />
                     </div>
                   </div>
                   <div>
-                    <div style={{ color: "#9ca3af" }}>Erstellt am</div>
+                    <div style={{ color: "#9ca3af" }}>Created</div>
                     <div>{formatDate(customer.createdAt)}</div>
                   </div>
                 </div>
@@ -453,8 +487,8 @@ export default function CustomerDetailPage() {
                   </div>
                   <div style={{ fontSize: 12, color: "#9ca3af" }}>
                     {mainLicense?.validUntil
-                      ? `gültig bis ${formatDate(mainLicense.validUntil)}`
-                      : "ohne Ablaufdatum"}
+                      ? `valid until ${formatDate(mainLicense.validUntil)}`
+                      : "no expiry date"}
                   </div>
                 </div>
                 <div>
@@ -476,195 +510,195 @@ export default function CustomerDetailPage() {
             </div>
 
             {/* Business (cloud — Customer Portal source of truth) */}
-            <div
-              className="admin-card"
-              style={{
-                marginTop: 24,
-                padding: 20,
-                fontSize: 13,
-                border: "1px solid rgba(148,163,184,0.25)",
-              }}
-            >
-              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>
-                Business
-              </div>
-              <div style={{ color: "#9ca3af", fontSize: 12, marginBottom: 12 }}>
-                Merchant-editable in Customer Portal · Cloud-managed · POS read-only
-              </div>
-              {!fiscal ? (
-                <div style={{ color: "#9ca3af" }}>
-                  No business profile yet. Merchant must complete Business in the Customer Portal.
+            <div style={{ marginTop: 24 }}>
+              <Card>
+                <div style={{ padding: 20, fontSize: 13 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>
+                    Business
+                  </div>
+                  <div style={{ color: "#9ca3af", fontSize: 12, marginBottom: 12 }}>
+                    Merchant-editable in Customer Portal · Cloud-managed · POS read-only
+                  </div>
+                  {!business && !fiscal ? (
+                    <div style={{ color: "#9ca3af" }}>
+                      No business profile yet. Merchant must complete Business in the Customer Portal.
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "160px minmax(0, 1fr)",
+                        rowGap: 6,
+                        columnGap: 8,
+                      }}
+                    >
+                      <div style={{ color: "#9ca3af" }}>Company</div>
+                      <div>{business?.companyName || "—"}</div>
+                      <div style={{ color: "#9ca3af" }}>Legal name</div>
+                      <div>{business?.legalName || "—"}</div>
+                      <div style={{ color: "#9ca3af" }}>Country</div>
+                      <div>{business?.country ?? fiscal?.country ?? "—"}</div>
+                      <div style={{ color: "#9ca3af" }}>Currency</div>
+                      <div>{business?.currency ?? fiscal?.currency ?? "—"}</div>
+                      <div style={{ color: "#9ca3af" }}>Language</div>
+                      <div>{business?.defaultLanguage ?? "—"}</div>
+                      <div style={{ color: "#9ca3af" }}>Address</div>
+                      <div>
+                        {[business?.street, business?.postalCode, business?.city]
+                          .filter(Boolean)
+                          .join(", ") || "—"}
+                      </div>
+                      <div style={{ color: "#9ca3af" }}>VAT / Tax</div>
+                      <div>
+                        {[business?.vatId, business?.taxNumber]
+                          .filter(Boolean)
+                          .join(" · ") || "—"}
+                      </div>
+                      <div style={{ color: "#9ca3af" }}>Config version</div>
+                      <div>{business?.configVersion ?? "—"}</div>
+                      <div style={{ color: "#9ca3af" }}>Compliance</div>
+                      <div>{business?.complianceStatus ?? "—"}</div>
+                      <div style={{ color: "#9ca3af" }}>Last updated</div>
+                      <div>{formatDate(business?.updatedAt)}</div>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "160px minmax(0, 1fr)",
-                    rowGap: 6,
-                    columnGap: 8,
-                  }}
-                >
-                  <div style={{ color: "#9ca3af" }}>Country</div>
-                  <div>{fiscal.country ?? "—"}</div>
-                  <div style={{ color: "#9ca3af" }}>Currency</div>
-                  <div>{fiscal.currency}</div>
-                  <div style={{ color: "#9ca3af" }}>Sync status</div>
-                  <div>{formatCloudSyncStatus(fiscal.lastSyncAt)}</div>
-                </div>
-              )}
+              </Card>
             </div>
 
             {/* Fiscal */}
-            <div
-              className="admin-card"
-              style={{
-                marginTop: 24,
-                padding: 20,
-                fontSize: 13,
-                border: "1px solid rgba(148,163,184,0.25)",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                  gap: 16,
-                  flexWrap: "wrap",
-                  marginBottom: 12,
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>
-                    Fiscal
-                  </div>
-                  <div style={{ color: "#9ca3af", fontSize: 12 }}>
-                    Cloud fiscal configuration · internal staff view
-                  </div>
-                </div>
-                {customerId ? (
-                  <Link
-                    to={`/fiscal?customerId=${encodeURIComponent(customerId)}`}
-                    style={{
-                      fontSize: 12,
-                      padding: "8px 12px",
-                      borderRadius: 6,
-                      border: "1px solid rgba(148,163,184,0.35)",
-                      background: "rgba(15,23,42,0.4)",
-                      color: "#a78bfa",
-                      textDecoration: "none",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    Open Fiscal Dashboard
-                  </Link>
-                ) : null}
-              </div>
-
-              {!fiscal ? (
-                <div style={{ color: "#9ca3af" }}>
-                  No business / fiscal profile yet. Customer must complete Business setup in the portal.
-                </div>
-              ) : (
-                <>
+            <div style={{ marginTop: 24 }}>
+              <Card>
+                <div style={{ padding: 20, fontSize: 13 }}>
                   <div
                     style={{
-                      display: "grid",
-                      gridTemplateColumns: "160px minmax(0, 1fr)",
-                      rowGap: 6,
-                      columnGap: 8,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
+                      gap: 16,
+                      flexWrap: "wrap",
+                      marginBottom: 12,
                     }}
                   >
-                    <div style={{ color: "#9ca3af" }}>Country</div>
-                    <div>{fiscal.country ?? "—"}</div>
-                    <div style={{ color: "#9ca3af" }}>Currency</div>
-                    <div>{fiscal.currency}</div>
-                    <div style={{ color: "#9ca3af" }}>Fiscal provider</div>
                     <div>
-                      {formatProviderLabel(
-                        fiscal.provider,
-                        fiscal.providerLabel,
-                        fiscal.fiscalConfigurationLabel,
-                      )}
+                      <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>
+                        Fiscal
+                      </div>
+                      <div style={{ color: "#9ca3af", fontSize: 12 }}>
+                        Cloud fiscal configuration · internal staff view
+                      </div>
                     </div>
-                    <div style={{ color: "#9ca3af" }}>Provider type</div>
-                    <div>{providerTypeLabel(fiscal.providerType)}</div>
-                    <div style={{ color: "#9ca3af" }}>Fiscal status</div>
-                    <div>
-                      <span className={`status-badge ${fiscalStatusBadgeClass(fiscal.fiscalStatus)}`}>
-                        {formatFiscalStatus(fiscal.fiscalStatus)}
-                      </span>
-                    </div>
-                    <div style={{ color: "#9ca3af" }}>Receipt mode</div>
-                    <div>{formatReceiptMode(fiscal.receiptMode)}</div>
-                    <div style={{ color: "#9ca3af" }}>Supported exports</div>
-                    <div>
-                      {fiscal.supportedExports.length
-                        ? fiscal.supportedExports.join(", ")
-                        : "—"}
-                    </div>
-                    <div style={{ color: "#9ca3af" }}>POS download allowed</div>
-                    <div>{fiscal.posDownloadAllowed ? "Yes" : "No"}</div>
-                    <div style={{ color: "#9ca3af" }}>Last sync</div>
-                    <div>{formatFiscalDate(fiscal.lastSyncAt)}</div>
-                    {fiscal.fiscalNotice ? (
-                      <>
-                        <div style={{ color: "#9ca3af" }}>Notice</div>
-                        <div style={{ color: "#cbd5e1" }}>{fiscal.fiscalNotice}</div>
-                      </>
+                    {customerId ? (
+                      <Link
+                        to={`/fiscal?customerId=${encodeURIComponent(customerId)}`}
+                        className="ds-link"
+                      >
+                        Open Fiscal Dashboard
+                      </Link>
                     ) : null}
                   </div>
-                  <div
-                    style={{
-                      marginTop: 14,
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 8,
-                    }}
-                  >
-                    <button
-                      type="button"
-                      disabled
-                      title={FISCAL_ACTION_TOOLTIP}
-                      style={{
-                        opacity: 0.5,
-                        cursor: "not-allowed",
-                        fontSize: 12,
-                        padding: "6px 10px",
-                      }}
-                    >
-                      Start setup
-                    </button>
-                    <button
-                      type="button"
-                      disabled
-                      title={FISCAL_ACTION_TOOLTIP}
-                      style={{ opacity: 0.5, cursor: "not-allowed", fontSize: 12, padding: "6px 10px" }}
-                    >
-                      Mark active
-                    </button>
-                    <button
-                      type="button"
-                      disabled
-                      title={FISCAL_ACTION_TOOLTIP}
-                      style={{ opacity: 0.5, cursor: "not-allowed", fontSize: 12, padding: "6px 10px" }}
-                    >
-                      Mark pending
-                    </button>
-                    <button
-                      type="button"
-                      disabled
-                      title={FISCAL_ACTION_TOOLTIP}
-                      style={{ opacity: 0.5, cursor: "not-allowed", fontSize: 12, padding: "6px 10px" }}
-                    >
-                      View logs
-                    </button>
-                  </div>
-                </>
-              )}
+
+                  {!fiscal ? (
+                    <div style={{ color: "#9ca3af" }}>
+                      No business / fiscal profile yet. Customer must complete Business setup in the portal.
+                    </div>
+                  ) : (
+                    <>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "160px minmax(0, 1fr)",
+                          rowGap: 6,
+                          columnGap: 8,
+                        }}
+                      >
+                        <div style={{ color: "#9ca3af" }}>Country</div>
+                        <div>{fiscal.country ?? "—"}</div>
+                        <div style={{ color: "#9ca3af" }}>Currency</div>
+                        <div>{fiscal.currency}</div>
+                        <div style={{ color: "#9ca3af" }}>Fiscal provider</div>
+                        <div>
+                          {formatProviderLabel(
+                            fiscal.provider,
+                            fiscal.providerLabel,
+                            fiscal.fiscalConfigurationLabel,
+                          )}
+                        </div>
+                        <div style={{ color: "#9ca3af" }}>Provider type</div>
+                        <div>{providerTypeLabel(fiscal.providerType)}</div>
+                        <div style={{ color: "#9ca3af" }}>Fiscal status</div>
+                        <div>
+                          <FiscalStatusPill
+                            fiscal={fiscalForPill(fiscal, customerId, customer)}
+                          />
+                        </div>
+                        <div style={{ color: "#9ca3af" }}>Receipt mode</div>
+                        <div>{formatReceiptMode(fiscal.receiptMode)}</div>
+                        <div style={{ color: "#9ca3af" }}>Supported exports</div>
+                        <div>
+                          {fiscal.supportedExports.length
+                            ? fiscal.supportedExports.join(", ")
+                            : "—"}
+                        </div>
+                        <div style={{ color: "#9ca3af" }}>POS download allowed</div>
+                        <div>{fiscal.posDownloadAllowed ? "Yes" : "No"}</div>
+                        <div style={{ color: "#9ca3af" }}>Last sync</div>
+                        <div>{formatFiscalDate(fiscal.lastSyncAt)}</div>
+                        {fiscal.fiscalNotice ? (
+                          <>
+                            <div style={{ color: "#9ca3af" }}>Notice</div>
+                            <div style={{ color: "#cbd5e1" }}>{fiscal.fiscalNotice}</div>
+                          </>
+                        ) : null}
+                      </div>
+                      <div
+                        style={{
+                          marginTop: 14,
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 8,
+                        }}
+                      >
+                        <Button
+                          variant="secondary"
+                          disabled
+                          title={FISCAL_ACTION_TOOLTIP}
+                          style={{ opacity: 0.5, cursor: "not-allowed" }}
+                        >
+                          Start setup
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          disabled
+                          title={FISCAL_ACTION_TOOLTIP}
+                          style={{ opacity: 0.5, cursor: "not-allowed" }}
+                        >
+                          Mark active
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          disabled
+                          title={FISCAL_ACTION_TOOLTIP}
+                          style={{ opacity: 0.5, cursor: "not-allowed" }}
+                        >
+                          Mark pending
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          disabled
+                          title={FISCAL_ACTION_TOOLTIP}
+                          style={{ opacity: 0.5, cursor: "not-allowed" }}
+                        >
+                          View logs
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </Card>
             </div>
 
-            {/* POS-Profil aus CloudCustomer / Account */}
+            {/* Legacy POS push archive (customers.profile) */}
             {hasProfileData(customer.profile ?? undefined) && (
               <div
                 style={{
@@ -675,6 +709,14 @@ export default function CustomerDetailPage() {
                   fontSize: 13,
                 }}
               >
+                <div style={{ gridColumn: "1 / span 2", marginBottom: 4 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>
+                    Legacy POS push (archive)
+                  </div>
+                  <div style={{ fontSize: 12, color: "#9ca3af" }}>
+                    Historical data from device bind/verify — not the active business source. Use Business card above (Customer Portal / business_profiles).
+                  </div>
+                </div>
                 <div>
                   <div
                     style={{
@@ -693,13 +735,13 @@ export default function CustomerDetailPage() {
                       columnGap: 8,
                     }}
                   >
-                    <div style={{ color: "#9ca3af" }}>Account-Name</div>
+                    <div style={{ color: "#9ca3af" }}>Account name</div>
                     <div>
                       {customer.profile?.accountName || customer.name || "—"}
                     </div>
-                    <div style={{ color: "#9ca3af" }}>Firma</div>
+                    <div style={{ color: "#9ca3af" }}>Company</div>
                     <div>{customer.profile?.legalName || "—"}</div>
-                    <div style={{ color: "#9ca3af" }}>Externe ID</div>
+                    <div style={{ color: "#9ca3af" }}>External ID</div>
                     <div>{customer.profile?.externalId || "—"}</div>
                   </div>
                 </div>
@@ -712,7 +754,7 @@ export default function CustomerDetailPage() {
                       marginBottom: 8,
                     }}
                   >
-                    Kontakt &amp; Standort
+                    Contact &amp; location
                   </div>
                   <div
                     style={{
@@ -722,7 +764,7 @@ export default function CustomerDetailPage() {
                       columnGap: 8,
                     }}
                   >
-                    <div style={{ color: "#9ca3af" }}>Kontakt</div>
+                    <div style={{ color: "#9ca3af" }}>Contact</div>
                     <div>
                       {(customer.profile?.contact?.firstName ||
                         customer.profile?.contact?.lastName) && (
@@ -734,14 +776,14 @@ export default function CustomerDetailPage() {
                       )}
                       {customer.profile?.contact?.email || "—"}
                     </div>
-                    <div style={{ color: "#9ca3af" }}>Telefon</div>
+                    <div style={{ color: "#9ca3af" }}>Phone</div>
                     <div>{customer.profile?.contact?.phone || "—"}</div>
-                    <div style={{ color: "#9ca3af" }}>Ort</div>
+                    <div style={{ color: "#9ca3af" }}>Location</div>
                     <div>
                       {customer.profile?.address?.city || "—"},{" "}
                       {customer.profile?.address?.country || "—"}
                     </div>
-                    <div style={{ color: "#9ca3af" }}>Sprache</div>
+                    <div style={{ color: "#9ca3af" }}>Language</div>
                     <div>{customer.profile?.language || "—"}</div>
                   </div>
                 </div>
@@ -755,7 +797,7 @@ export default function CustomerDetailPage() {
                         marginBottom: 4,
                       }}
                     >
-                      interne Notizen (POS)
+                      Internal notes (POS)
                     </div>
                     <div style={{ fontSize: 13 }}>
                       {customer.profile.notes}
@@ -772,7 +814,7 @@ export default function CustomerDetailPage() {
                       marginTop: 4,
                     }}
                   >
-                    Letzte Aktualisierung aus dem POS:{" "}
+                    Last update from POS:{" "}
                     {formatDate(customer.profile.lastSyncAt)}
                   </div>
                 )}
@@ -787,15 +829,15 @@ export default function CustomerDetailPage() {
                   color: "#9ca3af",
                 }}
               >
-                Noch keine Details aus dem POS empfangen. Sobald ein Gerät mit
-                dieser Lizenz gebunden wird, erscheinen hier Daten aus{" "}
-                <strong>Cloud Customer / Account</strong>.
+                No legacy POS push data on file. Business data comes from the Customer Portal.
               </div>
             )}
+          </Card>
           </div>
 
           {/* Subscriptions-Table */}
-          <div className="admin-card" style={{ marginBottom: 24 }}>
+          <div style={{ marginBottom: 24 }}>
+            <Card>
             <div
               style={{
                 display: "flex",
@@ -806,20 +848,20 @@ export default function CustomerDetailPage() {
               <h2 className="admin-section-title">Billing · Subscriptions</h2>
             </div>
 
-            <table className="admin-table">
+            <DataTable>
               <thead>
                 <tr>
                   <th>ID</th>
                   <th>Plan</th>
                   <th>Status</th>
-                  <th>Erstellt am</th>
+                  <th>Created</th>
                 </tr>
               </thead>
               <tbody>
                 {subscriptions.length === 0 ? (
                   <tr>
-                    <td colSpan={4} style={{ textAlign: "center", padding: 16 }}>
-                      Keine Subscriptions für diesen Kunden.
+                    <td colSpan={4} className="ds-muted" style={{ textAlign: "center", padding: 16 }}>
+                      No subscriptions for this customer.
                     </td>
                   </tr>
                 ) : (
@@ -828,20 +870,20 @@ export default function CustomerDetailPage() {
                       <td>{s.id.slice(0, 8)}…</td>
                       <td>{s.plan}</td>
                       <td>
-                        <span className={`status-badge status-${s.status}`}>
-                          {s.status}
-                        </span>
+                        <SubscriptionStatusPill status={s.status} />
                       </td>
                       <td>{formatDate(s.createdAt)}</td>
                     </tr>
                   ))
                 )}
               </tbody>
-            </table>
+            </DataTable>
+            </Card>
           </div>
 
           {/* Licenses-Table */}
-          <div className="admin-card" style={{ marginBottom: 24 }}>
+          <div style={{ marginBottom: 24 }}>
+            <Card>
             <div
               style={{
                 display: "flex",
@@ -852,40 +894,35 @@ export default function CustomerDetailPage() {
               <h2 className="admin-section-title">License</h2>
             </div>
 
-            <table className="admin-table">
+            <DataTable>
               <thead>
                 <tr>
                   <th>Key</th>
                   <th>Plan</th>
                   <th>Status</th>
                   <th>Max Devices</th>
-                  <th>Gültig bis</th>
-                  <th>Erstellt am</th>
+                  <th>Valid until</th>
+                  <th>Created</th>
                 </tr>
               </thead>
               <tbody>
                 {licenses.length === 0 ? (
                   <tr>
-                    <td colSpan={6} style={{ textAlign: "center", padding: 16 }}>
-                      Keine Licenses für diesen Kunden.
+                    <td colSpan={6} className="ds-muted" style={{ textAlign: "center", padding: 16 }}>
+                      No licenses for this customer.
                     </td>
                   </tr>
                 ) : (
                   licenses.map((l) => (
                     <tr key={l.id}>
                       <td>
-                        <Link
-                          to={`/licenses/${l.id}`}
-                          style={{ color: "#a855f7" }}
-                        >
+                        <Link to={`/licenses/${l.id}`} className="ds-link">
                           {l.key}
                         </Link>
                       </td>
                       <td>{l.plan}</td>
                       <td>
-                        <span className={`status-badge status-${l.status}`}>
-                          {formatLicenseStatus(l.status)}
-                        </span>
+                        <LicenseStatusPill status={l.status} />
                       </td>
                       <td>{l.maxDevices ?? "—"}</td>
                       <td>{formatDate(l.validUntil)}</td>
@@ -894,11 +931,12 @@ export default function CustomerDetailPage() {
                   ))
                 )}
               </tbody>
-            </table>
+            </DataTable>
+            </Card>
           </div>
 
           {/* Devices-Table */}
-          <div className="admin-card">
+          <Card>
             <div
               style={{
                 display: "flex",
@@ -909,23 +947,23 @@ export default function CustomerDetailPage() {
               <h2 className="admin-section-title">Devices</h2>
             </div>
 
-            <table className="admin-table">
+            <DataTable>
               <thead>
                 <tr>
                   <th>Name</th>
-                  <th>Typ</th>
+                  <th>Type</th>
                   <th>Status</th>
                   <th>License(s)</th>
-                  <th>Letztes Signal</th>
-                  <th>Erstellt am</th>
-                  <th>Aktionen</th>
+                  <th>Last signal</th>
+                  <th>Created</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {devices.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: "center", padding: 16 }}>
-                      Keine Devices für diesen Kunden.
+                    <td colSpan={7} className="ds-muted" style={{ textAlign: "center", padding: 16 }}>
+                      No devices for this customer.
                     </td>
                   </tr>
                 ) : (
@@ -934,9 +972,7 @@ export default function CustomerDetailPage() {
                       <td>{d.name}</td>
                       <td>{d.type}</td>
                       <td>
-                        <span className={`status-badge status-${d.status}`}>
-                          {d.status}
-                        </span>
+                        <DeviceStatusPill status={d.status} />
                       </td>
                       <td>
                         {d.licenseIds.length === 0
@@ -956,7 +992,7 @@ export default function CustomerDetailPage() {
                                 <div key={lic.id}>
                                   <Link
                                     to={`/licenses/${lic.id}`}
-                                    style={{ color: "#a855f7" }}
+                                    className="ds-link"
                                   >
                                     {lic.key}
                                   </Link>
@@ -976,23 +1012,22 @@ export default function CustomerDetailPage() {
                       <td>{formatDate(d.lastHeartbeatAt)}</td>
                       <td>{formatDate(d.createdAt)}</td>
                       <td>
-                        <button
-                          type="button"
-                          className="admin-btn admin-btn--danger"
+                        <Button
+                          variant="danger"
                           disabled={deleteBusyId === d.deviceId}
                           onClick={() => void handleDeleteDevice(d)}
                         >
                           {deleteBusyId === d.deviceId
-                            ? "Entferne…"
-                            : "Entfernen"}
-                        </button>
+                            ? "Removing…"
+                            : "Remove"}
+                        </Button>
                       </td>
                     </tr>
                   ))
                 )}
               </tbody>
-            </table>
-          </div>
+            </DataTable>
+          </Card>
         </>
       )}
     </div>

@@ -7,7 +7,14 @@ import {
   apiGet,
   fetchAdminInvoiceHtml,
 } from "../lib/api";
-import { useTheme, themeColors } from "../theme/ThemeContext";
+import {
+  Button,
+  DataTable,
+  PageHeader,
+  SectionHeader,
+  Toolbar,
+} from "../components/ui";
+import { SubscriptionStatusPill } from "../lib/adminStatusPills";
 
 type Subscription = {
   id: string;
@@ -46,7 +53,7 @@ function formatPrice(
 
   const amount = amountCents / 100;
   try {
-    return new Intl.NumberFormat("de-DE", {
+    return new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency,
       minimumFractionDigits: 2,
@@ -60,8 +67,8 @@ function formatPrice(
 function formatSubscriptionPrice(s: Subscription): string {
   const gross = s.grossPriceCents ?? s.priceCents;
   const base = formatPrice(gross, s.currency);
-  if (s.interval === "yearly") return `${base} / Jahr`;
-  if (s.interval === "monthly") return `${base} / Monat`;
+  if (s.interval === "yearly") return `${base} / year`;
+  if (s.interval === "monthly") return `${base} / month`;
   return base;
 }
 
@@ -74,12 +81,17 @@ function formatDate(value?: string | null) {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("de-DE");
+  return d.toLocaleString("en-GB");
+}
+
+function formatInterval(s: Subscription): string {
+  if (s.intervalLabel) return s.intervalLabel;
+  if (s.interval === "yearly") return "Yearly";
+  if (s.interval === "monthly") return "Monthly";
+  return "—";
 }
 
 export default function SubscriptionsListPage() {
-  const { theme } = useTheme();
-  const colors = themeColors[theme];
   const [items, setItems] = useState<Subscription[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -113,7 +125,7 @@ export default function SubscriptionsListPage() {
       } catch (err) {
         console.error("Error loading subscriptions", err);
         if (!cancelled) {
-          setError("Fehler beim Laden der Subscriptions.");
+          setError("Failed to load subscriptions.");
         }
       } finally {
         if (!cancelled) {
@@ -132,7 +144,7 @@ export default function SubscriptionsListPage() {
   async function handleDeletePendingSubscription(subscription: Subscription) {
     if (
       !window.confirm(
-        "Diese pending Subscription wirklich löschen? Es wird keine aktive Lizenz gelöscht.",
+        "Delete this pending subscription? No active licence will be removed.",
       )
     ) {
       return;
@@ -144,235 +156,107 @@ export default function SubscriptionsListPage() {
 
     try {
       await apiDeletePendingSubscription(subscription.id);
-      setSuccess("Pending Subscription wurde gelöscht.");
+      setSuccess("Pending subscription deleted.");
       await loadSubscriptions();
     } catch (err) {
       console.error("Error deleting pending subscription", err);
       setError(
         err instanceof Error
           ? err.message
-          : "Pending Subscription konnte nicht gelöscht werden.",
+          : "Could not delete pending subscription.",
       );
     } finally {
       setDeleteBusyId(null);
     }
   }
 
+  const toolbarFooter = (
+    <>
+      <strong>{activeSubscriptions.length}</strong> active subscription
+      {activeSubscriptions.length === 1 ? "" : "s"}
+      {cancelledSubscriptions.length > 0 ? (
+        <>
+          {" · "}
+          <strong>{cancelledSubscriptions.length}</strong> ended subscription
+          {cancelledSubscriptions.length === 1 ? "" : "s"}
+        </>
+      ) : null}
+      {" · "}
+      {total} total
+    </>
+  );
+
   return (
     <div className="admin-page">
-      <h1
-        style={{
-          fontSize: "32px",
-          fontWeight: 700,
-          marginBottom: "8px",
-          color: colors.text,
-          letterSpacing: "-0.5px",
-        }}
-      >
-        Subscriptions
-      </h1>
-      <p
-        style={{
-          fontSize: "14px",
-          color: colors.textSecondary,
-          marginBottom: "24px",
-        }}
-      >
-        Übersicht über alle aktiven und vergangenen Abos.
-      </p>
+      <PageHeader
+        title="Subscriptions"
+        subtitle="Overview of all active and past subscriptions."
+      />
 
-      <div
-        style={{
-          marginTop: 16,
-          marginBottom: 16,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 12,
-          fontSize: 13,
-          color: colors.textSecondary,
-        }}
-      >
-        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-          <span>
-            <strong style={{ color: colors.text }}>{activeSubscriptions.length}</strong> aktive Subscriptions
-          </span>
-          {cancelledSubscriptions.length > 0 && (
-            <span>
-              <strong style={{ color: colors.text }}>{cancelledSubscriptions.length}</strong> beendete Subscriptions
-            </span>
-          )}
-          <span style={{ color: colors.textTertiary }}>• {total} gesamt</span>
-        </div>
-      </div>
+      <Toolbar footer={toolbarFooter} />
 
-      {error && (
-        <div
-          className="admin-error-banner"
-          style={{
-            backgroundColor: colors.errorBg,
-            borderColor: `${colors.error}50`,
-            color: colors.error,
-          }}
-        >
-          {error}
-        </div>
-      )}
+      {error ? <div className="admin-error-banner">{error}</div> : null}
+      {success ? <div className="admin-success-banner">{success}</div> : null}
 
-      {success && (
-        <div
-          className="admin-error-banner"
-          style={{
-            backgroundColor: "rgba(34, 197, 94, 0.1)",
-            borderColor: "rgba(34, 197, 94, 0.3)",
-            color: "#86efac",
-            marginBottom: 16,
-          }}
-        >
-          {success}
-        </div>
-      )}
-
-      {/* Aktive Subscriptions */}
-      <div
-        className="admin-card"
-        style={{
-          backgroundColor: colors.bgSecondary,
-          borderColor: colors.border,
-          transition: "background-color 0.3s, border-color 0.3s",
-          marginBottom: cancelledSubscriptions.length > 0 ? 24 : 0,
-        }}
-      >
-        <div
-          style={{
-            padding: "12px 16px",
-            borderBottom: `1px solid ${colors.border}`,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            backgroundColor: colors.bgTertiary,
-          }}
-        >
-          <h2 style={{ fontSize: 16, fontWeight: 600, color: colors.text, margin: 0 }}>
-            ✅ Aktive Subscriptions ({activeSubscriptions.length})
-          </h2>
-        </div>
-        <div
-          className="admin-table-wrapper"
-          style={{
-            backgroundColor: colors.bgSecondary,
-            borderColor: colors.border,
-            transition: "background-color 0.3s, border-color 0.3s",
-          }}
-        >
-          <table className="admin-table">
-            <thead>
-              <tr style={{ backgroundColor: colors.bgTertiary }}>
-                <th style={{ color: colors.textSecondary }}>ID</th>
-                <th style={{ color: colors.textSecondary }}>Customer</th>
-                <th style={{ color: colors.textSecondary }}>Plan</th>
-                <th style={{ color: colors.textSecondary }}>Status</th>
-                <th style={{ color: colors.textSecondary }}>Preis (brutto)</th>
-                <th style={{ color: colors.textSecondary }}>USt.</th>
-                <th style={{ color: colors.textSecondary }}>Intervall</th>
-                <th style={{ color: colors.textSecondary }}>Gestartet</th>
-                <th style={{ color: colors.textSecondary }}>Läuft bis</th>
-                <th style={{ color: colors.textSecondary }}>Rechnungen</th>
-                <th style={{ color: colors.textSecondary }}>Aktionen</th>
+      <div className="ds-section-block">
+        <SectionHeader
+          title="Active subscriptions"
+          pill={String(activeSubscriptions.length)}
+        />
+        <DataTable>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Customer</th>
+              <th>Plan</th>
+              <th>Status</th>
+              <th>Price (gross)</th>
+              <th>VAT</th>
+              <th>Interval</th>
+              <th>Started</th>
+              <th>Valid until</th>
+              <th>Invoices</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={11} className="ds-muted" style={{ textAlign: "center", padding: 24 }}>
+                  Loading subscriptions…
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={11}
-                    style={{
-                      textAlign: "center",
-                      padding: 24,
-                      color: colors.textSecondary,
-                    }}
-                  >
-                    Lädt Subscriptions…
-                  </td>
-                </tr>
-              ) : activeSubscriptions.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={11}
-                    style={{
-                      textAlign: "center",
-                      padding: 24,
-                      color: colors.textSecondary,
-                    }}
-                  >
-                    Keine aktiven Subscriptions vorhanden.
-                  </td>
-                </tr>
-              ) : (
-                activeSubscriptions.map((s) => (
-                  <tr
-                    key={s.id}
-                    style={{
-                      borderBottomColor: colors.border,
-                      transition: "background-color 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = colors.bgTertiary;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                    }}
-                  >
-                    <td style={{ color: colors.text }}>
-                      {s.id.slice(0, 8)}…
-                    </td>
-                    <td style={{ color: colors.text }}>
-                      {s.customerId ? (
-                        <Link
-                          to={`/customers/${s.customerId}`}
-                          style={{
-                            color: colors.accent,
-                            textDecoration: "none",
-                            transition: "color 0.2s",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = colors.accentHover;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = colors.accent;
-                          }}
-                        >
-                          {s.customerName
-                            ? s.customerName
-                            : s.customerId.slice(0, 8) + "…"}
-                        </Link>
-                      ) : (
-                        "—"
-                      )}
-                      {s.customerEmail && (
-                        <span
-                          style={{
-                            marginLeft: 4,
-                            fontSize: 11,
-                            color: colors.textTertiary,
-                          }}
-                        >
-                          ({s.customerEmail})
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ color: colors.text }}>{s.plan || "—"}</td>
+            ) : activeSubscriptions.length === 0 ? (
+              <tr>
+                <td colSpan={11} className="ds-muted" style={{ textAlign: "center", padding: 24 }}>
+                  No active subscriptions.
+                </td>
+              </tr>
+            ) : (
+              activeSubscriptions.map((s) => (
+                <tr key={s.id}>
+                  <td>{s.id.slice(0, 8)}…</td>
                   <td>
-                    <span
-                      className={`status-badge status-${s.status ?? "unknown"}`}
-                    >
-                      {s.status ?? "—"}
-                    </span>
+                    {s.customerId ? (
+                      <Link to={`/customers/${s.customerId}`} className="ds-link">
+                        {s.customerName ? s.customerName : `${s.customerId.slice(0, 8)}…`}
+                      </Link>
+                    ) : (
+                      "—"
+                    )}
+                    {s.customerEmail ? (
+                      <span className="ds-muted" style={{ marginLeft: 4, fontSize: 11 }}>
+                        ({s.customerEmail})
+                      </span>
+                    ) : null}
+                  </td>
+                  <td>{s.plan || "—"}</td>
+                  <td>
+                    <SubscriptionStatusPill status={s.status} />
                   </td>
                   <td>{formatSubscriptionPrice(s)}</td>
                   <td>{formatSubscriptionVat(s)}</td>
-                  <td>{s.intervalLabel || (s.interval === "yearly" ? "Jährlich" : s.interval === "monthly" ? "Monatlich" : "—")}</td>
+                  <td>{formatInterval(s)}</td>
                   <td>{formatDate(s.startedAt)}</td>
                   <td>{formatDate(s.validUntil ?? s.currentPeriodEnd)}</td>
                   <td>
@@ -387,7 +271,9 @@ export default function SubscriptionsListPage() {
                               gap: 4,
                             }}
                           >
-                            <button
+                            <Button
+                              variant="link"
+                              style={{ fontSize: 11, padding: 0, height: "auto" }}
                               onClick={async () => {
                                 try {
                                   const html = await fetchAdminInvoiceHtml(inv.id);
@@ -397,30 +283,16 @@ export default function SubscriptionsListPage() {
                                     win.document.close();
                                   }
                                 } catch (e) {
-                                  alert(e instanceof Error ? e.message : "Fehler beim Laden");
+                                  alert(e instanceof Error ? e.message : "Failed to load invoice.");
                                 }
                               }}
-                              style={{
-                                color: colors.accent,
-                                fontSize: 11,
-                                textDecoration: "none",
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                textAlign: "left",
-                                padding: 0,
-                                transition: "color 0.2s",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.color = colors.accentHover;
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.color = colors.accent;
-                              }}
                             >
-                              {inv.number} 📄
-                            </button>
-                            <button
+                              {inv.number}
+                            </Button>
+                            <Button
+                              variant="link"
+                              title="Print as PDF"
+                              style={{ fontSize: 12, padding: 0, height: "auto", minWidth: 24 }}
                               onClick={async () => {
                                 try {
                                   const html = await fetchAdminInvoiceHtml(inv.id);
@@ -433,53 +305,38 @@ export default function SubscriptionsListPage() {
                                     }, 500);
                                   }
                                 } catch (e) {
-                                  alert(e instanceof Error ? e.message : "Fehler beim Laden");
+                                  alert(e instanceof Error ? e.message : "Failed to load invoice.");
                                 }
                               }}
-                              title="Als PDF drucken"
-                              style={{
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                fontSize: 12,
-                                padding: 0,
-                                color: colors.accent,
-                                transition: "color 0.2s",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.color = colors.accentHover;
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.color = colors.accent;
-                              }}
                             >
-                              📥
-                            </button>
+                              PDF
+                            </Button>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <span style={{ color: colors.textSecondary }}>—</span>
+                      <span className="ds-muted">—</span>
                     )}
                   </td>
                   <td>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                      {s.status?.toLowerCase() === "pending" && (
-                        <button
-                          type="button"
-                          className="admin-btn admin-btn--danger"
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      {s.status?.toLowerCase() === "pending" ? (
+                        <Button
+                          variant="danger"
                           disabled={deleteBusyId === s.id}
                           onClick={() => void handleDeletePendingSubscription(s)}
                         >
-                          {deleteBusyId === s.id ? "Lösche…" : "Löschen"}
-                        </button>
-                      )}
-                      {s.customerStatus === "inactive" && s.customerId && (
-                        <button
+                          {deleteBusyId === s.id ? "Deleting…" : "Delete"}
+                        </Button>
+                      ) : null}
+                      {s.customerStatus === "inactive" && s.customerId ? (
+                        <Button
+                          variant="danger"
+                          disabled={deleteBusyId === s.customerId}
                           onClick={async () => {
                             if (
                               !confirm(
-                                `Möchten Sie den Kunden "${s.customerName || s.customerId}" wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
+                                `Delete customer "${s.customerName || s.customerId}"? This action cannot be undone.`,
                               )
                             ) {
                               return;
@@ -487,276 +344,175 @@ export default function SubscriptionsListPage() {
                             setDeleteBusyId(s.customerId);
                             try {
                               await apiDelete<{ ok: boolean }>(`/customers/${s.customerId}`);
-                              // Liste neu laden
                               const data = await apiGet<SubscriptionsResponse>("/subscriptions");
                               setItems(data.items ?? []);
                               setTotal(data.total ?? data.items?.length ?? 0);
                             } catch (err) {
                               console.error("Error deleting customer", err);
-                              alert("Fehler beim Löschen des Kunden.");
+                              alert("Failed to delete customer.");
                             } finally {
                               setDeleteBusyId(null);
                             }
                           }}
-                          disabled={deleteBusyId === s.customerId}
-                          style={{
-                            background: colors.error,
-                            color: theme === "dark" ? "#fee2e2" : "#ffffff",
-                            border: "none",
-                            borderRadius: 4,
-                            padding: "4px 8px",
-                            fontSize: 11,
-                            cursor: deleteBusyId === s.customerId ? "wait" : "pointer",
-                            opacity: deleteBusyId === s.customerId ? 0.6 : 1,
-                            transition: "opacity 0.2s",
-                          }}
                         >
-                          {deleteBusyId === s.customerId ? "..." : "Kunde löschen"}
-                        </button>
-                      )}
+                          {deleteBusyId === s.customerId ? "Deleting…" : "Delete customer"}
+                        </Button>
+                      ) : null}
                       {s.status?.toLowerCase() !== "pending" &&
-                        s.customerStatus !== "inactive" && (
-                        <span style={{ color: colors.textSecondary }}>—</span>
-                      )}
+                      s.customerStatus !== "inactive" ? (
+                        <span className="ds-muted">—</span>
+                      ) : null}
                     </div>
                   </td>
                 </tr>
               ))
             )}
           </tbody>
-        </table>
-        </div>
+        </DataTable>
       </div>
 
-      {/* Beendete Subscriptions (Collapsible) */}
-      {cancelledSubscriptions.length > 0 && (
-        <div
-          className="admin-card"
-          style={{
-            backgroundColor: colors.bgSecondary,
-            borderColor: colors.border,
-            transition: "background-color 0.3s, border-color 0.3s",
-            opacity: 0.9,
-          }}
-        >
-          <div
-            style={{
-              padding: "12px 16px",
-              borderBottom: showCancelled ? `1px solid ${colors.border}` : "none",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              backgroundColor: colors.bgTertiary,
-              cursor: "pointer",
-            }}
+      {cancelledSubscriptions.length > 0 ? (
+        <div className="ds-section-block">
+          <button
+            type="button"
             onClick={() => setShowCancelled(!showCancelled)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: "100%",
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              textAlign: "left",
+            }}
           >
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: colors.text, margin: 0 }}>
-              🗑️ Beendete Subscriptions ({cancelledSubscriptions.length})
-            </h2>
-            <span style={{ fontSize: 14, color: colors.textSecondary }}>
-              {showCancelled ? "▼" : "▶"}
+            <SectionHeader
+              title="Ended subscriptions"
+              pill={String(cancelledSubscriptions.length)}
+            />
+            <span className="ds-muted" style={{ fontSize: 14, flexShrink: 0, marginLeft: 12 }}>
+              {showCancelled ? "Hide ▲" : "Show ▼"}
             </span>
-          </div>
-          {showCancelled && (
-            <div
-              className="admin-table-wrapper"
-              style={{
-                backgroundColor: colors.bgSecondary,
-                borderColor: colors.border,
-                transition: "background-color 0.3s, border-color 0.3s",
-              }}
-            >
-              <table className="admin-table">
-                <thead>
-                  <tr style={{ backgroundColor: colors.bgTertiary }}>
-                    <th style={{ color: colors.textSecondary }}>ID</th>
-                    <th style={{ color: colors.textSecondary }}>Customer</th>
-                    <th style={{ color: colors.textSecondary }}>Plan</th>
-                    <th style={{ color: colors.textSecondary }}>Status</th>
-                    <th style={{ color: colors.textSecondary }}>Preis</th>
-                    <th style={{ color: colors.textSecondary }}>Gestartet</th>
-                    <th style={{ color: colors.textSecondary }}>Rechnungen</th>
-                    <th style={{ color: colors.textSecondary }}>Aktionen</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cancelledSubscriptions.map((s) => (
-                    <tr
-                      key={s.id}
-                      style={{
-                        borderBottomColor: colors.border,
-                        transition: "background-color 0.2s",
-                        opacity: 0.8,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = colors.bgTertiary;
-                        e.currentTarget.style.opacity = "1";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                        e.currentTarget.style.opacity = "0.8";
-                      }}
-                    >
-                      <td style={{ color: colors.textSecondary, fontSize: 12 }}>
-                        {s.id.slice(0, 8)}…
-                      </td>
-                      <td style={{ color: colors.textSecondary }}>
-                        {s.customerId ? (
-                          <Link
-                            to={`/customers/${s.customerId}`}
-                            style={{
-                              color: colors.textSecondary,
-                              textDecoration: "none",
-                              transition: "color 0.2s",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.color = colors.accent;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.color = colors.textSecondary;
-                            }}
-                          >
-                            {s.customerName
-                              ? s.customerName
-                              : s.customerId.slice(0, 8) + "…"}
-                          </Link>
-                        ) : (
-                          "—"
-                        )}
-                        {s.customerEmail && (
-                          <span
-                            style={{
-                              marginLeft: 4,
-                              fontSize: 11,
-                              color: colors.textTertiary,
-                            }}
-                          >
-                            ({s.customerEmail})
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ color: colors.textSecondary }}>{s.plan || "—"}</td>
-                      <td>
-                        <span
-                          className={`status-badge status-${s.status ?? "unknown"}`}
-                          style={{ opacity: 0.7 }}
-                        >
-                          {s.status ?? "—"}
+          </button>
+          {showCancelled ? (
+            <DataTable>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Customer</th>
+                  <th>Plan</th>
+                  <th>Status</th>
+                  <th>Price</th>
+                  <th>Started</th>
+                  <th>Invoices</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cancelledSubscriptions.map((s) => (
+                  <tr key={s.id}>
+                    <td className="ds-muted" style={{ fontSize: 12 }}>
+                      {s.id.slice(0, 8)}…
+                    </td>
+                    <td className="ds-muted">
+                      {s.customerId ? (
+                        <Link to={`/customers/${s.customerId}`} className="ds-link">
+                          {s.customerName ? s.customerName : `${s.customerId.slice(0, 8)}…`}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                      {s.customerEmail ? (
+                        <span className="ds-muted" style={{ marginLeft: 4, fontSize: 11 }}>
+                          ({s.customerEmail})
                         </span>
-                      </td>
-                      <td style={{ color: colors.textSecondary }}>
-                        {formatSubscriptionPrice(s)}
-                      </td>
-                      <td style={{ color: colors.textSecondary, fontSize: 12 }}>
-                        {formatDate(s.startedAt)}
-                      </td>
-                      <td>
-                        {s.invoices && s.invoices.length > 0 ? (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            {s.invoices.map((inv) => (
-                              <div
-                                key={inv.id}
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 4,
-                                }}
-                              >
-                                <button
-                                  onClick={async () => {
-                                    try {
-                                      const html = await fetchAdminInvoiceHtml(inv.id);
-                                      const win = window.open();
-                                      if (win) {
-                                        win.document.write(html);
-                                        win.document.close();
-                                      }
-                                    } catch (e) {
-                                      alert(e instanceof Error ? e.message : "Fehler beim Laden");
-                                    }
-                                  }}
-                                  style={{
-                                    color: colors.textSecondary,
-                                    fontSize: 11,
-                                    textDecoration: "none",
-                                    background: "none",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    textAlign: "left",
-                                    padding: 0,
-                                    transition: "color 0.2s",
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.color = colors.accent;
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.color = colors.textSecondary;
-                                  }}
-                                >
-                                  {inv.number} 📄
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <span style={{ color: colors.textTertiary }}>—</span>
-                        )}
-                      </td>
-                      <td>
-                        <button
-                          onClick={async () => {
-                            if (
-                              !confirm(
-                                `Möchten Sie die Subscription "${s.plan}" (Status: ${s.status}) wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
-                              )
-                            ) {
-                              return;
+                      ) : null}
+                    </td>
+                    <td className="ds-muted">{s.plan || "—"}</td>
+                    <td>
+                      <SubscriptionStatusPill status={s.status} />
+                    </td>
+                    <td className="ds-muted">{formatSubscriptionPrice(s)}</td>
+                    <td className="ds-muted" style={{ fontSize: 12 }}>
+                      {formatDate(s.startedAt)}
+                    </td>
+                    <td>
+                      {s.invoices && s.invoices.length > 0 ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          {s.invoices.map((inv) => (
+                            <Button
+                              key={inv.id}
+                              variant="link"
+                              style={{ fontSize: 11, padding: 0, height: "auto", justifyContent: "flex-start" }}
+                              onClick={async () => {
+                                try {
+                                  const html = await fetchAdminInvoiceHtml(inv.id);
+                                  const win = window.open();
+                                  if (win) {
+                                    win.document.write(html);
+                                    win.document.close();
+                                  }
+                                } catch (e) {
+                                  alert(e instanceof Error ? e.message : "Failed to load invoice.");
+                                }
+                              }}
+                            >
+                              {inv.number}
+                            </Button>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="ds-muted">—</span>
+                      )}
+                    </td>
+                    <td>
+                      <Button
+                        variant="danger"
+                        disabled={deleteBusyId === s.id}
+                        title="Delete subscription"
+                        onClick={async () => {
+                          if (
+                            !confirm(
+                              `Delete subscription "${s.plan}" (status: ${s.status})? This action cannot be undone.`,
+                            )
+                          ) {
+                            return;
+                          }
+                          setDeleteBusyId(s.id);
+                          try {
+                            const result = await apiDelete<{ ok: boolean; message?: string; error?: string }>(
+                              `/subscriptions/${s.id}`
+                            );
+                            if (!result.ok) {
+                              throw new Error(result.error || "Failed to delete subscription.");
                             }
-                            setDeleteBusyId(s.id);
-                            try {
-                              const result = await apiDelete<{ ok: boolean; message?: string; error?: string }>(
-                                `/subscriptions/${s.id}`
-                              );
-                              if (!result.ok) {
-                                throw new Error(result.error || "Fehler beim Löschen");
-                              }
-                              // Liste neu laden
-                              const data = await apiGet<SubscriptionsResponse>("/subscriptions");
-                              setItems(data.items ?? []);
-                              setTotal(data.total ?? data.items?.length ?? 0);
-                            } catch (err: any) {
-                              console.error("Error deleting subscription", err);
-                              alert(err?.message || "Fehler beim Löschen der Subscription.");
-                            } finally {
-                              setDeleteBusyId(null);
-                            }
-                          }}
-                          disabled={deleteBusyId === s.id}
-                          style={{
-                            background: colors.error,
-                            color: theme === "dark" ? "#fee2e2" : "#ffffff",
-                            border: "none",
-                            borderRadius: 4,
-                            padding: "4px 8px",
-                            fontSize: 11,
-                            cursor: deleteBusyId === s.id ? "wait" : "pointer",
-                            opacity: deleteBusyId === s.id ? 0.6 : 1,
-                            transition: "opacity 0.2s",
-                          }}
-                          title="Subscription löschen"
-                        >
-                          {deleteBusyId === s.id ? "..." : "🗑️ Löschen"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                            const data = await apiGet<SubscriptionsResponse>("/subscriptions");
+                            setItems(data.items ?? []);
+                            setTotal(data.total ?? data.items?.length ?? 0);
+                          } catch (err: unknown) {
+                            console.error("Error deleting subscription", err);
+                            alert(
+                              err instanceof Error
+                                ? err.message
+                                : "Failed to delete subscription.",
+                            );
+                          } finally {
+                            setDeleteBusyId(null);
+                          }
+                        }}
+                      >
+                        {deleteBusyId === s.id ? "Deleting…" : "Delete"}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+          ) : null}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

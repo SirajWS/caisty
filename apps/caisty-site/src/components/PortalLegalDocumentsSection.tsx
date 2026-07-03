@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { PORTAL_LEGAL_DOCUMENTS, type PortalLegalDocumentDef } from "../config/portalLegalDocuments";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
-import { portalInnerCard, portalSecondaryCta } from "../lib/portalUi";
+import { portalTextLink } from "../lib/portalUi";
 import { useTheme } from "../lib/theme";
 
 export function PortalLegalDocumentsSection() {
@@ -12,70 +12,54 @@ export function PortalLegalDocumentsSection() {
   const isLight = theme === "light";
 
   return (
-    <section className="space-y-5">
+    <div className="space-y-3">
       <div>
-        <p className={`text-sm font-semibold uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+        <p className={`text-xs font-semibold uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>
           {t.legal.title}
         </p>
-        <p className={`mt-1 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+        <p className={`mt-0.5 text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
           {t.legal.subtitle}
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
         {PORTAL_LEGAL_DOCUMENTS.map((doc) => (
-          <LegalDocumentCard key={doc.id} doc={doc} isLight={isLight} />
+          <LegalDocumentLink key={doc.id} doc={doc} isLight={isLight} />
         ))}
-      </div>
-    </section>
+      </ul>
+    </div>
   );
 }
 
-function LegalDocumentCard(props: { doc: PortalLegalDocumentDef; isLight: boolean }) {
+function LegalDocumentLink(props: { doc: PortalLegalDocumentDef; isLight: boolean }) {
   const { language } = useLanguage();
   const t = getPortalTranslations(language);
   const copy = t.legal.documents[props.doc.id];
 
   return (
-    <article
-      className={`flex h-full flex-col gap-3 rounded-xl border p-4 transition-colors ${portalInnerCard(props.isLight)} ${
-        props.isLight ? "hover:border-slate-300" : "hover:border-white/20"
-      }`}
-    >
-      <div className="flex items-start gap-3">
+    <li>
+      <Link
+        to={props.doc.path}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`inline-flex items-center gap-2 text-sm no-underline hover:underline ${portalTextLink(props.isLight)}`}
+      >
         <span
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${
             props.isLight ? "bg-orange-50 text-orange-600" : "bg-orange-500/10 text-orange-400"
           }`}
           aria-hidden
         >
           <LegalDocIcon kind={props.doc.icon} />
         </span>
-        <div className="min-w-0 flex-1 space-y-1">
-          <h3 className={`text-sm font-semibold leading-snug ${props.isLight ? "text-slate-900" : "text-slate-100"}`}>
-            {copy.title}
-          </h3>
-          <p className={`text-xs leading-relaxed ${props.isLight ? "text-slate-600" : "text-slate-400"}`}>
-            {copy.description}
-          </p>
-        </div>
-      </div>
-      <div className="mt-auto pt-1">
-        <Link
-          to={props.doc.path}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`${portalSecondaryCta(props.isLight)} w-full text-center text-xs no-underline sm:w-auto`}
-        >
-          {t.legal.open}
-        </Link>
-      </div>
-    </article>
+        <span className="font-medium">{copy.title}</span>
+      </Link>
+    </li>
   );
 }
 
 function LegalDocIcon(props: { kind: PortalLegalDocumentDef["icon"] }) {
-  const className = "h-5 w-5";
+  const className = "h-4 w-4";
   switch (props.kind) {
     case "privacy":
       return (

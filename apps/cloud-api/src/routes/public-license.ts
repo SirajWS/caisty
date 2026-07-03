@@ -75,6 +75,8 @@ async function countDevicesForLicense(licenseId: string) {
 }
 
 // Cloud-Customer-Profil in customers.profile übernehmen / mergen
+// LEGACY (Phase V): POS push archive only — business_profiles is source of truth for Business/Fiscal.
+// Portal PATCH does not write back to customers.profile. Admin fiscal views use business_profiles.
 async function upsertCustomerProfileFromPos(
   license: typeof licenses.$inferSelect,
   cloudProfile?: CloudCustomerProfile,

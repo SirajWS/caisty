@@ -164,7 +164,7 @@ export function DesktopProductNavDropdown(props: {
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const leaveTimer = useRef<number | null>(null);
 
   useEffect(() => {
     if (!open) return;

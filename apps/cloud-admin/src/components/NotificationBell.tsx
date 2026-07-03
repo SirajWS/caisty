@@ -7,23 +7,42 @@ import {
   markNotificationRead,
 } from "../lib/api";
 import {
-  DATE_GROUP_LABELS,
   groupNotificationDate,
-  notificationCategoryLabel,
   notificationIcon,
   type DateGroup,
 } from "../lib/notificationUi";
-import { useTheme, themeColors } from "../theme/ThemeContext";
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString("de-DE");
+  return new Date(value).toLocaleString("en-GB");
 }
 
 const GROUP_ORDER: DateGroup[] = ["today", "yesterday", "week", "older"];
 
+const DATE_GROUP_LABELS_EN: Record<DateGroup, string> = {
+  today: "Today",
+  yesterday: "Yesterday",
+  week: "This week",
+  older: "Older",
+};
+
+function notificationCategoryLabelEn(category: string): string {
+  switch (category) {
+    case "customer":
+      return "New customer";
+    case "payment":
+      return "Payment";
+    case "license":
+      return "License";
+    case "support":
+      return "Support";
+    case "subscription":
+      return "Subscription";
+    default:
+      return "Info";
+  }
+}
+
 export default function NotificationBell() {
-  const { theme } = useTheme();
-  const colors = themeColors[theme];
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -43,7 +62,7 @@ export default function NotificationBell() {
       setItems(sorted);
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : "Fehler beim Laden der Notifications",
+        err instanceof Error ? err.message : "Failed to load notifications.",
       );
     } finally {
       setLoading(false);
@@ -77,7 +96,7 @@ export default function NotificationBell() {
 
   const grouped = GROUP_ORDER.map((group) => ({
     group,
-    label: DATE_GROUP_LABELS[group],
+    label: DATE_GROUP_LABELS_EN[group],
     items: items.filter((n) => groupNotificationDate(n.createdAt) === group),
   })).filter((g) => g.items.length > 0);
 
@@ -99,41 +118,44 @@ export default function NotificationBell() {
       {open && (
         <div
           className="notification-bell__dropdown"
-          style={{
-            background: colors.bgSecondary,
-            borderColor: colors.border,
-          }}
+          style={{ background: "var(--admin-bg-2)" }}
         >
-          <div
-            className="notification-bell__header"
-            style={{ borderColor: colors.border, color: colors.text }}
-          >
+          <div className="notification-bell__header">
             <span>Notifications</span>
             <button
               type="button"
               onClick={() => void load()}
               className="notification-bell__refresh"
-              style={{ color: colors.textSecondary }}
+              style={{ color: "var(--admin-muted)" }}
             >
-              aktualisieren
+              Refresh
             </button>
           </div>
 
           {loading && (
-            <p className="notification-bell__empty" style={{ color: colors.textSecondary }}>
-              Wird geladen …
+            <p
+              className="notification-bell__empty"
+              style={{ color: "var(--admin-muted)" }}
+            >
+              Loading…
             </p>
           )}
 
           {error && (
-            <p className="notification-bell__empty" style={{ color: colors.error }}>
+            <p
+              className="notification-bell__empty"
+              style={{ color: "var(--danger, #ef4444)" }}
+            >
               {error}
             </p>
           )}
 
           {!loading && !error && items.length === 0 && (
-            <p className="notification-bell__empty" style={{ color: colors.textSecondary }}>
-              Keine Notifications.
+            <p
+              className="notification-bell__empty"
+              style={{ color: "var(--admin-muted)" }}
+            >
+              No notifications.
             </p>
           )}
 
@@ -142,7 +164,7 @@ export default function NotificationBell() {
               <div key={group}>
                 <div
                   className="notification-bell__group-label"
-                  style={{ color: colors.textSecondary }}
+                  style={{ color: "var(--admin-muted)" }}
                 >
                   {label}
                 </div>
@@ -151,7 +173,7 @@ export default function NotificationBell() {
                     n.type ?? "",
                     n.category,
                   );
-                  const catLabel = notificationCategoryLabel(
+                  const catLabel = notificationCategoryLabelEn(
                     n.category ?? "other",
                   );
                   return (
@@ -160,19 +182,22 @@ export default function NotificationBell() {
                       type="button"
                       className="notification-bell__item"
                       style={{
-                        background: n.isRead ? "transparent" : colors.bgTertiary,
-                        borderColor: colors.border,
+                        background: n.isRead
+                          ? "transparent"
+                          : "var(--admin-bg-3)",
                       }}
                       onClick={() => handleItemClick(n)}
                     >
-                      <div className="notification-bell__item-icon" style={{ color: colors.accent }}>
+                      <div
+                        className="notification-bell__item-icon"
+                        style={{ color: "var(--brand)" }}
+                      >
                         <Icon size={16} />
                       </div>
                       <div className="notification-bell__item-body">
                         <div
                           className="notification-bell__item-title"
                           style={{
-                            color: colors.text,
                             fontWeight: n.isRead ? 400 : 600,
                           }}
                         >
@@ -180,21 +205,26 @@ export default function NotificationBell() {
                         </div>
                         <div
                           className="notification-bell__item-sub"
-                          style={{ color: colors.textSecondary }}
+                          style={{ color: "var(--admin-muted)" }}
                         >
                           {n.title}
                         </div>
                         {(n.customerName || n.customerEmail) && (
                           <div
                             className="notification-bell__item-meta"
-                            style={{ color: colors.textSecondary }}
+                            style={{ color: "var(--admin-muted)" }}
                           >
                             {n.customerName ?? n.customerEmail}
                           </div>
                         )}
                       </div>
                       <div className="notification-bell__item-actions">
-                        <span style={{ color: colors.textSecondary, fontSize: 10 }}>
+                        <span
+                          style={{
+                            color: "var(--admin-muted)",
+                            fontSize: 10,
+                          }}
+                        >
                           {formatDate(n.createdAt)}
                         </span>
                         {!n.isRead && (
@@ -203,11 +233,16 @@ export default function NotificationBell() {
                             tabIndex={0}
                             onClick={(e) => void handleMarkRead(n.id, e)}
                             onKeyDown={(e) => {
-                              if (e.key === "Enter") void handleMarkRead(n.id, e as unknown as React.MouseEvent);
+                              if (e.key === "Enter") {
+                                void handleMarkRead(
+                                  n.id,
+                                  e as unknown as React.MouseEvent,
+                                );
+                              }
                             }}
-                            style={{ color: colors.accent, fontSize: 10 }}
+                            style={{ color: "var(--brand)", fontSize: 10 }}
                           >
-                            gelesen
+                            Mark read
                           </span>
                         )}
                       </div>
@@ -217,16 +252,13 @@ export default function NotificationBell() {
               </div>
             ))}
 
-          <div
-            className="notification-bell__footer"
-            style={{ borderColor: colors.border }}
-          >
+          <div className="notification-bell__footer">
             <Link
               to="/notifications"
-              style={{ color: colors.accent }}
+              className="ds-link"
               onClick={() => setOpen(false)}
             >
-              alle anzeigen
+              View all
             </Link>
           </div>
         </div>

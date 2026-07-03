@@ -31,10 +31,16 @@ export type AdminFiscalOverviewItem = {
 
 export type FiscalOverviewSummary = {
   totalProfiles: number;
+  /** @deprecated Use fiscalRequiredPending */
   germanyFiskalyPending: number;
+  fiscalRequiredPending: number;
   activeSetups: number;
   comingSoonCountries: number;
   standardReceiptMode: number;
+  actionNeeded: number;
+  allOk: number;
+  fiscalCountriesActive: number;
+  withoutFiscalization: number;
 };
 
 export type AdminFiscalOverviewResponse = {
@@ -44,8 +50,25 @@ export type AdminFiscalOverviewResponse = {
   summary: FiscalOverviewSummary;
 };
 
+export type AdminBusinessSnapshot = {
+  companyName: string;
+  legalName: string;
+  country: string | null;
+  currency: string;
+  defaultLanguage: string;
+  street: string;
+  city: string;
+  postalCode: string;
+  vatId: string;
+  taxNumber: string;
+  configVersion: number;
+  updatedAt: string;
+  complianceStatus: string;
+};
+
 export type AdminCustomerFiscalResponse = {
   ok: boolean;
+  business?: AdminBusinessSnapshot;
   fiscal?: AdminFiscalOverviewItem & {
     fiscalNotice: string | null;
     mode: string;

@@ -2,7 +2,15 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet, apiPost, apiDelete } from "../../lib/api";
-import { useTheme, themeColors } from "../../theme/ThemeContext";
+import {
+  Button,
+  Card,
+  DataTable,
+  PageHeader,
+  SectionHeader,
+  Select,
+} from "../../components/ui";
+import { LicenseStatusPill, SeatsStatus } from "../../lib/adminStatusPills";
 
 type License = {
   id: string;
@@ -49,8 +57,6 @@ const PLAN_DEFAULT_MAX_DEVICES: Record<string, string> = {
 };
 
 export default function LicensesListPage() {
-  const { theme } = useTheme();
-  const colors = themeColors[theme];
   const [licenses, setLicenses] = useState<License[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -94,7 +100,7 @@ export default function LicensesListPage() {
     if (!value) return "–";
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return "–";
-    return d.toLocaleString("de-DE");
+    return d.toLocaleString("en-GB");
   }
 
   async function loadLicenses() {
@@ -106,7 +112,7 @@ export default function LicensesListPage() {
       setTotal(res.total);
     } catch (err: any) {
       console.error(err);
-      setError("Fehler beim Laden der Licenses.");
+      setError("Failed to load licences.");
     } finally {
       setLoading(false);
     }
@@ -153,7 +159,7 @@ export default function LicensesListPage() {
     const newId: string | undefined = res?.item?.id ?? res?.id;
 
     if (!newId) {
-      throw new Error("Server hat keine Customer-ID zurückgegeben.");
+      throw new Error("Server did not return a customer ID.");
     }
 
     return newId;
@@ -164,7 +170,7 @@ export default function LicensesListPage() {
     setCreateError(null);
 
     if (form.customerMode === "new" && !form.newCustomerName.trim()) {
-      setCreateError("Bitte einen Namen für den neuen Customer eingeben.");
+      setCreateError("Please enter a name for the new customer.");
       return;
     }
 
@@ -210,14 +216,14 @@ export default function LicensesListPage() {
       }));
     } catch (err: any) {
       console.error(err);
-      setCreateError(err?.message || "Fehler beim Anlegen der License.");
+      setCreateError(err?.message || "Failed to create licence.");
     } finally {
       setCreateLoading(false);
     }
   }
 
   async function handleRevoke(id: string) {
-    if (!window.confirm("Diesen License-Key wirklich löschen/revoken?")) return;
+    if (!window.confirm("Revoke this licence key?")) return;
     try {
       await apiPost(`/licenses/${id}/revoke`, {});
       await loadLicenses();
@@ -229,7 +235,7 @@ export default function LicensesListPage() {
   async function handleDelete(id: string) {
     if (
       !window.confirm(
-        "Diese License wirklich endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+        "Permanently delete this licence? This action cannot be undone.",
       )
     )
       return;
@@ -238,7 +244,7 @@ export default function LicensesListPage() {
       await loadLicenses();
     } catch (err) {
       console.error(err);
-      alert("Fehler beim Löschen der License.");
+      alert("Failed to delete licence.");
     }
   }
 
@@ -273,59 +279,24 @@ export default function LicensesListPage() {
       ? "__new__"
       : "";
 
+  const filterActive = filterPlan !== "all" || filterStatus !== "all";
+
   return (
     <div className="admin-page">
-      <h1
-        style={{
-          fontSize: "32px",
-          fontWeight: 700,
-          marginBottom: "8px",
-          color: colors.text,
-          letterSpacing: "-0.5px",
-        }}
-      >
-        Licenses
-      </h1>
-      <p
-        style={{
-          fontSize: "14px",
-          color: colors.textSecondary,
-          marginBottom: "24px",
-        }}
-      >
-        Übersicht über alle Lizenzschlüssel deiner Organisation.
-      </p>
+      <PageHeader
+        title="Licences"
+        subtitle="Overview of all licence keys in your organisation."
+      />
 
-      {/* Formular zum Anlegen */}
-      <div
-        className="dashboard-card"
-        style={{
-          marginBottom: 24,
-          maxWidth: 900,
-          backgroundColor: colors.bgSecondary,
-          borderColor: colors.border,
-          transition: "background-color 0.3s, border-color 0.3s",
-        }}
-      >
-        <div
-          className="dashboard-card-title"
-          style={{ color: colors.textSecondary }}
-        >
-          Neue License anlegen
-        </div>
-        <p
-          style={{
-            fontSize: 13,
-            color: colors.textTertiary,
-            marginTop: 4,
-            marginBottom: 4,
-          }}
-        >
-          Customer ist optional. Ohne Auswahl wird nur ein License-Key erzeugt,
-          den du z.&nbsp;B. im POS verwenden kannst.
-        </p>
+      <div className="ds-section-block" style={{ maxWidth: 900 }}>
+        <Card>
+          <div style={{ padding: 16 }}>
+            <SectionHeader
+              title="Create licence"
+              subline="Customer is optional. Without a selection, only a licence key is generated for use in POS."
+            />
 
-        <form
+            <form
           onSubmit={handleCreate}
           style={{
             display: "grid",
@@ -334,10 +305,10 @@ export default function LicensesListPage() {
             marginTop: 12,
           }}
         >
-          {/* Customer (optional) */}
-          <label style={{ fontSize: 13, color: colors.text }}>
+          <label className="ds-form-field">
             Customer (optional)
             <select
+              className="ds-select"
               value={customerSelectValue}
               onChange={(e) => {
                 const value = e.target.value;
@@ -361,26 +332,13 @@ export default function LicensesListPage() {
                   }));
                 }
               }}
-              style={{
-                width: "100%",
-                marginTop: 4,
-                padding: "6px 8px",
-                borderRadius: 6,
-                border: `1px solid ${colors.borderSecondary}`,
-                backgroundColor: colors.input,
-                color: colors.text,
-                fontSize: 13,
-                transition: "all 0.2s",
-              }}
               disabled={customersLoading}
             >
-              <option value="">
-                — Ohne Customer (nur License-Key) —
-              </option>
-              <option value="__new__">➕ Neuen Customer anlegen…</option>
+              <option value="">— No customer (licence key only) —</option>
+              <option value="__new__">➕ Create new customer…</option>
               {customers.length === 0 && (
                 <option value="" disabled>
-                  (keine Customers vorhanden)
+                  (no customers available)
                 </option>
               )}
               {customers.map((c) => (
@@ -394,7 +352,8 @@ export default function LicensesListPage() {
               <div style={{ marginTop: 6 }}>
                 <input
                   type="text"
-                  placeholder="Name des neuen Customers…"
+                  className="ds-input"
+                  placeholder="Name of the new customer…"
                   value={form.newCustomerName}
                   onChange={(e) =>
                     setForm((f) => ({
@@ -402,35 +361,19 @@ export default function LicensesListPage() {
                       newCustomerName: e.target.value,
                     }))
                   }
-                  style={{
-                    width: "100%",
-                    padding: "6px 8px",
-                    borderRadius: 6,
-                    border: `1px solid ${colors.borderSecondary}`,
-                    backgroundColor: colors.input,
-                    color: colors.text,
-                    fontSize: 13,
-                    transition: "all 0.2s",
-                  }}
                 />
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: colors.textTertiary,
-                    marginTop: 4,
-                  }}
-                >
-                  Der neue Customer wird automatisch angelegt und bekommt
-                  diese License.
+                <div className="ds-muted" style={{ fontSize: 11, marginTop: 4 }}>
+                  The new customer will be created automatically and assigned this
+                  licence.
                 </div>
               </div>
             )}
           </label>
 
-          {/* Plan */}
-          <label style={{ fontSize: 13, color: colors.text }}>
+          <label className="ds-form-field">
             Plan
             <select
+              className="ds-select"
               value={form.plan}
               onChange={(e) => {
                 const nextPlan = e.target.value;
@@ -441,17 +384,6 @@ export default function LicensesListPage() {
                     PLAN_DEFAULT_MAX_DEVICES[nextPlan] ?? f.maxDevices,
                 }));
               }}
-              style={{
-                width: "100%",
-                marginTop: 4,
-                padding: "6px 8px",
-                borderRadius: 6,
-                border: `1px solid ${colors.borderSecondary}`,
-                backgroundColor: colors.input,
-                color: colors.text,
-                fontSize: 13,
-                transition: "all 0.2s",
-              }}
             >
               <option value="trial">trial</option>
               <option value="starter">starter</option>
@@ -459,256 +391,116 @@ export default function LicensesListPage() {
             </select>
           </label>
 
-          {/* Max Devices */}
-          <label style={{ fontSize: 13, color: colors.text }}>
-            Max Devices
+          <label className="ds-form-field">
+            Max devices
             <input
               type="number"
+              className="ds-input"
               min={1}
               value={form.maxDevices}
               onChange={(e) =>
                 setForm((f) => ({ ...f, maxDevices: e.target.value }))
               }
-              style={{
-                width: "100%",
-                marginTop: 4,
-                padding: "6px 8px",
-                borderRadius: 6,
-                border: `1px solid ${colors.borderSecondary}`,
-                backgroundColor: colors.input,
-                color: colors.text,
-                fontSize: 13,
-                transition: "all 0.2s",
-              }}
             />
           </label>
 
-          {/* Gültig von */}
-          <label style={{ fontSize: 13, color: colors.text }}>
-            Gültig von
+          <label className="ds-form-field">
+            Valid from
             <input
               type="date"
+              className="ds-input"
               value={form.validFrom}
               onChange={(e) =>
                 setForm((f) => ({ ...f, validFrom: e.target.value }))
               }
-              style={{
-                width: "100%",
-                marginTop: 4,
-                padding: "6px 8px",
-                borderRadius: 6,
-                border: `1px solid ${colors.borderSecondary}`,
-                backgroundColor: colors.input,
-                color: colors.text,
-                fontSize: 13,
-                transition: "all 0.2s",
-              }}
             />
           </label>
 
-          {/* Gültig bis */}
-          <label style={{ fontSize: 13, color: colors.text }}>
-            Gültig bis
+          <label className="ds-form-field">
+            Valid until
             <input
               type="date"
+              className="ds-input"
               value={form.validUntil}
               onChange={(e) =>
                 setForm((f) => ({ ...f, validUntil: e.target.value }))
               }
-              style={{
-                width: "100%",
-                marginTop: 4,
-                padding: "6px 8px",
-                borderRadius: 6,
-                border: `1px solid ${colors.borderSecondary}`,
-                backgroundColor: colors.input,
-                color: colors.text,
-                fontSize: 13,
-                transition: "all 0.2s",
-              }}
             />
           </label>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "flex-start",
-              marginTop: 4,
-            }}
-          >
-            <button
-              type="submit"
-              disabled={createLoading}
-              className="login-button"
-              style={{ width: "auto", paddingInline: 20 }}
-            >
-              {createLoading ? "Speichern…" : "License erstellen"}
-            </button>
+          <div style={{ display: "flex", alignItems: "flex-end" }}>
+            <Button type="submit" variant="primary" disabled={createLoading}>
+              {createLoading ? "Saving…" : "Create license"}
+            </Button>
           </div>
         </form>
 
-        {createError && (
-          <div
-            className="admin-error"
-            style={{
-              marginTop: 12,
-              backgroundColor: colors.errorBg,
-              borderColor: `${colors.error}50`,
-              color: colors.error,
-            }}
-          >
+        {createError ? (
+          <div className="admin-error-banner" style={{ marginTop: 12 }}>
             {createError}
           </div>
-        )}
+        ) : null}
+          </div>
+        </Card>
       </div>
 
-      {/* Karte: Generierte Licenses (ohne Customer, noch nicht benutzt) */}
-      {generatedLicenses.length > 0 && (
-        <div
-          className="dashboard-card"
-          style={{
-            marginBottom: 24,
-            maxWidth: 900,
-            backgroundColor: colors.bgSecondary,
-            borderColor: colors.border,
-            transition: "background-color 0.3s, border-color 0.3s",
-          }}
-        >
-          <div
-            className="dashboard-card-title"
-            style={{ color: colors.textSecondary }}
-          >
-            Generierte License-Keys (ohne Customer)
-          </div>
-          <p
-            style={{
-              fontSize: 13,
-              color: colors.textTertiary,
-              marginTop: 4,
-              marginBottom: 8,
-            }}
-          >
-            Diese Keys wurden erzeugt, sind aber noch keinem Customer
-            zugeordnet und wurden noch auf keinem Device verwendet. Du kannst
-            sie z.&nbsp;B. im POS eintragen. Sobald später ein Customer
-            hinterlegt ist oder die License auf einem Device aktiviert wird,
-            verschwinden sie aus dieser Liste.
-          </p>
+      {generatedLicenses.length > 0 ? (
+        <div className="ds-section-block" style={{ maxWidth: 900 }}>
+          <SectionHeader
+            title="Generated licence keys (no customer)"
+            subline="These keys were created without a customer and have not been used on any device yet. Enter them in POS. Once a customer is assigned or the licence is activated on a device, they move to the main list below."
+          />
+          <DataTable>
+            <thead>
+              <tr>
+                <th>Key</th>
+                <th>Plan</th>
+                <th>Status</th>
+                <th>Max devices</th>
+                <th>Seats</th>
+                <th>Valid until</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {generatedLicenses.map((lic) => {
+                const used = lic.devicesCount ?? 0;
+                const seatTotal = lic.maxDevices ?? used;
 
-          <div
-            className="admin-table-wrapper"
-            style={{
-              marginTop: 8,
-              backgroundColor: colors.bgSecondary,
-              borderColor: colors.border,
-              transition: "background-color 0.3s, border-color 0.3s",
-            }}
-          >
-            <table className="admin-table">
-              <thead>
-                <tr style={{ backgroundColor: colors.bgTertiary }}>
-                  <th style={{ color: colors.textSecondary }}>Key</th>
-                  <th style={{ color: colors.textSecondary }}>Plan</th>
-                  <th style={{ color: colors.textSecondary }}>Status</th>
-                  <th style={{ color: colors.textSecondary }}>Max Devices</th>
-                  <th style={{ color: colors.textSecondary }}>Seats</th>
-                  <th style={{ color: colors.textSecondary }}>Gültig bis</th>
-                  <th style={{ color: colors.textSecondary }}>Erstellt</th>
-                  <th style={{ color: colors.textSecondary }}>Aktion</th>
-                </tr>
-              </thead>
-              <tbody>
-                {generatedLicenses.map((lic) => {
-                  const used = lic.devicesCount ?? 0;
-                  const total = lic.maxDevices ?? used;
-                  const full = total > 0 && used >= total;
-
-                  return (
-                    <tr
-                      key={lic.id}
-                      style={{
-                        borderBottomColor: colors.border,
-                        transition: "background-color 0.2s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = colors.bgTertiary;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                      }}
-                    >
-                      <td style={{ color: colors.text }}>{lic.key}</td>
-                      <td style={{ color: colors.text }}>{lic.plan}</td>
-                      <td>
-                        <span
-                          className={
-                            lic.status === "active"
-                              ? "badge badge--green"
-                              : lic.status === "revoked"
-                              ? "badge badge--red"
-                              : "badge badge--amber"
-                          }
-                        >
-                          {lic.status}
-                        </span>
-                      </td>
-                      <td style={{ color: colors.text }}>
-                        {lic.maxDevices ?? "–"}
-                      </td>
-                      <td style={{ color: colors.text }}>
-                        {used} / {total}
-                        {full && (
-                          <span
-                            className="badge badge--red"
-                            style={{ marginLeft: 6 }}
-                          >
-                            voll
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ color: colors.text }}>
-                        {formatDate(lic.validUntil)}
-                      </td>
-                      <td style={{ color: colors.text }}>
-                        {formatDate(lic.createdAt)}
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          onClick={() => handleRevoke(lic.id)}
-                          className="badge badge--red"
-                          style={{ cursor: "pointer" }}
-                        >
-                          Löschen
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                return (
+                  <tr key={lic.id}>
+                    <td>{lic.key}</td>
+                    <td>{lic.plan}</td>
+                    <td>
+                      <LicenseStatusPill status={lic.status} />
+                    </td>
+                    <td>{lic.maxDevices ?? "—"}</td>
+                    <td>
+                      <SeatsStatus used={used} total={seatTotal} />
+                    </td>
+                    <td>{formatDate(lic.validUntil)}</td>
+                    <td>{formatDate(lic.createdAt)}</td>
+                    <td>
+                      <Button
+                        variant="danger"
+                        onClick={() => handleRevoke(lic.id)}
+                      >
+                        Revoke
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </DataTable>
         </div>
-      )}
+      ) : null}
 
-      {/* Filter-Karte */}
-      <div
-        className="dashboard-card"
-        style={{
-          marginBottom: 24,
-          maxWidth: 900,
-          backgroundColor: colors.bgSecondary,
-          borderColor: colors.border,
-          transition: "background-color 0.3s, border-color 0.3s",
-        }}
-      >
-        <div
-          className="dashboard-card-title"
-          style={{ color: colors.textSecondary }}
-        >
-          Filter
-        </div>
+      <div className="ds-section-block" style={{ maxWidth: 900 }}>
+        <Card>
+          <div style={{ padding: 16 }}>
+        <SectionHeader title="Filters" />
         <div
           style={{
             display: "grid",
@@ -717,297 +509,153 @@ export default function LicensesListPage() {
             marginTop: 12,
           }}
         >
-          <label style={{ fontSize: 13, color: colors.text }}>
+          <label className="ds-form-field">
             Plan
-            <select
+            <Select
               value={filterPlan}
               onChange={(e) => setFilterPlan(e.target.value)}
-              style={{
-                width: "100%",
-                marginTop: 4,
-                padding: "6px 8px",
-                borderRadius: 6,
-                border: `1px solid ${colors.borderSecondary}`,
-                backgroundColor: colors.input,
-                color: colors.text,
-                fontSize: 13,
-                transition: "all 0.2s",
-              }}
             >
-              <option value="all">Alle Pläne</option>
+              <option value="all">All plans</option>
               <option value="trial">trial</option>
               <option value="starter">starter</option>
               <option value="pro">pro</option>
-            </select>
+            </Select>
           </label>
 
-          <label style={{ fontSize: 13, color: colors.text }}>
+          <label className="ds-form-field">
             Status
-            <select
+            <Select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              style={{
-                width: "100%",
-                marginTop: 4,
-                padding: "6px 8px",
-                borderRadius: 6,
-                border: `1px solid ${colors.borderSecondary}`,
-                backgroundColor: colors.input,
-                color: colors.text,
-                fontSize: 13,
-                transition: "all 0.2s",
-              }}
             >
-              <option value="all">Alle Status</option>
+              <option value="all">All statuses</option>
               <option value="active">active</option>
               <option value="revoked">revoked</option>
               <option value="expired">expired</option>
-            </select>
+            </Select>
           </label>
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "flex-start",
-            }}
-          >
-            <button
-              type="button"
+          <div style={{ display: "flex", alignItems: "flex-end" }}>
+            <Button
+              variant="secondary"
               onClick={() => {
                 setFilterPlan("all");
                 setFilterStatus("all");
               }}
-              style={{
-                padding: "6px 12px",
-                borderRadius: 6,
-                border: `1px solid ${colors.border}`,
-                backgroundColor: colors.bgTertiary,
-                color: colors.text,
-                fontSize: 13,
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = colors.border;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = colors.bgTertiary;
-              }}
             >
-              Filter zurücksetzen
-            </button>
+              Reset filters
+            </Button>
           </div>
         </div>
-        {(filterPlan !== "all" || filterStatus !== "all") && (
-          <div
-            style={{
-              marginTop: 12,
-              fontSize: 12,
-              color: colors.textTertiary,
-            }}
-          >
-            {filteredAssignedLicenses.length} von {assignedLicenses.length}{" "}
-            Lizenzen angezeigt
+        {filterActive ? (
+          <div className="ds-muted" style={{ marginTop: 12, fontSize: 12 }}>
+            {filteredAssignedLicenses.length} of {assignedLicenses.length} licences
+            shown
           </div>
-        )}
+        ) : null}
+          </div>
+        </Card>
       </div>
 
-      {/* Tabelle: Licenses mit Customer ODER bereits benutzten Devices */}
-      <div
-        className="admin-table-wrapper"
-        style={{
-          backgroundColor: colors.bgSecondary,
-          borderColor: colors.border,
-          transition: "background-color 0.3s, border-color 0.3s",
-        }}
-      >
-        <table className="admin-table">
+      {error ? <div className="admin-error-banner">{error}</div> : null}
+
+      <div className="ds-section-block">
+        <DataTable>
           <thead>
-            <tr style={{ backgroundColor: colors.bgTertiary }}>
-              <th style={{ color: colors.textSecondary }}>Key</th>
-              <th style={{ color: colors.textSecondary }}>Plan</th>
-              <th style={{ color: colors.textSecondary }}>Status</th>
-              <th style={{ color: colors.textSecondary }}>Max Devices</th>
-              <th style={{ color: colors.textSecondary }}>Seats</th>
-              <th style={{ color: colors.textSecondary }}>Customer</th>
-              <th style={{ color: colors.textSecondary }}>Gültig bis</th>
-              <th style={{ color: colors.textSecondary }}>Erstellt</th>
-              <th style={{ color: colors.textSecondary }}>Aktion</th>
+            <tr>
+              <th>Key</th>
+              <th>Plan</th>
+              <th>Status</th>
+              <th>Max devices</th>
+              <th>Seats</th>
+              <th>Customer</th>
+              <th>Valid until</th>
+              <th>Created</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {loading && (
+            {loading ? (
               <tr>
                 <td
                   colSpan={9}
-                  style={{
-                    textAlign: "center",
-                    padding: 24,
-                    color: colors.textSecondary,
-                  }}
+                  className="ds-muted"
+                  style={{ textAlign: "center", padding: 24 }}
                 >
-                  Lade Licenses…
+                  Loading licences…
                 </td>
               </tr>
-            )}
-            {!loading && error && (
-              <tr>
-                <td colSpan={9}>
-                  <div
-                    className="admin-error"
-                    style={{
-                      backgroundColor: colors.errorBg,
-                      borderColor: `${colors.error}50`,
-                      color: colors.error,
-                    }}
-                  >
-                    {error}
-                  </div>
-                </td>
-              </tr>
-            )}
-            {!loading && !error && filteredAssignedLicenses.length === 0 && (
+            ) : !loading && !error && filteredAssignedLicenses.length === 0 ? (
               <tr>
                 <td
                   colSpan={9}
-                  style={{
-                    textAlign: "center",
-                    padding: 24,
-                    color: colors.textSecondary,
-                  }}
+                  className="ds-muted"
+                  style={{ textAlign: "center", padding: 24 }}
                 >
                   {assignedLicenses.length === 0
-                    ? "Noch keine Licenses mit Customer oder Device vorhanden."
-                    : "Keine Lizenzen entsprechen den ausgewählten Filtern."}
+                    ? "No licences with a customer or device yet."
+                    : "No licences match the selected filters."}
                 </td>
               </tr>
-            )}
-            {!loading &&
+            ) : (
+              !loading &&
               !error &&
               filteredAssignedLicenses.map((lic) => {
                 const used = lic.devicesCount ?? 0;
-                const total = lic.maxDevices ?? used;
-                const full = total > 0 && used >= total;
+                const seatTotal = lic.maxDevices ?? used;
                 const customer = lic.customerId
                   ? customersById[lic.customerId]
                   : undefined;
 
                 return (
-                  <tr
-                    key={lic.id}
-                    style={{
-                      borderBottomColor: colors.border,
-                      transition: "background-color 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = colors.bgTertiary;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                    }}
-                  >
-                    <td style={{ color: colors.text }}>
-                      <Link
-                        to={`/licenses/${lic.id}`}
-                        style={{
-                          color: colors.accent,
-                          textDecoration: "none",
-                          transition: "color 0.2s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = colors.accentHover;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = colors.accent;
-                        }}
-                      >
+                  <tr key={lic.id}>
+                    <td>
+                      <Link to={`/licenses/${lic.id}`} className="ds-link">
                         {lic.key}
                       </Link>
                     </td>
-                    <td style={{ color: colors.text }}>{lic.plan}</td>
+                    <td>{lic.plan}</td>
                     <td>
-                      <span
-                        className={
-                          lic.status === "active"
-                            ? "badge badge--green"
-                            : lic.status === "revoked"
-                            ? "badge badge--red"
-                            : "badge badge--amber"
-                        }
-                      >
-                        {lic.status}
-                      </span>
+                      <LicenseStatusPill status={lic.status} />
                     </td>
-                    <td style={{ color: colors.text }}>
-                      {lic.maxDevices ?? "–"}
+                    <td>{lic.maxDevices ?? "—"}</td>
+                    <td>
+                      <SeatsStatus used={used} total={seatTotal} />
                     </td>
-                    <td style={{ color: colors.text }}>
-                      {used} / {total}
-                      {full && (
-                        <span
-                          className="badge badge--red"
-                          style={{ marginLeft: 6 }}
-                        >
-                          voll
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ color: colors.text }}>
+                    <td>
                       {lic.customerId ? (
                         <Link
                           to={`/customers/${lic.customerId}`}
-                          style={{
-                            color: colors.accent,
-                            textDecoration: "none",
-                            transition: "color 0.2s",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = colors.accentHover;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = colors.accent;
-                          }}
+                          className="ds-link"
                         >
                           {customer?.name ||
                             customer?.email ||
                             `${lic.customerId.slice(0, 8)}…`}
                         </Link>
                       ) : (
-                        "–"
+                        "—"
                       )}
                     </td>
-                    <td style={{ color: colors.text }}>
-                      {formatDate(lic.validUntil)}
-                    </td>
-                    <td style={{ color: colors.text }}>
-                      {formatDate(lic.createdAt)}
-                    </td>
+                    <td>{formatDate(lic.validUntil)}</td>
+                    <td>{formatDate(lic.createdAt)}</td>
                     <td>
-                      <button
-                        type="button"
+                      <Button
+                        variant="danger"
                         onClick={() => handleDelete(lic.id)}
-                        className="badge badge--red"
-                        style={{ cursor: "pointer" }}
                       >
-                        Löschen
-                      </button>
+                        Delete
+                      </Button>
                     </td>
                   </tr>
                 );
-              })}
+              })
+            )}
           </tbody>
-        </table>
+        </DataTable>
       </div>
 
-      <p
-        style={{
-          marginTop: 8,
-          fontSize: 12,
-          color: colors.textTertiary,
-        }}
-      >
-        {total} License(s) in dieser Instanz.
+      <p className="ds-muted" style={{ marginTop: 8, fontSize: 12 }}>
+        {total} licence(s) in this instance.
       </p>
     </div>
   );

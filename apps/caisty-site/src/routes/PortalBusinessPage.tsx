@@ -12,70 +12,27 @@ import { getPortalTranslations } from "../lib/translations";
 import {
   portalCardShell,
   portalInputClass,
+  portalPageShell,
+  portalPageSubtitle,
+  portalPageTitle,
   portalPrimaryCta,
   portalSectionLabel,
 } from "../lib/portalUi";
 import {
-  BUSINESS_COUNTRY_OPTIONS,
+  getBusinessCountryOptions,
   BUSINESS_LANGUAGE_OPTIONS,
   currenciesForCountry,
   getPosLatestVersion,
   getPosWindowsDownloadUrl,
   isPosDownloadConfigured,
 } from "../config/businessCountries";
+import { previewFiscalStatus } from "../lib/businessDisplay";
+import { getCountryConfigByCode } from "../lib/countryConfigClient";
+import { mapPortalApiError } from "../lib/caistyTerminology";
 import {
-  previewFiscalConfigurationLabel,
-  previewFiscalNotice,
-  previewFiscalProviderKey,
-  previewFiscalStatus,
-  previewReceiptMode,
-} from "../lib/businessDisplay";
-import {
-  mapPortalApiError,
-} from "../lib/caistyTerminology";
-
-function statusBadgeClass(status: string, isLight: boolean): string {
-  const base =
-    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium";
-  const s = status.toLowerCase();
-  if (
-    s === "active" ||
-    s === "ready" ||
-    s === "not_required" ||
-    s === "download_available"
-  ) {
-    return `${base} ${
-      isLight
-        ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-        : "border-emerald-500/30 bg-emerald-500/15 text-emerald-400"
-    }`;
-  }
-  if (
-    s === "pending_setup" ||
-    s === "required" ||
-    s === "required_coming_soon" ||
-    s === "incomplete" ||
-    s === "not_ready"
-  ) {
-    return `${base} ${
-      isLight
-        ? "border-amber-300 bg-amber-50 text-amber-900"
-        : "border-amber-500/40 bg-amber-500/15 text-amber-200"
-    }`;
-  }
-  if (s === "error" || s === "action_required") {
-    return `${base} ${
-      isLight
-        ? "border-rose-300 bg-rose-50 text-rose-800"
-        : "border-rose-500/40 bg-rose-500/10 text-rose-300"
-    }`;
-  }
-  return `${base} ${
-    isLight
-      ? "border-slate-200 bg-slate-100 text-slate-700"
-      : "border-white/10 bg-slate-800/80 text-slate-300"
-  }`;
-}
+  deriveFiscalVisibility,
+  getFiscalCustomerCopy,
+} from "../lib/useFiscalVisibility";
 
 const PortalBusinessPage: React.FC = () => {
   const { theme } = useTheme();
@@ -141,58 +98,13 @@ const PortalBusinessPage: React.FC = () => {
     };
   }, [b.loadError]);
 
-  function fiscalStatusLabel(status: string): string {
-    const key = status as keyof typeof b.statusFiscal;
-    return b.statusFiscal[key] ?? status;
-  }
-
-  function complianceLabel(status: string): string {
-    const key = status as keyof typeof b.statusCompliance;
-    return b.statusCompliance[key] ?? status;
-  }
-
-  function fiscalProviderLabel(key: string): string {
-    if (key === "fiskaly" || key === "caisty_fiscal_germany_fiskaly") {
-      return b.providerGermanyFiskaly;
-    }
-    return b.providerNone;
-  }
-
-  function fiscalConfigurationLabel(
-    labelOrKey: string | null | undefined,
-  ): string {
-    if (!labelOrKey) return b.packageGenericStandard;
-    if (
-      labelOrKey === "Caisty Fiscal Germany powered by Fiskaly" ||
-      labelOrKey === b.providerGermanyFiskaly
-    ) {
-      return b.providerGermanyFiskaly;
-    }
-    if (labelOrKey.includes("coming_soon") || labelOrKey.includes("coming soon")) {
-      return b.packageComingSoon;
-    }
-    if (labelOrKey === "de_fiskaly_api") return b.providerGermanyFiskaly;
-    if (labelOrKey === "generic_standard") return b.packageGenericStandard;
-    return labelOrKey;
-  }
-
-  function receiptModeLabel(mode: string): string {
-    if (mode === "certified" || mode === "certified_germany") {
-      return b.receiptModeCertified;
-    }
-    if (mode === "standard_until_certified") {
-      return b.receiptModeStandardUntilCertified;
-    }
-    return b.receiptModeStandard;
-  }
-
   function countryLabel(code: string | null): string {
     if (!code) return t.labels.dash;
     const key = code as keyof typeof b.countries;
     return b.countries[key] ?? code;
   }
 
-  async function handleSaveCompany(e: React.FormEvent) {
+  async function handleSaveAll(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSuccess(null);
@@ -210,24 +122,6 @@ const PortalBusinessPage: React.FC = () => {
           zip: zip.trim(),
           country: country || undefined,
         },
-      });
-      setProfile(updated);
-      applyProfileToForm(updated);
-      setSuccess(b.saveSuccess);
-    } catch (err) {
-      setError(mapPortalApiError(err, { default: b.saveError }));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleSaveTax(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
-    setSaving(true);
-    try {
-      const updated = await updatePortalBusiness({
         vatId: vatId.trim(),
         taxId: taxId.trim(),
       });
@@ -252,39 +146,21 @@ const PortalBusinessPage: React.FC = () => {
   const displayFiscalStatus = countryDirty
     ? previewFiscalStatus(effectiveCountry)
     : (profile?.fiscalStatus ?? previewFiscalStatus(effectiveCountry));
-  const displayProviderKey = countryDirty
-    ? previewFiscalProviderKey(effectiveCountry)
-    : (profile?.fiscalProviderDisplayKey ??
-      previewFiscalProviderKey(effectiveCountry));
-  const displayFiscalConfiguration = countryDirty
-    ? previewFiscalConfigurationLabel(effectiveCountry)
-    : (profile?.fiscalConfigurationLabel ??
-      profile?.fiscalPackage ??
-      previewFiscalConfigurationLabel(effectiveCountry));
-  const displayReceiptMode = countryDirty
-    ? previewReceiptMode(effectiveCountry)
-    : (profile?.receiptMode ?? previewReceiptMode(effectiveCountry));
-  const displayFiscalNotice = countryDirty
-    ? previewFiscalNotice(effectiveCountry)
-    : (profile?.fiscalNotice ?? previewFiscalNotice(effectiveCountry));
-  const displayCurrency = countryDirty
-    ? currency
-    : (profile?.currency ?? currency);
 
   const allowedCurrencies = effectiveCountry
     ? currenciesForCountry(effectiveCountry)
     : currenciesForCountry("DE");
 
-  function fiscalExplainerText(): string {
-    if (!effectiveCountry) return b.fiscalExplainerNoCountry;
-    if (effectiveCountry === "DE") return b.fiscalExplainerGermany;
-    if (
-      ["AT", "FR", "IT", "ES", "PT", "NL", "BE"].includes(effectiveCountry)
-    ) {
-      return b.fiscalExplainerEuSoon;
-    }
-    return b.fiscalExplainerGeneric;
-  }
+  const effectiveFiscalRequired = countryDirty
+    ? (getCountryConfigByCode(effectiveCountry)?.fiscalRequired ?? false)
+    : profile?.fiscalRequired === true;
+
+  const fiscalVisibility = deriveFiscalVisibility({
+    fiscalRequired: effectiveFiscalRequired,
+    fiscalStatus: displayFiscalStatus,
+    country: effectiveCountry,
+  });
+  const fiscalCopy = getFiscalCustomerCopy(t, fiscalVisibility);
 
   if (loading) {
     return (
@@ -303,34 +179,13 @@ const PortalBusinessPage: React.FC = () => {
     );
   }
 
-  const readOnly = profile;
+  const showComplianceIncomplete = profile?.complianceStatus === "incomplete";
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-2">
-        <h1
-          className={`text-2xl sm:text-3xl font-semibold tracking-tight ${
-            isLight ? "text-[#0B1220]" : "text-white"
-          }`}
-        >
-          {b.title}
-        </h1>
-        <p
-          className={`text-sm max-w-2xl leading-relaxed ${
-            isLight ? "text-slate-600" : "text-slate-400"
-          }`}
-        >
-          {b.subtitle}
-        </p>
-        <p
-          className={`text-xs inline-flex items-center gap-2 rounded-full border px-3 py-1 ${
-            isLight
-              ? "border-slate-200 bg-slate-50 text-slate-600"
-              : "border-white/10 bg-white/[0.04] text-slate-400"
-          }`}
-        >
-          {t.layout.cloudManaged} · {t.layout.syncedFromCloud}
-        </p>
+    <div className={portalPageShell()}>
+      <header className="space-y-1">
+        <h1 className={portalPageTitle(isLight)}>{b.title}</h1>
+        <p className={portalPageSubtitle(isLight)}>{b.subtitle}</p>
       </header>
 
       {(error || success) && (
@@ -349,27 +204,18 @@ const PortalBusinessPage: React.FC = () => {
         </div>
       )}
 
-      {/* A) Company Information */}
-      <section className={`${portalCardShell(isLight)} space-y-5`}>
+      <section className={`${portalCardShell(isLight)} space-y-4`}>
         <div>
-          <h2
-            className={`text-sm font-semibold ${
-              isLight ? "text-slate-900" : "text-slate-100"
-            }`}
-          >
+          <h2 className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>
             {b.companyTitle}
           </h2>
-          <p
-            className={`text-xs mt-1 ${
-              isLight ? "text-slate-600" : "text-slate-400"
-            }`}
-          >
+          <p className={`text-xs mt-0.5 ${isLight ? "text-slate-600" : "text-slate-400"}`}>
             {b.companyHint}
           </p>
         </div>
 
-        <form onSubmit={handleSaveCompany} className="space-y-4 text-xs">
-          <div className="grid gap-4 md:grid-cols-2">
+        <form onSubmit={handleSaveAll} className="space-y-4 text-xs">
+          <div className="grid gap-3 md:grid-cols-2">
             <Field label={b.companyName}>
               <input
                 value={companyName}
@@ -391,15 +237,13 @@ const PortalBusinessPage: React.FC = () => {
                 onChange={(e) => {
                   const code = e.target.value;
                   setCountry(code);
-                  const opt = BUSINESS_COUNTRY_OPTIONS.find(
-                    (c) => c.code === code,
-                  );
+                  const opt = getBusinessCountryOptions().find((c) => c.code === code);
                   if (opt) setCurrency(opt.currency);
                 }}
                 className={portalInputClass(isLight)}
               >
                 <option value="">{b.countryPlaceholder}</option>
-                {BUSINESS_COUNTRY_OPTIONS.map((c) => (
+                {getBusinessCountryOptions().map((c) => (
                   <option key={c.code} value={c.code}>
                     {countryLabel(c.code)}
                   </option>
@@ -435,7 +279,7 @@ const PortalBusinessPage: React.FC = () => {
           </div>
 
           <div className={portalSectionLabel(isLight)}>{b.addressTitle}</div>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-3 md:grid-cols-2">
             <Field label={b.street} className="md:col-span-2">
               <input
                 value={street}
@@ -459,6 +303,31 @@ const PortalBusinessPage: React.FC = () => {
             </Field>
           </div>
 
+          <div className="grid gap-3 md:grid-cols-2">
+            <Field label={fiscalVisibility.showFiscalUi ? b.vatId : b.vatIdOptional}>
+              <input
+                value={vatId}
+                onChange={(e) => setVatId(e.target.value)}
+                className={portalInputClass(isLight)}
+                maxLength={64}
+              />
+            </Field>
+            <Field label={fiscalVisibility.showFiscalUi ? b.taxId : b.taxIdOptional}>
+              <input
+                value={taxId}
+                onChange={(e) => setTaxId(e.target.value)}
+                className={portalInputClass(isLight)}
+                maxLength={64}
+              />
+            </Field>
+          </div>
+
+          {showComplianceIncomplete ? (
+            <p className={`text-xs ${isLight ? "text-amber-700" : "text-amber-200"}`}>
+              {t.fiscal.businessIncompleteHint}
+            </p>
+          ) : null}
+
           <button
             type="submit"
             disabled={saving}
@@ -469,141 +338,15 @@ const PortalBusinessPage: React.FC = () => {
         </form>
       </section>
 
-      {/* B) Tax & Compliance */}
-      <section className={`${portalCardShell(isLight)} space-y-5`}>
-        <div>
-          <h2
-            className={`text-sm font-semibold ${
-              isLight ? "text-slate-900" : "text-slate-100"
-            }`}
-          >
-            {b.taxTitle}
-          </h2>
-          <p
-            className={`text-xs mt-1 ${
-              isLight ? "text-slate-600" : "text-slate-400"
-            }`}
-          >
-            {b.taxHint}
+      <section className={`${portalCardShell(isLight)} space-y-3`}>
+        <h2 className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>
+          {b.posTitle}
+        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className={`text-sm ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+            Caisty POS {posVersion} ·{" "}
+            {posDownloadAvailable ? b.posDownloadAvailable : b.posDownloadUnavailable}
           </p>
-        </div>
-
-        <form onSubmit={handleSaveTax} className="space-y-4 text-xs">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label={b.vatId}>
-              <input
-                value={vatId}
-                onChange={(e) => setVatId(e.target.value)}
-                className={portalInputClass(isLight)}
-                maxLength={64}
-              />
-            </Field>
-            <Field label={b.taxId}>
-              <input
-                value={taxId}
-                onChange={(e) => setTaxId(e.target.value)}
-                className={portalInputClass(isLight)}
-                maxLength={64}
-              />
-            </Field>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-3">
-            <ReadOnlyStatus
-              label={b.fiscalStatusLabel}
-              value={fiscalStatusLabel(displayFiscalStatus)}
-              badgeClass={statusBadgeClass(displayFiscalStatus, isLight)}
-              isLight={isLight}
-            />
-            <ReadOnlyStatus
-              label={b.fiscalProviderLabel}
-              value={fiscalProviderLabel(displayProviderKey)}
-              isLight={isLight}
-            />
-            <ReadOnlyStatus
-              label={b.complianceStatusLabel}
-              value={complianceLabel(
-                readOnly?.complianceStatus ?? "incomplete",
-              )}
-              badgeClass={statusBadgeClass(
-                readOnly?.complianceStatus ?? "incomplete",
-                isLight,
-              )}
-              isLight={isLight}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={saving}
-            className={`${portalPrimaryCta()} disabled:opacity-60`}
-          >
-            {saving ? b.saving : b.saveTax}
-          </button>
-        </form>
-      </section>
-
-      {/* C) POS Configuration */}
-      <section className={`${portalCardShell(isLight)} space-y-5`}>
-        <div>
-          <h2
-            className={`text-sm font-semibold ${
-              isLight ? "text-slate-900" : "text-slate-100"
-            }`}
-          >
-            {b.posTitle}
-          </h2>
-          <p
-            className={`text-xs mt-1 ${
-              isLight ? "text-slate-600" : "text-slate-400"
-            }`}
-          >
-            {b.posHint}
-          </p>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 text-xs">
-          <ReadOnlyStatus
-            label={b.selectedCountry}
-            value={countryLabel(effectiveCountry)}
-            isLight={isLight}
-          />
-          <ReadOnlyStatus
-            label={b.currency}
-            value={displayCurrency}
-            isLight={isLight}
-          />
-          <ReadOnlyStatus
-            label={b.fiscalConfiguration}
-            value={fiscalConfigurationLabel(displayFiscalConfiguration)}
-            isLight={isLight}
-          />
-          <ReadOnlyStatus
-            label={b.receiptMode}
-            value={receiptModeLabel(displayReceiptMode)}
-            isLight={isLight}
-          />
-          <ReadOnlyStatus
-            label={b.posDownloadStatus}
-            value={
-              posDownloadAvailable
-                ? b.posDownloadAvailable
-                : b.posDownloadUnavailable
-            }
-            badgeClass={statusBadgeClass(
-              posDownloadAvailable ? "download_available" : "not_ready",
-              isLight,
-            )}
-            isLight={isLight}
-          />
-          <ReadOnlyStatus
-            label={b.posVersion}
-            value={posVersion}
-            isLight={isLight}
-          />
-        </div>
-
-        <div>
           {posDownloadAvailable && posDownloadUrl ? (
             <a
               href={posDownloadUrl}
@@ -626,48 +369,18 @@ const PortalBusinessPage: React.FC = () => {
         </div>
       </section>
 
-      {/* D) Fiscal Information */}
-      <section className={`${portalCardShell(isLight)} space-y-3`}>
-        <div className="flex gap-3">
-          <Info
-            className={`h-5 w-5 shrink-0 mt-0.5 ${
-              isLight ? "text-orange-600" : "text-orange-400"
-            }`}
-            aria-hidden
-          />
-          <div className="space-y-2 text-sm">
-            <h2
-              className={`font-semibold ${
-                isLight ? "text-slate-900" : "text-slate-100"
-              }`}
-            >
-              {b.fiscalInfoTitle}
-            </h2>
-            <p className={isLight ? "text-slate-600" : "text-slate-400"}>
-              {fiscalExplainerText()}
-            </p>
-            {displayFiscalNotice && (
-              <p
-                className={`text-xs ${
-                  isLight ? "text-slate-500" : "text-slate-500"
-                }`}
-              >
-                {displayFiscalNotice}
-              </p>
-            )}
-            {displayFiscalStatus === "pending_setup" &&
-              effectiveCountry === "DE" && !displayFiscalNotice && (
-              <p
-                className={`text-xs ${
-                  isLight ? "text-slate-500" : "text-slate-500"
-                }`}
-              >
-                {b.fiscalPendingNote}
-              </p>
-            )}
-          </div>
-        </div>
-      </section>
+      {fiscalCopy ? (
+        <p
+          className={`text-xs leading-relaxed rounded-lg border px-3 py-2 flex items-start gap-2 ${
+            isLight
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+          }`}
+        >
+          <Info size={14} className="shrink-0 mt-0.5" aria-hidden />
+          <span>{fiscalCopy.message}</span>
+        </p>
+      ) : null}
     </div>
   );
 };
@@ -693,47 +406,6 @@ function Field({
         {label}
       </div>
       {children}
-    </div>
-  );
-}
-
-function ReadOnlyStatus({
-  label,
-  value,
-  badgeClass,
-  isLight,
-}: {
-  label: string;
-  value: string;
-  badgeClass?: string;
-  isLight: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-xl border p-3 space-y-1 ${
-        isLight
-          ? "border-slate-200 bg-slate-50/80"
-          : "border-white/10 bg-white/[0.03]"
-      }`}
-    >
-      <div
-        className={`text-[10px] font-medium uppercase tracking-wider ${
-          isLight ? "text-slate-500" : "text-slate-500"
-        }`}
-      >
-        {label}
-      </div>
-      {badgeClass ? (
-        <span className={badgeClass}>{value}</span>
-      ) : (
-        <div
-          className={`text-sm font-medium ${
-            isLight ? "text-slate-900" : "text-slate-100"
-          }`}
-        >
-          {value}
-        </div>
-      )}
     </div>
   );
 }

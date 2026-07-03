@@ -48,7 +48,7 @@ function formatApiError(
   if (status === 403) {
     return (
       serverMessage ||
-      "Keine Berechtigung für diese Aktion (403). Bitte erneut als Admin anmelden."
+      "You do not have permission for this action (403). Please sign in again as admin."
     );
   }
 
@@ -57,19 +57,19 @@ function formatApiError(
       serverMessage.includes("Route") &&
       serverMessage.toLowerCase().includes("not found")
     ) {
-      return `API-Route nicht gefunden (404): ${path}. Die cloud-api auf Production ist vermutlich nicht auf dem neuesten Stand — bitte neu deployen und Hard-Reload im Browser.`;
+      return `API route not found (404): ${path}. The cloud-api deployment may be outdated — redeploy and hard-reload the browser.`;
     }
-    return serverMessage || `Ressource nicht gefunden (404): ${path}`;
+    return serverMessage || `Resource not found (404): ${path}`;
   }
 
   if (status >= 500) {
     return (
       serverMessage ||
-      `Serverfehler (${status}). Bitte cloud-api-Logs prüfen oder später erneut versuchen.`
+      `Server error (${status}). Check cloud-api logs or try again later.`
     );
   }
 
-  return serverMessage || `Anfrage fehlgeschlagen (${status}): ${path}`;
+  return serverMessage || `Request failed (${status}): ${path}`;
 }
 
 export type ListResponse<T> = {

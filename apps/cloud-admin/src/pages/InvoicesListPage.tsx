@@ -2,8 +2,15 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiGet, apiDelete, fetchAdminInvoiceHtml } from "../lib/api";
-import { formatDateTime, formatMoney } from "../lib/format";
-import { useTheme, themeColors } from "../theme/ThemeContext";
+import { formatMoney } from "../lib/format";
+import {
+  Button,
+  DataTable,
+  PageHeader,
+  SectionHeader,
+  Toolbar,
+} from "../components/ui";
+import { InvoiceStatusPill } from "../lib/adminStatusPills";
 
 type Invoice = {
   id: string;
@@ -25,9 +32,12 @@ type InvoicesResponse = {
   offset: number;
 };
 
+function formatDateTimeEnGb(value: string | null | undefined): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("en-GB");
+}
+
 export default function InvoicesListPage() {
-  const { theme } = useTheme();
-  const colors = themeColors[theme];
   const [data, setData] = useState<InvoicesResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,188 +60,82 @@ export default function InvoicesListPage() {
       })
       .catch((err) => {
         console.error(err);
-        setError("Konnte Invoices nicht laden.");
+        setError("Failed to load invoices.");
       })
       .finally(() => setLoading(false));
   }, []);
 
   return (
     <div className="admin-page">
-      <h1
-        style={{
-          fontSize: "32px",
-          fontWeight: 700,
-          marginBottom: "8px",
-          color: colors.text,
-          letterSpacing: "-0.5px",
-        }}
-      >
-        Invoices
-      </h1>
-      <p
-        style={{
-          fontSize: "14px",
-          color: colors.textSecondary,
-          marginBottom: "24px",
-        }}
-      >
-        Übersicht über alle bezahlten und offenen Rechnungen.
-      </p>
+      <PageHeader
+        title="Invoices"
+        subtitle="Overview of all paid and open invoices."
+      />
 
-      {data && (
-        <div
-          style={{
-            marginTop: 16,
-            marginBottom: 16,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: 12,
-            fontSize: 13,
-            color: colors.textSecondary,
-          }}
+      {data ? (
+        <Toolbar
+          footer={
+            <>
+              <strong>{paidInvoices.length}</strong> paid
+              {openCancelledInvoices.length > 0 ? (
+                <>
+                  {" · "}
+                  <strong>{openCancelledInvoices.length}</strong> open/closed
+                </>
+              ) : null}{" "}
+              · {data.total} total
+            </>
+          }
         >
-          <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-            <span>
-              <strong style={{ color: colors.text }}>{paidInvoices.length}</strong> bezahlte Rechnungen
-            </span>
-            {openCancelledInvoices.length > 0 && (
-              <span>
-                <strong style={{ color: colors.text }}>{openCancelledInvoices.length}</strong> offene/beendete Rechnungen
-              </span>
-            )}
-            <span style={{ color: colors.textTertiary }}>• {data.total} gesamt</span>
-          </div>
-        </div>
-      )}
+          <span className="ds-muted">Invoice summary</span>
+        </Toolbar>
+      ) : null}
 
-      {loading && <p style={{ color: colors.textSecondary }}>Lade…</p>}
-      {error && (
-        <div
-          className="admin-error"
-          style={{
-            backgroundColor: colors.errorBg,
-            borderColor: `${colors.error}50`,
-            color: colors.error,
-          }}
-        >
-          {error}
-        </div>
-      )}
+      {loading ? <p className="ds-muted">Loading…</p> : null}
+      {error ? <div className="admin-error-banner">{error}</div> : null}
 
-      {/* Bezahlte Rechnungen */}
-      {data && paidInvoices.length > 0 && (
-        <div
-          className="admin-card"
-          style={{
-            backgroundColor: colors.bgSecondary,
-            borderColor: colors.border,
-            transition: "background-color 0.3s, border-color 0.3s",
-            marginBottom: openCancelledInvoices.length > 0 ? 24 : 0,
-          }}
-        >
-          <div
-            style={{
-              padding: "12px 16px",
-              borderBottom: `1px solid ${colors.border}`,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              backgroundColor: colors.bgTertiary,
-            }}
-          >
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: colors.text, margin: 0 }}>
-              ✅ Bezahlte Rechnungen ({paidInvoices.length})
-            </h2>
-          </div>
-          <div
-            className="admin-table-wrapper"
-            style={{
-              backgroundColor: colors.bgSecondary,
-              borderColor: colors.border,
-              transition: "background-color 0.3s, border-color 0.3s",
-            }}
-          >
-            <table className="admin-table">
-              <thead>
-                <tr style={{ backgroundColor: colors.bgTertiary }}>
-                  <th style={{ color: colors.textSecondary }}>Nummer</th>
-                  <th style={{ color: colors.textSecondary }}>Kunde</th>
-                  <th style={{ color: colors.textSecondary }}>Status</th>
-                  <th style={{ color: colors.textSecondary }}>Betrag</th>
-                  <th style={{ color: colors.textSecondary }}>Ausgestellt</th>
-                  <th style={{ color: colors.textSecondary }}>Fällig am</th>
-                  <th style={{ color: colors.textSecondary }}>Aktionen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paidInvoices.map((inv) => (
-                <tr
-                  key={inv.id}
-                  style={{
-                    borderBottomColor: colors.border,
-                    transition: "background-color 0.2s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = colors.bgTertiary;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }}
-                >
-                  <td style={{ color: colors.text }}>
-                    <Link
-                      to={`/invoices/${inv.id}`}
-                      style={{
-                        color: colors.accent,
-                        textDecoration: "none",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.color = colors.accentHover;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.color = colors.accent;
-                      }}
-                    >
+      {data && paidInvoices.length > 0 ? (
+        <div className="ds-section-block">
+          <SectionHeader
+            title={`Paid invoices (${paidInvoices.length})`}
+            pill={`${paidInvoices.length}`}
+          />
+          <DataTable>
+            <thead>
+              <tr>
+                <th>Number</th>
+                <th>Customer</th>
+                <th>Status</th>
+                <th>Amount</th>
+                <th>Issued</th>
+                <th>Due</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paidInvoices.map((inv) => (
+                <tr key={inv.id}>
+                  <td>
+                    <Link to={`/invoices/${inv.id}`} className="ds-link">
                       {inv.number}
                     </Link>
                   </td>
-                  <td style={{ color: colors.text }}>
+                  <td>
                     {inv.customerName
                       ? `${inv.customerName} (${inv.customerEmail ?? ""})`
                       : "—"}
                   </td>
                   <td>
-                    <span
-                      className={
-                        inv.status === "paid"
-                          ? "badge badge--green"
-                          : "badge badge--red"
-                      }
-                    >
-                      {inv.status}
-                    </span>
+                    <InvoiceStatusPill status={inv.status} />
                   </td>
-                  <td style={{ color: colors.text }}>
-                    {formatMoney(inv.amountCents, inv.currency)}
-                  </td>
-                  <td style={{ color: colors.text }}>
-                    {formatDateTime(inv.createdAt)}
-                  </td>
-                  <td style={{ color: colors.text }}>
-                    {formatDateTime(inv.dueAt)}
-                  </td>
+                  <td>{formatMoney(inv.amountCents, inv.currency)}</td>
+                  <td>{formatDateTimeEnGb(inv.createdAt)}</td>
+                  <td>{formatDateTimeEnGb(inv.dueAt)}</td>
                   <td>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <button
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <Button
+                        variant="link"
+                        title="View invoice"
                         onClick={async () => {
                           try {
                             const html = await fetchAdminInvoiceHtml(inv.id);
@@ -241,29 +145,15 @@ export default function InvoicesListPage() {
                               win.document.close();
                             }
                           } catch (e) {
-                            alert(e instanceof Error ? e.message : "Fehler beim Laden");
+                            alert(e instanceof Error ? e.message : "Failed to load invoice.");
                           }
                         }}
-                        title="Rechnung anzeigen"
-                        style={{
-                          color: colors.accent,
-                          fontSize: 14,
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: "4px 8px",
-                          transition: "color 0.2s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = colors.accentHover;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = colors.accent;
-                        }}
                       >
-                        📄 Anzeigen
-                      </button>
-                      <button
+                        View
+                      </Button>
+                      <Button
+                        variant="link"
+                        title="Print as PDF"
                         onClick={async () => {
                           try {
                             const html = await fetchAdminInvoiceHtml(inv.id);
@@ -276,284 +166,162 @@ export default function InvoicesListPage() {
                               }, 500);
                             }
                           } catch (e) {
-                            alert(e instanceof Error ? e.message : "Fehler beim Laden");
+                            alert(e instanceof Error ? e.message : "Failed to load invoice.");
                           }
                         }}
-                        title="Als PDF drucken"
-                        style={{
-                          color: colors.accent,
-                          fontSize: 14,
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: "4px 8px",
-                          transition: "color 0.2s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = colors.accentHover;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = colors.accent;
-                        }}
                       >
-                        📥 PDF
-                      </button>
+                        PDF
+                      </Button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </DataTable>
         </div>
-      </div>
-      )}
+      ) : null}
 
-      {/* Offene/Beendete Rechnungen (Collapsible) */}
-      {data && openCancelledInvoices.length > 0 && (
-        <div
-          className="admin-card"
-          style={{
-            backgroundColor: colors.bgSecondary,
-            borderColor: colors.border,
-            transition: "background-color 0.3s, border-color 0.3s",
-            opacity: 0.9,
-          }}
-        >
+      {data && openCancelledInvoices.length > 0 ? (
+        <div className="ds-section-block">
           <div
-            style={{
-              padding: "12px 16px",
-              borderBottom: showCancelled ? `1px solid ${colors.border}` : "none",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              backgroundColor: colors.bgTertiary,
-              cursor: "pointer",
-            }}
+            className="ds-section-header"
+            style={{ cursor: "pointer" }}
             onClick={() => setShowCancelled(!showCancelled)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setShowCancelled(!showCancelled);
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-expanded={showCancelled}
           >
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: colors.text, margin: 0 }}>
-              🗑️ Offene/Beendete Rechnungen ({openCancelledInvoices.length})
-            </h2>
-            <span style={{ fontSize: 14, color: colors.textSecondary }}>
-              {showCancelled ? "▼" : "▶"}
-            </span>
-          </div>
-          {showCancelled && (
-            <div
-              className="admin-table-wrapper"
-              style={{
-                backgroundColor: colors.bgSecondary,
-                borderColor: colors.border,
-                transition: "background-color 0.3s, border-color 0.3s",
-              }}
-            >
-              <table className="admin-table">
-                <thead>
-                  <tr style={{ backgroundColor: colors.bgTertiary }}>
-                    <th style={{ color: colors.textSecondary }}>Nummer</th>
-                    <th style={{ color: colors.textSecondary }}>Kunde</th>
-                    <th style={{ color: colors.textSecondary }}>Status</th>
-                    <th style={{ color: colors.textSecondary }}>Betrag</th>
-                    <th style={{ color: colors.textSecondary }}>Ausgestellt</th>
-                    <th style={{ color: colors.textSecondary }}>Fällig am</th>
-                    <th style={{ color: colors.textSecondary }}>Aktionen</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {openCancelledInvoices.map((inv) => (
-                    <tr
-                      key={inv.id}
-                      style={{
-                        borderBottomColor: colors.border,
-                        transition: "background-color 0.2s",
-                        opacity: 0.8,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = colors.bgTertiary;
-                        e.currentTarget.style.opacity = "1";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                        e.currentTarget.style.opacity = "0.8";
-                      }}
-                    >
-                      <td style={{ color: colors.textSecondary }}>
-                        <Link
-                          to={`/invoices/${inv.id}`}
-                          style={{
-                            color: colors.textSecondary,
-                            textDecoration: "none",
-                            transition: "color 0.2s",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = colors.accent;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = colors.textSecondary;
-                          }}
-                        >
-                          {inv.number}
-                        </Link>
-                      </td>
-                      <td style={{ color: colors.textSecondary }}>
-                        {inv.customerName
-                          ? `${inv.customerName} (${inv.customerEmail ?? ""})`
-                          : "—"}
-                      </td>
-                      <td>
-                        <span
-                          className={
-                            inv.status === "paid"
-                              ? "badge badge--green"
-                              : "badge badge--red"
-                          }
-                          style={{ opacity: 0.7 }}
-                        >
-                          {inv.status}
-                        </span>
-                      </td>
-                      <td style={{ color: colors.textSecondary }}>
-                        {formatMoney(inv.amountCents, inv.currency)}
-                      </td>
-                      <td style={{ color: colors.textSecondary, fontSize: 12 }}>
-                        {formatDateTime(inv.createdAt)}
-                      </td>
-                      <td style={{ color: colors.textSecondary, fontSize: 12 }}>
-                        {formatDateTime(inv.dueAt)}
-                      </td>
-                      <td>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <button
-                            onClick={async () => {
-                              try {
-                                const html = await fetchAdminInvoiceHtml(inv.id);
-                                const win = window.open();
-                                if (win) {
-                                  win.document.write(html);
-                                  win.document.close();
-                                }
-                              } catch (e) {
-                                alert(e instanceof Error ? e.message : "Fehler beim Laden");
-                              }
-                            }}
-                            title="Rechnung anzeigen"
-                            style={{
-                              color: colors.textSecondary,
-                              fontSize: 12,
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              padding: "4px 8px",
-                              transition: "color 0.2s",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.color = colors.accent;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.color = colors.textSecondary;
-                            }}
-                          >
-                            📄 Anzeigen
-                          </button>
-                          <button
-                            onClick={async () => {
-                              try {
-                                const html = await fetchAdminInvoiceHtml(inv.id);
-                                const win = window.open();
-                                if (win) {
-                                  win.document.write(html);
-                                  win.document.close();
-                                  setTimeout(() => {
-                                    win?.print();
-                                  }, 500);
-                                }
-                              } catch (e) {
-                                alert(e instanceof Error ? e.message : "Fehler beim Laden");
-                              }
-                            }}
-                            title="Als PDF drucken"
-                            style={{
-                              color: colors.textSecondary,
-                              fontSize: 12,
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              padding: "4px 8px",
-                              transition: "color 0.2s",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.color = colors.accent;
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.color = colors.textSecondary;
-                            }}
-                          >
-                            📥 PDF
-                          </button>
-                          <button
-                            onClick={async () => {
-                              if (
-                                !confirm(
-                                  `Möchten Sie die Rechnung "${inv.number}" (Status: ${inv.status}) wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.`,
-                                )
-                              ) {
-                                return;
-                              }
-                              setDeleteBusyId(inv.id);
-                              try {
-                                const result = await apiDelete<{ ok: boolean; message?: string; error?: string }>(
-                                  `/invoices/${inv.id}`
-                                );
-                                if (!result.ok) {
-                                  throw new Error(result.error || "Fehler beim Löschen");
-                                }
-                                // Liste neu laden
-                                const data = await apiGet<InvoicesResponse>("/invoices?limit=50&offset=0");
-                                setData(data);
-                              } catch (err: any) {
-                                console.error("Error deleting invoice", err);
-                                alert(err?.message || "Fehler beim Löschen der Rechnung.");
-                              } finally {
-                                setDeleteBusyId(null);
-                              }
-                            }}
-                            disabled={deleteBusyId === inv.id}
-                            style={{
-                              background: colors.error,
-                              color: theme === "dark" ? "#fee2e2" : "#ffffff",
-                              border: "none",
-                              borderRadius: 4,
-                              padding: "4px 8px",
-                              fontSize: 11,
-                              cursor: deleteBusyId === inv.id ? "wait" : "pointer",
-                              opacity: deleteBusyId === inv.id ? 0.6 : 1,
-                              transition: "opacity 0.2s",
-                            }}
-                            title="Rechnung löschen"
-                          >
-                            {deleteBusyId === inv.id ? "..." : "🗑️ Löschen"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div>
+              <h2 className="ds-section-title">
+                Open/closed invoices ({openCancelledInvoices.length})
+              </h2>
             </div>
-          )}
+            <span className="ds-muted">{showCancelled ? "▼" : "▶"}</span>
+          </div>
+          {showCancelled ? (
+            <DataTable>
+              <thead>
+                <tr>
+                  <th>Number</th>
+                  <th>Customer</th>
+                  <th>Status</th>
+                  <th>Amount</th>
+                  <th>Issued</th>
+                  <th>Due</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {openCancelledInvoices.map((inv) => (
+                  <tr key={inv.id}>
+                    <td>
+                      <Link to={`/invoices/${inv.id}`} className="ds-link">
+                        {inv.number}
+                      </Link>
+                    </td>
+                    <td>
+                      {inv.customerName
+                        ? `${inv.customerName} (${inv.customerEmail ?? ""})`
+                        : "—"}
+                    </td>
+                    <td>
+                      <InvoiceStatusPill status={inv.status} />
+                    </td>
+                    <td>{formatMoney(inv.amountCents, inv.currency)}</td>
+                    <td>{formatDateTimeEnGb(inv.createdAt)}</td>
+                    <td>{formatDateTimeEnGb(inv.dueAt)}</td>
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                        <Button
+                          variant="link"
+                          title="View invoice"
+                          onClick={async () => {
+                            try {
+                              const html = await fetchAdminInvoiceHtml(inv.id);
+                              const win = window.open();
+                              if (win) {
+                                win.document.write(html);
+                                win.document.close();
+                              }
+                            } catch (e) {
+                              alert(e instanceof Error ? e.message : "Failed to load invoice.");
+                            }
+                          }}
+                        >
+                          View
+                        </Button>
+                        <Button
+                          variant="link"
+                          title="Print as PDF"
+                          onClick={async () => {
+                            try {
+                              const html = await fetchAdminInvoiceHtml(inv.id);
+                              const win = window.open();
+                              if (win) {
+                                win.document.write(html);
+                                win.document.close();
+                                setTimeout(() => {
+                                  win?.print();
+                                }, 500);
+                              }
+                            } catch (e) {
+                              alert(e instanceof Error ? e.message : "Failed to load invoice.");
+                            }
+                          }}
+                        >
+                          PDF
+                        </Button>
+                        <Button
+                          variant="danger"
+                          disabled={deleteBusyId === inv.id}
+                          title="Delete invoice"
+                          onClick={async () => {
+                            if (
+                              !confirm(
+                                `Delete invoice "${inv.number}" (status: ${inv.status})? This cannot be undone.`,
+                              )
+                            ) {
+                              return;
+                            }
+                            setDeleteBusyId(inv.id);
+                            try {
+                              const result = await apiDelete<{ ok: boolean; message?: string; error?: string }>(
+                                `/invoices/${inv.id}`
+                              );
+                              if (!result.ok) {
+                                throw new Error(result.error || "Failed to delete invoice.");
+                              }
+                              const data = await apiGet<InvoicesResponse>("/invoices?limit=50&offset=0");
+                              setData(data);
+                            } catch (err: any) {
+                              console.error("Error deleting invoice", err);
+                              alert(err?.message || "Failed to delete invoice.");
+                            } finally {
+                              setDeleteBusyId(null);
+                            }
+                          }}
+                        >
+                          {deleteBusyId === inv.id ? "Deleting…" : "Delete"}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
+          ) : null}
         </div>
-      )}
+      ) : null}
 
-      {data && !loading && !error && data.items.length === 0 && (
-        <p>Keine Rechnungen vorhanden.</p>
-      )}
+      {data && !loading && !error && data.items.length === 0 ? (
+        <p className="ds-muted">No invoices found.</p>
+      ) : null}
     </div>
   );
 }

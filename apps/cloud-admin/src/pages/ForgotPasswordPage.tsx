@@ -8,8 +8,25 @@ type ForgotPasswordResponse = {
   ok: boolean;
   message?: string;
   error?: string;
-  resetLink?: string; // Nur in Development
+  resetLink?: string;
 };
+
+function LoginBrand({ subtitle }: { subtitle: string }) {
+  return (
+    <div className="login-brand">
+      <div className="login-brand-row">
+        <div className="admin-logo-mark" aria-hidden>
+          C
+        </div>
+        <div className="login-brand-wordmark">
+          <span className="login-brand-main">Caisty</span>
+          <span className="login-brand-sub">Admin</span>
+        </div>
+      </div>
+      <p className="login-subtitle">{subtitle}</p>
+    </div>
+  );
+}
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -30,20 +47,19 @@ export default function ForgotPasswordPage() {
       );
 
       if (!res.ok) {
-        setError(res.error || "Fehler beim Anfordern des Reset-Links");
+        setError(res.error || "Failed to request reset link.");
         return;
       }
 
       setSuccess(true);
-      
-      // In Development: Reset-Link anzeigen
+
       if (res.resetLink) {
         setResetLink(res.resetLink);
-        console.log("Reset-Link erhalten:", res.resetLink);
+        console.log("Reset link received:", res.resetLink);
       }
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Fehler beim Anfordern des Reset-Links");
+      setError(err.message || "Failed to request reset link.");
     } finally {
       setLoading(false);
     }
@@ -51,109 +67,44 @@ export default function ForgotPasswordPage() {
 
   if (success) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(135deg, #0f172a 0%, #020617 100%)",
-          padding: "20px",
-        }}
-      >
-        <div
-          style={{
-            width: "100%",
-            maxWidth: "420px",
-            background: "rgba(15, 23, 42, 0.9)",
-            border: "1px solid rgba(51, 65, 85, 0.5)",
-            borderRadius: "16px",
-            padding: "40px",
-            boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)",
-            backdropFilter: "blur(10px)",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "48px",
-              marginBottom: "16px",
-            }}
-          >
-            ✅
-          </div>
-          <h1
-            style={{
-              fontSize: "24px",
-              fontWeight: 600,
-              color: "#f1f5f9",
-              marginBottom: "12px",
-            }}
-          >
-            E-Mail gesendet
-          </h1>
-          <p
-            style={{
-              fontSize: "14px",
-              color: "#94a3b8",
-              marginBottom: "24px",
-              lineHeight: "1.5",
-            }}
-          >
-            Wenn ein Konto mit dieser E-Mail existiert, haben wir dir einen Link zum Zurücksetzen des Passworts gesendet.
+      <div className="login-page">
+        <div className="login-card" style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
+          <h1 className="login-title">Email sent</h1>
+          <p className="login-subtitle" style={{ marginBottom: 24 }}>
+            If an account exists for this email, we sent a link to reset your
+            password.
           </p>
 
           {resetLink && (
             <div
               style={{
-                padding: "16px",
-                background: "rgba(16, 185, 129, 0.1)",
-                border: "1px solid rgba(16, 185, 129, 0.3)",
-                borderRadius: "8px",
-                marginBottom: "24px",
+                padding: 16,
+                background: "var(--admin-accent-soft)",
+                border: "1px solid color-mix(in srgb, var(--brand) 35%, transparent)",
+                borderRadius: 8,
+                marginBottom: 24,
+                textAlign: "left",
               }}
             >
               <p
                 style={{
-                  fontSize: "12px",
-                  color: "#6ee7b7",
-                  marginBottom: "8px",
+                  fontSize: 12,
+                  color: "var(--brand)",
+                  marginBottom: 8,
                   fontWeight: 500,
                 }}
               >
-                Development-Modus: Reset-Link
+                Development mode: reset link
               </p>
-              <a
-                href={resetLink}
-                style={{
-                  fontSize: "12px",
-                  color: "#10b981",
-                  wordBreak: "break-all",
-                  textDecoration: "none",
-                }}
-              >
+              <a href={resetLink} className="ds-link" style={{ fontSize: 12, wordBreak: "break-all" }}>
                 {resetLink}
               </a>
             </div>
           )}
 
-          <Link
-            to="/login"
-            style={{
-              display: "inline-block",
-              color: "#10b981",
-              textDecoration: "none",
-              fontSize: "14px",
-              transition: "color 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "#059669";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "#10b981";
-            }}
-          >
-            ← Zurück zum Login
+          <Link to="/login" className="login-link">
+            ← Back to sign in
           </Link>
         </div>
       </div>
@@ -161,170 +112,40 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "linear-gradient(135deg, #0f172a 0%, #020617 100%)",
-        padding: "20px",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "420px",
-          background: "rgba(15, 23, 42, 0.9)",
-          border: "1px solid rgba(51, 65, 85, 0.5)",
-          borderRadius: "16px",
-          padding: "40px",
-          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)",
-          backdropFilter: "blur(10px)",
-        }}
-      >
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <div
-            style={{
-              fontSize: "32px",
-              fontWeight: 700,
-              color: "#f1f5f9",
-              marginBottom: "8px",
-              letterSpacing: "-0.5px",
-            }}
-          >
-            Caisty <span style={{ color: "#10b981" }}>Admin</span>
-          </div>
-          <p
-            style={{
-              fontSize: "14px",
-              color: "#94a3b8",
-              marginTop: "8px",
-            }}
-          >
-            Passwort zurücksetzen
-          </p>
-        </div>
+    <div className="login-page">
+      <div className="login-card">
+        <LoginBrand subtitle="Reset your password" />
 
         <p
-          style={{
-            fontSize: "14px",
-            color: "#94a3b8",
-            marginBottom: "24px",
-            textAlign: "center",
-          }}
+          className="ds-muted"
+          style={{ marginBottom: 24, textAlign: "center", fontSize: 14 }}
         >
-          Gib deine E-Mail-Adresse ein. Wir senden dir einen Link zum Zurücksetzen deines Passworts.
+          Enter your email address and we will send you a link to reset your
+          password.
         </p>
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "14px",
-                color: "#cbd5e1",
-                marginBottom: "8px",
-                fontWeight: 500,
-              }}
-            >
-              E-Mail
-            </label>
+        <form className="login-form" onSubmit={handleSubmit}>
+          <label className="ds-form-field">
+            Email
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                background: "#0f172a",
-                border: "1px solid #334155",
-                borderRadius: "8px",
-                color: "#f1f5f9",
-                fontSize: "14px",
-                outline: "none",
-                transition: "all 0.2s",
-                boxSizing: "border-box",
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = "#10b981";
-                e.currentTarget.style.boxShadow = "0 0 0 3px rgba(16, 185, 129, 0.1)";
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = "#334155";
-                e.currentTarget.style.boxShadow = "none";
-              }}
+              className="ds-input login-input"
             />
-          </div>
+          </label>
 
-          {error && (
-            <div
-              style={{
-                padding: "12px",
-                background: "rgba(239, 68, 68, 0.1)",
-                border: "1px solid rgba(239, 68, 68, 0.3)",
-                borderRadius: "8px",
-                color: "#fca5a5",
-                fontSize: "14px",
-              }}
-            >
-              {error}
-            </div>
-          )}
+          {error ? <div className="login-error">{error}</div> : null}
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "12px 24px",
-              background: loading ? "#059669" : "#10b981",
-              color: "#020617",
-              fontSize: "16px",
-              fontWeight: 600,
-              border: "none",
-              borderRadius: "8px",
-              cursor: loading ? "not-allowed" : "pointer",
-              transition: "all 0.2s",
-              opacity: loading ? 0.7 : 1,
-            }}
-            onMouseEnter={(e) => {
-              if (!loading) {
-                e.currentTarget.style.background = "#059669";
-                e.currentTarget.style.transform = "translateY(-1px)";
-                e.currentTarget.style.boxShadow = "0 4px 12px rgba(16, 185, 129, 0.3)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!loading) {
-                e.currentTarget.style.background = "#10b981";
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "none";
-              }
-            }}
-          >
-            {loading ? "Wird gesendet…" : "Reset-Link anfordern"}
+          <button type="submit" className="login-button" disabled={loading}>
+            {loading ? "Sending…" : "Request reset link"}
           </button>
 
-          <div style={{ textAlign: "center", marginTop: "8px" }}>
-            <Link
-              to="/login"
-              style={{
-                fontSize: "12px",
-                color: "#10b981",
-                textDecoration: "none",
-                transition: "color 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#059669";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#10b981";
-              }}
-            >
-              ← Zurück zum Login
+          <div style={{ textAlign: "center", marginTop: 8 }}>
+            <Link to="/login" className="login-link">
+              ← Back to sign in
             </Link>
           </div>
         </form>
@@ -332,4 +153,3 @@ export default function ForgotPasswordPage() {
     </div>
   );
 }
-

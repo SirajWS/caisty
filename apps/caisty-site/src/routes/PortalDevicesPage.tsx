@@ -4,7 +4,7 @@ import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
 import { portalLocaleTag } from "../lib/portalLocale";
-import { portalConnectionBadge, portalTableShell } from "../lib/portalUi";
+import { portalConnectionBadge, portalPageShell, portalPageSubtitle, portalPageTitle, portalTableShell } from "../lib/portalUi";
 import { formatDeviceStatus } from "../lib/caistyTerminology";
 
 function isSameCalendarDay(a: Date, b: Date): boolean {
@@ -70,19 +70,11 @@ const PortalDevicesPage: React.FC = () => {
   const emptyCell = `font-mono text-xs ${muted}`;
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-2">
-        <h1 className={`text-2xl sm:text-3xl font-semibold tracking-tight ${isLight ? "text-[#0B1220]" : "text-white"}`}>
-          {t.devices.title}
-        </h1>
-        <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-          {t.devices.subtitle}
-        </p>
-        <p
-          className={`text-xs ${
-            isLight ? "text-slate-500" : "text-slate-500"
-          }`}
-        >
+    <div className={portalPageShell()}>
+      <header className="space-y-1">
+        <h1 className={portalPageTitle(isLight)}>{t.devices.title}</h1>
+        <p className={portalPageSubtitle(isLight)}>{t.devices.subtitle}</p>
+        <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-500"}`}>
           {t.layout.cloudManaged} · {t.labels.deviceBinding}
         </p>
       </header>
@@ -91,7 +83,7 @@ const PortalDevicesPage: React.FC = () => {
         <p className={isLight ? "text-slate-600" : "text-slate-400"}>{t.devices.loading}</p>
       ) : devices.length === 0 ? (
         <div
-          className={`rounded-xl border px-6 py-10 text-center text-sm ${
+          className={`rounded-xl border px-4 py-6 text-center text-sm ${
             isLight ? "border-gray-200 bg-white text-slate-600" : "border-white/10 bg-white/[0.04] text-slate-400"
           }`}
         >

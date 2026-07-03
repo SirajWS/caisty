@@ -31,6 +31,7 @@ import { registerPortalLicensesRoutes } from "./routes/portal-licenses.js";
 import { registerPortalInvoiceRoutes } from "./routes/portal-invoices.js";
 import { registerPortalBusinessRoutes } from "./routes/portal-business.js";
 import { registerPosConfigRoutes } from "./routes/pos-config.js";
+import { registerCountryConfigRoutes } from "./routes/country-config.js";
 import { registerAdminFiscalRoutes } from "./routes/admin/fiscal.js";
 
 import { registerAdminNotificationsRoutes } from "./routes/admin-notifications.js";
@@ -47,6 +48,7 @@ import { registerDebugDbRoutes } from "./routes/debug-db.js";
 
 import { verifyToken } from "./lib/jwt.js";
 import { verifyAdminToken } from "./lib/adminJwt.js";
+import { countryConfigService } from "./countryConfig/CountryConfigService.js";
 
 export async function buildServer() {
   const app = Fastify({
@@ -81,6 +83,7 @@ export async function buildServer() {
       (url === "/devices/bind" && method === "POST") ||
       (url === "/devices/heartbeat" && method === "POST") ||
       (url === "/pos/config" && method === "GET") ||
+      url.startsWith("/country-config") ||
       (url.startsWith("/invoices/") && url.endsWith("/html")) || // Invoice HTML-Export (mit Auth im Handler)
       (env.NODE_ENV === "development" && url.startsWith("/test-email")) || // Test-Endpoint nur in Development
       (env.NODE_ENV === "development" && url.startsWith("/test-reset-token")) || // Test-Endpoint nur in Development
@@ -119,6 +122,12 @@ export async function buildServer() {
       return reply.send({ error: "Invalid or expired token" });
     }
   });
+
+  // ---------------------------------------------------------------------------
+  // Country configuration (public read — site/portal)
+  // ---------------------------------------------------------------------------
+  await countryConfigService.warmCache(app.log);
+  await registerCountryConfigRoutes(app);
 
   // ---------------------------------------------------------------------------
   // Öffentliche / Basis-Routen

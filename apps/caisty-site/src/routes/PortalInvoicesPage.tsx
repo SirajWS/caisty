@@ -11,7 +11,7 @@ import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
 import { portalLocaleTag } from "../lib/portalLocale";
-import { portalInvoiceStatusBadge, portalMutedLink, portalTableShell, portalTextLink } from "../lib/portalUi";
+import { portalInvoiceStatusBadge, portalMutedLink, portalPageShell, portalPageSubtitle, portalPageTitle, portalTableShell, portalTextLink } from "../lib/portalUi";
 
 const PortalInvoicesPage: React.FC = () => {
   const [items, setItems] = React.useState<PortalInvoice[]>([]);
@@ -90,13 +90,11 @@ const PortalInvoicesPage: React.FC = () => {
   }, [language]);
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <header className="space-y-2">
-          <h1 className={`text-2xl sm:text-3xl font-semibold tracking-tight ${isLight ? "text-[#0B1220]" : "text-white"}`}>{t.invoices.title}</h1>
-          <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-            {t.invoices.subtitle}
-          </p>
+    <div className={portalPageShell()}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <header className="space-y-1">
+          <h1 className={portalPageTitle(isLight)}>{t.invoices.title}</h1>
+          <p className={portalPageSubtitle(isLight)}>{t.invoices.subtitle}</p>
         </header>
         <Link
           to="/portal"
@@ -111,11 +109,11 @@ const PortalInvoicesPage: React.FC = () => {
 
       {!loading && !error && items.length === 0 && (
         <div
-          className={`flex flex-col items-center justify-center rounded-xl border px-6 py-16 text-center ${
+          className={`flex flex-col items-center justify-center rounded-xl border px-4 py-10 text-center ${
             isLight ? "border-gray-200 bg-white" : "border-white/10 bg-white/[0.04]"
           }`}
         >
-          <FileText className={`mb-4 h-10 w-10 ${isLight ? "text-slate-400" : "text-slate-500"}`} strokeWidth={1.25} aria-hidden />
+          <FileText className={`mb-3 h-8 w-8 ${isLight ? "text-slate-400" : "text-slate-500"}`} strokeWidth={1.25} aria-hidden />
           <h2 className={`text-base font-semibold ${isLight ? "text-slate-900" : "text-white"}`}>{t.invoices.emptyTitle}</h2>
           <p className={`mt-2 max-w-md text-sm leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
             {t.invoices.emptyDescription}

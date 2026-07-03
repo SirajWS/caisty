@@ -4,6 +4,7 @@ import {
   varchar,
   timestamp,
   jsonb,
+  integer,
 } from "drizzle-orm/pg-core";
 import { orgs } from "./orgs.js";
 
@@ -46,6 +47,8 @@ export const businessProfiles = pgTable("business_profiles", {
   posConfigurationStatus: varchar("pos_configuration_status", { length: 32 })
     .notNull()
     .default("not_ready"),
+
+  configVersion: integer("config_version").notNull().default(1),
 
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

@@ -19,3 +19,4 @@ export * from "./invoiceLines";
 export * from "./idempotencyKeys";
 export * from "./businessProfiles";
 export * from "./fiscalConfigurations";
+export * from "./countryConfig";

@@ -1,4 +1,14 @@
 // Country rules and derived fields for org business profiles (portal + admin).
+// Fiscal/currency rules are loaded from country_config via CountryConfigService.
+
+import { countryConfigService } from "../countryConfig/CountryConfigService.js";
+import {
+  initialFiscalEnvironmentFromConfig,
+  initialFiscalProviderFromConfig,
+  initialFiscalStatusFromConfig,
+  receiptModeInternalFromConfig,
+  fiscalProfileKeyFromConfig,
+} from "../countryConfig/deriveFiscalFromCountryConfig.js";
 
 export type BusinessCountryCode =
   | "DE"
@@ -65,26 +75,10 @@ export type BusinessAddress = {
 
 export type DefaultLanguage = "en" | "de" | "fr" | "ar";
 
-/** Display order: Europe → MENA → Other (matches portal dropdown). */
-export const SUPPORTED_COUNTRIES: BusinessCountryCode[] = [
-  "DE",
-  "AT",
-  "FR",
-  "IT",
-  "ES",
-  "PT",
-  "NL",
-  "BE",
-  "CH",
-  "GB",
-  "IE",
-  "TN",
-  "MA",
-  "DZ",
-  "LY",
-  "US",
-  "OTHER",
-];
+/** Display order from country_config.sort_order (Europe → MENA → Other). */
+export function getSupportedCountries(): BusinessCountryCode[] {
+  return countryConfigService.getSupportedCodes() as BusinessCountryCode[];
+}
 
 export const SUPPORTED_LANGUAGES: DefaultLanguage[] = [
   "en",
@@ -93,24 +87,14 @@ export const SUPPORTED_LANGUAGES: DefaultLanguage[] = [
   "ar",
 ];
 
-const EU_STRICT_SOON: BusinessCountryCode[] = [
-  "AT",
-  "FR",
-  "IT",
-  "ES",
-  "PT",
-  "NL",
-  "BE",
-];
-
 export function normalizeCountryCode(
   value: string | null | undefined,
 ): BusinessCountryCode | null {
   if (!value || typeof value !== "string") return null;
   const upper = value.trim().toUpperCase();
   if (upper === "OTHER") return "OTHER";
-  if (upper.length !== 2) return null;
-  if ((SUPPORTED_COUNTRIES as string[]).includes(upper)) {
+  if (upper.length !== 2 && upper !== "OTHER") return null;
+  if (countryConfigService.isKnownCode(upper)) {
     return upper as BusinessCountryCode;
   }
   return null;
@@ -119,55 +103,20 @@ export function normalizeCountryCode(
 export function defaultCurrencyForCountry(
   country: BusinessCountryCode | null,
 ): BusinessCurrency {
-  switch (country) {
-    case "TN":
-      return "TND";
-    case "MA":
-      return "MAD";
-    case "DZ":
-      return "DZD";
-    case "LY":
-      return "LYD";
-    case "US":
-      return "USD";
-    case "GB":
-      return "GBP";
-    case "CH":
-      return "CHF";
-    default:
-      return "EUR";
-  }
+  return countryConfigService.getCurrency(country) as BusinessCurrency;
 }
 
 export function allowedCurrenciesForCountry(
   country: BusinessCountryCode | null,
 ): BusinessCurrency[] {
-  switch (country) {
-    case "TN":
-      return ["TND"];
-    case "MA":
-      return ["MAD"];
-    case "DZ":
-      return ["DZD"];
-    case "LY":
-      return ["LYD"];
-    case "US":
-      return ["USD"];
-    case "GB":
-      return ["GBP"];
-    case "CH":
-      return ["CHF", "EUR"];
-    default:
-      return ["EUR"];
-  }
+  return countryConfigService.getAllowedCurrencies(country) as BusinessCurrency[];
 }
 
 export function isCurrencyAllowedForCountry(
   country: BusinessCountryCode | null,
   currency: string,
 ): boolean {
-  const cur = currency.trim().toUpperCase() as BusinessCurrency;
-  return allowedCurrenciesForCountry(country).includes(cur);
+  return countryConfigService.isCurrencyAllowed(country, currency);
 }
 
 export function applyCountryFiscalRules(country: BusinessCountryCode | null): {
@@ -183,26 +132,11 @@ export function applyCountryFiscalRules(country: BusinessCountryCode | null): {
     };
   }
 
-  if (country === "DE") {
-    return {
-      fiscalStatus: "pending_setup",
-      fiscalProvider: "fiskaly",
-      fiscalEnvironment: "not_configured",
-    };
-  }
-
-  if (EU_STRICT_SOON.includes(country)) {
-    return {
-      fiscalStatus: "required_soon",
-      fiscalProvider: "none",
-      fiscalEnvironment: "not_configured",
-    };
-  }
-
+  const entry = countryConfigService.getByCode(country);
   return {
-    fiscalStatus: "not_required",
-    fiscalProvider: "none",
-    fiscalEnvironment: "not_configured",
+    fiscalStatus: initialFiscalStatusFromConfig(entry),
+    fiscalProvider: initialFiscalProviderFromConfig(entry),
+    fiscalEnvironment: initialFiscalEnvironmentFromConfig(),
   };
 }
 
@@ -241,28 +175,19 @@ export function resolveFiscalFields(
 
 export function deriveReceiptMode(
   country: BusinessCountryCode | null,
-  fiscalStatus: FiscalStatusInternal,
+  _fiscalStatus?: FiscalStatusInternal,
 ): ReceiptModeInternal {
-  if (country === "DE" && fiscalStatus !== "not_required") {
-    return "certified_germany";
-  }
-  if (country && EU_STRICT_SOON.includes(country)) {
-    return "standard_until_certified";
-  }
-  return "standard";
+  if (!country) return "standard";
+  const entry = countryConfigService.getByCode(country);
+  return receiptModeInternalFromConfig(entry);
 }
 
 export function deriveFiscalProfileKey(
   country: BusinessCountryCode | null,
   provider: FiscalProviderInternal,
 ): string {
-  if (country === "DE" && provider === "fiskaly") {
-    return "de_fiskaly_api";
-  }
-  if (country && EU_STRICT_SOON.includes(country)) {
-    return `${country.toLowerCase()}_coming_soon`;
-  }
-  return "generic_standard";
+  if (!country) return "generic_standard";
+  return fiscalProfileKeyFromConfig(country, provider);
 }
 
 /** @deprecated Use deriveFiscalProfileKey — cloud configuration profile, not a download. */

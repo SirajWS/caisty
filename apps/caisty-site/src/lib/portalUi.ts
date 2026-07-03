@@ -85,8 +85,28 @@ export function portalInvoiceStatusBadge(
 
 export function portalCardShell(isLight: boolean): string {
   return isLight
-    ? "rounded-xl border border-gray-200 bg-white p-5 sm:p-6 shadow-sm"
-    : "rounded-xl border border-white/10 bg-white/[0.04] p-5 sm:p-6";
+    ? "rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+    : "rounded-xl border border-white/10 bg-white/[0.04] p-4";
+}
+
+export function portalCompactCard(isLight: boolean): string {
+  return isLight
+    ? "rounded-lg border border-gray-200 bg-white p-3 shadow-sm"
+    : "rounded-lg border border-white/10 bg-white/[0.04] p-3";
+}
+
+export function portalPageShell(): string {
+  return "portal-page space-y-4";
+}
+
+export function portalPageTitle(isLight: boolean): string {
+  return `text-[22px] font-semibold tracking-tight ${
+    isLight ? "text-[#0B1220]" : "text-white"
+  }`;
+}
+
+export function portalPageSubtitle(isLight: boolean): string {
+  return `text-sm leading-snug ${isLight ? "text-slate-600" : "text-slate-400"}`;
 }
 
 export function portalInnerCard(isLight: boolean): string {

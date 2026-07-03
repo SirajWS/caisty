@@ -1,6 +1,29 @@
-/** Supported business countries — order matches portal dropdown (Europe → MENA → Other). */
-export const BUSINESS_COUNTRY_OPTIONS = [
-  // Europe
+import {
+  getCountryConfigByCode,
+  getCountryConfigList,
+  isCountryConfigLoaded,
+  type CountryConfigPublic,
+} from "../lib/countryConfigClient";
+
+/** Supported business countries — order from country_config.sort_order. */
+export function getBusinessCountryOptions(): readonly Pick<
+  CountryConfigPublic,
+  "code" | "currency"
+>[] {
+  if (!isCountryConfigLoaded()) {
+    return LEGACY_BUSINESS_COUNTRY_OPTIONS;
+  }
+  return getCountryConfigList().map((c) => ({
+    code: c.code,
+    currency: c.currency,
+  }));
+}
+
+/**
+ * Legacy static list — used only until GET /country-config has loaded.
+ * Values match migration 019_country_config.sql seed.
+ */
+const LEGACY_BUSINESS_COUNTRY_OPTIONS = [
   { code: "DE", currency: "EUR" },
   { code: "AT", currency: "EUR" },
   { code: "FR", currency: "EUR" },
@@ -12,18 +35,19 @@ export const BUSINESS_COUNTRY_OPTIONS = [
   { code: "CH", currency: "CHF" },
   { code: "GB", currency: "GBP" },
   { code: "IE", currency: "EUR" },
-  // North Africa / MENA
   { code: "TN", currency: "TND" },
   { code: "MA", currency: "MAD" },
   { code: "DZ", currency: "DZD" },
   { code: "LY", currency: "LYD" },
-  // Other
   { code: "US", currency: "USD" },
   { code: "OTHER", currency: "EUR" },
 ] as const;
 
+/** @deprecated Use getBusinessCountryOptions() after loadCountryConfig(). */
+export const BUSINESS_COUNTRY_OPTIONS = LEGACY_BUSINESS_COUNTRY_OPTIONS;
+
 export type BusinessCountryOptionCode =
-  (typeof BUSINESS_COUNTRY_OPTIONS)[number]["code"];
+  (typeof LEGACY_BUSINESS_COUNTRY_OPTIONS)[number]["code"];
 
 export const BUSINESS_CURRENCY_OPTIONS = [
   "EUR",
@@ -62,7 +86,11 @@ export function isPosDownloadConfigured(): boolean {
 }
 
 export function currenciesForCountry(code: string): readonly string[] {
-  const opt = BUSINESS_COUNTRY_OPTIONS.find((c) => c.code === code);
+  if (isCountryConfigLoaded()) {
+    return getCountryConfigByCode(code).allowedCurrencies;
+  }
+  const opt = LEGACY_BUSINESS_COUNTRY_OPTIONS.find((c) => c.code === code);
   if (!opt) return BUSINESS_CURRENCY_OPTIONS;
+  if (code === "CH") return ["CHF", "EUR"];
   return [opt.currency];
 }

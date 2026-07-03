@@ -11,6 +11,23 @@ type ResetPasswordResponse = {
   error?: string;
 };
 
+function LoginBrand({ subtitle }: { subtitle: string }) {
+  return (
+    <div className="login-brand">
+      <div className="login-brand-row">
+        <div className="admin-logo-mark" aria-hidden>
+          C
+        </div>
+        <div className="login-brand-wordmark">
+          <span className="login-brand-main">Caisty</span>
+          <span className="login-brand-sub">Admin</span>
+        </div>
+      </div>
+      <p className="login-subtitle">{subtitle}</p>
+    </div>
+  );
+}
+
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -27,7 +44,7 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     if (!token) {
-      setError("Ungültiger Reset-Link. Bitte fordere einen neuen Link an.");
+      setError("Invalid reset link. Please request a new one.");
     }
   }, [token]);
 
@@ -36,17 +53,17 @@ export default function ResetPasswordPage() {
     setError(null);
 
     if (!token) {
-      setError("Ungültiger Reset-Link.");
+      setError("Invalid reset link.");
       return;
     }
 
     if (newPassword.length < 6) {
-      setError("Passwort muss mindestens 6 Zeichen lang sein.");
+      setError("Password must be at least 6 characters.");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError("Passwörter stimmen nicht überein.");
+      setError("Passwords do not match.");
       return;
     }
 
@@ -62,19 +79,18 @@ export default function ResetPasswordPage() {
       });
 
       if (!res.ok) {
-        setError(res.error || "Fehler beim Zurücksetzen des Passworts");
+        setError(res.error || "Failed to reset password.");
         return;
       }
 
       setSuccess(true);
-      
-      // Nach erfolgreichem Reset: Zurück zum Login
+
       setTimeout(() => {
         navigate("/login", { replace: true });
       }, 2000);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Fehler beim Zurücksetzen des Passworts");
+      setError(err.message || "Failed to reset password.");
     } finally {
       setLoading(false);
     }
@@ -82,56 +98,12 @@ export default function ResetPasswordPage() {
 
   if (success) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(135deg, #0f172a 0%, #020617 100%)",
-          padding: "20px",
-        }}
-      >
-        <div
-          style={{
-            width: "100%",
-            maxWidth: "420px",
-            background: "rgba(15, 23, 42, 0.9)",
-            border: "1px solid rgba(51, 65, 85, 0.5)",
-            borderRadius: "16px",
-            padding: "40px",
-            boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)",
-            backdropFilter: "blur(10px)",
-            textAlign: "center",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "48px",
-              marginBottom: "16px",
-            }}
-          >
-            ✅
-          </div>
-          <h1
-            style={{
-              fontSize: "24px",
-              fontWeight: 600,
-              color: "#f1f5f9",
-              marginBottom: "12px",
-            }}
-          >
-            Passwort zurückgesetzt
-          </h1>
-          <p
-            style={{
-              fontSize: "14px",
-              color: "#94a3b8",
-              marginBottom: "24px",
-              lineHeight: "1.5",
-            }}
-          >
-            Dein Passwort wurde erfolgreich zurückgesetzt. Du wirst zum Login weitergeleitet...
+      <div className="login-page">
+        <div className="login-card" style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
+          <h1 className="login-title">Password reset</h1>
+          <p className="login-subtitle">
+            Your password was reset successfully. Redirecting to sign in…
           </p>
         </div>
       </div>
@@ -139,64 +111,13 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "linear-gradient(135deg, #0f172a 0%, #020617 100%)",
-        padding: "20px",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "420px",
-          background: "rgba(15, 23, 42, 0.9)",
-          border: "1px solid rgba(51, 65, 85, 0.5)",
-          borderRadius: "16px",
-          padding: "40px",
-          boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)",
-          backdropFilter: "blur(10px)",
-        }}
-      >
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <div
-            style={{
-              fontSize: "32px",
-              fontWeight: 700,
-              color: "#f1f5f9",
-              marginBottom: "8px",
-              letterSpacing: "-0.5px",
-            }}
-          >
-            Caisty <span style={{ color: "#10b981" }}>Admin</span>
-          </div>
-          <p
-            style={{
-              fontSize: "14px",
-              color: "#94a3b8",
-              marginTop: "8px",
-            }}
-          >
-            Neues Passwort setzen
-          </p>
-        </div>
+    <div className="login-page">
+      <div className="login-card">
+        <LoginBrand subtitle="Set a new password" />
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "14px",
-                color: "#cbd5e1",
-                marginBottom: "8px",
-                fontWeight: 500,
-              }}
-            >
-              Neues Passwort
-            </label>
+        <form className="login-form" onSubmit={handleSubmit}>
+          <label className="ds-form-field">
+            New password
             <div style={{ position: "relative" }}>
               <input
                 type={showPassword ? "text" : "password"}
@@ -205,61 +126,32 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setNewPassword(e.target.value)}
                 autoComplete="new-password"
                 minLength={6}
-                style={{
-                  width: "100%",
-                  padding: "12px 16px",
-                  paddingRight: "44px",
-                  background: "#0f172a",
-                  border: "1px solid #334155",
-                  borderRadius: "8px",
-                  color: "#f1f5f9",
-                  fontSize: "14px",
-                  outline: "none",
-                  transition: "all 0.2s",
-                  boxSizing: "border-box",
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = "#10b981";
-                  e.currentTarget.style.boxShadow = "0 0 0 3px rgba(16, 185, 129, 0.1)";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = "#334155";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
+                className="ds-input login-input"
+                style={{ paddingRight: 40 }}
               />
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
                 style={{
                   position: "absolute",
-                  right: "12px",
+                  right: 10,
                   top: "50%",
                   transform: "translateY(-50%)",
                   background: "transparent",
                   border: "none",
-                  color: "#64748b",
                   cursor: "pointer",
-                  fontSize: "14px",
-                  padding: "4px",
+                  color: "var(--ink2)",
+                  fontSize: 14,
                 }}
               >
-                {showPassword ? "👁️" : "👁️‍🗨️"}
+                {showPassword ? "Hide" : "Show"}
               </button>
             </div>
-          </div>
+          </label>
 
-          <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: "14px",
-                color: "#cbd5e1",
-                marginBottom: "8px",
-                fontWeight: 500,
-              }}
-            >
-              Passwort bestätigen
-            </label>
+          <label className="ds-form-field">
+            Confirm password
             <div style={{ position: "relative" }}>
               <input
                 type={showConfirmPassword ? "text" : "password"}
@@ -268,115 +160,45 @@ export default function ResetPasswordPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 autoComplete="new-password"
                 minLength={6}
-                style={{
-                  width: "100%",
-                  padding: "12px 16px",
-                  paddingRight: "44px",
-                  background: "#0f172a",
-                  border: "1px solid #334155",
-                  borderRadius: "8px",
-                  color: "#f1f5f9",
-                  fontSize: "14px",
-                  outline: "none",
-                  transition: "all 0.2s",
-                  boxSizing: "border-box",
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = "#10b981";
-                  e.currentTarget.style.boxShadow = "0 0 0 3px rgba(16, 185, 129, 0.1)";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = "#334155";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
+                className="ds-input login-input"
+                style={{ paddingRight: 40 }}
               />
               <button
                 type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                onClick={() => setShowConfirmPassword((v) => !v)}
+                aria-label={
+                  showConfirmPassword ? "Hide password" : "Show password"
+                }
                 style={{
                   position: "absolute",
-                  right: "12px",
+                  right: 10,
                   top: "50%",
                   transform: "translateY(-50%)",
                   background: "transparent",
                   border: "none",
-                  color: "#64748b",
                   cursor: "pointer",
-                  fontSize: "14px",
-                  padding: "4px",
+                  color: "var(--ink2)",
+                  fontSize: 14,
                 }}
               >
-                {showConfirmPassword ? "👁️" : "👁️‍🗨️"}
+                {showConfirmPassword ? "Hide" : "Show"}
               </button>
             </div>
-          </div>
+          </label>
 
-          {error && (
-            <div
-              style={{
-                padding: "12px",
-                background: "rgba(239, 68, 68, 0.1)",
-                border: "1px solid rgba(239, 68, 68, 0.3)",
-                borderRadius: "8px",
-                color: "#fca5a5",
-                fontSize: "14px",
-              }}
-            >
-              {error}
-            </div>
-          )}
+          {error ? <div className="login-error">{error}</div> : null}
 
           <button
             type="submit"
+            className="login-button"
             disabled={loading || !token}
-            style={{
-              width: "100%",
-              padding: "12px 24px",
-              background: loading || !token ? "#059669" : "#10b981",
-              color: "#020617",
-              fontSize: "16px",
-              fontWeight: 600,
-              border: "none",
-              borderRadius: "8px",
-              cursor: loading || !token ? "not-allowed" : "pointer",
-              transition: "all 0.2s",
-              opacity: loading || !token ? 0.7 : 1,
-            }}
-            onMouseEnter={(e) => {
-              if (!loading && token) {
-                e.currentTarget.style.background = "#059669";
-                e.currentTarget.style.transform = "translateY(-1px)";
-                e.currentTarget.style.boxShadow = "0 4px 12px rgba(16, 185, 129, 0.3)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!loading && token) {
-                e.currentTarget.style.background = "#10b981";
-                e.currentTarget.style.transform = "translateY(0)";
-                e.currentTarget.style.boxShadow = "none";
-              }
-            }}
           >
-            {loading ? "Wird zurückgesetzt…" : "Passwort zurücksetzen"}
+            {loading ? "Resetting…" : "Reset password"}
           </button>
 
-          <div style={{ textAlign: "center", marginTop: "8px" }}>
-            <Link
-              to="/login"
-              style={{
-                fontSize: "12px",
-                color: "#10b981",
-                textDecoration: "none",
-                transition: "color 0.2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#059669";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#10b981";
-              }}
-            >
-              ← Zurück zum Login
+          <div style={{ textAlign: "center", marginTop: 8 }}>
+            <Link to="/login" className="login-link">
+              ← Back to sign in
             </Link>
           </div>
         </form>
@@ -384,4 +206,3 @@ export default function ResetPasswordPage() {
     </div>
   );
 }
-

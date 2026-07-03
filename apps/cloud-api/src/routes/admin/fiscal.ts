@@ -1,6 +1,7 @@
 // Admin fiscal configuration overview (placeholder for future dashboard).
 import type { FastifyInstance } from "fastify";
 import {
+  getAdminBusinessSnapshotByCustomerId,
   getFiscalConfigurationByCustomerId,
   listFiscalConfigurationsForAdmin,
 } from "../../fiscal/fiscalConfigurationService.js";
@@ -39,6 +40,42 @@ function mapFiscalOverviewItem(row: Awaited<
   };
 }
 
+function mapFiscalBlock(
+  snapshot: NonNullable<
+    Awaited<ReturnType<typeof getFiscalConfigurationByCustomerId>>
+  >,
+) {
+  return {
+    orgId: snapshot.orgId,
+    country: snapshot.country,
+    currency: snapshot.currency,
+    fiscalRequired: snapshot.fiscalRequired,
+    provider: snapshot.provider,
+    providerType: snapshot.providerType,
+    providerName: snapshot.providerName,
+    providerLabel: snapshot.providerLabel,
+    fiscalStatus: snapshot.fiscalStatusCustomer,
+    fiscalConfigurationLabel: snapshot.fiscalConfigurationLabel,
+    fiscalEnvironment: snapshot.fiscalEnvironment,
+    receiptMode: snapshot.receiptMode,
+    fiscalProfileKey: snapshot.fiscalProfileKey,
+    posConfigurationStatus: snapshot.posConfigurationStatus,
+    posDownloadAllowed: snapshot.posDownloadAllowed,
+    supportedExports: snapshot.supportedExports,
+    fiscalNotice: snapshot.fiscalNotice,
+    mode: snapshot.mode,
+    lastSyncAt: snapshot.lastSyncAt ?? null,
+    actions: {
+      startSetup:
+        snapshot.provider === "fiskaly" &&
+        snapshot.fiscalStatus !== "active",
+      markActive: false,
+      markPending: snapshot.fiscalStatus === "active",
+      viewLogs: false,
+    },
+  };
+}
+
 export async function registerAdminFiscalRoutes(app: FastifyInstance) {
   app.get("/admin/fiscal/overview", async (request) => {
     const limit = Number(
@@ -58,46 +95,19 @@ export async function registerAdminFiscalRoutes(app: FastifyInstance) {
   app.get<{ Params: { customerId: string } }>(
     "/admin/fiscal/customers/:customerId",
     async (request, reply) => {
-      const snapshot = await getFiscalConfigurationByCustomerId(
+      const combined = await getAdminBusinessSnapshotByCustomerId(
         request.params.customerId,
       );
 
-      if (!snapshot) {
+      if (!combined) {
         reply.code(404);
         return { ok: false, error: "not_found" };
       }
 
       return {
         ok: true,
-        fiscal: {
-          orgId: snapshot.orgId,
-          country: snapshot.country,
-          currency: snapshot.currency,
-          fiscalRequired: snapshot.fiscalRequired,
-          provider: snapshot.provider,
-          providerType: snapshot.providerType,
-          providerName: snapshot.providerName,
-          providerLabel: snapshot.providerLabel,
-          fiscalStatus: snapshot.fiscalStatusCustomer,
-          fiscalConfigurationLabel: snapshot.fiscalConfigurationLabel,
-          fiscalEnvironment: snapshot.fiscalEnvironment,
-          receiptMode: snapshot.receiptMode,
-          fiscalProfileKey: snapshot.fiscalProfileKey,
-          posConfigurationStatus: snapshot.posConfigurationStatus,
-          posDownloadAllowed: snapshot.posDownloadAllowed,
-          supportedExports: snapshot.supportedExports,
-          fiscalNotice: snapshot.fiscalNotice,
-          mode: snapshot.mode,
-          lastSyncAt: snapshot.lastSyncAt ?? null,
-          actions: {
-            startSetup:
-              snapshot.provider === "fiskaly" &&
-              snapshot.fiscalStatus !== "active",
-            markActive: false,
-            markPending: snapshot.fiscalStatus === "active",
-            viewLogs: false,
-          },
-        },
+        business: combined.business,
+        fiscal: mapFiscalBlock(combined.snapshot),
       };
     },
   );

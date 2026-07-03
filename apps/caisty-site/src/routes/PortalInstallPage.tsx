@@ -13,7 +13,7 @@ import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
 import { portalLocaleTag } from "../lib/portalLocale";
 import { pickPrimaryPortalLicense } from "../lib/portalLicensePick";
-import { portalCardShell, portalLicenseStatusBadge, portalPrimaryCta } from "../lib/portalUi";
+import { portalCardShell, portalLicenseStatusBadge, portalPageShell, portalPageSubtitle, portalPageTitle, portalPrimaryCta } from "../lib/portalUi";
 
 import { getPosWindowsDownloadUrl } from "../config/businessCountries";
 
@@ -69,26 +69,16 @@ const PortalInstallPage: React.FC = () => {
   const windowsInstallUrl = getWindowsInstallUrl();
 
   return (
-    <div className="space-y-10">
-      <header className="space-y-2">
-        <h1
-          className={`text-2xl sm:text-3xl font-semibold tracking-tight ${
-            isLight ? "text-[#0B1220]" : "text-white"
-          }`}
-        >
-          {t.install.title}
-        </h1>
-        <p
-          className={`text-sm ${
-            isLight ? "text-slate-700" : "text-slate-300"
-          }`}
-        >
+    <div className={portalPageShell()}>
+      <header className="space-y-1">
+        <h1 className={portalPageTitle(isLight)}>{t.install.title}</h1>
+        <p className={portalPageSubtitle(isLight)}>
           {t.install.subtitlePrefix}{" "}
           <span className={`font-medium ${isLight ? "text-slate-900" : "text-slate-100"}`}>{customer.name}</span>.
         </p>
       </header>
 
-      <section className={`${portalCardShell(isLight)} space-y-5`}>
+      <section className={`${portalCardShell(isLight)} space-y-4`}>
         <div className="flex gap-3">
           <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-500 text-sm font-bold text-white">
             1

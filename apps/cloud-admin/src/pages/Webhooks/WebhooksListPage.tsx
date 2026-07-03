@@ -1,7 +1,12 @@
 // apps/cloud-admin/src/pages/Webhooks/WebhooksListPage.tsx
 import { useEffect, useState } from "react";
 import { apiGet } from "../../lib/api";
-import { useTheme, themeColors } from "../../theme/ThemeContext";
+import {
+  Button,
+  DataTable,
+  PageHeader,
+} from "../../components/ui";
+import { WebhookStatusPill } from "../../lib/adminStatusPills";
 
 type Webhook = {
   id: string;
@@ -18,8 +23,6 @@ type WebhooksResponse = {
 };
 
 export default function WebhooksListPage() {
-  const { theme } = useTheme();
-  const colors = themeColors[theme];
   const [data, setData] = useState<WebhooksResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +41,7 @@ export default function WebhooksListPage() {
       } catch (err) {
         console.error(err);
         if (!cancelled) {
-          setError("Fehler beim Laden der Webhooks.");
+          setError("Failed to load webhooks.");
         }
       } finally {
         if (!cancelled) {
@@ -54,144 +57,89 @@ export default function WebhooksListPage() {
   }, []);
 
   const items = data?.items ?? [];
-
-  const shortId = (id: string) => (id ? `${id.slice(0, 8)}…` : "–");
+  const shortId = (id: string) => (id ? `${id.slice(0, 8)}…` : "—");
 
   return (
     <div className="admin-page">
-      <h1
-        style={{
-          fontSize: "32px",
-          fontWeight: 700,
-          marginBottom: "8px",
-          color: colors.text,
-          letterSpacing: "-0.5px",
-        }}
-      >
-        Webhooks
-      </h1>
-      <p
-        style={{
-          fontSize: "14px",
-          color: colors.textSecondary,
-          marginBottom: "24px",
-        }}
-      >
-        Eingehende Webhook-Events (z.B. von PayPal Sandbox).
-      </p>
+      <PageHeader
+        title="Webhooks"
+        subtitle="Incoming webhook events (e.g. from PayPal sandbox)."
+      />
 
-      {error && (
-        <div
-          className="admin-error"
-          style={{
-            backgroundColor: colors.errorBg,
-            borderColor: `${colors.error}50`,
-            color: colors.error,
-          }}
-        >
-          {error}
-        </div>
-      )}
-      {loading && !items.length && !error && (
-        <p style={{ color: colors.textSecondary }}>lade Daten…</p>
-      )}
+      {error ? <div className="admin-error-banner">{error}</div> : null}
 
-      <div
-        className="admin-table-wrapper"
-        style={{
-          backgroundColor: colors.bgSecondary,
-          borderColor: colors.border,
-          transition: "background-color 0.3s, border-color 0.3s",
-        }}
-      >
-        <table className="admin-table">
+      <div className="ds-section-block">
+        <DataTable>
           <thead>
-            <tr style={{ backgroundColor: colors.bgTertiary }}>
-              <th style={{ color: colors.textSecondary }}>ID</th>
-              <th style={{ color: colors.textSecondary }}>Provider</th>
-              <th style={{ color: colors.textSecondary }}>Event</th>
-              <th style={{ color: colors.textSecondary }}>Status</th>
-              <th style={{ color: colors.textSecondary }}>Fehler</th>
-              <th style={{ color: colors.textSecondary }}>Erstellt</th>
+            <tr>
+              <th>ID</th>
+              <th>Provider</th>
+              <th>Event</th>
+              <th>Status</th>
+              <th>Error</th>
+              <th>Created</th>
             </tr>
           </thead>
           <tbody>
-            {!items.length && !loading && !error && (
+            {loading ? (
               <tr>
-                <td colSpan={6} style={{ color: colors.textSecondary }}>
-                  Keine Webhooks gefunden.
+                <td colSpan={6} className="ds-muted" style={{ textAlign: "center", padding: 24 }}>
+                  Loading webhooks…
                 </td>
               </tr>
+            ) : items.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="ds-muted" style={{ textAlign: "center", padding: 24 }}>
+                  No webhooks found.
+                </td>
+              </tr>
+            ) : (
+              items.map((w) => (
+                <tr key={w.id}>
+                  <td>{shortId(w.id)}</td>
+                  <td>{w.provider}</td>
+                  <td>{w.eventType}</td>
+                  <td>
+                    <WebhookStatusPill status={w.status} />
+                  </td>
+                  <td style={{ maxWidth: 260 }}>
+                    {w.errorMessage ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        <span title={w.errorMessage}>
+                          {expandedErrors[w.id]
+                            ? w.errorMessage
+                            : w.errorMessage.length > 40
+                              ? `${w.errorMessage.slice(0, 40)}…`
+                              : w.errorMessage}
+                        </span>
+                        {w.errorMessage.length > 40 ? (
+                          <Button
+                            variant="link"
+                            onClick={() =>
+                              setExpandedErrors((prev) => ({
+                                ...prev,
+                                [w.id]: !prev[w.id],
+                              }))
+                            }
+                          >
+                            {expandedErrors[w.id] ? "Show less" : "Show more"}
+                          </Button>
+                        ) : null}
+                      </div>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>
+                    {w.createdAt
+                      ? new Date(w.createdAt).toLocaleString("en-GB")
+                      : "—"}
+                  </td>
+                </tr>
+              ))
             )}
-            {items.map((w) => (
-              <tr
-                key={w.id}
-                style={{
-                  borderBottomColor: colors.border,
-                  transition: "background-color 0.2s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = colors.bgTertiary;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "transparent";
-                }}
-              >
-                <td style={{ color: colors.text }}>{shortId(w.id)}</td>
-                <td style={{ color: colors.text }}>{w.provider}</td>
-                <td style={{ color: colors.text }}>{w.eventType}</td>
-                <td>
-                  <span
-                    className={
-                      w.status === "processed"
-                        ? "badge badge--green"
-                        : w.status === "failed"
-                        ? "badge badge--red"
-                        : "badge badge--amber"
-                    }
-                  >
-                    {w.status}
-                  </span>
-                </td>
-                <td style={{ maxWidth: 260, color: colors.text }}>
-                  {w.errorMessage ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      <span title={w.errorMessage}>
-                        {expandedErrors[w.id]
-                          ? w.errorMessage
-                          : w.errorMessage.length > 40
-                            ? `${w.errorMessage.slice(0, 40)}…`
-                            : w.errorMessage}
-                      </span>
-                      {w.errorMessage.length > 40 && (
-                        <button
-                          type="button"
-                          className="admin-btn admin-btn--ghost"
-                          style={{ alignSelf: "flex-start", height: 24, fontSize: 11, padding: "0 8px" }}
-                          onClick={() =>
-                            setExpandedErrors((prev) => ({
-                              ...prev,
-                              [w.id]: !prev[w.id],
-                            }))
-                          }
-                        >
-                          {expandedErrors[w.id] ? "Show less" : "Show more"}
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    "–"
-                  )}
-                </td>
-                <td style={{ color: colors.text }}>
-                  {w.createdAt
-                    ? new Date(w.createdAt).toLocaleString("de-DE")
-                    : "–"}
-                </td>
-              </tr>
-            ))}
           </tbody>
-        </table>
+        </DataTable>
       </div>
     </div>
   );

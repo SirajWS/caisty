@@ -2,18 +2,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiGet, apiPatch, apiDelete } from "../../lib/api";
 import { Link } from "react-router-dom";
-import { useTheme, themeColors } from "../../theme/ThemeContext";
+import {
+  Button,
+  DataTable,
+  FiscalStatusPill,
+  PageHeader,
+  SearchInput,
+  Select,
+  StatusPill,
+  Toolbar,
+  SectionHeader,
+} from "../../components/ui";
 import {
   fetchFiscalOverview,
   type AdminFiscalOverviewItem,
 } from "../../lib/fiscalApi";
-import {
-  fiscalStatusBadgeClass,
-  formatFiscalStatus,
-  formatProviderLabel,
-  formatReceiptMode,
-  providerTypeLabel,
-} from "../../lib/caistyTerminology";
 
 type Customer = {
   id: string;
@@ -42,8 +45,6 @@ type DevicesResponse = {
 };
 
 export default function CustomersListPage() {
-  const { theme } = useTheme();
-  const colors = themeColors[theme];
   const [items, setItems] = useState<Customer[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -80,9 +81,14 @@ export default function CustomersListPage() {
             summary: {
               totalProfiles: 0,
               germanyFiskalyPending: 0,
+              fiscalRequiredPending: 0,
               activeSetups: 0,
               comingSoonCountries: 0,
               standardReceiptMode: 0,
+              actionNeeded: 0,
+              allOk: 0,
+              fiscalCountriesActive: 0,
+              withoutFiscalization: 0,
             },
           })),
         ]);
@@ -117,7 +123,7 @@ export default function CustomersListPage() {
       } catch (err) {
         console.error("Error loading customers/devices", err);
         if (!cancelled) {
-          setError("Fehler beim Laden der Kunden.");
+          setError("Failed to load customers.");
         }
       } finally {
         if (!cancelled) {
@@ -182,10 +188,10 @@ export default function CustomersListPage() {
     const devicesForCustomer = deviceCounts[c.id] ?? 0;
 
     const confirmed = window.confirm(
-      `Kunde "${c.name || c.email}" inaktiv setzen?\n\n` +
-        `Der Kunde erscheint dann nicht mehr in der normalen Übersicht und im Dashboard.\n` +
+      `Set customer "${c.name || c.email}" to inactive?\n\n` +
+        `The customer will no longer appear in the default overview or dashboard.` +
         (devicesForCustomer > 0
-          ? `Hinweis: Es sind noch ${devicesForCustomer} Gerät(e) diesem Kunden zugeordnet.`
+          ? `\nNote: ${devicesForCustomer} device(s) are still linked to this customer.`
           : ""),
     );
 
@@ -207,7 +213,7 @@ export default function CustomersListPage() {
       );
     } catch (err) {
       console.error("Error updating customer status", err);
-      setError("Status des Kunden konnte nicht geändert werden.");
+      setError("Could not update customer status.");
     } finally {
       setStatusBusyId(null);
     }
@@ -217,10 +223,10 @@ export default function CustomersListPage() {
     const devicesForCustomer = deviceCounts[c.id] ?? 0;
 
     const confirmed = window.confirm(
-      `Kunde "${c.name || c.email}" endgültig löschen?\n\n` +
-        `Dieser Vorgang kann nicht rückgängig gemacht werden.` +
+      `Permanently delete customer "${c.name || c.email}"?\n\n` +
+        `This action cannot be undone.` +
         (devicesForCustomer > 0
-          ? `\nHinweis: Es sind noch ${devicesForCustomer} Gerät(e) diesem Kunden zugeordnet. Die Zuordnung wird beim Löschen entfernt.`
+          ? `\nNote: ${devicesForCustomer} device(s) are linked — assignments will be removed on delete.`
           : ""),
     );
 
@@ -237,87 +243,41 @@ export default function CustomersListPage() {
       setTotal((prev) => Math.max(0, prev - 1));
     } catch (err) {
       console.error("Error deleting customer", err);
-      setError("Kunde konnte nicht gelöscht werden.");
+      setError("Could not delete customer.");
     } finally {
       setDeleteBusyId(null);
     }
   }
 
+  function accountStatusPill(status: string | null | undefined) {
+    const normalized = (status ?? "").toLowerCase();
+    if (normalized === "active") {
+      return <StatusPill tone="green" label="Active" />;
+    }
+    if (normalized === "inactive") {
+      return <StatusPill tone="gray" label="Inactive" />;
+    }
+    return <StatusPill tone="gray" label={status ?? "Unknown"} />;
+  }
+
   return (
     <div className="admin-page">
-      <h1
-        style={{
-          fontSize: "32px",
-          fontWeight: 700,
-          marginBottom: "8px",
-          color: colors.text,
-          letterSpacing: "-0.5px",
-        }}
-      >
-        Customers
-      </h1>
-      <p
-        style={{
-          fontSize: "14px",
-          color: colors.textSecondary,
-          marginBottom: "24px",
-        }}
-      >
-        Übersicht über alle Kunden in dieser Instanz.
-      </p>
+      <PageHeader
+        title="Customers"
+        subtitle="Overview of all customers in this instance."
+      />
 
-      {/* Filter / Info-Leiste */}
-      <div
-        style={{
-          marginTop: 16,
-          marginBottom: 16,
-          display: "flex",
-          gap: 16,
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-        }}
+      <Toolbar
+        footer={`${activeItems.length} active of ${total} customers shown`}
       >
-        <div style={{ fontSize: 13, color: colors.textSecondary }}>
-          {activeItems.length} aktive von {total} Kunden angezeigt
-        </div>
-
-        <input
-          type="text"
-          placeholder="Suche nach Name, E-Mail oder ID…"
+        <SearchInput
+          placeholder="Search by name, email, or ID…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{
-            minWidth: 260,
-            padding: "6px 10px",
-            borderRadius: 6,
-            border: `1px solid ${colors.borderSecondary}`,
-            background: colors.input,
-            color: colors.text,
-            fontSize: 13,
-            transition: "all 0.2s",
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.borderColor = colors.accent;
-            e.currentTarget.style.boxShadow = `0 0 0 3px ${colors.accent}20`;
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.borderColor = colors.borderSecondary;
-            e.currentTarget.style.boxShadow = "none";
-          }}
         />
-
-        <select
+        <Select
           value={countryFilter}
           onChange={(e) => setCountryFilter(e.target.value)}
-          style={{
-            padding: "6px 10px",
-            borderRadius: 6,
-            border: `1px solid ${colors.borderSecondary}`,
-            background: colors.input,
-            color: colors.text,
-            fontSize: 13,
-          }}
         >
           <option value="">All countries</option>
           {countryOptions.map((c) => (
@@ -325,19 +285,10 @@ export default function CustomersListPage() {
               {c}
             </option>
           ))}
-        </select>
-
-        <select
+        </Select>
+        <Select
           value={fiscalStatusFilter}
           onChange={(e) => setFiscalStatusFilter(e.target.value)}
-          style={{
-            padding: "6px 10px",
-            borderRadius: 6,
-            border: `1px solid ${colors.borderSecondary}`,
-            background: colors.input,
-            color: colors.text,
-            fontSize: 13,
-          }}
         >
           <option value="">All fiscal statuses</option>
           <option value="not_required">Not required</option>
@@ -345,80 +296,38 @@ export default function CustomersListPage() {
           <option value="active">Active</option>
           <option value="required_coming_soon">Required — coming soon</option>
           <option value="error">Error</option>
-        </select>
-      </div>
+        </Select>
+      </Toolbar>
 
-      {error && (
-        <div
-          className="admin-error-banner"
-          style={{
-            backgroundColor: colors.errorBg,
-            borderColor: `${colors.error}50`,
-            color: colors.error,
-          }}
-        >
-          {error}
-        </div>
-      )}
+      {error ? <div className="admin-error-banner">{error}</div> : null}
 
-      {/* Aktive Kunden */}
-      <div
-        className="admin-card"
-        style={{
-          marginBottom: 24,
-          backgroundColor: colors.bgSecondary,
-          borderColor: colors.border,
-          transition: "background-color 0.3s, border-color 0.3s",
-        }}
-      >
-        <div
-          className="admin-table-wrapper"
-          style={{
-            backgroundColor: colors.bgSecondary,
-            borderColor: colors.border,
-            transition: "background-color 0.3s, border-color 0.3s",
-          }}
-        >
-          <table className="admin-table">
-            <thead>
-              <tr style={{ backgroundColor: colors.bgTertiary }}>
-                <th style={{ color: colors.textSecondary }}>ID</th>
-                <th style={{ color: colors.textSecondary }}>Name</th>
-                <th style={{ color: colors.textSecondary }}>E-Mail</th>
-                <th style={{ color: colors.textSecondary }}>Country</th>
-                <th style={{ color: colors.textSecondary }}>Fiscal status</th>
-                <th style={{ color: colors.textSecondary }}>Provider</th>
-                <th style={{ color: colors.textSecondary }}>Status</th>
-                <th style={{ color: colors.textSecondary }}>Devices</th>
-                <th style={{ color: colors.textSecondary }}>Erstellt am</th>
-                <th style={{ color: colors.textSecondary }}>Aktionen</th>
-              </tr>
-            </thead>
+      <div className="ds-section-block">
+        <DataTable>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Country</th>
+              <th>Fiscal status</th>
+              <th>Provider</th>
+              <th>Status</th>
+              <th>Devices</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td
-                  colSpan={10}
-                  style={{
-                    textAlign: "center",
-                    padding: 24,
-                    color: colors.textSecondary,
-                  }}
-                >
-                  Lädt Kunden…
+                <td colSpan={10} className="ds-muted" style={{ textAlign: "center", padding: 24 }}>
+                  Loading customers…
                 </td>
               </tr>
             ) : activeItems.length === 0 ? (
               <tr>
-                <td
-                  colSpan={10}
-                  style={{
-                    textAlign: "center",
-                    padding: 24,
-                    color: colors.textSecondary,
-                  }}
-                >
-                  Keine aktiven Kunden gefunden.
+                <td colSpan={10} className="ds-muted" style={{ textAlign: "center", padding: 24 }}>
+                  No active customers found.
                 </td>
               </tr>
             ) : (
@@ -427,87 +336,27 @@ export default function CustomersListPage() {
                 const fiscal = fiscalByCustomer[c.id];
 
                 return (
-                  <tr
-                    key={c.id}
-                    style={{
-                      borderBottomColor: colors.border,
-                      transition: "background-color 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = colors.bgTertiary;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                    }}
-                  >
-                    <td style={{ color: colors.text }}>
-                      {c.id.slice(0, 8)}…
-                    </td>
-                    <td style={{ color: colors.text }}>
-                      <Link
-                        to={`/customers/${c.id}`}
-                        style={{
-                          color: colors.accent,
-                          textDecoration: "none",
-                          transition: "color 0.2s",
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.color = colors.accentHover;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.color = colors.accent;
-                        }}
-                      >
+                  <tr key={c.id}>
+                    <td>{c.id.slice(0, 8)}…</td>
+                    <td>
+                      <Link to={`/customers/${c.id}`} className="ds-link">
                         {c.name || c.email}
                       </Link>
                     </td>
-                    <td style={{ color: colors.text }}>{c.email}</td>
-                    <td style={{ color: colors.text }}>
+                    <td>{c.email}</td>
+                    <td>
                       {fiscal?.country ? (
-                        <span
-                          style={{
-                            fontSize: 11,
-                            padding: "2px 8px",
-                            borderRadius: 999,
-                            background: colors.bgTertiary,
-                            border: `1px solid ${colors.border}`,
-                          }}
-                        >
-                          {fiscal.country}
-                        </span>
+                        <span className="ds-section-pill">{fiscal.country}</span>
                       ) : (
                         "—"
                       )}
                     </td>
                     <td>
-                      {fiscal ? (
-                        <span
-                          className={`status-badge ${fiscalStatusBadgeClass(fiscal.fiscalStatus)}`}
-                          style={{ fontSize: 11 }}
-                        >
-                          {formatFiscalStatus(fiscal.fiscalStatus)}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
+                      <FiscalStatusPill fiscal={fiscal} />
                     </td>
-                    <td style={{ color: colors.text, maxWidth: 180 }}>
+                    <td>
                       {fiscal ? (
-                        <span
-                          style={{
-                            fontSize: 11,
-                            display: "inline-block",
-                            padding: "2px 8px",
-                            borderRadius: 999,
-                            background: colors.bgTertiary,
-                            border: `1px solid ${colors.border}`,
-                          }}
-                          title={formatProviderLabel(
-                            fiscal.provider,
-                            fiscal.providerLabel,
-                            fiscal.fiscalConfigurationLabel,
-                          )}
-                        >
+                        <span className="ds-muted">
                           {fiscal.provider === "fiskaly"
                             ? "Fiskaly"
                             : fiscal.providerType === "coming_soon"
@@ -518,211 +367,84 @@ export default function CustomersListPage() {
                         "—"
                       )}
                     </td>
+                    <td>{accountStatusPill(c.status)}</td>
+                    <td>{devicesForCustomer}</td>
                     <td>
-                      <span
-                        className={`status-badge status-${
-                          c.status ?? "unknown"
-                        }`}
-                      >
-                        {c.status ?? "—"}
-                      </span>
-                    </td>
-                    <td style={{ color: colors.text }}>
-                      {devicesForCustomer}
-                    </td>
-                    <td style={{ color: colors.text }}>
                       {c.createdAt
-                        ? new Date(c.createdAt).toLocaleString("de-DE")
+                        ? new Date(c.createdAt).toLocaleString("en-GB")
                         : "—"}
                     </td>
                     <td>
-                      <button
-                        type="button"
-                        onClick={() => handleArchiveCustomer(c)}
+                      <Button
+                        variant="secondary"
                         disabled={statusBusyId === c.id}
-                        style={{
-                          fontSize: 11,
-                          padding: "4px 10px",
-                          borderRadius: 6,
-                          border: `1px solid ${colors.border}`,
-                          background:
-                            statusBusyId === c.id
-                              ? colors.bgTertiary
-                              : colors.bgSecondary,
-                          color: colors.text,
-                          cursor:
-                            statusBusyId === c.id ? "default" : "pointer",
-                          transition: "all 0.2s",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (statusBusyId !== c.id) {
-                            e.currentTarget.style.background = colors.border;
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (statusBusyId !== c.id) {
-                            e.currentTarget.style.background = colors.bgSecondary;
-                          }
-                        }}
+                        onClick={() => handleArchiveCustomer(c)}
                       >
-                        {statusBusyId === c.id
-                          ? "Aktualisiere…"
-                          : "Inaktiv setzen"}
-                      </button>
+                        {statusBusyId === c.id ? "Updating…" : "Set inactive"}
+                      </Button>
                     </td>
                   </tr>
                 );
               })
             )}
           </tbody>
-        </table>
-        </div>
+        </DataTable>
       </div>
 
-      {/* Inaktive Kunden / Trash */}
-      <div
-        className="admin-card"
-        style={{
-          backgroundColor: colors.bgSecondary,
-          borderColor: colors.border,
-          transition: "background-color 0.3s, border-color 0.3s",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 12,
-          }}
-        >
-          <h2
-            className="admin-section-title"
-            style={{ color: colors.text }}
-          >
-            Inaktive Kunden (Trash)
-          </h2>
-          <span style={{ fontSize: 11, color: colors.textTertiary }}>
-            Diese Kunden erscheinen nicht mehr in der normalen Übersicht oder im
-            Dashboard.
-          </span>
-        </div>
-
-        <div
-          className="admin-table-wrapper"
-          style={{
-            backgroundColor: colors.bgSecondary,
-            borderColor: colors.border,
-            transition: "background-color 0.3s, border-color 0.3s",
-          }}
-        >
-          <table className="admin-table">
-            <thead>
-              <tr style={{ backgroundColor: colors.bgTertiary }}>
-                <th style={{ color: colors.textSecondary }}>ID</th>
-                <th style={{ color: colors.textSecondary }}>Name</th>
-                <th style={{ color: colors.textSecondary }}>E-Mail</th>
-                <th style={{ color: colors.textSecondary }}>Status</th>
-                <th style={{ color: colors.textSecondary }}>Devices</th>
-                <th style={{ color: colors.textSecondary }}>Erstellt am</th>
-                <th style={{ color: colors.textSecondary }}>Aktionen</th>
+      <div className="ds-section-block">
+        <SectionHeader
+          title="Inactive customers (trash)"
+          subline="These customers no longer appear in the default overview or dashboard."
+        />
+        <DataTable>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Devices</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {inactiveItems.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="ds-muted" style={{ textAlign: "center", padding: 24 }}>
+                  No inactive customers.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {inactiveItems.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    style={{
-                      textAlign: "center",
-                      padding: 24,
-                      color: colors.textSecondary,
-                    }}
-                  >
-                    Keine inaktiven Kunden.
-                  </td>
-                </tr>
-              ) : (
+            ) : (
               inactiveItems.map((c) => {
                 const devicesForCustomer = deviceCounts[c.id] ?? 0;
-
                 return (
-                  <tr
-                    key={c.id}
-                    style={{
-                      borderBottomColor: colors.border,
-                      transition: "background-color 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = colors.bgTertiary;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "transparent";
-                    }}
-                  >
-                    <td style={{ color: colors.text }}>
-                      {c.id.slice(0, 8)}…
-                    </td>
-                    <td style={{ color: colors.text }}>
-                      {c.name || c.email}
-                    </td>
-                    <td style={{ color: colors.text }}>{c.email}</td>
+                  <tr key={c.id}>
+                    <td>{c.id.slice(0, 8)}…</td>
+                    <td>{c.name || c.email}</td>
+                    <td>{c.email}</td>
+                    <td>{accountStatusPill(c.status)}</td>
+                    <td>{devicesForCustomer}</td>
                     <td>
-                      <span
-                        className={`status-badge status-${
-                          c.status ?? "unknown"
-                        }`}
-                      >
-                        {c.status ?? "—"}
-                      </span>
-                    </td>
-                    <td style={{ color: colors.text }}>
-                      {devicesForCustomer}
-                    </td>
-                    <td style={{ color: colors.text }}>
                       {c.createdAt
-                        ? new Date(c.createdAt).toLocaleString("de-DE")
+                        ? new Date(c.createdAt).toLocaleString("en-GB")
                         : "—"}
                     </td>
                     <td>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteCustomer(c)}
+                      <Button
+                        variant="danger"
                         disabled={deleteBusyId === c.id}
-                        style={{
-                          fontSize: 11,
-                          padding: "4px 10px",
-                          borderRadius: 6,
-                          border: `1px solid ${colors.error}`,
-                          background:
-                            deleteBusyId === c.id
-                              ? colors.errorBg
-                              : colors.error,
-                          color: theme === "dark" ? "#fee2e2" : "#ffffff",
-                          cursor:
-                            deleteBusyId === c.id ? "default" : "pointer",
-                          transition: "all 0.2s",
-                        }}
-                        onMouseEnter={(e) => {
-                          if (deleteBusyId !== c.id) {
-                            e.currentTarget.style.opacity = "0.9";
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (deleteBusyId !== c.id) {
-                            e.currentTarget.style.opacity = "1";
-                          }
-                        }}
+                        onClick={() => handleDeleteCustomer(c)}
                       >
-                        {deleteBusyId === c.id ? "Löschen…" : "Löschen"}
-                      </button>
+                        {deleteBusyId === c.id ? "Deleting…" : "Delete"}
+                      </Button>
                     </td>
                   </tr>
                 );
               })
             )}
           </tbody>
-        </table>
-        </div>
+        </DataTable>
       </div>
     </div>
   );

@@ -92,8 +92,8 @@ export function groupNotificationDate(iso: string): DateGroup {
 }
 
 export const DATE_GROUP_LABELS: Record<DateGroup, string> = {
-  today: "Heute",
-  yesterday: "Gestern",
-  week: "Diese Woche",
-  older: "Älter",
+  today: "Today",
+  yesterday: "Yesterday",
+  week: "This week",
+  older: "Older",
 };

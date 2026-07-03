@@ -6,10 +6,9 @@ import { db } from "../db/client.js";
 import { devices } from "../db/schema/devices.js";
 import { licenses } from "../db/schema/licenses.js";
 import { businessProfiles } from "../db/schema/businessProfiles.js";
-import {
-  toSafePosFiscalConfig,
-} from "../fiscal/buildFiscalConfiguration.js";
+import { orgs } from "../db/schema/orgs.js";
 import { syncFiscalConfigurationForOrg } from "../fiscal/fiscalConfigurationService.js";
+import { buildPosSyncConfig } from "../fiscal/buildPosSyncConfig.js";
 
 type PosConfigQuery = {
   deviceId?: string;
@@ -19,7 +18,7 @@ type PosConfigQuery = {
 export async function registerPosConfigRoutes(app: FastifyInstance) {
   /**
    * GET /pos/config?deviceId=...&licenseKey=...
-   * Returns customer-safe cloud fiscal configuration for a bound POS device.
+   * Phase V: full business + fiscal + license + device + sync payload for POS Desktop.
    */
   app.get<{ Querystring: PosConfigQuery }>(
     "/pos/config",
@@ -83,14 +82,28 @@ export async function registerPosConfigRoutes(app: FastifyInstance) {
         };
       }
 
+      const [org] = await db
+        .select({ name: orgs.name })
+        .from(orgs)
+        .where(eq(orgs.id, orgId))
+        .limit(1);
+
       try {
-        const snapshot = await syncFiscalConfigurationForOrg(
+        const fiscalSnapshot = await syncFiscalConfigurationForOrg(
           orgId,
           businessRow,
         );
+        const payload = buildPosSyncConfig({
+          businessRow,
+          fiscalSnapshot,
+          license,
+          device,
+          orgName: org?.name ?? null,
+        });
+
         return {
           ok: true,
-          config: toSafePosFiscalConfig(snapshot),
+          ...payload,
         };
       } catch (err: unknown) {
         request.log.error({ err }, "GET /pos/config failed");

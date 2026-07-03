@@ -23,6 +23,9 @@ import {
 import {
   portalCardShell,
   portalLicenseStatusBadge,
+  portalPageShell,
+  portalPageSubtitle,
+  portalPageTitle,
   portalPrimaryCta,
   portalSecondaryCta,
   portalTextLink,
@@ -245,14 +248,10 @@ const PortalPlanBillingPage: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6">
+    <div className={portalPageShell()}>
       <header className="space-y-1">
-        <h1 className={`text-2xl sm:text-3xl font-semibold tracking-tight ${isLight ? "text-[#0B1220]" : "text-white"}`}>
-          {t.plan.title}
-        </h1>
-        <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-300"}`}>
-          {t.plan.subtitle}
-        </p>
+        <h1 className={portalPageTitle(isLight)}>{t.plan.title}</h1>
+        <p className={portalPageSubtitle(isLight)}>{t.plan.subtitle}</p>
       </header>
 
       {error && (

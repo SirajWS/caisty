@@ -2,7 +2,11 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { apiGet, API_BASE } from "../../lib/api";
-import { formatDateTime, formatMoney } from "../../lib/format";
+import { formatMoney } from "../../lib/format";
+import {
+  InvoiceStatusPill,
+  SubscriptionStatusPill,
+} from "../../lib/adminStatusPills";
 
 type InvoiceDetail = {
   id: string;
@@ -35,6 +39,11 @@ type InvoiceDetailResponse = {
   subscription: Subscription | null;
 };
 
+function formatDateTimeEnGb(value: string | null | undefined): string {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("en-GB");
+}
+
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [data, setData] = useState<InvoiceDetailResponse | null>(null);
@@ -55,7 +64,7 @@ export default function InvoiceDetailPage() {
         if (cancelled) return;
 
         if (!res.ok) {
-          setError("Rechnung nicht gefunden.");
+          setError("Invoice not found.");
           return;
         }
 
@@ -63,7 +72,7 @@ export default function InvoiceDetailPage() {
       } catch (err: any) {
         console.error("Error loading invoice detail", err);
         if (!cancelled) {
-          setError(err.message ?? "Fehler beim Laden der Rechnung.");
+          setError(err.message ?? "Failed to load invoice.");
         }
       } finally {
         if (!cancelled) {
@@ -82,7 +91,7 @@ export default function InvoiceDetailPage() {
   if (!id) {
     return (
       <div className="admin-page">
-        <p>Rechnungs-ID fehlt in der URL.</p>
+        <p>Invoice ID missing from URL.</p>
       </div>
     );
   }
@@ -91,15 +100,12 @@ export default function InvoiceDetailPage() {
     <div className="admin-page">
       <h1 className="admin-page-title">Invoice Details</h1>
       <p className="admin-page-subtitle">
-        Detailansicht der ausgewählten Rechnung.
+        Detailed view of the selected invoice.
       </p>
 
       <div style={{ marginTop: 8, marginBottom: 16 }}>
-        <Link
-          to="/invoices"
-          style={{ fontSize: 13, color: "#a855f7", textDecoration: "none" }}
-        >
-          ← zurück zur Übersicht
+        <Link to="/invoices" className="ds-link">
+          ← Back to list
         </Link>
       </div>
 
@@ -107,11 +113,11 @@ export default function InvoiceDetailPage() {
 
       {loading ? (
         <div className="admin-card" style={{ padding: 24 }}>
-          Lädt Rechnungsdaten…
+          Loading invoice…
         </div>
       ) : !data ? (
         <div className="admin-card" style={{ padding: 24 }}>
-          Rechnung wurde nicht gefunden.
+          Invoice not found.
         </div>
       ) : (
         <div className="admin-card" style={{ marginBottom: 24 }}>
@@ -125,7 +131,7 @@ export default function InvoiceDetailPage() {
           >
             <div>
               <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 4 }}>
-                Rechnungsnummer
+                Invoice number
               </div>
               <div style={{ fontSize: 18, fontWeight: 600 }}>
                 {data.invoice.number}
@@ -137,17 +143,13 @@ export default function InvoiceDetailPage() {
                 Status
               </div>
               <div>
-                <span
-                  className={`status-badge status-${data.invoice.status}`}
-                >
-                  {data.invoice.status}
-                </span>
+                <InvoiceStatusPill status={data.invoice.status} />
               </div>
             </div>
 
             <div>
               <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 4 }}>
-                Betrag
+                Amount
               </div>
               <div style={{ fontSize: 18, fontWeight: 600 }}>
                 {formatMoney(data.invoice.amountCents, data.invoice.currency)}
@@ -172,23 +174,27 @@ export default function InvoiceDetailPage() {
           >
             <div>
               <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 4 }}>
-                Ausgestellt am
+                Issued
               </div>
-              <div>{formatDateTime(data.invoice.issuedAt ?? data.invoice.createdAt)}</div>
+              <div>
+                {formatDateTimeEnGb(
+                  data.invoice.issuedAt ?? data.invoice.createdAt,
+                )}
+              </div>
             </div>
 
             <div>
               <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 4 }}>
-                Fällig am
+                Due
               </div>
-              <div>{formatDateTime(data.invoice.dueAt)}</div>
+              <div>{formatDateTimeEnGb(data.invoice.dueAt)}</div>
             </div>
 
             <div>
               <div style={{ fontSize: 13, color: "#9ca3af", marginBottom: 4 }}>
-                Erstellt am
+                Created
               </div>
-              <div>{formatDateTime(data.invoice.createdAt)}</div>
+              <div>{formatDateTimeEnGb(data.invoice.createdAt)}</div>
             </div>
           </div>
 
@@ -202,12 +208,12 @@ export default function InvoiceDetailPage() {
                   color: "#9ca3af",
                 }}
               >
-                Kunde
+                Customer
               </div>
               <div>
                 <Link
                   to={`/customers/${data.customer.id}`}
-                  style={{ color: "#a855f7", textDecoration: "none" }}
+                  className="ds-link"
                 >
                   {data.customer.name}
                 </Link>
@@ -230,12 +236,9 @@ export default function InvoiceDetailPage() {
               >
                 Subscription
               </div>
-              <div>
-                <span
-                  className={`status-badge status-${data.subscription.status}`}
-                >
-                  {data.subscription.plan} ({data.subscription.status})
-                </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span>{data.subscription.plan}</span>
+                <SubscriptionStatusPill status={data.subscription.status} />
               </div>
             </div>
           )}
@@ -246,14 +249,14 @@ export default function InvoiceDetailPage() {
               gap: 12,
               marginTop: 24,
               paddingTop: 24,
-              borderTop: "1px solid #374151",
+              borderTop: "1px solid var(--admin-border)",
             }}
           >
             <button
               onClick={async () => {
                 const token = localStorage.getItem("caisty.admin.token");
                 if (!token) {
-                  alert("Nicht angemeldet");
+                  alert("Not signed in");
                   return;
                 }
                 const url = `${API_BASE}/invoices/${id}/html`;
@@ -263,7 +266,7 @@ export default function InvoiceDetailPage() {
                   },
                 });
                 if (!res.ok) {
-                  alert(`Fehler: ${res.status}`);
+                  alert(`Error: ${res.status}`);
                   return;
                 }
                 const html = await res.text();
@@ -273,23 +276,16 @@ export default function InvoiceDetailPage() {
                   win.document.close();
                 }
               }}
-              style={{
-                padding: "8px 16px",
-                borderRadius: 6,
-                border: "1px solid #a855f7",
-                background: "transparent",
-                color: "#a855f7",
-                cursor: "pointer",
-                fontSize: 14,
-              }}
+              className="login-button"
+              style={{ width: "auto", marginTop: 0 }}
             >
-              📄 Rechnung anzeigen
+              View invoice
             </button>
             <button
               onClick={async () => {
                 const token = localStorage.getItem("caisty.admin.token");
                 if (!token) {
-                  alert("Nicht angemeldet");
+                  alert("Not signed in");
                   return;
                 }
                 const url = `${API_BASE}/invoices/${id}/html`;
@@ -299,7 +295,7 @@ export default function InvoiceDetailPage() {
                   },
                 });
                 if (!res.ok) {
-                  alert(`Fehler: ${res.status}`);
+                  alert(`Error: ${res.status}`);
                   return;
                 }
                 const html = await res.text();
@@ -312,17 +308,10 @@ export default function InvoiceDetailPage() {
                   }, 500);
                 }
               }}
-              style={{
-                padding: "8px 16px",
-                borderRadius: 6,
-                border: "1px solid #10b981",
-                background: "transparent",
-                color: "#10b981",
-                cursor: "pointer",
-                fontSize: 14,
-              }}
+              className="login-button"
+              style={{ width: "auto", marginTop: 0 }}
             >
-              📥 Als PDF drucken
+              Print as PDF
             </button>
           </div>
         </div>
@@ -330,4 +319,3 @@ export default function InvoiceDetailPage() {
     </div>
   );
 }
-

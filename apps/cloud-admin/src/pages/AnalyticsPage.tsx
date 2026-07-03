@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -13,7 +13,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useTheme, themeColors } from "../theme/ThemeContext";
 import { formatMoneyDE } from "../lib/formatMoney";
 import {
   fetchAnalyticsCustomers,
@@ -27,28 +26,35 @@ import {
   type RevenueBucket,
   type RevenueDrillInvoice,
 } from "../lib/analyticsApi";
+import { Button, Card, DataTable, KpiCard, PageHeader, SectionHeader } from "../components/ui";
+
+const CHART_BRAND = "#F26722";
+const CHART_GRID = "var(--line)";
+const CHART_MUTED = "var(--ink2)";
+const TOOLTIP_STYLE = {
+  background: "var(--panel2)",
+  border: "1px solid var(--line)",
+  borderRadius: 8,
+};
 
 const PRESETS: { id: AnalyticsPreset; label: string }[] = [
-  { id: "7d", label: "7 Tage" },
-  { id: "30d", label: "30 Tage" },
-  { id: "12m", label: "12 Monate" },
-  { id: "ytd", label: "Dieses Jahr" },
-  { id: "all", label: "Alle Zeit" },
-  { id: "custom", label: "Benutzerdefiniert" },
+  { id: "7d", label: "7 days" },
+  { id: "30d", label: "30 days" },
+  { id: "12m", label: "12 months" },
+  { id: "ytd", label: "This year" },
+  { id: "all", label: "All time" },
+  { id: "custom", label: "Custom" },
 ];
 
 function formatChartDate(iso: string, preset: AnalyticsPreset): string {
   const d = new Date(iso);
   if (preset === "7d" || preset === "30d") {
-    return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit" });
   }
-  return d.toLocaleDateString("de-DE", { month: "short", year: "2-digit" });
+  return d.toLocaleDateString("en-GB", { month: "short", year: "2-digit" });
 }
 
 export default function AnalyticsPage() {
-  const { theme } = useTheme();
-  const colors = themeColors[theme];
-
   const [preset, setPreset] = useState<AnalyticsPreset>("30d");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -103,7 +109,7 @@ export default function AnalyticsPage() {
       setSelectedBucket(null);
       setDrillInvoices([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Analytics konnte nicht geladen werden.");
+      setError(err instanceof Error ? err.message : "Could not load analytics.");
     } finally {
       setLoading(false);
     }
@@ -135,26 +141,26 @@ export default function AnalyticsPage() {
     if (!overview) return;
     const lines: string[] = [
       "Caisty Analytics Export",
-      `Zeitraum;${preset};${overview.from};${overview.to}`,
+      `Period;${preset};${overview.from};${overview.to}`,
       "",
       "SaaS Overview",
-      `Aktive Kunden;${overview.activeCustomers}`,
+      `Active customers;${overview.activeCustomers}`,
       `MRR;${formatMoneyDE(overview.mrrCents)}`,
       `ARR;${formatMoneyDE(overview.arrCents)}`,
-      `Gesamtumsatz;${formatMoneyDE(overview.totalRevenueCents)}`,
-      `Umsatz Zeitraum;${formatMoneyDE(overview.rangeRevenueCents)}`,
-      `Trial Kunden;${overview.trialCustomersActive}`,
-      `Trial Conversion;${overview.trialConversionRate}%`,
+      `Total revenue;${formatMoneyDE(overview.totalRevenueCents)}`,
+      `Period revenue;${formatMoneyDE(overview.rangeRevenueCents)}`,
+      `Trial customers;${overview.trialCustomersActive}`,
+      `Trial conversion;${overview.trialConversionRate}%`,
       "",
       "Plan Breakdown",
-      "Plan;Kunden;Umsatz",
+      "Plan;Customers;Revenue",
       ...plans.map(
         (p) =>
           `${p.label};${p.customerCount};${formatMoneyDE(p.revenueCents)}`,
       ),
       "",
-      "Umsatz nach Periode",
-      "Periode;Umsatz;Rechnungen",
+      "Revenue by period",
+      "Period;Revenue;Invoices",
       ...revenueBuckets.map(
         (b) =>
           `${b.periodStart};${formatMoneyDE(b.revenueCents)};${b.invoiceCount}`,
@@ -190,59 +196,24 @@ export default function AnalyticsPage() {
     aktiv: b.activeAtEnd,
   }));
 
-  const chartStroke = colors.accent;
-  const chartGrid = colors.border;
-
   return (
     <div className="admin-page">
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 16,
-          marginBottom: 24,
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontSize: 32,
-              fontWeight: 700,
-              marginBottom: 8,
-              color: colors.text,
-            }}
-          >
-            Analytics
-          </h1>
-          <p style={{ fontSize: 14, color: colors.textSecondary, margin: 0 }}>
-            Umsatz aus bezahlten Rechnungen · MRR aus aktiven Abos · Read-only
-          </p>
-        </div>
-        <button
-          type="button"
-          className="admin-btn admin-btn--primary"
-          onClick={exportCsv}
-          disabled={!overview}
-        >
-          CSV Export
-        </button>
-      </div>
+      <PageHeader
+        title="Analytics"
+        subtitle="Revenue from paid invoices · MRR from active subscriptions · Read-only"
+        actions={
+          <Button variant="primary" onClick={exportCsv} disabled={!overview}>
+            CSV export
+          </Button>
+        }
+      />
 
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 8,
-          marginBottom: 20,
-        }}
-      >
+      <div className="ds-tabs">
         {PRESETS.map((p) => (
           <button
             key={p.id}
             type="button"
-            className={`admin-btn ${preset === p.id ? "admin-btn--primary" : "admin-btn--ghost"}`}
+            className={`ds-tab${preset === p.id ? " is-active" : ""}`}
             onClick={() => setPreset(p.id)}
           >
             {p.label}
@@ -260,8 +231,8 @@ export default function AnalyticsPage() {
             alignItems: "center",
           }}
         >
-          <label style={{ fontSize: 13, color: colors.textSecondary }}>
-            Von{" "}
+          <label className="ds-form-field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            From{" "}
             <input
               type="date"
               value={customFrom}
@@ -269,8 +240,8 @@ export default function AnalyticsPage() {
               className="admin-input"
             />
           </label>
-          <label style={{ fontSize: 13, color: colors.textSecondary }}>
-            Bis{" "}
+          <label className="ds-form-field" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            To{" "}
             <input
               type="date"
               value={customTo}
@@ -278,167 +249,134 @@ export default function AnalyticsPage() {
               className="admin-input"
             />
           </label>
-          <button type="button" className="admin-btn admin-btn--ghost" onClick={() => void load()}>
-            Anwenden
-          </button>
+          <Button variant="secondary" onClick={() => void load()}>
+            Apply
+          </Button>
         </div>
       )}
 
-      {error && (
-        <div
-          className="admin-alert admin-alert--error"
-          style={{ marginBottom: 16 }}
-        >
-          {error}
-        </div>
-      )}
+      {error ? <div className="admin-error-banner">{error}</div> : null}
 
       {loading && !overview ? (
-        <p style={{ color: colors.textSecondary }}>Wird geladen…</p>
+        <p className="ds-muted">Loading…</p>
       ) : overview ? (
         <>
-          <h2
-            style={{
-              fontSize: 18,
-              fontWeight: 600,
-              color: colors.text,
-              marginBottom: 12,
-            }}
-          >
-            SaaS Overview
-          </h2>
-          <div className="dashboard-grid" style={{ marginBottom: 28 }}>
+          <SectionHeader title="SaaS overview" />
+          <div className="ds-kpi-grid">
             <KpiCard
-              title="Aktive Kunden"
+              label="Active customers"
               value={String(overview.activeCustomers)}
-              meta="Abo oder Trial-Lizenz"
-              colors={colors}
+              hint="Subscription or trial licence"
             />
             <KpiCard
-              title="MRR"
+              label="MRR"
               value={formatMoneyDE(overview.mrrCents)}
-              meta="Aktive Subscriptions"
-              colors={colors}
+              hint="Active subscriptions"
             />
             <KpiCard
-              title="ARR"
+              label="ARR"
               value={formatMoneyDE(overview.arrCents)}
-              meta="MRR × 12"
-              colors={colors}
+              hint="MRR × 12"
             />
             <KpiCard
-              title="Gesamtumsatz"
+              label="Total revenue"
               value={formatMoneyDE(overview.totalRevenueCents)}
-              meta="Alle bezahlten Rechnungen"
-              colors={colors}
+              hint="All paid invoices"
             />
             <KpiCard
-              title="Trials"
+              label="Trials"
               value={String(overview.trialCustomersActive)}
-              meta={`${overview.trialConverted} konvertiert`}
-              colors={colors}
+              hint={`${overview.trialConverted} converted`}
             />
             <KpiCard
-              title="Conversion"
+              label="Conversion"
               value={`${overview.trialConversionRate} %`}
-              meta="Trial → Bezahlt"
-              colors={colors}
+              hint="Trial → paid"
             />
           </div>
 
-          <div
-            className="dashboard-grid"
-            style={{ marginBottom: 28, gridTemplateColumns: "repeat(3, 1fr)" }}
-          >
+          <div className="ds-kpi-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
             <KpiCard
-              title="Umsatz (Zeitraum)"
+              label="Revenue (period)"
               value={formatMoneyDE(overview.rangeRevenueCents)}
-              meta="Bezahlte Rechnungen"
-              colors={colors}
+              hint="Paid invoices"
             />
             <KpiCard
-              title="Neue Kunden"
+              label="New customers"
               value={`+${overview.churn.newCustomers}`}
-              meta="Im gewählten Zeitraum"
-              colors={colors}
+              hint="In selected period"
             />
             <KpiCard
-              title="Netto Wachstum"
+              label="Net growth"
               value={
                 overview.churn.net >= 0
                   ? `+${overview.churn.net}`
                   : String(overview.churn.net)
               }
-              meta={`Verloren: ${overview.churn.lostCustomers}`}
-              colors={colors}
+              hint={`Lost: ${overview.churn.lostCustomers}`}
             />
           </div>
 
-          <Section title="Umsatz (bezahlte Rechnungen)" colors={colors}>
-            <div style={{ width: "100%", height: 280 }}>
-              <ResponsiveContainer>
-                <AreaChart
-                  data={revenueChartData}
-                  onClick={(state) => {
-                    const idx = state?.activeTooltipIndex;
-                    if (idx != null && revenueBuckets[idx]) {
-                      void handleBucketClick(revenueBuckets[idx]);
-                    }
-                  }}
-                >
-                  <CartesianGrid stroke={chartGrid} strokeDasharray="3 3" />
-                  <XAxis dataKey="label" stroke={colors.textSecondary} fontSize={11} />
-                  <YAxis
-                    stroke={colors.textSecondary}
-                    fontSize={11}
-                    tickFormatter={(v) => `${v} €`}
-                  />
-                  <Tooltip
-                    formatter={(v: number) => [
-                      formatMoneyDE(Math.round(v * 100)),
-                      "Umsatz",
-                    ]}
-                    contentStyle={{
-                      background: colors.bgSecondary,
-                      border: `1px solid ${colors.border}`,
-                      borderRadius: 8,
+          <section className="ds-section-block">
+            <SectionHeader title="Revenue (paid invoices)" />
+            <Card>
+              <div style={{ width: "100%", height: 280 }}>
+                <ResponsiveContainer>
+                  <AreaChart
+                    data={revenueChartData}
+                    onClick={(state) => {
+                      const idx = state?.activeTooltipIndex;
+                      if (idx != null && revenueBuckets[idx]) {
+                        void handleBucketClick(revenueBuckets[idx]);
+                      }
                     }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="revenueEuro"
-                    stroke={chartStroke}
-                    fill={chartStroke}
-                    fillOpacity={0.2}
-                    name="Umsatz"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-            <p style={{ fontSize: 12, color: colors.textSecondary, marginTop: 8 }}>
-              Klicke auf einen Zeitraum für die zugrunde liegenden Rechnungen.
-            </p>
+                  >
+                    <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" />
+                    <XAxis dataKey="label" stroke={CHART_MUTED} fontSize={11} />
+                    <YAxis
+                      stroke={CHART_MUTED}
+                      fontSize={11}
+                      tickFormatter={(v) => `${v} €`}
+                    />
+                    <Tooltip
+                      formatter={(v: number) => [
+                        formatMoneyDE(Math.round(v * 100)),
+                        "Revenue",
+                      ]}
+                      contentStyle={TOOLTIP_STYLE}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="revenueEuro"
+                      stroke={CHART_BRAND}
+                      fill={CHART_BRAND}
+                      fillOpacity={0.15}
+                      name="Revenue"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="ds-muted" style={{ marginTop: 8 }}>
+                Click a period to view underlying invoices.
+              </p>
 
-            {selectedBucket && (
-              <div style={{ marginTop: 16 }}>
-                <h3 style={{ fontSize: 14, color: colors.text, marginBottom: 8 }}>
-                  Rechnungen — {formatChartDate(selectedBucket.periodStart, preset)}
-                </h3>
-                {drillLoading ? (
-                  <p style={{ fontSize: 13, color: colors.textSecondary }}>Lade…</p>
-                ) : drillInvoices.length === 0 ? (
-                  <p style={{ fontSize: 13, color: colors.textSecondary }}>
-                    Keine Rechnungen in diesem Zeitraum.
-                  </p>
-                ) : (
-                  <div className="admin-table-wrapper">
-                    <table className="admin-table">
+              {selectedBucket && (
+                <div style={{ marginTop: 16 }}>
+                  <h3 className="ds-section-title" style={{ marginBottom: 8 }}>
+                    Invoices — {formatChartDate(selectedBucket.periodStart, preset)}
+                  </h3>
+                  {drillLoading ? (
+                    <p className="ds-muted">Loading…</p>
+                  ) : drillInvoices.length === 0 ? (
+                    <p className="ds-muted">No invoices in this period.</p>
+                  ) : (
+                    <DataTable>
                       <thead>
                         <tr>
-                          <th>Rechnungsnr.</th>
-                          <th>Kunde</th>
-                          <th>Betrag</th>
-                          <th>Bezahlt am</th>
+                          <th>Invoice no.</th>
+                          <th>Customer</th>
+                          <th>Amount</th>
+                          <th>Paid on</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -447,191 +385,124 @@ export default function AnalyticsPage() {
                             <td>{inv.number}</td>
                             <td>
                               <div>{inv.customerName}</div>
-                              <div style={{ fontSize: 11, opacity: 0.7 }}>
-                                {inv.customerEmail}
-                              </div>
+                              <div className="ds-muted">{inv.customerEmail}</div>
                             </td>
                             <td>{formatMoneyDE(inv.amountGrossCents)}</td>
                             <td>
                               {inv.paidAt
-                                ? new Date(inv.paidAt).toLocaleString("de-DE")
+                                ? new Date(inv.paidAt).toLocaleString("en-GB")
                                 : "—"}
                             </td>
                           </tr>
                         ))}
                       </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-          </Section>
+                    </DataTable>
+                  )}
+                </div>
+              )}
+            </Card>
+          </section>
 
-          <Section title="Plan Breakdown" colors={colors}>
-            <div className="admin-table-wrapper">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Plan</th>
-                    <th>Kunden</th>
-                    <th>Umsatz (Zeitraum)</th>
+          <section className="ds-section-block">
+            <SectionHeader title="Plan breakdown" />
+            <DataTable>
+              <thead>
+                <tr>
+                  <th>Plan</th>
+                  <th>Customers</th>
+                  <th>Revenue (period)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {plans.map((p) => (
+                  <tr key={p.key}>
+                    <td>{p.label}</td>
+                    <td>{p.customerCount}</td>
+                    <td>{formatMoneyDE(p.revenueCents)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {plans.map((p) => (
-                    <tr key={p.key}>
-                      <td>{p.label}</td>
-                      <td>{p.customerCount}</td>
-                      <td>{formatMoneyDE(p.revenueCents)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Section>
+                ))}
+              </tbody>
+            </DataTable>
+          </section>
 
-          <Section title="Trial Conversion" colors={colors}>
-            <div className="dashboard-grid">
+          <section className="ds-section-block">
+            <SectionHeader title="Trial conversion" />
+            <div className="ds-kpi-grid">
               <KpiCard
-                title="Trial Kunden (gesamt)"
+                label="Trial customers (total)"
                 value={String(overview.trialCustomersEver)}
-                meta="Jemals Trial"
-                colors={colors}
+                hint="Ever on trial"
               />
               <KpiCard
-                title="Aktive Trials"
+                label="Active trials"
                 value={String(overview.trialCustomersActive)}
-                meta="Aktuell"
-                colors={colors}
+                hint="Currently active"
               />
               <KpiCard
-                title="Davon bezahlt"
+                label="Converted to paid"
                 value={String(overview.trialConverted)}
-                meta="Paid Invoice oder Abo"
-                colors={colors}
+                hint="Paid invoice or subscription"
               />
               <KpiCard
-                title="Conversion"
+                label="Conversion"
                 value={`${overview.trialConversionRate} %`}
-                meta="Trial → Bezahlt"
-                colors={colors}
+                hint="Trial → paid"
               />
             </div>
-          </Section>
+          </section>
 
-          <Section title="Kundenwachstum" colors={colors}>
-            <div style={{ width: "100%", height: 260 }}>
-              <ResponsiveContainer>
-                <LineChart data={customerChartData}>
-                  <CartesianGrid stroke={chartGrid} strokeDasharray="3 3" />
-                  <XAxis dataKey="label" stroke={colors.textSecondary} fontSize={11} />
-                  <YAxis stroke={colors.textSecondary} fontSize={11} />
-                  <Tooltip
-                    contentStyle={{
-                      background: colors.bgSecondary,
-                      border: `1px solid ${colors.border}`,
-                    }}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="cumulative"
-                    stroke={chartStroke}
-                    name="Kumuliert"
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="neu"
-                    stroke="#22c55e"
-                    name="Neu"
-                    dot={false}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </Section>
+          <section className="ds-section-block">
+            <SectionHeader title="Customer growth" />
+            <Card>
+              <div style={{ width: "100%", height: 260 }}>
+                <ResponsiveContainer>
+                  <LineChart data={customerChartData}>
+                    <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" />
+                    <XAxis dataKey="label" stroke={CHART_MUTED} fontSize={11} />
+                    <YAxis stroke={CHART_MUTED} fontSize={11} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="cumulative"
+                      stroke={CHART_BRAND}
+                      name="Cumulative"
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="neu"
+                      stroke="var(--status-green)"
+                      name="New"
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </section>
 
-          <Section title="Abo-Wachstum & Churn" colors={colors}>
-            <div style={{ width: "100%", height: 260 }}>
-              <ResponsiveContainer>
-                <BarChart data={subscriptionChartData}>
-                  <CartesianGrid stroke={chartGrid} strokeDasharray="3 3" />
-                  <XAxis dataKey="label" stroke={colors.textSecondary} fontSize={11} />
-                  <YAxis stroke={colors.textSecondary} fontSize={11} />
-                  <Tooltip
-                    contentStyle={{
-                      background: colors.bgSecondary,
-                      border: `1px solid ${colors.border}`,
-                    }}
-                  />
-                  <Legend />
-                  <Bar dataKey="neu" fill="#22c55e" name="Neu" />
-                  <Bar dataKey="gekündigt" fill="#ef4444" name="Gekündigt" />
-                  <Bar dataKey="aktiv" fill={chartStroke} name="Aktiv (Ende)" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Section>
+          <section className="ds-section-block">
+            <SectionHeader title="Subscription growth & churn" />
+            <Card>
+              <div style={{ width: "100%", height: 260 }}>
+                <ResponsiveContainer>
+                  <BarChart data={subscriptionChartData}>
+                    <CartesianGrid stroke={CHART_GRID} strokeDasharray="3 3" />
+                    <XAxis dataKey="label" stroke={CHART_MUTED} fontSize={11} />
+                    <YAxis stroke={CHART_MUTED} fontSize={11} />
+                    <Tooltip contentStyle={TOOLTIP_STYLE} />
+                    <Legend />
+                    <Bar dataKey="neu" fill="var(--status-green)" name="New" />
+                    <Bar dataKey="gekündigt" fill="var(--status-red)" name="Cancelled" />
+                    <Bar dataKey="aktiv" fill={CHART_BRAND} name="Active (end)" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </section>
         </>
       ) : null}
     </div>
-  );
-}
-
-function KpiCard({
-  title,
-  value,
-  meta,
-  colors,
-}: {
-  title: string;
-  value: string;
-  meta: string;
-  colors: (typeof themeColors)["dark"];
-}) {
-  return (
-    <div className="dashboard-card">
-      <div className="dashboard-card-title" style={{ color: colors.textSecondary }}>
-        {title}
-      </div>
-      <div className="dashboard-card-value" style={{ color: colors.accent }}>
-        {value}
-      </div>
-      <div className="dashboard-card-meta" style={{ color: colors.textSecondary }}>
-        {meta}
-      </div>
-    </div>
-  );
-}
-
-function Section({
-  title,
-  children,
-  colors,
-}: {
-  title: string;
-  children: ReactNode;
-  colors: (typeof themeColors)["dark"];
-}) {
-  return (
-    <section style={{ marginBottom: 32 }}>
-      <h2
-        style={{
-          fontSize: 18,
-          fontWeight: 600,
-          color: colors.text,
-          marginBottom: 16,
-        }}
-      >
-        {title}
-      </h2>
-      <div
-        className="dashboard-card"
-        style={{ padding: 20 }}
-      >
-        {children}
-      </div>
-    </section>
   );
 }

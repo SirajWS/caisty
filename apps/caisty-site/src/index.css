@@ -848,15 +848,21 @@ a {
 
 .portal-content {
   flex: 1;
-  padding: 28px 24px;
+  padding: 20px 16px;
   min-width: 0;
 }
 
 .portal-content-inner {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
   width: 100%;
   min-width: 0;
+}
+
+.portal-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .portal-backdrop {
@@ -904,8 +910,8 @@ a {
 .portal-stat-card {
   background: var(--portal-bg-2);
   border: 1px solid var(--portal-border);
-  border-radius: 14px;
-  padding: 20px 22px;
+  border-radius: 12px;
+  padding: 14px 16px;
 }
 
 .portal-table-wrapper {

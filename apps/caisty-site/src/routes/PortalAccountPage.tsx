@@ -8,7 +8,15 @@ import { usePortalOutlet } from "./PortalLayout";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
-import { portalCardShell, portalInputClass, portalPrimaryCta, portalTextLink } from "../lib/portalUi";
+import {
+  portalCardShell,
+  portalInputClass,
+  portalPageShell,
+  portalPageSubtitle,
+  portalPageTitle,
+  portalPrimaryCta,
+  portalTextLink,
+} from "../lib/portalUi";
 import { PortalLegalDocumentsSection } from "../components/PortalLegalDocumentsSection";
 
 const SUPPORT_EMAIL =
@@ -132,21 +140,14 @@ const PortalAccountPage: React.FC = () => {
     }
   }
 
-  const exportContactLine = t.account.dataExportContact.replace(
-    "{{email}}",
-    SUPPORT_EMAIL,
-  );
-
   return (
-    <div className="space-y-8">
-      <header className="space-y-2">
-        <h1 className={`text-2xl sm:text-3xl font-semibold tracking-tight ${isLight ? "text-[#0B1220]" : "text-white"}`}>{t.account.title}</h1>
-        <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-          {t.account.subtitle}
-        </p>
+    <div className={portalPageShell()}>
+      <header className="space-y-1">
+        <h1 className={portalPageTitle(isLight)}>{t.account.title}</h1>
+        <p className={portalPageSubtitle(isLight)}>{t.account.subtitle}</p>
       </header>
 
-      <section className={`${portalCardShell(isLight)} space-y-6`}>
+      <section className={`${portalCardShell(isLight)} space-y-4`}>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className={`text-sm font-semibold uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>
@@ -161,12 +162,12 @@ const PortalAccountPage: React.FC = () => {
           </span>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-1 text-xs">
+        <div className="grid gap-4 md:grid-cols-1 text-xs">
           <form
             onSubmit={handleProfileSubmit}
-            className="space-y-4"
+            className="space-y-3"
           >
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-3 md:grid-cols-2">
               <LabeledInput
                 label={t.account.nameLabel}
                 value={name}
@@ -202,7 +203,7 @@ const PortalAccountPage: React.FC = () => {
         </div>
       </section>
 
-      <section className={`${portalCardShell(isLight)} space-y-5`}>
+      <section className={`${portalCardShell(isLight)} space-y-3`}>
         <div>
           <p className={`text-sm font-semibold uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>
             {t.account.securityTitle}
@@ -214,9 +215,9 @@ const PortalAccountPage: React.FC = () => {
 
         <form
           onSubmit={handlePasswordSubmit}
-          className="grid gap-4 md:grid-cols-3 text-xs"
+          className="grid gap-3 md:grid-cols-3 text-xs"
         >
-          <div className="space-y-3 md:col-span-2">
+          <div className="space-y-2.5 md:col-span-2">
             <PasswordInput
               label={t.account.currentPassword}
               value={currentPassword}
@@ -279,24 +280,19 @@ const PortalAccountPage: React.FC = () => {
         <PortalLegalDocumentsSection />
       </section>
 
-      <section className={`${portalCardShell(isLight)} space-y-3 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-        <h2 className={`text-sm font-semibold uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-          {t.account.dataExportTitle}
-        </h2>
-        <p>
-          {t.account.dataExportP1}
-        </p>
-        <p>
-          {exportContactLine.split(SUPPORT_EMAIL)[0]}
-          <a
-            href={`mailto:${SUPPORT_EMAIL}`}
-            className={`no-underline hover:underline ${portalTextLink(isLight)}`}
-          >
-            {SUPPORT_EMAIL}
-          </a>
-          {exportContactLine.split(SUPPORT_EMAIL)[1] ?? ""}
-        </p>
-      </section>
+      <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+        <span className={`font-medium ${isLight ? "text-slate-700" : "text-slate-300"}`}>
+          {t.account.dataExportTitle}:
+        </span>{" "}
+        {t.account.dataExportInline.split(SUPPORT_EMAIL)[0]}
+        <a
+          href={`mailto:${SUPPORT_EMAIL}`}
+          className={`no-underline hover:underline ${portalTextLink(isLight)}`}
+        >
+          {SUPPORT_EMAIL}
+        </a>
+        {t.account.dataExportInline.split(SUPPORT_EMAIL)[1] ?? ""}
+      </p>
     </div>
   );
 };

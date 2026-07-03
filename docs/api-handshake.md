@@ -521,3 +521,80 @@ Wenn der POS startet und Cloud **nicht** erreichbar ist:
 5. Wenn nicht → POS blockiert mit Hinweis, dass Internet benötigt wird.
 
 ---
+
+## 8. Endpoint: `GET /pos/config` (Business + Fiscal Sync — Phase V)
+
+**Implementierung:** `apps/cloud-api/src/routes/pos-config.ts`  
+**Auth:** Öffentlich; erfordert gebundenes Gerät (`deviceId` + `licenseKey`).
+
+**Phase V (ab 2026-07):** Vollständiger Sync-Payload aus `business_profiles` (Source of Truth) + abgeleiteter Fiskal-Config + Lizenz + Gerät.
+
+### Erfolgsantwort
+
+```json
+{
+  "ok": true,
+  "business": {
+    "companyName": "",
+    "legalName": "",
+    "country": "TN",
+    "currency": "TND",
+    "defaultLanguage": "de",
+    "street": "",
+    "city": "",
+    "postalCode": "",
+    "vatId": "",
+    "taxNumber": "",
+    "updatedAt": "2026-07-03T00:00:00.000Z"
+  },
+  "fiscal": {
+    "fiscalRequired": false,
+    "provider": "none",
+    "receiptMode": "standard",
+    "status": "not_required",
+    "countryRule": "generic_standard"
+  },
+  "license": {
+    "id": "",
+    "key": "",
+    "plan": "",
+    "status": "active",
+    "maxDevices": 1,
+    "validUntil": null
+  },
+  "device": {
+    "id": "",
+    "name": "",
+    "status": "active",
+    "fingerprint": null,
+    "lastHeartbeatAt": null
+  },
+  "sync": {
+    "configVersion": 1,
+    "updatedAt": "2026-07-03T00:00:00.000Z"
+  }
+}
+```
+
+- `postalCode` entspricht `business_address_json.zip` in der DB.
+- `taxNumber` entspricht `tax_id`.
+- `fiscal.countryRule` = `fiscalProfileKey` (z. B. `de_fiskaly_api`, `generic_standard`).
+- `sync.configVersion` steigt bei jedem `PATCH /portal/business` (+1).
+
+### Fehler
+
+- `400 invalid_request` — `deviceId` / `licenseKey` fehlt
+- `403 invalid_license` / `device_not_bound`
+- `404 business_profile_missing` — Portal-Business zuerst anlegen
+
+### Herkunft
+
+- Business: `business_profiles`
+- Fiscal: `country_config` → `buildFiscalConfiguration` → `fiscal_configurations`
+- Legacy `customers.profile` (POS-Push) wird **nicht** für diesen Endpoint verwendet.
+
+Siehe `docs/PHASE-V-CLOUD-BUSINESS-SYNC.md` und `docs/country-config.md`.
+
+Öffentliche Leseschnittstelle für Site/Portal (ohne Auth): `GET /country-config`.
+
+---

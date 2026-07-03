@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiDeleteDevice, apiGet } from "../lib/api";
-import { useTheme, themeColors } from "../theme/ThemeContext";
+import { Button, DataTable, PageHeader } from "../components/ui";
+import { DeviceStatusPill } from "../lib/adminStatusPills";
 
 type LicenseInfo = {
   id: string;
@@ -37,20 +38,18 @@ function formatDateTime(value: string | null) {
   if (!value) return "—";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("de-DE");
+  return d.toLocaleString("en-GB");
 }
 
 const MAX_LICENSES_INLINE = 4;
 
 function deviceDeleteConfirmMessage(hasLicense: boolean): string {
   return hasLicense
-    ? "Dieses Gerät ist mit einer Lizenz verbunden. Entfernen gibt einen Device-Slot frei."
-    : "Dieses Gerät wirklich entfernen? Wenn es mit keiner Lizenz verbunden ist, wird es endgültig gelöscht.";
+    ? "This device is linked to a license. Removing it will free a device slot."
+    : "Remove this device? If it is not linked to a license, it will be deleted permanently.";
 }
 
 export default function DevicesListPage() {
-  const { theme } = useTheme();
-  const colors = themeColors[theme];
   const [rows, setRows] = useState<DeviceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +73,7 @@ export default function DevicesListPage() {
       } catch (err) {
         console.error("Error loading devices", err);
         if (!cancelled) {
-          setError("Fehler beim Laden der Devices.");
+          setError("Failed to load devices.");
         }
       } finally {
         if (!cancelled) {
@@ -98,19 +97,18 @@ export default function DevicesListPage() {
 
     try {
       await apiDeleteDevice(device.id);
-      setSuccess("Gerät wurde entfernt.");
+      setSuccess("Device removed.");
       await loadDevices();
     } catch (err) {
       console.error("Error deleting device", err);
       setError(
-        err instanceof Error ? err.message : "Gerät konnte nicht entfernt werden.",
+        err instanceof Error ? err.message : "Could not remove device.",
       );
     } finally {
       setDeleteBusyId(null);
     }
   }
 
-  // etwas hübsch sortieren: zuerst Kunde, dann Name
   const sortedRows = [...rows].sort((a, b) => {
     const ca = (a.customerName ?? "").toLowerCase();
     const cb = (b.customerName ?? "").toLowerCase();
@@ -120,267 +118,133 @@ export default function DevicesListPage() {
 
   return (
     <div className="admin-page">
-      <h1
-        style={{
-          fontSize: "32px",
-          fontWeight: 700,
-          marginBottom: "8px",
-          color: colors.text,
-          letterSpacing: "-0.5px",
-        }}
-      >
-        Devices
-      </h1>
-      <p
-        style={{
-          fontSize: "14px",
-          color: colors.textSecondary,
-          marginBottom: "24px",
-        }}
-      >
-        Alle registrierten POS-Geräte – nach Hardware-ID (Fingerprint / Device-ID)
-        gruppiert.
-      </p>
+      <PageHeader
+        title="Devices"
+        subtitle="All registered POS devices — grouped by hardware ID (fingerprint / device ID)."
+      />
 
-      {error && (
-        <div
-          className="admin-error-banner"
-          style={{
-            backgroundColor: colors.errorBg,
-            borderColor: `${colors.error}50`,
-            color: colors.error,
-          }}
-        >
-          {error}
-        </div>
-      )}
+      {error ? <div className="admin-error-banner">{error}</div> : null}
+      {success ? <div className="admin-success-banner">{success}</div> : null}
 
-      {success && (
-        <div
-          className="admin-error-banner"
-          style={{
-            backgroundColor: "rgba(34, 197, 94, 0.1)",
-            borderColor: "rgba(34, 197, 94, 0.3)",
-            color: "#86efac",
-            marginBottom: 16,
-          }}
-        >
-          {success}
-        </div>
-      )}
+      <div className="ds-section-block">
+        <DataTable>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Fingerprint</th>
+              <th>Licenses</th>
+              <th>Customer</th>
+              <th>Status</th>
+              <th>Last contact</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={7} className="ds-muted" style={{ textAlign: "center", padding: 24 }}>
+                  Loading devices…
+                </td>
+              </tr>
+            ) : sortedRows.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="ds-muted" style={{ textAlign: "center", padding: 24 }}>
+                  No devices found.
+                </td>
+              </tr>
+            ) : (
+              sortedRows.map((d) => {
+                const lastContact = d.lastHeartbeatAt || d.lastSeenAt || null;
+                const licenses = d.licenses ?? [];
 
-      <div
-        className="admin-card"
-        style={{
-          backgroundColor: colors.bgSecondary,
-          borderColor: colors.border,
-          transition: "background-color 0.3s, border-color 0.3s",
-        }}
-      >
-        {loading ? (
-          <div
-            style={{
-              padding: 24,
-              fontSize: 13,
-              color: colors.textSecondary,
-            }}
-          >
-            Lädt Devices…
-          </div>
-        ) : sortedRows.length === 0 ? (
-          <div
-            style={{
-              padding: 24,
-              fontSize: 13,
-              color: colors.textSecondary,
-            }}
-          >
-            Keine Devices vorhanden.
-          </div>
-        ) : (
-          <div
-            className="admin-table-wrapper"
-            style={{
-              backgroundColor: colors.bgSecondary,
-              borderColor: colors.border,
-              transition: "background-color 0.3s, border-color 0.3s",
-            }}
-          >
-            <table className="admin-table">
-              <thead>
-                <tr style={{ backgroundColor: colors.bgTertiary }}>
-                  <th style={{ color: colors.textSecondary }}>Name</th>
-                  <th style={{ color: colors.textSecondary }}>Fingerprint</th>
-                  <th style={{ color: colors.textSecondary }}>Licenses</th>
-                  <th style={{ color: colors.textSecondary }}>Kunde</th>
-                  <th style={{ color: colors.textSecondary }}>Status</th>
-                  <th style={{ color: colors.textSecondary }}>
-                    Letzter Kontakt
-                  </th>
-                  <th style={{ color: colors.textSecondary }}>Aktionen</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedRows.map((d) => {
-                  const lastContact = d.lastHeartbeatAt || d.lastSeenAt || null;
-                  const licenses = d.licenses ?? [];
-
-                  return (
-                    <tr
-                      key={d.id}
-                      style={{
-                        borderBottomColor: colors.border,
-                        transition: "background-color 0.2s",
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = colors.bgTertiary;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                      }}
-                    >
-                      <td style={{ color: colors.text }}>
-                        <div style={{ whiteSpace: "nowrap" }}>{d.name}</div>
-                        <div
-                          style={{
-                            fontSize: 11,
-                            color: colors.textTertiary,
-                            marginTop: 2,
-                            textTransform: "uppercase",
+                return (
+                  <tr key={d.id}>
+                    <td>
+                      <div style={{ whiteSpace: "nowrap" }}>{d.name}</div>
+                      <div className="ds-muted" style={{ marginTop: 2, textTransform: "uppercase" }}>
+                        {d.type}
+                      </div>
+                    </td>
+                    <td style={{ fontFamily: "monospace", fontSize: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span>{d.fingerprint ?? d.id}</span>
+                        <Button
+                          variant="secondary"
+                          title={copiedFingerprint === d.id ? "Copied" : "Copy fingerprint"}
+                          style={{ height: 26, fontSize: 11, padding: "0 8px" }}
+                          onClick={async () => {
+                            const value = d.fingerprint ?? d.id;
+                            try {
+                              await navigator.clipboard.writeText(value);
+                              setCopiedFingerprint(d.id);
+                              window.setTimeout(
+                                () =>
+                                  setCopiedFingerprint((prev) =>
+                                    prev === d.id ? null : prev,
+                                  ),
+                                1200,
+                              );
+                            } catch (err) {
+                              console.error("copy fingerprint failed", err);
+                            }
                           }}
                         >
-                          {d.type}
-                        </div>
-                      </td>
-                      <td
-                        style={{
-                          color: colors.textSecondary,
-                          fontFamily: "monospace",
-                          fontSize: 12,
-                        }}
-                      >
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span>{d.fingerprint ?? d.id}</span>
-                          <button
-                            type="button"
-                            className="admin-btn admin-btn--ghost"
-                            title={copiedFingerprint === d.id ? "Kopiert" : "Fingerprint kopieren"}
-                            style={{ height: 26, fontSize: 11, padding: "0 8px" }}
-                            onClick={async () => {
-                              const value = d.fingerprint ?? d.id;
-                              try {
-                                await navigator.clipboard.writeText(value);
-                                setCopiedFingerprint(d.id);
-                                window.setTimeout(
-                                  () =>
-                                    setCopiedFingerprint((prev) =>
-                                      prev === d.id ? null : prev,
-                                    ),
-                                  1200,
-                                );
-                              } catch (err) {
-                                console.error("copy fingerprint failed", err);
-                              }
-                            }}
-                          >
-                            {copiedFingerprint === d.id ? "Copied" : "Copy"}
-                          </button>
-                        </div>
-                      </td>
-                      <td style={{ color: colors.text }}>
-                        {licenses.length === 0 ? (
-                          <span style={{ opacity: 0.6 }}>—</span>
-                        ) : (
-                          <>
-                            {licenses
-                              .slice(0, MAX_LICENSES_INLINE)
-                              .map((lic) => (
-                                <div
-                                  key={lic.id}
-                                  style={{
-                                    fontFamily: "monospace",
-                                    fontSize: 11,
-                                    lineHeight: "1.25",
-                                    color: colors.text,
-                                  }}
-                                >
-                                  {lic.key}{" "}
-                                  <span style={{ color: colors.textTertiary }}>
-                                    ({lic.plan})
-                                  </span>
-                                </div>
-                              ))}
-                            {licenses.length > MAX_LICENSES_INLINE && (
-                              <div
-                                style={{
-                                  fontFamily: "monospace",
-                                  fontSize: 11,
-                                  color: colors.textTertiary,
-                                  marginTop: 4,
-                                }}
-                              >
-                                + {licenses.length - MAX_LICENSES_INLINE}{" "}
-                                weitere Lizenz(en)
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </td>
-                      <td style={{ color: colors.text }}>
-                        <div style={{ whiteSpace: "nowrap" }}>
-                          {d.customerId ? (
-                            <Link
-                              to={`/customers/${d.customerId}`}
-                              style={{
-                                color: colors.accent,
-                                textDecoration: "none",
-                                transition: "color 0.2s",
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.color = colors.accentHover;
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.color = colors.accent;
-                              }}
+                          {copiedFingerprint === d.id ? "Copied" : "Copy"}
+                        </Button>
+                      </div>
+                    </td>
+                    <td>
+                      {licenses.length === 0 ? (
+                        <span className="ds-muted">—</span>
+                      ) : (
+                        <>
+                          {licenses.slice(0, MAX_LICENSES_INLINE).map((lic) => (
+                            <div
+                              key={lic.id}
+                              style={{ fontFamily: "monospace", fontSize: 11, lineHeight: 1.25 }}
                             >
-                              {d.customerName ?? d.customerId}
-                            </Link>
-                          ) : (
-                            <span style={{ opacity: 0.6 }}>—</span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`status-badge status-${d.status}`}>
-                          {d.status}
-                        </span>
-                      </td>
-                      <td
-                        style={{
-                          fontSize: 12,
-                          color: colors.textSecondary,
-                          whiteSpace: "nowrap",
-                        }}
+                              {lic.key}{" "}
+                              <span className="ds-muted">({lic.plan})</span>
+                            </div>
+                          ))}
+                          {licenses.length > MAX_LICENSES_INLINE ? (
+                            <div className="ds-muted" style={{ fontFamily: "monospace", fontSize: 11, marginTop: 4 }}>
+                              + {licenses.length - MAX_LICENSES_INLINE} more license(s)
+                            </div>
+                          ) : null}
+                        </>
+                      )}
+                    </td>
+                    <td>
+                      {d.customerId ? (
+                        <Link to={`/customers/${d.customerId}`} className="ds-link">
+                          {d.customerName ?? d.customerId}
+                        </Link>
+                      ) : (
+                        <span className="ds-muted">—</span>
+                      )}
+                    </td>
+                    <td>
+                      <DeviceStatusPill status={d.status} />
+                    </td>
+                    <td className="ds-muted" style={{ whiteSpace: "nowrap" }}>
+                      {formatDateTime(lastContact)}
+                    </td>
+                    <td>
+                      <Button
+                        variant="danger"
+                        disabled={deleteBusyId === d.id}
+                        onClick={() => void handleDeleteDevice(d)}
                       >
-                        {formatDateTime(lastContact)}
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="admin-btn admin-btn--danger"
-                          disabled={deleteBusyId === d.id}
-                          onClick={() => void handleDeleteDevice(d)}
-                        >
-                          {deleteBusyId === d.id ? "Entferne…" : "Entfernen"}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                        {deleteBusyId === d.id ? "Removing…" : "Remove"}
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </DataTable>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import {
   buildFiscalConfiguration,
   enrichWithProviderStatus,
 } from "./buildFiscalConfiguration.js";
+import { sanitizeBusinessAddress } from "../lib/businessProfileRules.js";
 
 export async function syncFiscalConfigurationForOrg(
   orgId: string,
@@ -121,4 +122,81 @@ export async function listFiscalConfigurationsForAdmin(limit = 50): Promise<
     });
   }
   return results;
+}
+
+export type AdminBusinessSnapshot = {
+  companyName: string;
+  legalName: string;
+  country: string | null;
+  currency: string;
+  defaultLanguage: string;
+  street: string;
+  city: string;
+  postalCode: string;
+  vatId: string;
+  taxNumber: string;
+  configVersion: number;
+  updatedAt: string;
+  complianceStatus: string;
+};
+
+export async function getAdminBusinessSnapshotByCustomerId(
+  customerId: string,
+): Promise<{
+  snapshot: FiscalConfigurationSnapshot;
+  business: AdminBusinessSnapshot;
+} | null> {
+  const { customers } = await import("../db/schema/customers.js");
+  const { orgs } = await import("../db/schema/orgs.js");
+
+  const [customer] = await db
+    .select({ orgId: customers.orgId })
+    .from(customers)
+    .where(eq(customers.id, customerId))
+    .limit(1);
+
+  if (!customer?.orgId) return null;
+
+  const [businessRow] = await db
+    .select()
+    .from(businessProfiles)
+    .where(eq(businessProfiles.orgId, customer.orgId))
+    .limit(1);
+
+  if (!businessRow) return null;
+
+  const [org] = await db
+    .select({ name: orgs.name })
+    .from(orgs)
+    .where(eq(orgs.id, customer.orgId))
+    .limit(1);
+
+  const snapshot = await syncFiscalConfigurationForOrg(
+    customer.orgId,
+    businessRow,
+  );
+
+  const address = sanitizeBusinessAddress(
+    businessRow.businessAddressJson,
+    businessRow.country,
+  );
+
+  return {
+    snapshot,
+    business: {
+      companyName: businessRow.companyName?.trim() || org?.name?.trim() || "",
+      legalName: businessRow.legalName?.trim() || "",
+      country: businessRow.country ?? null,
+      currency: snapshot.currency,
+      defaultLanguage: businessRow.defaultLanguage ?? "en",
+      street: address.street?.trim() || "",
+      city: address.city?.trim() || "",
+      postalCode: address.zip?.trim() || "",
+      vatId: businessRow.vatId?.trim() || "",
+      taxNumber: businessRow.taxId?.trim() || "",
+      configVersion: businessRow.configVersion ?? 1,
+      updatedAt: businessRow.updatedAt.toISOString(),
+      complianceStatus: businessRow.complianceStatus ?? "incomplete",
+    },
+  };
 }

@@ -1,555 +1,427 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { useTheme, themeColors } from "../../theme/ThemeContext";
+import {
+  Button,
+  DataTable,
+  DataTableRow,
+  FiscalStatusPill,
+  KpiCard,
+  PageHeader,
+  SearchInput,
+  SectionHeader,
+  Select,
+  StatusPill,
+  Toolbar,
+} from "../../components/ui";
+import {
+  fetchCountryConfigList,
+  type CountryConfigPublic,
+} from "../../lib/countryConfigApi";
 import {
   fetchFiscalOverview,
   type AdminFiscalOverviewItem,
   type FiscalOverviewSummary,
 } from "../../lib/fiscalApi";
+import { apiGet } from "../../lib/api";
 import {
-  FISCAL_ACTION_TOOLTIP,
-  fiscalStatusBadgeClass,
-  fiscalStatusLabel,
+  buildGroupHeaderStats,
+  countryFlagEmoji,
+  deriveFiscalAmpel,
+  filterFiscalOverviewItems,
+  groupFiscalOverviewItems,
+  type FiscalStatusFilter,
+} from "../../lib/fiscalComplianceView";
+import {
   formatFiscalDate,
-  providerDisplayLabel,
+  formatReceiptMode,
+  formatProviderLabel,
   providerTypeLabel,
-  receiptModeLabel,
-} from "../../lib/fiscalDisplay";
+} from "../../lib/caistyTerminology";
 
-type SortKey = "customerName" | "country" | "fiscalStatus" | "lastSyncAt";
-type SortDir = "asc" | "desc";
+type DeviceRow = {
+  id: string;
+  customerId?: string | null;
+  fingerprint?: string | null;
+};
+
+type DevicesResponse = {
+  items?: DeviceRow[];
+};
 
 const EMPTY_SUMMARY: FiscalOverviewSummary = {
   totalProfiles: 0,
   germanyFiskalyPending: 0,
+  fiscalRequiredPending: 0,
   activeSetups: 0,
   comingSoonCountries: 0,
   standardReceiptMode: 0,
+  actionNeeded: 0,
+  allOk: 0,
+  fiscalCountriesActive: 0,
+  withoutFiscalization: 0,
 };
 
-function SummaryCard({
-  label,
-  value,
-  hint,
-  colors,
-}: {
-  label: string;
-  value: number;
-  hint?: string;
-  colors: (typeof themeColors)["dark"];
-}) {
-  return (
-    <div
-      className="admin-card"
-      style={{
-        padding: "16px 18px",
-        backgroundColor: colors.bgSecondary,
-        borderColor: colors.border,
-      }}
-    >
-      <div style={{ fontSize: 12, color: colors.textSecondary, marginBottom: 6 }}>
-        {label}
-      </div>
-      <div style={{ fontSize: 28, fontWeight: 700, color: colors.text }}>{value}</div>
-      {hint ? (
-        <div style={{ fontSize: 11, color: colors.textTertiary, marginTop: 4 }}>
-          {hint}
-        </div>
-      ) : null}
-    </div>
-  );
+function formatSurcharge(cents: number, currency: string): string {
+  if (cents <= 0) return "—";
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
+    currency: currency || "EUR",
+  }).format(cents / 100);
 }
 
-function DisabledAction({
-  label,
-  colors,
+function GroupSection({
+  title,
+  items,
+  deviceCounts,
+  expandedId,
+  onToggle,
 }: {
-  label: string;
-  colors: (typeof themeColors)["dark"];
+  title: string;
+  items: AdminFiscalOverviewItem[];
+  deviceCounts: Record<string, number>;
+  expandedId: string | null;
+  onToggle: (customerId: string) => void;
 }) {
+  const stats = buildGroupHeaderStats(items);
+  if (items.length === 0) return null;
+
+  const pill = `${stats.customerCount} customer${stats.customerCount === 1 ? "" : "s"}${
+    stats.pendingCount > 0 ? ` · ${stats.pendingCount} pending` : ""
+  }`;
+
   return (
-    <button
-      type="button"
-      disabled
-      title={FISCAL_ACTION_TOOLTIP}
-      style={{
-        fontSize: 11,
-        padding: "4px 8px",
-        borderRadius: 6,
-        border: `1px solid ${colors.border}`,
-        background: colors.bgTertiary,
-        color: colors.textSecondary,
-        opacity: 0.65,
-        cursor: "not-allowed",
-      }}
-    >
-      {label}
-    </button>
+    <section className="ds-section-block">
+      <SectionHeader
+        title={title}
+        pill={pill}
+        subline={`${stats.countries.join(" · ") || "—"} · ${stats.providers.join(" · ") || "—"} · ${
+          stats.receiptModes.map((m) => formatReceiptMode(m)).join(" · ") || "—"
+        }`}
+      />
+      <DataTable>
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Country</th>
+            <th>Status</th>
+            <th>Receipt mode</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((row) => {
+            const expanded = expandedId === row.customerId;
+            const ampel = deriveFiscalAmpel(row);
+            return (
+              <Fragment key={row.customerId}>
+                <DataTableRow
+                  expanded={expanded}
+                  onClick={() => onToggle(row.customerId)}
+                >
+                  <td>
+                    <div className="ds-customer-name">
+                      {row.customerName || row.customerEmail || "—"}
+                    </div>
+                    {row.customerEmail ? (
+                      <div className="ds-customer-email">{row.customerEmail}</div>
+                    ) : null}
+                  </td>
+                  <td>
+                    {row.country ? (
+                      <>
+                        {countryFlagEmoji(row.country)} {row.country} · {row.currency}
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td>
+                    <StatusPill
+                      tone={ampel.tone === "yellow" ? "amber" : ampel.tone}
+                      label={ampel.label}
+                    />
+                  </td>
+                  <td>{formatReceiptMode(row.receiptMode)}</td>
+                  <td>
+                    <Button
+                      variant="primary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onToggle(row.customerId);
+                      }}
+                    >
+                      Details
+                    </Button>
+                  </td>
+                </DataTableRow>
+                {expanded ? (
+                  <DataTableRow detail>
+                    <td colSpan={5}>
+                      <div className="ds-detail-grid">
+                        <div className="ds-detail-item">
+                          <div className="ds-detail-label">Provider</div>
+                          <div className="ds-detail-value">
+                            {formatProviderLabel(
+                              row.provider,
+                              row.providerLabel,
+                              row.fiscalConfigurationLabel,
+                            )}
+                          </div>
+                        </div>
+                        <div className="ds-detail-item">
+                          <div className="ds-detail-label">Provider type</div>
+                          <div className="ds-detail-value">
+                            {providerTypeLabel(row.providerType)}
+                          </div>
+                        </div>
+                        <div className="ds-detail-item">
+                          <div className="ds-detail-label">Last sync</div>
+                          <div className="ds-detail-value">
+                            {formatFiscalDate(row.lastSyncAt)}
+                          </div>
+                        </div>
+                        <div className="ds-detail-item">
+                          <div className="ds-detail-label">POS download</div>
+                          <div className="ds-detail-value">
+                            {row.posDownloadAllowed ? "Allowed" : "Blocked"}
+                          </div>
+                        </div>
+                        <div className="ds-detail-item">
+                          <div className="ds-detail-label">Devices</div>
+                          <div className="ds-detail-value">
+                            {deviceCounts[row.customerId] ?? 0}
+                          </div>
+                        </div>
+                        <div className="ds-detail-item">
+                          <div className="ds-detail-label">Actions</div>
+                          <div className="ds-detail-value">
+                            <Link
+                              to={`/customers/${row.customerId}`}
+                              className="ds-link"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Open customer
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </DataTableRow>
+                ) : null}
+              </Fragment>
+            );
+          })}
+        </tbody>
+      </DataTable>
+    </section>
   );
 }
 
 export default function FiscalCompliancePage() {
-  const { theme } = useTheme();
-  const colors = themeColors[theme];
   const [searchParams, setSearchParams] = useSearchParams();
-
   const [items, setItems] = useState<AdminFiscalOverviewItem[]>([]);
   const [summary, setSummary] = useState<FiscalOverviewSummary>(EMPTY_SUMMARY);
+  const [countryRules, setCountryRules] = useState<CountryConfigPublic[]>([]);
+  const [deviceCounts, setDeviceCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const [countryFilter, setCountryFilter] = useState(
-    searchParams.get("country") ?? "",
-  );
-  const [providerFilter, setProviderFilter] = useState(
-    searchParams.get("provider") ?? "",
-  );
-  const [statusFilter, setStatusFilter] = useState(
-    searchParams.get("status") ?? "",
-  );
-  const [providerTypeFilter, setProviderTypeFilter] = useState(
-    searchParams.get("providerType") ?? "",
-  );
-  const [posDownloadFilter, setPosDownloadFilter] = useState(
-    searchParams.get("posDownload") ?? "",
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<FiscalStatusFilter>(
+    (searchParams.get("status") as FiscalStatusFilter) || "all",
   );
   const [customerFilter, setCustomerFilter] = useState(
     searchParams.get("customerId") ?? "",
   );
-  const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("customerName");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-
     async function load() {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetchFiscalOverview(500);
+        const [fiscalRes, devicesRes, countries] = await Promise.all([
+          fetchFiscalOverview(500),
+          apiGet<DevicesResponse>("/devices").catch(() => ({ items: [] })),
+          fetchCountryConfigList().catch(() => []),
+        ]);
         if (cancelled) return;
-        setItems(res.items ?? []);
-        setSummary(res.summary ?? EMPTY_SUMMARY);
+        setItems(fiscalRes.items ?? []);
+        setSummary({ ...EMPTY_SUMMARY, ...(fiscalRes.summary ?? {}) });
+        setCountryRules(countries);
+        const counts: Record<string, number> = {};
+        const seen = new Set<string>();
+        for (const dev of devicesRes.items ?? []) {
+          if (!dev.customerId) continue;
+          const key = dev.fingerprint || dev.id;
+          const composite = `${dev.customerId}::${key}`;
+          if (seen.has(composite)) continue;
+          seen.add(composite);
+          counts[dev.customerId] = (counts[dev.customerId] ?? 0) + 1;
+        }
+        setDeviceCounts(counts);
       } catch (err) {
         console.error(err);
-        if (!cancelled) {
-          setError("Fiscal overview could not be loaded.");
-        }
+        if (!cancelled) setError("Fiscal overview could not be loaded.");
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
-
     void load();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const countryOptions = useMemo(() => {
-    const set = new Set<string>();
-    for (const row of items) {
-      if (row.country) set.add(row.country);
-    }
-    return Array.from(set).sort();
-  }, [items]);
+  const filteredItems = useMemo(
+    () =>
+      filterFiscalOverviewItems(items, {
+        search,
+        statusFilter,
+        customerId: customerFilter || undefined,
+      }),
+    [items, search, statusFilter, customerFilter],
+  );
 
-  const filteredItems = useMemo(() => {
-    const term = search.trim().toLowerCase();
+  const { fiscalRequired, noFiscalRequired } = useMemo(
+    () => groupFiscalOverviewItems(filteredItems),
+    [filteredItems],
+  );
 
-    let rows = items.filter((row) => {
-      if (customerFilter && row.customerId !== customerFilter) return false;
-      if (countryFilter && row.country !== countryFilter) return false;
-      if (providerFilter && row.provider !== providerFilter) return false;
-      if (statusFilter && row.fiscalStatus !== statusFilter) return false;
-      if (providerTypeFilter && row.providerType !== providerTypeFilter) {
-        return false;
-      }
-      if (posDownloadFilter === "yes" && !row.posDownloadAllowed) return false;
-      if (posDownloadFilter === "no" && row.posDownloadAllowed) return false;
-      if (!term) return true;
-
-      const haystack = [
-        row.customerName,
-        row.customerEmail,
-        row.country,
-        row.provider,
-        row.providerLabel,
-        row.fiscalConfigurationLabel,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(term);
-    });
-
-    rows = [...rows].sort((a, b) => {
-      const dir = sortDir === "asc" ? 1 : -1;
-      const getVal = (row: AdminFiscalOverviewItem): string | number => {
-        switch (sortKey) {
-          case "country":
-            return row.country ?? "";
-          case "fiscalStatus":
-            return row.fiscalStatus ?? "";
-          case "lastSyncAt":
-            return row.lastSyncAt ? new Date(row.lastSyncAt).getTime() : 0;
-          default:
-            return (row.customerName ?? row.customerEmail ?? "").toLowerCase();
-        }
-      };
-      const av = getVal(a);
-      const bv = getVal(b);
-      if (av < bv) return -1 * dir;
-      if (av > bv) return 1 * dir;
-      return 0;
-    });
-
-    return rows;
-  }, [
-    items,
-    countryFilter,
-    providerFilter,
-    statusFilter,
-    providerTypeFilter,
-    posDownloadFilter,
-    customerFilter,
-    search,
-    sortKey,
-    sortDir,
-  ]);
-
-  function updateQuery(key: string, value: string) {
+  function updateStatusFilter(value: FiscalStatusFilter) {
+    setStatusFilter(value);
     const next = new URLSearchParams(searchParams);
-    if (value) next.set(key, value);
-    else next.delete(key);
+    if (value === "all") next.delete("status");
+    else next.set("status", value);
     setSearchParams(next, { replace: true });
   }
 
-  function handleCountryFilter(value: string) {
-    setCountryFilter(value);
-    updateQuery("country", value);
-  }
-
-  function handleStatusFilter(value: string) {
-    setStatusFilter(value);
-    updateQuery("status", value);
-  }
-
-  function handleCustomerFilterClear() {
-    setCustomerFilter("");
-    updateQuery("customerId", "");
-  }
-
-  const selectStyle = {
-    padding: "6px 10px",
-    borderRadius: 6,
-    border: `1px solid ${colors.borderSecondary}`,
-    background: colors.input,
-    color: colors.text,
-    fontSize: 13,
-    minWidth: 150,
-  } as const;
-
   return (
     <div className="admin-page">
-      <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 8, color: colors.text }}>
-        Fiscal / Compliance
-      </h1>
-      <p style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 24 }}>
-        Cloud fiscal configuration across customers — API-service providers, receipt mode, and setup status.
-      </p>
+      <PageHeader
+        title="Fiscal / Compliance"
+        subtitle="Overview by fiscal requirement — grouped with traffic-light status and country rules."
+      />
 
-      {error ? (
-        <div
-          className="admin-error-banner"
-          style={{
-            backgroundColor: colors.errorBg,
-            borderColor: `${colors.error}50`,
-            color: colors.error,
-            marginBottom: 16,
-          }}
-        >
-          {error}
-        </div>
-      ) : null}
+      {error ? <div className="admin-error-banner">{error}</div> : null}
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-          gap: 12,
-          marginBottom: 24,
-        }}
-      >
-        <SummaryCard label="Total fiscal profiles" value={summary.totalProfiles} colors={colors} />
-        <SummaryCard
-          label="Germany / Fiskaly pending"
-          value={summary.germanyFiskalyPending}
-          hint="Awaiting cloud API onboarding"
-          colors={colors}
-        />
-        <SummaryCard label="Active fiscal setups" value={summary.activeSetups} colors={colors} />
-        <SummaryCard
-          label="Coming soon countries"
-          value={summary.comingSoonCountries}
-          colors={colors}
-        />
-        <SummaryCard
-          label="Standard receipt mode"
-          value={summary.standardReceiptMode}
-          colors={colors}
-        />
+      <div className="ds-kpi-grid">
+        <KpiCard label="Action needed" value={summary.actionNeeded} />
+        <KpiCard label="All OK" value={summary.allOk} />
+        <KpiCard label="Fiscal countries active" value={summary.fiscalCountriesActive} />
+        <KpiCard label="Without fiscalization" value={summary.withoutFiscalization} />
       </div>
 
       {customerFilter ? (
-        <div
-          style={{
-            marginBottom: 12,
-            padding: "8px 12px",
-            borderRadius: 8,
-            background: colors.bgTertiary,
-            fontSize: 13,
-            color: colors.textSecondary,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-          }}
-        >
-          <span>
-            Filtered to customer{" "}
-            <strong style={{ color: colors.text }}>{customerFilter.slice(0, 8)}…</strong>
+        <Toolbar>
+          <span className="ds-muted">
+            Filtered to customer <strong>{customerFilter.slice(0, 8)}…</strong>
           </span>
-          <button
-            type="button"
-            onClick={handleCustomerFilterClear}
-            style={{
-              fontSize: 12,
-              padding: "4px 10px",
-              borderRadius: 6,
-              border: `1px solid ${colors.border}`,
-              background: colors.bgSecondary,
-              color: colors.text,
-              cursor: "pointer",
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setCustomerFilter("");
+              const next = new URLSearchParams(searchParams);
+              next.delete("customerId");
+              setSearchParams(next, { replace: true });
             }}
           >
             Clear filter
-          </button>
-        </div>
+          </Button>
+        </Toolbar>
       ) : null}
 
-      <div
-        className="admin-card"
-        style={{
-          marginBottom: 16,
-          padding: 16,
-          backgroundColor: colors.bgSecondary,
-          borderColor: colors.border,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 12,
-            alignItems: "center",
-          }}
-        >
-          <input
-            type="text"
-            placeholder="Search customer, country, provider…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ ...selectStyle, minWidth: 240, flex: "1 1 240px" }}
-          />
-          <select
-            value={countryFilter}
-            onChange={(e) => handleCountryFilter(e.target.value)}
-            style={selectStyle}
-          >
-            <option value="">All countries</option>
-            {countryOptions.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <select
-            value={providerFilter}
-            onChange={(e) => {
-              setProviderFilter(e.target.value);
-              updateQuery("provider", e.target.value);
-            }}
-            style={selectStyle}
-          >
-            <option value="">All providers</option>
-            <option value="fiskaly">Fiskaly</option>
-            <option value="none">None</option>
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => handleStatusFilter(e.target.value)}
-            style={selectStyle}
-          >
-            <option value="">All fiscal statuses</option>
-            <option value="not_required">Not required</option>
-            <option value="pending_setup">Pending setup</option>
-            <option value="active">Active</option>
-            <option value="required_coming_soon">Required — coming soon</option>
-            <option value="error">Error</option>
-          </select>
-          <select
-            value={providerTypeFilter}
-            onChange={(e) => {
-              setProviderTypeFilter(e.target.value);
-              updateQuery("providerType", e.target.value);
-            }}
-            style={selectStyle}
-          >
-            <option value="">All provider types</option>
-            <option value="api_service">API service</option>
-            <option value="coming_soon">Coming soon</option>
-            <option value="none">None</option>
-          </select>
-          <select
-            value={posDownloadFilter}
-            onChange={(e) => {
-              setPosDownloadFilter(e.target.value);
-              updateQuery("posDownload", e.target.value);
-            }}
-            style={selectStyle}
-          >
-            <option value="">POS download: all</option>
-            <option value="yes">Allowed</option>
-            <option value="no">Blocked</option>
-          </select>
-          <select
-            value={`${sortKey}:${sortDir}`}
-            onChange={(e) => {
-              const [key, dir] = e.target.value.split(":") as [SortKey, SortDir];
-              setSortKey(key);
-              setSortDir(dir);
-            }}
-            style={selectStyle}
-          >
-            <option value="customerName:asc">Sort: Customer A–Z</option>
-            <option value="customerName:desc">Sort: Customer Z–A</option>
-            <option value="country:asc">Sort: Country A–Z</option>
-            <option value="country:desc">Sort: Country Z–A</option>
-            <option value="fiscalStatus:asc">Sort: Fiscal status A–Z</option>
-            <option value="fiscalStatus:desc">Sort: Fiscal status Z–A</option>
-            <option value="lastSyncAt:desc">Sort: Last sync (newest)</option>
-            <option value="lastSyncAt:asc">Sort: Last sync (oldest)</option>
-          </select>
-        </div>
-        <div style={{ marginTop: 10, fontSize: 12, color: colors.textSecondary }}>
-          {loading
+      <Toolbar
+        footer={
+          loading
             ? "Loading fiscal profiles…"
-            : `${filteredItems.length} of ${items.length} profiles shown`}
-        </div>
-      </div>
-
-      <div
-        className="admin-card"
-        style={{ backgroundColor: colors.bgSecondary, borderColor: colors.border }}
+            : `${filteredItems.length} of ${items.length} profiles`
+        }
       >
-        <div className="admin-table-wrapper">
-          <table className="admin-table">
-            <thead>
-              <tr style={{ backgroundColor: colors.bgTertiary }}>
-                <th style={{ color: colors.textSecondary }}>Customer / Organization</th>
-                <th style={{ color: colors.textSecondary }}>Country</th>
-                <th style={{ color: colors.textSecondary }}>Currency</th>
-                <th style={{ color: colors.textSecondary }}>Fiscal provider</th>
-                <th style={{ color: colors.textSecondary }}>Provider type</th>
-                <th style={{ color: colors.textSecondary }}>Fiscal status</th>
-                <th style={{ color: colors.textSecondary }}>Receipt mode</th>
-                <th style={{ color: colors.textSecondary }}>POS download</th>
-                <th style={{ color: colors.textSecondary }}>Last sync</th>
-                <th style={{ color: colors.textSecondary }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={10} style={{ textAlign: "center", padding: 24, color: colors.textSecondary }}>
-                    Loading…
-                  </td>
-                </tr>
-              ) : filteredItems.length === 0 ? (
-                <tr>
-                  <td colSpan={10} style={{ textAlign: "center", padding: 24, color: colors.textSecondary }}>
-                    No fiscal profiles match the current filters.
-                  </td>
-                </tr>
-              ) : (
-                filteredItems.map((row) => (
-                  <tr key={row.customerId}>
-                    <td style={{ color: colors.text, minWidth: 180 }}>
-                      <Link
-                        to={`/customers/${row.customerId}`}
-                        style={{ color: colors.accent, textDecoration: "none", fontWeight: 600 }}
-                      >
-                        {row.customerName || row.customerEmail || "—"}
-                      </Link>
-                      {row.customerEmail ? (
-                        <div style={{ fontSize: 11, color: colors.textTertiary }}>
-                          {row.customerEmail}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td style={{ color: colors.text }}>{row.country ?? "—"}</td>
-                    <td style={{ color: colors.text }}>{row.currency}</td>
-                    <td style={{ color: colors.text, maxWidth: 220 }}>
-                      {providerDisplayLabel(
-                        row.provider,
-                        row.providerLabel,
-                        row.fiscalConfigurationLabel,
-                      )}
-                    </td>
-                    <td style={{ color: colors.text }}>{providerTypeLabel(row.providerType)}</td>
-                    <td>
-                      <span className={`status-badge ${fiscalStatusBadgeClass(row.fiscalStatus)}`}>
-                        {fiscalStatusLabel(row.fiscalStatus)}
-                      </span>
-                    </td>
-                    <td style={{ color: colors.text }}>{receiptModeLabel(row.receiptMode)}</td>
-                    <td style={{ color: colors.text }}>
-                      {row.posDownloadAllowed ? "Allowed" : "Blocked"}
-                    </td>
-                    <td style={{ color: colors.text, whiteSpace: "nowrap" }}>
-                      {formatFiscalDate(row.lastSyncAt)}
-                    </td>
-                    <td>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                        <Link
-                          to={`/customers/${row.customerId}`}
-                          style={{
-                            fontSize: 11,
-                            padding: "4px 8px",
-                            borderRadius: 6,
-                            border: `1px solid ${colors.border}`,
-                            background: colors.bgSecondary,
-                            color: colors.accent,
-                            textDecoration: "none",
-                          }}
-                        >
-                          View customer
-                        </Link>
-                        <DisabledAction label="Start setup" colors={colors} />
-                        <DisabledAction label="Mark active" colors={colors} />
-                        <DisabledAction label="View logs" colors={colors} />
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <SearchInput
+          placeholder="Search customer, country, provider…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <Select
+          value={statusFilter}
+          onChange={(e) => updateStatusFilter(e.target.value as FiscalStatusFilter)}
+        >
+          <option value="all">All statuses</option>
+          <option value="action_needed">Action needed</option>
+          <option value="setup_running">Setup running</option>
+          <option value="ok">OK</option>
+          <option value="no_country">No country</option>
+        </Select>
+      </Toolbar>
+
+      {loading ? (
+        <div className="ds-table-card" style={{ padding: 24, textAlign: "center" }}>
+          <span className="ds-muted">Loading…</span>
         </div>
-      </div>
+      ) : filteredItems.length === 0 ? (
+        <div className="ds-table-card" style={{ padding: 24, textAlign: "center" }}>
+          <span className="ds-muted">No profiles match the current filters.</span>
+        </div>
+      ) : (
+        <>
+          <GroupSection
+            title="Fiscalization required"
+            items={fiscalRequired}
+            deviceCounts={deviceCounts}
+            expandedId={expandedId}
+            onToggle={(id) => setExpandedId((prev) => (prev === id ? null : id))}
+          />
+          <GroupSection
+            title="No fiscalization required"
+            items={noFiscalRequired}
+            deviceCounts={deviceCounts}
+            expandedId={expandedId}
+            onToggle={(id) => setExpandedId((prev) => (prev === id ? null : id))}
+          />
+        </>
+      )}
+
+      <section className="ds-card ds-section-block ds-section-block--spaced">
+        <h2 className="ds-section-title">Country rules</h2>
+        <p className="ds-muted" style={{ marginBottom: 14 }}>
+          Central configuration — changes currently via deployment.
+        </p>
+        <DataTable>
+          <thead>
+            <tr>
+              <th>Country</th>
+              <th>Currency</th>
+              <th>Fiscal provider</th>
+              <th>Receipt mode</th>
+              <th>Surcharge</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {countryRules.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="ds-muted" style={{ textAlign: "center" }}>
+                  Country rules could not be loaded.
+                </td>
+              </tr>
+            ) : (
+              countryRules.map((rule) => (
+                <tr key={rule.code}>
+                  <td>
+                    {countryFlagEmoji(rule.code)} {rule.code} — {rule.nameEn}
+                  </td>
+                  <td>{rule.currency}</td>
+                  <td>{rule.fiscalProvider ?? "—"}</td>
+                  <td>{formatReceiptMode(rule.receiptMode)}</td>
+                  <td>{formatSurcharge(rule.fiscalSurchargeCents, rule.currency)}</td>
+                  <td>{rule.status}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </DataTable>
+      </section>
     </div>
   );
 }

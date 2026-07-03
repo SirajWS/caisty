@@ -24,7 +24,7 @@ import {
 import {
   syncFiscalConfigurationForOrg,
 } from "../fiscal/fiscalConfigurationService.js";
-import { toSafePosFiscalConfig } from "../fiscal/buildFiscalConfiguration.js";
+import { buildPosSyncConfig, nextConfigVersion } from "../fiscal/buildPosSyncConfig.js";
 
 interface PortalJwtPayload {
   customerId: string;
@@ -334,6 +334,7 @@ export async function registerPortalBusinessRoutes(app: FastifyInstance) {
 
       const updates: Partial<typeof businessProfiles.$inferInsert> = {
         updatedAt: new Date(),
+        configVersion: nextConfigVersion(existing.configVersion),
       };
 
       if (typeof body.companyName === "string") {
@@ -508,9 +509,48 @@ export async function registerPortalBusinessRoutes(app: FastifyInstance) {
         payload.orgId,
         row,
       );
+      const [org] = await db
+        .select({ name: orgs.name })
+        .from(orgs)
+        .where(eq(orgs.id, payload.orgId))
+        .limit(1);
+      const preview = buildPosSyncConfig({
+        businessRow: row,
+        fiscalSnapshot,
+        license: {
+          id: "",
+          key: "",
+          plan: "",
+          status: "",
+          maxDevices: 0,
+          validUntil: null,
+          orgId: payload.orgId,
+          customerId: null,
+          subscriptionId: null,
+          validFrom: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        device: {
+          id: "00000000-0000-0000-0000-000000000000",
+          orgId: payload.orgId,
+          customerId: null,
+          name: "",
+          type: "pos",
+          status: "",
+          lastSeenAt: null,
+          createdAt: new Date(),
+          licenseId: null,
+          fingerprint: null,
+          lastHeartbeatAt: null,
+        },
+        orgName: org?.name ?? null,
+      });
       return {
         ok: true,
-        config: toSafePosFiscalConfig(fiscalSnapshot),
+        business: preview.business,
+        fiscal: preview.fiscal,
+        sync: preview.sync,
       };
     } catch (err: unknown) {
       request.log.error({ err }, "GET /portal/business/pos-config failed");

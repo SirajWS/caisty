@@ -9,7 +9,14 @@ import {
   sanitizeBusinessAddress,
   type BusinessCountryCode,
   type FiscalStatusInternal,
+  type ReceiptModeInternal,
 } from "../lib/businessProfileRules.js";
+import { countryConfigService } from "../countryConfig/CountryConfigService.js";
+import {
+  fiscalProfileKeyFromConfig,
+  fiscalRequiredFromConfig,
+  providerTypeFromConfig,
+} from "../countryConfig/deriveFiscalFromCountryConfig.js";
 import type { businessProfiles } from "../db/schema/businessProfiles.js";
 import type {
   FiscalConfigurationSnapshot,
@@ -20,16 +27,6 @@ import type {
 } from "./types.js";
 import { getFiscalProvider } from "./providers/FiscalProviderFactory.js";
 
-const EU_STRICT_SOON = new Set<BusinessCountryCode>([
-  "AT",
-  "FR",
-  "IT",
-  "ES",
-  "PT",
-  "NL",
-  "BE",
-]);
-
 export function normalizeProviderKey(
   stored: string | null | undefined,
 ): FiscalProviderKey {
@@ -39,44 +36,10 @@ export function normalizeProviderKey(
   return "none";
 }
 
-function mapReceiptMode(
-  country: BusinessCountryCode | null,
-  fiscalStatus: FiscalStatusInternal,
-): FiscalReceiptModeKey {
-  const internal = deriveReceiptMode(country, fiscalStatus);
+function mapReceiptMode(internal: ReceiptModeInternal): FiscalReceiptModeKey {
   if (internal === "certified_germany") return "certified";
   if (internal === "standard_until_certified") return "standard_until_certified";
   return "standard";
-}
-
-function resolveProviderType(
-  country: BusinessCountryCode | null,
-  provider: FiscalProviderKey,
-): FiscalProviderType {
-  if (provider === "fiskaly") return "api_service";
-  if (country && EU_STRICT_SOON.has(country)) return "coming_soon";
-  return "none";
-}
-
-function fiscalRequiredForCountry(
-  country: BusinessCountryCode | null,
-  provider: FiscalProviderKey,
-): boolean {
-  if (!country) return false;
-  if (country === "DE" || provider === "fiskaly") return true;
-  if (country && EU_STRICT_SOON.has(country)) return true;
-  return false;
-}
-
-function fiscalProfileKey(
-  country: BusinessCountryCode | null,
-  provider: FiscalProviderKey,
-): string {
-  if (country === "DE" && provider === "fiskaly") return "de_fiskaly_api";
-  if (country && EU_STRICT_SOON.has(country)) {
-    return `${country.toLowerCase()}_coming_soon`;
-  }
-  return "generic_standard";
 }
 
 function fiscalConfigurationLabel(
@@ -151,9 +114,10 @@ export function buildFiscalConfiguration(input: {
     businessRow.fiscalProvider,
   );
   const provider = normalizeProviderKey(fiscal.fiscalProvider);
-  const providerType = resolveProviderType(country, provider);
+  const providerType = providerTypeFromConfig(country ?? "", provider);
   const fiscalStatus = fiscal.fiscalStatus;
-  const receiptMode = mapReceiptMode(country, fiscalStatus);
+  const receiptModeInternal = deriveReceiptMode(country, fiscalStatus);
+  const receiptMode = mapReceiptMode(receiptModeInternal);
   const businessAddress = sanitizeBusinessAddress(
     businessRow.businessAddressJson,
     businessRow.country,
@@ -171,9 +135,12 @@ export function buildFiscalConfiguration(input: {
     complianceStatus,
   });
 
-  const fiscalRequired = fiscalRequiredForCountry(country, provider);
-  const profileKey = fiscalProfileKey(country, provider);
+  const fiscalRequired = fiscalRequiredFromConfig(country, provider);
+  const profileKey = country
+    ? fiscalProfileKeyFromConfig(country, provider)
+    : "generic_standard";
   const configLabel = fiscalConfigurationLabel(country, provider, providerType);
+  const countryEntry = countryConfigService.getByCode(country);
 
   return {
     orgId,
@@ -191,7 +158,7 @@ export function buildFiscalConfiguration(input: {
     fiscalProfileKey: profileKey,
     fiscalConfigurationLabel: configLabel,
     supportedExports: supportedExportsFor(country, provider),
-    posDownloadAllowed: true,
+    posDownloadAllowed: countryEntry.posDownloadAllowed,
     posConfigurationStatus,
     fiscalNotice: fiscalNoticeFor(country, fiscalStatus, providerType),
     mode: resolveMode(providerType),

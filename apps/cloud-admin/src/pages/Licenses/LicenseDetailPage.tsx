@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { StatusPill } from "../../components/ui";
+import {
+  DeviceStatusPill,
+  LicenseStatusPill,
+} from "../../lib/adminStatusPills";
 import { apiGet, apiPost } from "../../lib/api";
 
 type License = {
@@ -25,7 +30,6 @@ type EventsResponse = {
   items: LicenseEvent[];
 };
 
-// Device-Typ wie in DevicesListPage (mit License-/Customer-Infos)
 type Device = {
   id: string;
   name: string | null;
@@ -43,8 +47,7 @@ type Device = {
 
   lastHeartbeatAt: string | null;
   createdAt: string;
-  
-  // Für gruppierte Devices (nach fingerprint)
+
   licenses?: Array<{
     id: string;
     key: string | null;
@@ -60,13 +63,12 @@ type DeviceListResponse = {
 };
 
 function formatDate(value: string | null | undefined) {
-  if (!value) return "–";
+  if (!value) return "—";
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "–";
-  return d.toLocaleString("de-DE");
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-GB");
 }
 
-// online / stale / offline / never
 function classifySignal(
   lastHeartbeatAt: string | null,
 ): "never" | "online" | "stale" | "offline" {
@@ -83,31 +85,21 @@ function classifySignal(
   return "offline";
 }
 
-function signalBadgeClass(kind: "never" | "online" | "stale" | "offline") {
+function DeviceSignalPill({
+  kind,
+}: {
+  kind: "never" | "online" | "stale" | "offline";
+}) {
   switch (kind) {
     case "online":
-      return "badge badge--green";
+      return <StatusPill tone="green" label="Online" />;
     case "stale":
-      return "badge badge--amber";
+      return <StatusPill tone="amber" label="Stale" />;
     case "offline":
-      return "badge badge--red";
+      return <StatusPill tone="red" label="Offline" />;
     case "never":
     default:
-      return "badge";
-  }
-}
-
-function signalText(kind: "never" | "online" | "stale" | "offline") {
-  switch (kind) {
-    case "online":
-      return "online";
-    case "stale":
-      return "stale";
-    case "offline":
-      return "offline";
-    case "never":
-    default:
-      return "noch nie";
+      return <StatusPill tone="gray" label="Never" />;
   }
 }
 
@@ -130,7 +122,6 @@ export default function LicenseDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      // License, Events und Devices parallel laden
       const [licenseRes, eventsRes, devicesRes] = await Promise.all([
         apiGet<{ item: License }>(`/licenses/${id}`),
         apiGet<EventsResponse>(`/licenses/${id}/events`),
@@ -140,23 +131,19 @@ export default function LicenseDetailPage() {
       setLicense(licenseRes.item);
       setEvents(eventsRes.items);
 
-      // Devices können entweder direkt eine licenseId haben oder ein licenses Array
-      // (wenn Devices nach fingerprint gruppiert sind)
       const devsForLicense = (devicesRes.items ?? []).filter((dev: any) => {
-        // Prüfe direktes licenseId Feld
         if (dev.licenseId === licenseRes.item.id) {
           return true;
         }
-        // Prüfe licenses Array (wenn Devices nach fingerprint gruppiert sind)
         if (dev.licenses && Array.isArray(dev.licenses)) {
           return dev.licenses.some((lic: any) => lic.id === licenseRes.item.id);
         }
         return false;
       }).map((dev: any) => {
-        // Wenn das Device ein licenses Array hat, aber wir nach einer spezifischen Lizenz filtern,
-        // müssen wir das Device-Format anpassen, damit es mit dem erwarteten Format übereinstimmt
         if (dev.licenses && Array.isArray(dev.licenses)) {
-          const matchingLicense = dev.licenses.find((lic: any) => lic.id === licenseRes.item.id);
+          const matchingLicense = dev.licenses.find(
+            (lic: any) => lic.id === licenseRes.item.id,
+          );
           if (matchingLicense) {
             return {
               ...dev,
@@ -173,7 +160,7 @@ export default function LicenseDetailPage() {
       setLicenseDevices(devsForLicense);
     } catch (err: any) {
       console.error(err);
-      setError("Fehler beim Laden der Lizenz.");
+      setError("Failed to load license.");
     } finally {
       setLoading(false);
     }
@@ -186,7 +173,7 @@ export default function LicenseDetailPage() {
 
   async function handleRevoke() {
     if (!license || license.status === "revoked") return;
-    if (!window.confirm("Diese Lizenz wirklich revoken?")) return;
+    if (!window.confirm("Revoke this license?")) return;
 
     setRevokeError(null);
     setRevokeLoading(true);
@@ -198,9 +185,7 @@ export default function LicenseDetailPage() {
       await loadData();
     } catch (err: any) {
       console.error(err);
-      setRevokeError(
-        err?.message || "Fehler beim Revoken der Lizenz.",
-      );
+      setRevokeError(err?.message || "Failed to revoke license.");
     } finally {
       setRevokeLoading(false);
     }
@@ -210,16 +195,16 @@ export default function LicenseDetailPage() {
     <div className="admin-page">
       <h1 className="admin-page-title">License Details</h1>
       <p className="admin-page-subtitle">
-        Details und Ereignisse für einen Lizenzschlüssel.
+        Details and events for a license key.
       </p>
 
       <p style={{ fontSize: 13, marginBottom: 16 }}>
-        <Link to="/licenses" style={{ textDecoration: "underline" }}>
-          ← zurück zur Übersicht
+        <Link to="/licenses" className="ds-link">
+          ← Back to list
         </Link>
       </p>
 
-      {loading && <div>Lade…</div>}
+      {loading && <div>Loading…</div>}
       {error && <div className="admin-error">{error}</div>}
 
       {license && !loading && !error && (
@@ -243,26 +228,24 @@ export default function LicenseDetailPage() {
               </div>
               <div style={{ fontSize: 13, color: "#9ca3af" }}>
                 Max Devices:{" "}
-                <strong>{license.maxDevices ?? "–"}</strong>
+                <strong>{license.maxDevices ?? "—"}</strong>
               </div>
               <div style={{ fontSize: 13, color: "#9ca3af" }}>
                 Customer:{" "}
                 {license.customerId ? (
-                  // wir zeigen hier momentan nur die ID – später könnte man
-                  // einen Namen via extra-Request nachladen
                   <span>{license.customerId}</span>
                 ) : (
-                  "–"
+                  "—"
                 )}
               </div>
               <div style={{ fontSize: 13, color: "#9ca3af" }}>
-                Gültig von: {formatDate(license.validFrom)}
+                Valid from: {formatDate(license.validFrom)}
               </div>
               <div style={{ fontSize: 13, color: "#9ca3af" }}>
-                Gültig bis: {formatDate(license.validUntil)}
+                Valid until: {formatDate(license.validUntil)}
               </div>
               <div style={{ fontSize: 13, color: "#9ca3af" }}>
-                Erstellt am: {formatDate(license.createdAt)}
+                Created: {formatDate(license.createdAt)}
               </div>
             </div>
 
@@ -276,17 +259,7 @@ export default function LicenseDetailPage() {
                 gap: 12,
               }}
             >
-              <span
-                className={
-                  license.status === "active"
-                    ? "badge badge--green"
-                    : license.status === "revoked"
-                    ? "badge badge--red"
-                    : "badge badge--amber"
-                }
-              >
-                {license.status}
-              </span>
+              <LicenseStatusPill status={license.status} />
 
               {license.status === "active" && (
                 <button
@@ -303,7 +276,7 @@ export default function LicenseDetailPage() {
                     cursor: "pointer",
                   }}
                 >
-                  {revokeLoading ? "Revokiere…" : "License revoken"}
+                  {revokeLoading ? "Revoking…" : "Revoke license"}
                 </button>
               )}
 
@@ -318,7 +291,6 @@ export default function LicenseDetailPage() {
             </div>
           </div>
 
-          {/* Devices mit dieser License */}
           <h2
             style={{
               fontSize: 16,
@@ -326,7 +298,7 @@ export default function LicenseDetailPage() {
               marginBottom: 8,
             }}
           >
-            Devices mit dieser License
+            Devices with this license
           </h2>
           <p
             style={{
@@ -335,25 +307,25 @@ export default function LicenseDetailPage() {
               marginBottom: 8,
             }}
           >
-            Alle POS-Geräte, die diesen License-Key aktuell verwenden.
+            All POS devices currently using this license key.
           </p>
 
           <div className="admin-table-wrapper" style={{ marginBottom: 24 }}>
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Name / Device-ID</th>
+                  <th>Name / Device ID</th>
                   <th>Customer</th>
                   <th>Status</th>
-                  <th>Letztes Signal</th>
-                  <th>Erstellt am</th>
+                  <th>Last signal</th>
+                  <th>Created</th>
                 </tr>
               </thead>
               <tbody>
                 {licenseDevices.length === 0 ? (
                   <tr>
                     <td colSpan={5}>
-                      Noch keine Devices mit dieser License.
+                      No devices linked to this license yet.
                     </td>
                   </tr>
                 ) : (
@@ -376,7 +348,10 @@ export default function LicenseDetailPage() {
                         </td>
                         <td>
                           {dev.customerId ? (
-                            <Link to={`/customers/${dev.customerId}`}>
+                            <Link
+                              to={`/customers/${dev.customerId}`}
+                              className="ds-link"
+                            >
                               {dev.customerName ||
                                 `${dev.customerId.slice(0, 8)}…`}
                             </Link>
@@ -385,26 +360,16 @@ export default function LicenseDetailPage() {
                           )}
                         </td>
                         <td>
-                          <span
-                            className={
-                              dev.status === "active"
-                                ? "badge badge--green"
-                                : dev.status === "inactive"
-                                ? "badge badge--amber"
-                                : "badge"
-                            }
-                          >
-                            {dev.status || "—"}
-                          </span>
+                          {dev.status ? (
+                            <DeviceStatusPill status={dev.status} />
+                          ) : (
+                            "—"
+                          )}
                         </td>
                         <td>
                           <div>{formatDate(dev.lastHeartbeatAt)}</div>
                           <div style={{ marginTop: 4 }}>
-                            <span
-                              className={signalBadgeClass(signalKind)}
-                            >
-                              {signalText(signalKind)}
-                            </span>
+                            <DeviceSignalPill kind={signalKind} />
                           </div>
                         </td>
                         <td>{formatDate(dev.createdAt)}</td>
@@ -416,7 +381,6 @@ export default function LicenseDetailPage() {
             </table>
           </div>
 
-          {/* Events */}
           <h2
             style={{
               fontSize: 16,
@@ -433,25 +397,22 @@ export default function LicenseDetailPage() {
               marginBottom: 8,
             }}
           >
-            Aktivitäten rund um diese License (Aktivierung, Heartbeats,
-            etc.).
+            Activity for this license (activation, heartbeats, etc.).
           </p>
 
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Typ</th>
+                  <th>Type</th>
                   <th>Details</th>
-                  <th>Datum</th>
+                  <th>Date</th>
                 </tr>
               </thead>
               <tbody>
                 {events.length === 0 && (
                   <tr>
-                    <td colSpan={3}>
-                      Noch keine Events für diese Lizenz.
-                    </td>
+                    <td colSpan={3}>No events for this license yet.</td>
                   </tr>
                 )}
                 {events.map((event) => (
@@ -460,7 +421,7 @@ export default function LicenseDetailPage() {
                     <td>
                       {event.metadata
                         ? JSON.stringify(event.metadata)
-                        : "–"}
+                        : "—"}
                     </td>
                     <td>{formatDate(event.createdAt)}</td>
                   </tr>
@@ -473,4 +434,3 @@ export default function LicenseDetailPage() {
     </div>
   );
 }
-
