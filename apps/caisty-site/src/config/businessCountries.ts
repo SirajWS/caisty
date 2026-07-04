@@ -67,68 +67,17 @@ export const BUSINESS_LANGUAGE_OPTIONS = [
   { code: "ar", labelKey: "ar" as const },
 ];
 
-/** Keep in sync with vite.config.ts default posVersion. */
-const POS_FALLBACK_VERSION = "0.3.1";
-
-const INSTALLER_VERSION_RE = /Caisty\.PoS_([\d.]+)_x64-setup\.exe/i;
-
-function parseInstallerVersionFromUrl(url: string): string | null {
-  const match = url.match(INSTALLER_VERSION_RE);
-  return match?.[1]?.trim() || null;
-}
-
-function buildInstallerRelativePath(version: string): string {
-  return `/downloads/Caisty.PoS_${version}_x64-setup.exe`;
-}
-
-/**
- * Latest published POS installer version.
- * Installer URL wins over a mismatched VITE_POS_LATEST_VERSION (avoids stale labels).
- */
-export function getPosLatestVersion(): string {
-  const url = String(import.meta.env.VITE_POS_WINDOWS_URL ?? "").trim();
-  const fromUrl = url ? parseInstallerVersionFromUrl(url) : null;
-  if (fromUrl) return fromUrl;
-
-  const fromEnv = String(import.meta.env.VITE_POS_LATEST_VERSION ?? "").trim();
-  if (fromEnv) return fromEnv;
-
-  return POS_FALLBACK_VERSION;
-}
-
-/**
- * Windows installer download URL (from VITE_POS_WINDOWS_URL).
- * Falls back to a path derived from getPosLatestVersion() when unset.
- */
-export function getPosWindowsDownloadUrl(): string | null {
-  const envUrl = String(import.meta.env.VITE_POS_WINDOWS_URL ?? "").trim();
-  if (envUrl) return envUrl;
-  return buildInstallerRelativePath(getPosLatestVersion());
-}
-
-export function isPosDownloadConfigured(): boolean {
-  return Boolean(getPosWindowsDownloadUrl());
-}
-
-/** Planned Web POS URL (display only when not yet enabled). */
-export function getPosWebUrlTarget(): string {
-  const fromEnv = String(import.meta.env.VITE_POS_WEB_URL ?? "").trim();
-  return fromEnv || "https://pos.caisty.com";
-}
-
-/** Whether Web POS launch is enabled (VITE_POS_WEB_ENABLED=true). */
-export function isPosWebEnabled(): boolean {
-  const raw = String(import.meta.env.VITE_POS_WEB_ENABLED ?? "")
-    .trim()
-    .toLowerCase();
-  return raw === "true" || raw === "1";
-}
-
-/** Active Web POS URL when enabled; null when coming soon. */
-export function getPosWebUrl(): string | null {
-  if (!isPosWebEnabled()) return null;
-  return getPosWebUrlTarget();
-}
+export {
+  getPosLatestVersion,
+  getPosReleaseConfig,
+  getPosWebUrl,
+  getPosWebUrlTarget,
+  getPosWindowsDownloadUrl,
+  getPortalEnvironmentLabel,
+  isPosDownloadConfigured,
+  isPosWebEnabled,
+} from "./posConfig";
+export type { PosReleaseConfig } from "./posConfig";
 
 export function currenciesForCountry(code: string): readonly string[] {
   if (isCountryConfigLoaded()) {
