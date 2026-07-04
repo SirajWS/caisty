@@ -215,6 +215,21 @@ export async function buildServer() {
     app.log.info("Admin DELETE routes OK (devices + pending subscriptions)");
   }
 
+  const businessProbe = await app.inject({
+    method: "GET",
+    url: "/portal/business",
+  });
+  if (
+    businessProbe.statusCode === 404 &&
+    businessProbe.body.includes("Route GET:/portal/business")
+  ) {
+    app.log.error(
+      "CRITICAL: GET /portal/business is NOT registered — redeploy cloud-api from current main",
+    );
+  } else {
+    app.log.info("Portal business routes OK (GET/PATCH /portal/business)");
+  }
+
   return app;
 }
 

@@ -32,7 +32,7 @@ flowchart TB
   subgraph clients [Clients]
     Site["caisty-site<br/>Marketing + Auth + Portal"]
     Admin["cloud-admin<br/>Internes Dashboard"]
-    POS["Caisty POS Desktop 0.3.0<br/>außerhalb Repo"]
+    POS["Caisty POS Desktop 0.3.1<br/>außerhalb Repo"]
     POSWeb["Caisty POS Web — geplant"]
   end
 
@@ -126,7 +126,7 @@ flowchart TB
 
 **Portal-Variante:** `GET /portal/business/pos-config` — gleiche Shape (`portal-business.ts` Z. 493–524).
 
-> **Hinweis:** POS Desktop App (v0.3.0) liegt nicht in diesem Repo. Verhalten bei `fiscalStatus: pending_setup` oder fehlendem `business_profile` muss am Desktop-Client validiert werden. API liefert bei fehlendem Profil HTTP 404 `business_profile_missing` (`pos-config.ts` Z. 77–83).
+> **Hinweis:** POS Desktop App (v0.3.1) liegt nicht in diesem Repo. Verhalten bei `fiscalStatus: pending_setup` oder fehlendem `business_profile` muss am Desktop-Client validiert werden. API liefert bei fehlendem Profil HTTP 404 `business_profile_missing` (`pos-config.ts` Z. 77–83).
 
 ---
 

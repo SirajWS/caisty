@@ -184,7 +184,7 @@ Eingebunden in `LandingPage.tsx` → `public/screenshots/`:
 
 **Nicht in Galerie, aber im Repo:** `adminAccess.png`, `adminpin.png`, `login.png`, `produktmangement.png`, `queueticket.png` — vermutlich ältere Duplikate.
 
-**Weitere Public-Assets:** `caisty-icon.svg`, `downloads/Caisty.PoS_0.3.0_x64-setup.exe` (Installer, nicht Marketing).
+**Weitere Public-Assets:** `caisty-icon.svg`, `downloads/Caisty.PoS_0.3.1_x64-setup.exe` (Installer, nicht Marketing).
 
 **Extern:** Footer-Tech-Badges laden `https://cdn.simpleicons.org/...` (Netzwerk-Abhängigkeit).
 

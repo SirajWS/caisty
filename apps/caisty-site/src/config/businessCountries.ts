@@ -69,7 +69,7 @@ export const BUSINESS_LANGUAGE_OPTIONS = [
 
 export function getPosLatestVersion(): string {
   const fromEnv = String(import.meta.env.VITE_POS_LATEST_VERSION ?? "").trim();
-  return fromEnv || "0.3.0";
+  return fromEnv || "0.3.1";
 }
 
 /**
