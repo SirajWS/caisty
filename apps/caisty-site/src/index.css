@@ -768,6 +768,12 @@ a {
   border-color: color-mix(in srgb, var(--portal-accent) 35%, transparent);
 }
 
+.portal-nav-link--section-start {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--portal-border);
+}
+
 .portal-main {
   flex: 1;
   min-width: 0;

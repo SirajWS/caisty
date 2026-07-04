@@ -38,6 +38,7 @@ const PortalLoginSuccessPage = lazy(() => import("./routes/PortalLoginSuccessPag
 const PortalSupportPage = lazy(() => import("./routes/PortalSupportPage"));
 const PortalUpgradeResultPage = lazy(() => import("./routes/PortalUpgradeResultPage"));
 const PortalBusinessPage = lazy(() => import("./routes/PortalBusinessPage"));
+const PortalPosPage = lazy(() => import("./routes/PortalPosPage"));
 
 function RouteFallback() {
   return (
@@ -92,6 +93,7 @@ export default function App() {
           <Route path="invoices/:id" element={<Lazy><PortalInvoiceDetailPage /></Lazy>} />
           <Route path="business" element={<Lazy><PortalBusinessPage /></Lazy>} />
           <Route path="support" element={<Lazy><PortalSupportPage /></Lazy>} />
+          <Route path="pos" element={<Lazy><PortalPosPage /></Lazy>} />
           <Route path="account" element={<Lazy><PortalAccountPage /></Lazy>} />
           <Route path="install" element={<Lazy><PortalInstallPage /></Lazy>} />
           <Route path="upgrade/result" element={<Lazy><PortalUpgradeResultPage /></Lazy>} />

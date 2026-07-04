@@ -61,7 +61,7 @@ describe("deriveFiscalVisibility", () => {
       }),
     );
     expect(copy?.message).toBe(
-      "Fiscal pack required before your till is ready.",
+      "Complete your Fiscal Pack to activate your POS.",
     );
     expect(copy?.badge).toBe("Fiscal pack");
   });
