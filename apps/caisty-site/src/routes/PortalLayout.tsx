@@ -15,6 +15,7 @@ import {
   LifeBuoy,
   LogOut,
   Menu,
+  Monitor,
   Receipt,
   User,
   X,
@@ -45,7 +46,13 @@ export function usePortalCustomer() {
   return usePortalOutlet().customer;
 }
 
-type NavItem = { to: string; label: string; icon: React.ReactNode; end?: boolean };
+type NavItem = {
+  to: string;
+  label: string;
+  icon: React.ReactNode;
+  end?: boolean;
+  sectionStart?: boolean;
+};
 
 function usePortalNavItems(): NavItem[] {
   const { language } = useLanguage();
@@ -59,6 +66,12 @@ function usePortalNavItems(): NavItem[] {
     { to: "/portal/plan", label: t.layout.navPlans, icon: <CreditCard size={18} /> },
     { to: "/portal/invoices", label: t.layout.navInvoices, icon: <Receipt size={18} /> },
     { to: "/portal/support", label: t.layout.navSupport, icon: <LifeBuoy size={18} /> },
+    {
+      to: "/portal/pos",
+      label: t.layout.navPos,
+      icon: <Monitor size={18} />,
+      sectionStart: true,
+    },
   ];
 }
 
@@ -192,7 +205,7 @@ export default function PortalLayout() {
                 key={item.to}
                 to={item.to}
                 end={item.end}
-                className={`portal-nav-link ${active ? "is-active" : ""}`}
+                className={`portal-nav-link ${active ? "is-active" : ""} ${item.sectionStart ? "portal-nav-link--section-start" : ""}`}
               >
                 {item.icon}
                 <span>{item.label}</span>

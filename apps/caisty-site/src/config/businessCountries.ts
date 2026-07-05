@@ -67,23 +67,17 @@ export const BUSINESS_LANGUAGE_OPTIONS = [
   { code: "ar", labelKey: "ar" as const },
 ];
 
-export function getPosLatestVersion(): string {
-  const fromEnv = String(import.meta.env.VITE_POS_LATEST_VERSION ?? "").trim();
-  return fromEnv || "0.3.1";
-}
-
-/**
- * Single global Windows installer URL (from VITE_POS_WINDOWS_URL).
- * Vite config supplies a default public path when the env var is unset.
- */
-export function getPosWindowsDownloadUrl(): string | null {
-  const envUrl = String(import.meta.env.VITE_POS_WINDOWS_URL ?? "").trim();
-  return envUrl || null;
-}
-
-export function isPosDownloadConfigured(): boolean {
-  return Boolean(getPosWindowsDownloadUrl());
-}
+export {
+  getPosLatestVersion,
+  getPosReleaseConfig,
+  getPosWebUrl,
+  getPosWebUrlTarget,
+  getPosWindowsDownloadUrl,
+  getPortalEnvironmentLabel,
+  isPosDownloadConfigured,
+  isPosWebEnabled,
+} from "./posConfig";
+export type { PosReleaseConfig } from "./posConfig";
 
 export function currenciesForCountry(code: string): readonly string[] {
   if (isCountryConfigLoaded()) {

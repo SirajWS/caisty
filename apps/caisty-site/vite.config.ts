@@ -3,15 +3,8 @@ import react from "@vitejs/plugin-react";
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
-  const posVersion = env.VITE_POS_LATEST_VERSION || "0.3.1";
-  if (!env.VITE_POS_WINDOWS_URL) {
-    process.env.VITE_POS_WINDOWS_URL =
-      `/downloads/Caisty.PoS_${posVersion}_x64-setup.exe`;
-  }
-  if (!env.VITE_POS_LATEST_VERSION) {
-    process.env.VITE_POS_LATEST_VERSION = posVersion;
-  }
+  // Loads .env, .env.local, .env.[mode], .env.[mode].local — see .env.development / .env.production
+  loadEnv(mode, process.cwd(), "");
 
   return {
     plugins: [react()],

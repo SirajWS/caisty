@@ -452,6 +452,11 @@ export interface PortalDevice {
   lastSeenAt: string | null; // ISO oder null
   status: "online" | "offline" | "never_seen" | string;
   licenseKey: string | null;
+  /** Reported by POS heartbeat when available. */
+  appVersion?: string | null;
+  platform?: string | null;
+  storeName?: string | null;
+  location?: string | null;
 }
 
 export interface PortalInvoiceAmountBreakdown {
