@@ -17,6 +17,7 @@ import {
   Menu,
   Monitor,
   Receipt,
+  ShoppingBag,
   User,
   X,
 } from "lucide-react";
@@ -59,6 +60,12 @@ function usePortalNavItems(): NavItem[] {
   const t = getPortalTranslations(language);
   return [
     { to: "/portal", label: t.layout.navDashboard, icon: <LayoutDashboard size={18} />, end: true },
+    {
+      to: "/portal/orders",
+      label: t.layout.navOrders,
+      icon: <ShoppingBag size={18} />,
+      sectionStart: true,
+    },
     { to: "/portal/account", label: t.layout.navAccount, icon: <User size={18} /> },
     { to: "/portal/business", label: t.layout.navBusiness, icon: <Building2 size={18} /> },
     { to: "/portal/licenses", label: t.layout.navLicenses, icon: <KeyRound size={18} /> },

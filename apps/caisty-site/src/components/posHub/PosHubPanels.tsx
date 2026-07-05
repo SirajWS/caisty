@@ -1,15 +1,13 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import {
-  AlertCircle,
   Check,
   ChevronRight,
+  Circle,
   Download,
   ExternalLink,
   HardDrive,
   Monitor,
-  Sparkles,
-  X,
 } from "lucide-react";
 import type { PortalTranslations } from "../../lib/translations/portal";
 import type { PortalDevice } from "../../lib/portalApi";
@@ -21,175 +19,237 @@ import type {
   PosHubTone,
 } from "../../lib/posHub/types";
 import { formatInstallerBytes } from "../../lib/posHub/format";
-import {
-  portalCardShell,
-  portalCloudStatusTone,
-  portalCompactCard,
-  portalConnectionBadge,
-  portalLicenseStatusBadge,
-  portalPrimaryCta,
-  portalSecondaryCta,
-  portalSectionLabel,
-  portalTextLink,
-} from "../../lib/portalUi";
+import { portalSectionLabel } from "../../lib/portalUi";
 
 const DESKTOP_OPEN_TIMEOUT_MS = 1800;
+
+function toneIconClass(tone: PosHubTone): string {
+  if (tone === "ok") return "dashboard-icon--ok";
+  if (tone === "attention") return "dashboard-icon--attention";
+  if (tone === "action_required") return "dashboard-icon--action";
+  return "dashboard-icon--muted";
+}
+
+function notifyRowClass(tone: PosHubNotification["tone"]): string {
+  if (tone === "ok") return "dashboard-notify-row--ok";
+  if (tone === "action_required") return "dashboard-notify-row--action";
+  return "dashboard-notify-row--attention";
+}
+
+function toneBadgeClass(tone: PosHubTone): string {
+  if (tone === "ok") return "pos-hub-badge--ok";
+  if (tone === "attention") return "pos-hub-badge--attention";
+  return "";
+}
 
 function isMobileUserAgent(): boolean {
   if (typeof navigator === "undefined") return false;
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
 
-function toneBorder(tone: PosHubTone, isLight: boolean): string {
-  if (tone === "ok") {
-    return isLight ? "border-emerald-200 bg-emerald-50" : "border-emerald-500/30 bg-emerald-500/10";
-  }
-  if (tone === "attention") {
-    return isLight ? "border-amber-200 bg-amber-50" : "border-amber-500/30 bg-amber-500/10";
-  }
-  if (tone === "action_required") {
-    return isLight ? "border-rose-200 bg-rose-50" : "border-rose-500/30 bg-rose-500/10";
-  }
-  return isLight ? "border-slate-200 bg-slate-50" : "border-white/10 bg-white/[0.04]";
+function deviceStatusClass(status: string): string {
+  const s = status.toLowerCase();
+  if (s === "online") return "pos-hub-status-dot pos-hub-status-dot--online";
+  if (s === "offline" || s === "never_seen") return "pos-hub-status-dot pos-hub-status-dot--offline";
+  return "pos-hub-status-dot pos-hub-status-dot--attention";
 }
 
-export function PosHubSkeleton({ isLight }: { isLight: boolean }) {
+function deriveReadinessScore(
+  items: PosHubReadinessItem[],
+  versionDone: boolean,
+): number {
+  const total = items.length + 1;
+  const done =
+    items.filter((item) => item.done).length + (versionDone ? 1 : 0);
+  return total ? Math.round((done / total) * 100) : 0;
+}
+
+function ProgressRing({ score }: { score: number }) {
+  const radius = 36;
+  const stroke = 6;
+  const normalizedRadius = radius - stroke / 2;
+  const circumference = normalizedRadius * 2 * Math.PI;
+  const offset = circumference - (score / 100) * circumference;
+
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div
-          key={i}
-          className={`h-16 rounded-xl animate-pulse ${isLight ? "bg-slate-200" : "bg-slate-800"}`}
-        />
+    <svg height={radius * 2} width={radius * 2} className="dashboard-progress-ring" aria-hidden>
+      <circle
+        className="dashboard-progress-ring-track"
+        fill="transparent"
+        strokeWidth={stroke}
+        r={normalizedRadius}
+        cx={radius}
+        cy={radius}
+      />
+      <circle
+        className="dashboard-progress-ring-value"
+        fill="transparent"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={`${circumference} ${circumference}`}
+        style={{ strokeDashoffset: offset, transition: "stroke-dashoffset 0.4s ease" }}
+        r={normalizedRadius}
+        cx={radius}
+        cy={radius}
+        transform={`rotate(-90 ${radius} ${radius})`}
+      />
+      <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" className="text-sm font-semibold">
+        {score}%
+      </text>
+    </svg>
+  );
+}
+
+export function PosHubSkeleton() {
+  return (
+    <div className="dashboard-kpi-grid">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="dashboard-kpi dashboard-kpi--skeleton animate-pulse" />
       ))}
     </div>
   );
 }
 
-export function PosHubNotifications({
-  items,
-  isLight,
-}: {
-  items: PosHubNotification[];
-  isLight: boolean;
-}) {
-  if (!items.length) return null;
-  return (
-    <div className="space-y-2">
-      {items.map((n) => (
-        <div
-          key={n.id}
-          className={`flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs ${toneBorder(n.tone, isLight)}`}
-        >
-          <AlertCircle size={14} className="shrink-0 mt-0.5" aria-hidden />
-          <div className="flex-1 min-w-0">
-            <p className={isLight ? "text-slate-800" : "text-slate-200"}>{n.message}</p>
-            {n.href && n.href.startsWith("/") ? (
-              <Link to={n.href} className={`text-[11px] no-underline ${portalTextLink(isLight)}`}>
-                →
-              </Link>
-            ) : null}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-export function PosHubVersionHero({
+export function PosHubHeader({
   hub,
+  envLabel,
+  loading,
+  p,
+}: {
+  hub: PosHubDerivedState;
+  envLabel: string;
+  loading: boolean;
+  isLight?: boolean;
+  p: PortalTranslations["pos"];
+}) {
+  const cloudTone = hub.system.cloudApiTone;
+
+  return (
+    <header className="dashboard-header">
+      <div className="dashboard-header-main min-w-0">
+        <h1 className="dashboard-title">{p.title}</h1>
+        <p className="dashboard-text-muted text-sm mt-1">{p.subtitle}</p>
+        <div className="pos-hub-header-badges">
+          <span className="pos-hub-badge pos-hub-badge--accent">
+            {p.latestVersion}: {loading ? "…" : hub.version.latest}
+          </span>
+          <span className="pos-hub-badge">
+            {p.licensePlan}: {loading ? "…" : hub.license.planLabel}
+          </span>
+          <span className={`pos-hub-badge ${toneBadgeClass(cloudTone)}`}>
+            {p.cloudConnection}: {loading ? "…" : hub.system.cloudApiLabel}
+          </span>
+          <span className="pos-hub-badge">{p.systemEnvironment}: {envLabel}</span>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+export function PosHubNotifications({ items }: { items: PosHubNotification[] }) {
+  if (!items.length) return null;
+
+  return (
+    <section className="dashboard-panel dashboard-panel--wide">
+      <ul className="space-y-2">
+        {items.map((n) => (
+          <li key={n.id} className={`dashboard-notify-row ${notifyRowClass(n.tone)}`}>
+            {n.href ? (
+              n.href.startsWith("#") ? (
+                <a href={n.href}>{n.message}</a>
+              ) : (
+                <Link to={n.href}>{n.message}</Link>
+              )
+            ) : (
+              n.message
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export function PosHubKpiRow({
+  hub,
+  deviceCount,
   loading,
   isLight,
   p,
 }: {
   hub: PosHubDerivedState;
+  deviceCount: number;
   loading: boolean;
   isLight: boolean;
   p: PortalTranslations["pos"];
 }) {
-  const tiles = [
-    { label: p.installedVersion, value: hub.version.installedLabel, tone: hub.version.updateTone },
-    { label: p.latestVersion, value: hub.version.latest, tone: "ok" as PosHubTone },
-    { label: p.updateStatus, value: hub.version.updateStatusLabel, tone: hub.version.updateTone },
-    { label: p.licensePlan, value: hub.license.planLabel, tone: hub.license.statusTone },
+  if (loading) return <PosHubSkeleton />;
+
+  const kpis = [
+    { id: "installed", label: p.installedVersion, value: hub.version.installedLabel },
+    { id: "latest", label: p.latestVersion, value: hub.version.latest },
+    {
+      id: "update",
+      label: p.updateStatus,
+      value: hub.version.updateStatusLabel,
+      hint: hub.version.updateAvailable ? p.updateAvailable : undefined,
+      hintAccent: hub.version.updateAvailable,
+    },
+    { id: "license", label: p.licensePlan, value: hub.license.planLabel },
+    {
+      id: "devices",
+      label: p.kpiConnectedDevices,
+      value: String(deviceCount),
+      href: "/portal/devices",
+    },
+    {
+      id: "cloud",
+      label: p.cloudConnection,
+      value: hub.system.cloudApiLabel,
+    },
   ];
 
   return (
-    <section className={`${portalCardShell(isLight)} grid gap-3 grid-cols-2 lg:grid-cols-4`}>
-      {tiles.map((tile) => (
-        <div key={tile.label} className="min-w-0">
-          <div className={portalSectionLabel(isLight)}>{tile.label}</div>
-          {loading ? (
-            <span className={`mt-1 inline-block h-4 w-20 rounded animate-pulse ${isLight ? "bg-slate-200" : "bg-slate-700"}`} />
-          ) : (
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className={`text-sm font-semibold truncate ${isLight ? "text-slate-900" : "text-slate-100"}`}>
-                {tile.value}
+    <div className="dashboard-kpi-grid">
+      {kpis.map((kpi) => {
+        const body = (
+          <>
+            <span className={portalSectionLabel(isLight)}>{kpi.label}</span>
+            <span className="dashboard-kpi-value tabular-nums">{kpi.value}</span>
+            {kpi.hint ? (
+              <span
+                className={
+                  kpi.hintAccent
+                    ? "dashboard-kpi-hint dashboard-kpi-hint--update"
+                    : "dashboard-kpi-hint"
+                }
+              >
+                {kpi.hint}
               </span>
-              <span className={portalCloudStatusTone(tile.tone, isLight)}>{tile.label === p.updateStatus ? "" : ""}</span>
-            </div>
-          )}
-        </div>
-      ))}
-    </section>
-  );
-}
+            ) : null}
+          </>
+        );
 
-export function PosHubLicenseCard({
-  hub,
-  loading,
-  isLight,
-  p,
-}: {
-  hub: PosHubDerivedState;
-  loading: boolean;
-  isLight: boolean;
-  p: PortalTranslations["pos"];
-}) {
-  const lic = hub.license;
-  return (
-    <section className={`${portalCardShell(isLight)} space-y-3`}>
-      <h2 className={portalSectionLabel(isLight)}>{p.licenseStatus}</h2>
-      {loading ? (
-        <PosHubSkeleton isLight={isLight} />
-      ) : (
-        <>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-xs">
-            <div>
-              <div className={portalSectionLabel(isLight)}>{p.licensePlan}</div>
-              <p className={`mt-1 font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>{lic.planLabel}</p>
-            </div>
-            <div>
-              <div className={portalSectionLabel(isLight)}>{p.licenseStatus}</div>
-              <p className="mt-1">
-                <span className={portalLicenseStatusBadge(lic.statusLabel, isLight)}>{lic.statusLabel}</span>
-              </p>
-            </div>
-            <div>
-              <div className={portalSectionLabel(isLight)}>{p.licenseValidUntil}</div>
-              <p className={`mt-1 font-medium ${isLight ? "text-slate-800" : "text-slate-200"}`}>{lic.validUntilLabel}</p>
-            </div>
-            <div>
-              <div className={portalSectionLabel(isLight)}>{p.licenseSeats}</div>
-              <p className={`mt-1 font-medium ${isLight ? "text-slate-800" : "text-slate-200"}`}>
-                {lic.maxDevices ?? p.valueNotAvailable}
-              </p>
-            </div>
-          </div>
-          {lic.showUpgrade ? (
-            <Link to={lic.upgradeHref} className={`no-underline inline-flex ${portalPrimaryCta()}`}>
-              {p.licenseUpgrade}
+        if (kpi.href) {
+          return (
+            <Link key={kpi.id} to={kpi.href} className="dashboard-kpi dashboard-kpi--link">
+              {body}
             </Link>
-          ) : null}
-        </>
-      )}
-    </section>
+          );
+        }
+
+        return (
+          <div key={kpi.id} className="dashboard-kpi">
+            {body}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
-export function PosHubQuickActions({
+export function PosHubActionPanel({
   release,
-  isLight,
   p,
 }: {
   release: PosReleaseConfig;
@@ -200,9 +260,12 @@ export function PosHubQuickActions({
   const [desktopMobileHint, setDesktopMobileHint] = React.useState(false);
   const timerRef = React.useRef<number | null>(null);
 
-  React.useEffect(() => () => {
-    if (timerRef.current !== null) window.clearTimeout(timerRef.current);
-  }, []);
+  React.useEffect(
+    () => () => {
+      if (timerRef.current !== null) window.clearTimeout(timerRef.current);
+    },
+    [],
+  );
 
   function openDesktop() {
     setDesktopFallback(false);
@@ -230,184 +293,139 @@ export function PosHubQuickActions({
     : p.openWebPosDescFuture.replace("{{url}}", release.web.plannedUrl);
 
   return (
-    <section className="space-y-3">
-      <h2 className={portalSectionLabel(isLight)}>{p.quickActions}</h2>
-      <div className="grid gap-3 md:grid-cols-3">
-        <ActionCard icon={<ExternalLink size={18} />} title={p.openWebPos} desc={webDesc} isLight={isLight}>
+    <section className="dashboard-panel dashboard-panel--wide">
+      <h2 className="dashboard-panel-title">{p.mainActionsTitle}</h2>
+      <div className="pos-hub-action-grid">
+        <div className="pos-hub-action-card pos-hub-action-card--primary">
+          <span className="pos-hub-action-icon">
+            <Monitor size={18} />
+          </span>
+          <h3 className="pos-hub-action-title">{p.openDesktopPos}</h3>
+          <p className="pos-hub-action-desc">{p.openDesktopPosDesc}</p>
+          {desktopFallback ? (
+            <p className="pos-hub-action-hint dashboard-notify-row dashboard-notify-row--attention" role="status">
+              {p.desktopNotInstalled}
+            </p>
+          ) : null}
+          {desktopMobileHint ? (
+            <p className="pos-hub-action-hint dashboard-notify-row" role="status">
+              {p.desktopWindowsOnly}
+            </p>
+          ) : null}
+          <button type="button" onClick={openDesktop} className="pos-hub-action-btn pos-hub-action-btn--primary">
+            {desktopFallback ? p.tryAgain : p.openDesktopPos}
+          </button>
+        </div>
+
+        <div className="pos-hub-action-card">
+          <span className="pos-hub-action-icon">
+            <ExternalLink size={18} />
+          </span>
+          <h3 className="pos-hub-action-title">{p.openWebPos}</h3>
+          <p className="pos-hub-action-desc">{webDesc}</p>
           {release.web.enabled && release.web.url ? (
-            <a href={release.web.url} target="_blank" rel="noopener noreferrer" className={`no-underline w-full text-center ${portalPrimaryCta()}`}>
+            <a
+              href={release.web.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pos-hub-action-btn no-underline"
+            >
               {p.openWebPos}
             </a>
           ) : (
-            <button type="button" disabled className={`w-full ${portalSecondaryCta(isLight)} opacity-70 cursor-not-allowed`}>
+            <button type="button" disabled className="pos-hub-action-btn" aria-disabled>
               {p.statusComingSoon}
             </button>
           )}
-        </ActionCard>
+        </div>
 
-        <ActionCard icon={<Monitor size={18} />} title={p.openDesktopPos} desc={p.openDesktopPosDesc} isLight={isLight}>
-          {desktopFallback ? (
-            <p className={`rounded-lg border px-3 py-2 text-xs ${toneBorder("attention", isLight)}`} role="status">{p.desktopNotInstalled}</p>
-          ) : null}
-          {desktopMobileHint ? (
-            <p className={`rounded-lg border px-3 py-2 text-xs ${toneBorder("unknown", isLight)}`} role="status">{p.desktopWindowsOnly}</p>
-          ) : null}
-          <button type="button" onClick={openDesktop} className={`w-full ${portalSecondaryCta(isLight)}`}>
-            {desktopFallback ? p.tryAgain : p.openDesktopPos}
-          </button>
-        </ActionCard>
-
-        <PosHubDownloadCard release={release} isLight={isLight} p={p} compact />
+        <div className="pos-hub-action-card">
+          <span className="pos-hub-action-icon">
+            <Download size={18} />
+          </span>
+          <h3 className="pos-hub-action-title">{p.downloadLatest}</h3>
+          <p className="pos-hub-action-desc">{p.downloadLatestDesc}</p>
+          <a
+            href={release.installer.downloadUrl}
+            download={release.installer.fileName}
+            className="pos-hub-action-btn no-underline"
+          >
+            {p.updatesDownload} ({release.latestVersion})
+          </a>
+        </div>
       </div>
     </section>
   );
 }
 
-function ActionCard({
-  icon,
-  title,
-  desc,
-  isLight,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  desc: string;
-  isLight: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className={`${portalCardShell(isLight)} flex flex-col gap-3`}>
-      <div className="flex items-center gap-2">
-        <span className={isLight ? "text-orange-600" : "text-orange-400"}>{icon}</span>
-        <span className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-100"}`}>{title}</span>
-      </div>
-      <p className={`text-xs flex-1 ${isLight ? "text-slate-600" : "text-slate-400"}`}>{desc}</p>
-      {children}
-    </div>
-  );
-}
-
-export function PosHubDownloadCard({
-  release,
-  isLight,
-  p,
-  locale,
-  compact = false,
-}: {
-  release: PosReleaseConfig;
-  isLight: boolean;
-  p: PortalTranslations["pos"];
-  locale?: string;
-  compact?: boolean;
-}) {
-  const { installer } = release;
-  const sizeLabel = formatInstallerBytes(
-    installer.sizeBytes,
-    locale ?? "en",
-    p.valueNotAvailable,
-  );
-  const releaseDate = release.releaseDate
-    ? new Date(release.releaseDate).toLocaleDateString(locale)
-    : p.valueNotAvailable;
-
-  const button = (
-    <a
-      href={installer.downloadUrl}
-      download={installer.fileName}
-      className={`no-underline ${compact ? "w-full text-center" : "shrink-0"} ${portalPrimaryCta()}`}
-    >
-      {compact ? `${p.downloadLatest} (${release.latestVersion})` : p.updatesDownload}
-    </a>
-  );
-
-  if (compact) {
-    return (
-      <ActionCard icon={<Download size={18} />} title={p.downloadLatest} desc={p.downloadLatestDesc} isLight={isLight}>
-        {button}
-      </ActionCard>
-    );
-  }
-
-  return (
-    <section className={`${portalCardShell(isLight)} space-y-3`}>
-      <h2 className={portalSectionLabel(isLight)}>{p.downloadCardTitle}</h2>
-      <dl className="grid gap-2 sm:grid-cols-2 text-xs">
-        <MetaRow label={p.updatesPlatform} value={installer.platform} isLight={isLight} />
-        <MetaRow label={p.latestVersion} value={release.latestVersion} isLight={isLight} />
-        <MetaRow label={p.releaseDate} value={releaseDate} isLight={isLight} />
-        <MetaRow label={p.installerSize} value={sizeLabel} isLight={isLight} />
-        <MetaRow label={p.installerFileName} value={installer.fileName} isLight={isLight} mono />
-        <MetaRow label={p.installerSha256} value={installer.sha256 ?? p.valueNotAvailable} isLight={isLight} mono />
-      </dl>
-      {button}
-    </section>
-  );
-}
-
-function MetaRow({
-  label,
-  value,
-  isLight,
-  mono,
-}: {
-  label: string;
-  value: string;
-  isLight: boolean;
-  mono?: boolean;
-}) {
-  return (
-    <div>
-      <dt className={portalSectionLabel(isLight)}>{label}</dt>
-      <dd className={`mt-0.5 font-medium truncate ${mono ? "font-mono text-[11px]" : ""} ${isLight ? "text-slate-800" : "text-slate-200"}`}>
-        {value}
-      </dd>
-    </div>
-  );
-}
-
-export function PosHubReadiness({
+export function PosHubReadinessPanel({
+  hub,
   items,
   loading,
-  isLight,
   p,
   dash,
 }: {
+  hub: PosHubDerivedState;
   items: PosHubReadinessItem[];
   loading: boolean;
-  isLight: boolean;
   p: PortalTranslations["pos"];
   dash: string;
 }) {
+  const versionDone = !hub.version.updateAvailable && Boolean(hub.version.installed);
+  const score = deriveReadinessScore(items, versionDone);
+
+  const versionItem = {
+    id: "version",
+    label: p.readinessVersion,
+    done: versionDone,
+    tone: hub.version.updateTone,
+    statusLabel: hub.version.updateStatusLabel,
+  };
+
+  const displayItems = [
+    items[2],
+    items[0],
+    items[1],
+    items[3],
+    items[4],
+    versionItem,
+  ];
+
   return (
-    <section className="space-y-3">
-      <h2 className={portalSectionLabel(isLight)}>{p.readinessTitle}</h2>
-      <div className={`${portalCardShell(isLight)} divide-y ${isLight ? "divide-slate-100" : "divide-white/10"}`}>
-        {items.map((row) => (
-          <Link
-            key={row.id}
-            to={row.href}
-            className={`flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0 no-underline group ${isLight ? "hover:bg-slate-50/80" : "hover:bg-white/[0.03]"}`}
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <span
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
-                  row.done ? "bg-emerald-500 text-white" : isLight ? "bg-slate-200 text-slate-500" : "bg-slate-700 text-slate-400"
-                }`}
-              >
-                {row.done ? <Check size={14} /> : <X size={14} />}
-              </span>
-              <span className={`text-sm font-medium ${isLight ? "text-slate-900" : "text-slate-100"}`}>{row.label}</span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <span className={portalCloudStatusTone(row.tone, isLight)}>
-                {loading ? dash : row.statusLabel}
-              </span>
-              <ChevronRight size={14} className={`opacity-50 group-hover:opacity-100 ${isLight ? "text-slate-500" : "text-slate-400"}`} />
-            </div>
-          </Link>
-        ))}
+    <section className="dashboard-panel">
+      <h2 className="dashboard-panel-title">{p.readinessPosTitle}</h2>
+      <div className="dashboard-health-layout">
+        <div className="dashboard-health-score">
+          <ProgressRing score={loading ? 0 : score} />
+          <div>
+            <p className="dashboard-health-score-label">{p.readinessPosReady}</p>
+            <p className="dashboard-health-score-sub">{loading ? dash : `${score}%`}</p>
+          </div>
+        </div>
+        <ul className="dashboard-health-list">
+          {displayItems.map((item) => (
+            <li key={item.id} className="dashboard-health-item">
+              {item.done ? (
+                <Check size={14} className="dashboard-icon--ok" />
+              ) : (
+                <Circle size={14} className={toneIconClass(item.tone)} />
+              )}
+              <span>{item.label}</span>
+            </li>
+          ))}
+        </ul>
       </div>
+      {!loading && hub.license.showUpgrade ? (
+        <div className="pos-hub-readiness-footer">
+          <Link to={hub.license.upgradeHref} className="dashboard-quick-btn dashboard-quick-btn--primary no-underline">
+            {p.licenseUpgrade}
+          </Link>
+          <p className="dashboard-text-muted text-xs mt-2">
+            {p.licenseValidUntil}: {hub.license.validUntilLabel}
+            {hub.license.maxDevices != null ? ` · ${p.licenseSeats}: ${hub.license.maxDevices}` : null}
+          </p>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -415,7 +433,6 @@ export function PosHubReadiness({
 export function PosHubDevices({
   devices,
   loading,
-  isLight,
   p,
   locale,
   dash,
@@ -433,95 +450,65 @@ export function PosHubDevices({
     return Number.isNaN(d.getTime()) ? value : d.toLocaleString(locale);
   }
 
+  function versionLabel(device: PortalDevice): string {
+    const v = device.appVersion?.trim();
+    if (v) return v;
+    return p.deviceVersionWaiting;
+  }
+
   return (
-    <section className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className={portalSectionLabel(isLight)}>{p.devicesTitle}</h2>
+    <section className="dashboard-panel dashboard-panel--wide">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <h2 className="dashboard-panel-title m-0">{p.devicesTitle}</h2>
         {devices.length > 0 ? (
-          <Link to="/portal/devices" className={`text-xs no-underline ${portalTextLink(isLight)}`}>
-            {p.devicesViewAll} →
+          <Link to="/portal/devices" className="dashboard-quick-btn no-underline text-xs">
+            {p.devicesViewAll}
+            <ChevronRight size={12} />
           </Link>
         ) : null}
       </div>
-      <div className={portalCardShell(isLight)}>
-        {loading ? (
-          <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>{p.devicesLoading}</p>
-        ) : devices.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 py-8 text-center px-4">
-            <HardDrive size={28} className={isLight ? "text-slate-300" : "text-slate-600"} aria-hidden />
-            <p className={`text-sm font-medium ${isLight ? "text-slate-700" : "text-slate-300"}`}>{p.devicesEmpty}</p>
-            <p className={`text-xs max-w-sm ${isLight ? "text-slate-500" : "text-slate-500"}`}>{p.devicesEmptyHint}</p>
-          </div>
-        ) : (
-          <ul className="space-y-2">
-            {devices.slice(0, 8).map((device) => (
-              <li
-                key={device.id}
-                className={`rounded-lg border px-3 py-2.5 ${isLight ? "border-slate-100 bg-slate-50/80" : "border-white/10 bg-white/[0.03]"}`}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className={`text-sm font-medium truncate ${isLight ? "text-slate-900" : "text-slate-100"}`}>{device.name}</div>
-                    <div className="mt-1 grid gap-0.5 text-[11px]">
-                      <span className={isLight ? "text-slate-500" : "text-slate-500"}>
-                        {p.devicePlatform}: {device.platform ?? p.updatesPlatform}
-                      </span>
-                      <span className={isLight ? "text-slate-500" : "text-slate-500"}>
-                        {p.deviceInstalledVersion}: {device.appVersion?.trim() || p.versionUnknown}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1 text-right">
-                    <span className={portalConnectionBadge(device.status, isLight)}>{device.status}</span>
-                    <span className={`text-[10px] ${isLight ? "text-slate-500" : "text-slate-500"}`}>
-                      {p.deviceLastSeen}: {formatSeen(device.lastSeenAt)}
-                    </span>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </section>
-  );
-}
 
-export function PosHubSystemStatus({
-  hub,
-  envLabel,
-  loading,
-  isLight,
-  p,
-  dash,
-}: {
-  hub: PosHubDerivedState;
-  envLabel: string;
-  loading: boolean;
-  isLight: boolean;
-  p: PortalTranslations["pos"];
-  dash: string;
-}) {
-  const rows = [
-    { label: p.systemCloudApi, value: hub.system.cloudApiLabel, tone: hub.system.cloudApiTone },
-    { label: p.systemPortal, value: hub.system.portalLabel, tone: hub.system.portalTone },
-    { label: p.systemEnvironment, value: envLabel, tone: "unknown" as PosHubTone },
-    { label: p.systemLastSync, value: loading ? dash : hub.system.lastSyncLabel, tone: "unknown" as PosHubTone },
-  ];
-
-  return (
-    <section className="space-y-3">
-      <h2 className={portalSectionLabel(isLight)}>{p.systemStatusTitle}</h2>
-      <div className={`${portalCardShell(isLight)} grid gap-3 sm:grid-cols-2 lg:grid-cols-4`}>
-        {rows.map((row) => (
-          <div key={row.label}>
-            <div className={portalSectionLabel(isLight)}>{row.label}</div>
-            <div className="mt-1">
-              <span className={portalCloudStatusTone(row.tone, isLight)}>{row.value}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      {loading ? (
+        <p className="dashboard-text-muted">{p.devicesLoading}</p>
+      ) : devices.length === 0 ? (
+        <div className="flex flex-col items-center gap-2 py-6 text-center">
+          <HardDrive size={24} className="dashboard-icon--muted" aria-hidden />
+          <p className="dashboard-health-score-label">{p.devicesEmpty}</p>
+          <p className="dashboard-text-muted text-xs max-w-sm">{p.devicesEmptyHint}</p>
+        </div>
+      ) : (
+        <div className="pos-hub-device-grid">
+          {devices.slice(0, 8).map((device) => (
+            <article key={device.id} className="pos-hub-device-card">
+              <div className="pos-hub-device-row">
+                <span className="pos-hub-device-name">{device.name}</span>
+                <span className={deviceStatusClass(device.status)}>{device.status}</span>
+              </div>
+              <div className="pos-hub-device-meta">
+                <span>
+                  {p.devicePlatform}: {device.platform ?? p.updatesPlatform}
+                </span>
+                <span>
+                  {p.deviceInstalledVersion}: {versionLabel(device)}
+                </span>
+                <span>
+                  {p.deviceLastSeen}: {formatSeen(device.lastSeenAt)}
+                </span>
+                {device.licenseKey ? (
+                  <span>
+                    {p.deviceLicenseBinding}: {device.licenseKey}
+                  </span>
+                ) : null}
+                {device.storeName ? (
+                  <span>
+                    {p.deviceStore}: {device.storeName}
+                  </span>
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -529,7 +516,6 @@ export function PosHubSystemStatus({
 export function PosHubReleaseCenter({
   hub,
   release,
-  isLight,
   p,
   locale,
 }: {
@@ -545,37 +531,90 @@ export function PosHubReleaseCenter({
   const notes =
     release.releaseNotesSummary ||
     (release.releaseNotesUrl ? p.releaseNotesView : p.releaseNotesUnavailable);
+  const sizeLabel = formatInstallerBytes(
+    release.installer.sizeBytes,
+    locale,
+    p.valueNotAvailable,
+  );
 
   return (
-    <section id="pos-release-center" className="space-y-3">
-      <h2 className={portalSectionLabel(isLight)}>{p.releaseCenterTitle}</h2>
-      <div className={`${portalCardShell(isLight)} space-y-4`}>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-xs">
-          <MetaRow label={p.latestVersion} value={release.latestVersion} isLight={isLight} />
-          <MetaRow label={p.installedVersion} value={hub.version.installedLabel} isLight={isLight} />
-          <MetaRow label={p.releaseDate} value={releaseDate} isLight={isLight} />
-          <MetaRow label={p.updateStatus} value={hub.version.updateStatusLabel} isLight={isLight} />
+    <section id="pos-release-center" className="dashboard-panel dashboard-panel--wide">
+      <h2 className="dashboard-panel-title">{p.releaseCenterTitle}</h2>
+      <div className="pos-hub-release-meta">
+        <div>
+          <div className="pos-hub-meta-label">{p.latestVersion}</div>
+          <div className="pos-hub-meta-value">{release.latestVersion}</div>
         </div>
-        <p className={`text-xs leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>{notes}</p>
-        <div className="flex flex-wrap gap-2">
-          {release.releaseNotesUrl ? (
-            <a
-              href={release.releaseNotesUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`no-underline ${portalSecondaryCta(isLight)}`}
-            >
-              {p.releaseNotesView}
-            </a>
-          ) : null}
+        <div>
+          <div className="pos-hub-meta-label">{p.installedVersion}</div>
+          <div className="pos-hub-meta-value">{hub.version.installedLabel}</div>
+        </div>
+        <div>
+          <div className="pos-hub-meta-label">{p.releaseDate}</div>
+          <div className="pos-hub-meta-value">{releaseDate}</div>
+        </div>
+        <div>
+          <div className="pos-hub-meta-label">{p.updateStatus}</div>
+          <div className="pos-hub-meta-value">{hub.version.updateStatusLabel}</div>
+        </div>
+      </div>
+      <p className="dashboard-text-muted text-xs mt-3 leading-relaxed">{notes}</p>
+      <p className="dashboard-text-muted text-xs mt-1">
+        {p.installerSize}: {sizeLabel} · {release.installer.fileName}
+      </p>
+      <div className="flex flex-wrap gap-2 mt-3">
+        {release.releaseNotesUrl ? (
           <a
-            href={release.installer.downloadUrl}
-            download={release.installer.fileName}
-            className={`no-underline ${portalPrimaryCta()}`}
+            href={release.releaseNotesUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="dashboard-quick-btn no-underline"
           >
-            {p.updatesDownload}
+            {p.releaseNotesView}
           </a>
-        </div>
+        ) : null}
+        <a
+          href={release.installer.downloadUrl}
+          download={release.installer.fileName}
+          className="dashboard-quick-btn dashboard-quick-btn--primary no-underline"
+        >
+          {p.updatesDownload}
+        </a>
+      </div>
+    </section>
+  );
+}
+
+export function PosHubSystemStatus({
+  hub,
+  envLabel,
+  loading,
+  p,
+  dash,
+}: {
+  hub: PosHubDerivedState;
+  envLabel: string;
+  loading: boolean;
+  p: PortalTranslations["pos"];
+  dash: string;
+}) {
+  const rows = [
+    { label: p.systemCloudApi, value: hub.system.cloudApiLabel, tone: hub.system.cloudApiTone },
+    { label: p.systemPortal, value: hub.system.portalLabel, tone: hub.system.portalTone },
+    { label: p.systemEnvironment, value: envLabel, tone: "unknown" as PosHubTone },
+    { label: p.systemLastSync, value: loading ? dash : hub.system.lastSyncLabel, tone: "unknown" as PosHubTone },
+  ];
+
+  return (
+    <section className="dashboard-panel dashboard-panel--wide">
+      <h2 className="dashboard-panel-title">{p.systemStatusTitle}</h2>
+      <div className="pos-hub-system-grid">
+        {rows.map((row) => (
+          <div key={row.label} className="pos-hub-system-item">
+            <div className="pos-hub-meta-label">{row.label}</div>
+            <div className={`pos-hub-meta-value ${toneIconClass(row.tone)}`}>{row.value}</div>
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -583,7 +622,6 @@ export function PosHubReleaseCenter({
 
 export function PosHubComingSoon({
   items,
-  isLight,
   p,
 }: {
   items: string[];
@@ -591,18 +629,13 @@ export function PosHubComingSoon({
   p: PortalTranslations["pos"];
 }) {
   return (
-    <section className="space-y-3">
-      <h2 className={portalSectionLabel(isLight)}>{p.comingSoonTitle}</h2>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+    <section className="dashboard-roadmap">
+      <h2 className="dashboard-panel-title mb-2">{p.comingSoonTitle}</h2>
+      <div className="pos-hub-coming-grid">
         {items.map((label) => (
-          <div key={label} className={`${portalCompactCard(isLight)} flex items-center justify-between gap-2 opacity-75`}>
-            <span className={`text-xs font-medium ${isLight ? "text-slate-700" : "text-slate-300"}`}>{label}</span>
-            <span className="inline-flex items-center gap-1">
-              <Sparkles size={12} className="text-orange-500" aria-hidden />
-              <span className={`text-[10px] font-semibold uppercase tracking-wide ${isLight ? "text-slate-500" : "text-slate-500"}`}>
-                {p.statusComingSoon}
-              </span>
-            </span>
+          <div key={label} className="pos-hub-coming-item" aria-disabled>
+            <span className="pos-hub-coming-label">{label}</span>
+            <span className="pos-hub-coming-badge">{p.statusComingSoon}</span>
           </div>
         ))}
       </div>

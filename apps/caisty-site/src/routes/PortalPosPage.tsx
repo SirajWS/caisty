@@ -9,18 +9,18 @@ import { derivePosHubState } from "../lib/posHub/derivePosHubState";
 import { translatePortalEnvironment } from "../lib/posHub/format";
 import { usePortalPosHubData } from "../lib/posHub/usePortalPosHubData";
 import {
+  PosHubActionPanel,
   PosHubComingSoon,
   PosHubDevices,
-  PosHubDownloadCard,
-  PosHubLicenseCard,
+  PosHubHeader,
+  PosHubKpiRow,
   PosHubNotifications,
-  PosHubQuickActions,
-  PosHubReadiness,
+  PosHubReadinessPanel,
   PosHubReleaseCenter,
+  PosHubSkeleton,
   PosHubSystemStatus,
-  PosHubVersionHero,
 } from "../components/posHub/PosHubPanels";
-import { portalPageShell, portalPageSubtitle, portalPageTitle } from "../lib/portalUi";
+import { portalPageShell } from "../lib/portalUi";
 
 const PortalPosPage: React.FC = () => {
   const { customer } = usePortalOutlet();
@@ -35,6 +35,12 @@ const PortalPosPage: React.FC = () => {
   const release = React.useMemo(() => getPosReleaseConfig(), []);
   const hubData = usePortalPosHubData(customer);
 
+  const envLabel = translatePortalEnvironment(getPortalEnvironmentLabel(), {
+    production: p.envProduction,
+    staging: p.envStaging,
+    development: p.envDevelopment,
+  });
+
   const hub = React.useMemo(
     () =>
       derivePosHubState({
@@ -46,15 +52,7 @@ const PortalPosPage: React.FC = () => {
     [hubData, release, t],
   );
 
-  const envLabel = translatePortalEnvironment(getPortalEnvironmentLabel(), {
-    production: p.envProduction,
-    staging: p.envStaging,
-    development: p.envDevelopment,
-  });
-
   const comingSoonItems = [
-    p.comingSoonApiLatency,
-    p.comingSoonSeatCount,
     p.comingSoonAutoUpdates,
     p.comingSoonPrinter,
     p.comingSoonCashDrawer,
@@ -63,27 +61,41 @@ const PortalPosPage: React.FC = () => {
     p.comingSoonSystemHealth,
   ];
 
+  if (hubData.loading && !hubData.lastSyncedAt) {
+    return (
+      <div className={`${portalPageShell()} pos-hub-home`}>
+        <PosHubHeader hub={hub} envLabel={envLabel} loading p={p} isLight={isLight} />
+        <PosHubSkeleton />
+      </div>
+    );
+  }
+
   return (
-    <div className={portalPageShell()}>
-      <header className="space-y-1">
-        <h1 className={portalPageTitle(isLight)}>{p.title}</h1>
-        <p className={portalPageSubtitle(isLight)}>{p.subtitle}</p>
-      </header>
-
-      <PosHubNotifications items={hub.notifications} isLight={isLight} />
-
-      <PosHubVersionHero hub={hub} loading={hubData.loading} isLight={isLight} p={p} />
-
-      <PosHubLicenseCard hub={hub} loading={hubData.loading} isLight={isLight} p={p} />
-
-      <PosHubQuickActions release={release} isLight={isLight} p={p} />
-
-      <PosHubDownloadCard release={release} isLight={isLight} p={p} locale={locale} />
-
-      <PosHubReadiness
-        items={hub.readiness}
+    <div className={`${portalPageShell()} pos-hub-home`}>
+      <PosHubHeader
+        hub={hub}
+        envLabel={envLabel}
         loading={hubData.loading}
         isLight={isLight}
+        p={p}
+      />
+
+      <PosHubNotifications items={hub.notifications} />
+
+      <PosHubKpiRow
+        hub={hub}
+        deviceCount={hubData.devices.length}
+        loading={hubData.loading}
+        isLight={isLight}
+        p={p}
+      />
+
+      <PosHubActionPanel release={release} isLight={isLight} p={p} />
+
+      <PosHubReadinessPanel
+        hub={hub}
+        items={hub.readiness}
+        loading={hubData.loading}
         p={p}
         dash={dash}
       />
@@ -97,16 +109,21 @@ const PortalPosPage: React.FC = () => {
         dash={dash}
       />
 
+      <PosHubReleaseCenter
+        hub={hub}
+        release={release}
+        isLight={isLight}
+        p={p}
+        locale={locale}
+      />
+
       <PosHubSystemStatus
         hub={hub}
         envLabel={envLabel}
         loading={hubData.loading}
-        isLight={isLight}
         p={p}
         dash={dash}
       />
-
-      <PosHubReleaseCenter hub={hub} release={release} isLight={isLight} p={p} locale={locale} />
 
       <PosHubComingSoon items={comingSoonItems} isLight={isLight} p={p} />
     </div>
