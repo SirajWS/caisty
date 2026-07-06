@@ -439,7 +439,7 @@ const PortalInstallPage: React.FC = () => {
           </li>
           <li>
             {t.install.step3B3Prefix}{" "}
-            <Link to="/portal/invoices" className={`font-semibold underline-offset-2 ${isLight ? "text-orange-700 hover:text-orange-800" : "text-orange-300 hover:text-orange-200"}`}>
+            <Link to="/portal/billing#billing-invoices" className={`font-semibold underline-offset-2 ${isLight ? "text-orange-700 hover:text-orange-800" : "text-orange-300 hover:text-orange-200"}`}>
               {t.layout.navInvoices}
             </Link>
             {t.install.step3B3Suffix}

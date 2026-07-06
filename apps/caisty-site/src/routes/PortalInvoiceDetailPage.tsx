@@ -104,7 +104,7 @@ const PortalInvoiceDetailPage: React.FC = () => {
             </button>
           )}
           <Link
-            to="/portal/invoices"
+            to="/portal/billing#billing-invoices"
             className={`text-sm no-underline ${portalMutedLink(isLight)}`}
           >
             {t.invoiceDetail.backList}

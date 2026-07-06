@@ -91,14 +91,14 @@ const PortalUpgradeResultPage: React.FC = () => {
         </Link>
 
         <Link
-          to="/portal/invoices"
+          to="/portal/billing#billing-invoices"
           className="inline-flex items-center rounded-full border border-slate-600 px-4 py-2 font-semibold text-slate-100 hover:bg-slate-800"
         >
           {u.linkInvoices}
         </Link>
 
         <Link
-          to="/portal/plan"
+          to="/portal/billing"
           className="inline-flex items-center rounded-full border border-slate-700 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-900"
         >
           {u.linkPlan}

@@ -158,7 +158,7 @@ export default function PortalCheckoutSuccessPage() {
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => navigate("/portal/plan")}
+                onClick={() => navigate("/portal/billing")}
                 className="flex-1 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 transition-colors"
               >
                 {t.checkoutSuccess.backPlans}

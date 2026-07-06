@@ -2691,6 +2691,630 @@ a {
   border-color: var(--portal-accent-hover);
 }
 
+/* —— Business Management Center (Sprint 7) —— */
+.business-center {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.business-kpi-grid {
+  gap: 10px;
+}
+
+@media (min-width: 1024px) {
+  .business-kpi-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.business-info-grid {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .business-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 16px;
+  }
+}
+
+.business-info-row {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--dashboard-border-soft);
+}
+
+.business-info-row dt {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dashboard-text-muted);
+}
+
+.business-info-row dd {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dashboard-text-primary);
+  word-break: break-word;
+}
+
+.business-map-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  min-height: 96px;
+  border-radius: 8px;
+  border: 1px dashed var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  font-size: 12px;
+  color: var(--dashboard-text-muted);
+}
+
+.business-cloud-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+
+.business-stat-card {
+  border-radius: 8px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  padding: 8px 10px;
+}
+
+.business-stat-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dashboard-text-muted);
+}
+
+.business-stat-value {
+  display: block;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 4px;
+  line-height: 1.35;
+  color: var(--dashboard-text-primary);
+}
+
+.business-checklist-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.business-checklist-percent {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dashboard-text-secondary);
+}
+
+.business-checklist {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.business-checklist-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  font-size: 12px;
+}
+
+.business-checklist-label {
+  color: var(--dashboard-text-secondary);
+}
+
+.business-checklist-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--dashboard-border-soft);
+}
+
+.business-checklist-badge--complete {
+  color: #059669;
+  border-color: rgba(5, 150, 105, 0.25);
+  background: rgba(5, 150, 105, 0.08);
+}
+
+.business-checklist-badge--pending {
+  color: #b45309;
+  border-color: rgba(180, 83, 9, 0.25);
+  background: rgba(180, 83, 9, 0.08);
+}
+
+.business-checklist-badge--incomplete {
+  color: var(--dashboard-text-muted);
+}
+
+.business-modules-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+@media (min-width: 768px) {
+  .business-modules-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .business-modules-grid {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+}
+
+.business-module-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 8px;
+  border: 1px dashed var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  padding: 10px 12px;
+  opacity: 0.85;
+}
+
+.business-module-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dashboard-text-primary);
+}
+
+.business-edit-form {
+  scroll-margin-top: 80px;
+}
+
+.business-form-head {
+  margin-bottom: 12px;
+}
+
+.business-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.business-form-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+  .business-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.business-form-field--wide {
+  grid-column: 1 / -1;
+}
+
+.business-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.business-form-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--dashboard-text-muted);
+}
+
+.business-form-actions {
+  margin-top: 8px;
+}
+
+.business-form-alert {
+  border-radius: 8px;
+  border: 1px solid var(--dashboard-border-soft);
+  padding: 8px 12px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.business-form-alert--error {
+  border-color: rgba(220, 38, 38, 0.3);
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--dashboard-text-primary);
+}
+
+.business-form-alert--success {
+  border-color: rgba(5, 150, 105, 0.3);
+  background: rgba(5, 150, 105, 0.08);
+  color: var(--dashboard-text-primary);
+}
+
+/* Account & Security Center */
+.account-center {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.account-kpi-grid {
+  gap: 10px;
+}
+
+@media (min-width: 1024px) {
+  .account-kpi-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.account-info-grid {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .account-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 16px;
+  }
+}
+
+.account-info-row {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--dashboard-border-soft);
+}
+
+.account-info-row dt {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dashboard-text-muted);
+}
+
+.account-info-row dd {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dashboard-text-primary);
+  word-break: break-word;
+}
+
+.account-pref-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.account-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.account-form-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+  .account-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.account-form-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.account-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.account-form-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--dashboard-text-muted);
+}
+
+.account-form-actions {
+  margin-top: 8px;
+}
+
+.account-form-alert {
+  border-radius: 8px;
+  border: 1px solid var(--dashboard-border-soft);
+  padding: 8px 12px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.account-form-alert--error {
+  border-color: rgba(220, 38, 38, 0.3);
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--dashboard-text-primary);
+}
+
+.account-form-alert--success {
+  border-color: rgba(5, 150, 105, 0.3);
+  background: rgba(5, 150, 105, 0.08);
+  color: var(--dashboard-text-primary);
+}
+
+.account-secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dashboard-text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.account-secondary-btn:hover:not(:disabled) {
+  border-color: var(--dashboard-border);
+  background: var(--dashboard-surface-elevated);
+}
+
+.account-secondary-btn--light {
+  background: #fff;
+}
+
+.account-secondary-btn--link {
+  text-decoration: none;
+}
+
+.account-placeholder-list {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--dashboard-border-soft);
+  padding-top: 12px;
+}
+
+.account-placeholder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px dashed var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  font-size: 12px;
+  color: var(--dashboard-text-secondary);
+}
+
+.account-legal-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.account-legal-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  font-size: 12px;
+  font-weight: 500;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.account-legal-link:hover {
+  border-color: var(--dashboard-border);
+  background: var(--dashboard-surface-elevated);
+}
+
+.account-data-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.account-checklist {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.account-checklist-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  font-size: 12px;
+}
+
+.account-checklist-label {
+  color: var(--dashboard-text-secondary);
+}
+
+.account-checklist-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--dashboard-border-soft);
+}
+
+.account-checklist-badge--complete {
+  color: #059669;
+  border-color: rgba(5, 150, 105, 0.25);
+  background: rgba(5, 150, 105, 0.08);
+}
+
+.account-checklist-badge--pending {
+  color: #b45309;
+  border-color: rgba(180, 83, 9, 0.25);
+  background: rgba(180, 83, 9, 0.08);
+}
+
+.account-checklist-badge--soon {
+  color: var(--dashboard-text-muted);
+}
+
+/* Plans & Billing Center */
+.billing-center {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.billing-kpi-grid {
+  gap: 10px;
+}
+
+@media (min-width: 1024px) {
+  .billing-kpi-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.billing-info-grid {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+@media (min-width: 768px) {
+  .billing-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 16px;
+  }
+}
+
+.billing-info-row {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--dashboard-border-soft);
+}
+
+.billing-info-row dt {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dashboard-text-muted);
+}
+
+.billing-info-row dd {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dashboard-text-primary);
+  word-break: break-word;
+}
+
+.billing-data-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.billing-secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dashboard-text-secondary);
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.billing-secondary-btn:hover:not(:disabled) {
+  border-color: var(--dashboard-border);
+  background: var(--dashboard-surface-elevated);
+}
+
+.billing-secondary-btn--light {
+  background: #fff;
+}
+
+.billing-secondary-btn--link {
+  text-decoration: none;
+}
+
+.business-form-hint {
+  font-size: 11px;
+  margin: 4px 0 0;
+}
+
+.business-form-hint--warning {
+  color: #b45309;
+}
+
+.business-quick-btn--active {
+  cursor: pointer;
+  border-color: var(--portal-accent);
+  color: var(--portal-accent);
+  background: transparent;
+}
+
+.business-quick-btn--active:hover {
+  background: var(--dashboard-hover-bg);
+}
+
 /* —— POS Control Center (Sprint 2) —— */
 .pos-hub-home {
   display: flex;

@@ -16,7 +16,6 @@ import {
   LogOut,
   Menu,
   Monitor,
-  Receipt,
   ShoppingBag,
   BarChart3,
   User,
@@ -76,8 +75,7 @@ function usePortalNavItems(): NavItem[] {
     { to: "/portal/business", label: t.layout.navBusiness, icon: <Building2 size={18} /> },
     { to: "/portal/licenses", label: t.layout.navLicenses, icon: <KeyRound size={18} /> },
     { to: "/portal/devices", label: t.layout.navDevices, icon: <HardDrive size={18} /> },
-    { to: "/portal/plan", label: t.layout.navPlans, icon: <CreditCard size={18} /> },
-    { to: "/portal/invoices", label: t.layout.navInvoices, icon: <Receipt size={18} /> },
+    { to: "/portal/billing", label: t.layout.navPlans, icon: <CreditCard size={18} /> },
     { to: "/portal/support", label: t.layout.navSupport, icon: <LifeBuoy size={18} /> },
     {
       to: "/portal/pos",

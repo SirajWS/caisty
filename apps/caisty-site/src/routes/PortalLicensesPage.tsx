@@ -95,7 +95,7 @@ const PortalLicensesPage: React.FC = () => {
 
       <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
         {t.licenses.slimPlanHint}{" "}
-        <Link to="/portal/plan" className={`no-underline hover:underline ${portalTextLink(isLight)}`}>
+        <Link to="/portal/billing" className={`no-underline hover:underline ${portalTextLink(isLight)}`}>
           {t.licenses.slimPlanLink}
         </Link>
       </p>
@@ -107,7 +107,7 @@ const PortalLicensesPage: React.FC = () => {
       ) : !hasLicenses ? (
         <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
           {t.licenses.emptyState.split(t.licenses.emptyStateLink)[0]}
-          <Link to="/portal/plan" className={`no-underline hover:underline ${portalTextLink(isLight)}`}>
+          <Link to="/portal/billing" className={`no-underline hover:underline ${portalTextLink(isLight)}`}>
             {t.licenses.emptyStateLink}
           </Link>
           {t.licenses.emptyState.split(t.licenses.emptyStateLink)[1] ?? ""}
@@ -255,7 +255,7 @@ const PortalLicensesPage: React.FC = () => {
           }`}
         >
           {t.licenses.footer}{" "}
-          <Link to="/portal/plan" className={`hover:underline ${portalTextLink(isLight)}`}>
+          <Link to="/portal/billing" className={`hover:underline ${portalTextLink(isLight)}`}>
             {t.licenses.footerPlanLink}
           </Link>
         </p>

@@ -73,7 +73,7 @@ function deriveLicenseView(
 ): PosHubLicenseView {
   const primary = pickPrimaryPortalLicense(licenses);
   const dash = t.labels.dash;
-  const upgradeHref = "/portal/plan";
+  const upgradeHref = "/portal/billing";
 
   if (!primary) {
     return {
@@ -258,7 +258,7 @@ function deriveNotifications(
       id: "license-expiry",
       tone: days <= 7 ? "action_required" : "attention",
       message: p.notifyLicenseExpires.replace("{{days}}", String(days)),
-      href: "/portal/plan",
+      href: "/portal/billing",
     });
   }
 

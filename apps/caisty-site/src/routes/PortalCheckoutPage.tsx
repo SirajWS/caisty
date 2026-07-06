@@ -146,7 +146,7 @@ const PortalCheckoutPage: React.FC = () => {
 
   React.useEffect(() => {
     if (!isValidPlan) {
-      navigate("/portal/plan", { replace: true });
+      navigate("/portal/billing", { replace: true });
     }
   }, [isValidPlan, navigate]);
 
@@ -275,7 +275,7 @@ const PortalCheckoutPage: React.FC = () => {
         return;
       }
 
-      navigate("/portal/invoices");
+      navigate("/portal/billing#billing-invoices");
     } catch (err: unknown) {
       console.error("payment failed", err);
       setError(
@@ -299,7 +299,7 @@ const PortalCheckoutPage: React.FC = () => {
             </p>
           </div>
           <Link
-            to="/portal/plan"
+            to="/portal/billing"
             className="text-sm text-orange-300 hover:text-orange-200"
           >
             {t.checkout.backLink}
@@ -328,7 +328,7 @@ const PortalCheckoutPage: React.FC = () => {
                   : t.checkout.alreadyHavePlan}
           </p>
           <Link
-            to="/portal/plan"
+            to="/portal/billing"
             className="inline-block text-orange-300 hover:text-orange-200 underline font-medium"
           >
             {t.checkout.backToPlans}
