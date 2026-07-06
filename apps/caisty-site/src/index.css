@@ -1914,6 +1914,319 @@ a {
   border-color: var(--portal-accent-hover);
 }
 
+/* —— Reports Analytics Center (Sprint 5) —— */
+.reports-center {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.reports-kpi-grid {
+  gap: 10px;
+}
+
+@media (min-width: 1024px) {
+  .reports-kpi-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.reports-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.reports-filter-btn {
+  border-radius: 999px;
+  border: 1px solid var(--dashboard-border-soft);
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--dashboard-text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.reports-filter-btn:hover {
+  border-color: var(--dashboard-accent-border-soft);
+  color: var(--portal-accent);
+}
+
+.reports-filter-btn--active {
+  border-color: var(--dashboard-accent-border-soft);
+  background: var(--dashboard-hover-bg);
+  color: var(--portal-accent);
+}
+
+.reports-chart-panel {
+  padding-bottom: 16px;
+}
+
+.reports-chart-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+@media (min-width: 640px) {
+  .reports-chart-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.reports-chart-placeholder {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-height: 200px;
+  padding: 20px 12px 8px;
+  border-radius: 8px;
+  border: 1px dashed var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+}
+
+.reports-chart-placeholder-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--dashboard-border-soft);
+  color: var(--dashboard-text-muted);
+}
+
+.reports-chart-placeholder-svg {
+  width: 100%;
+  max-width: 480px;
+  height: 80px;
+  opacity: 0.55;
+}
+
+.reports-chart-axis {
+  stroke: var(--dashboard-border-soft);
+  stroke-width: 1;
+}
+
+.reports-chart-grid-line {
+  stroke: var(--dashboard-border-soft);
+  stroke-width: 0.5;
+  stroke-dasharray: 4 4;
+  opacity: 0.5;
+}
+
+.reports-chart-line--empty {
+  fill: none;
+  stroke: var(--dashboard-border-soft);
+  stroke-width: 1.5;
+  stroke-dasharray: 6 4;
+}
+
+.reports-chart-placeholder-text {
+  font-size: 12px;
+  color: var(--dashboard-text-muted);
+  text-align: center;
+  margin: 0;
+  max-width: 24rem;
+  line-height: 1.45;
+}
+
+.reports-chart-placeholder-text--compact {
+  font-size: 11px;
+}
+
+.reports-hourly-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reports-hourly-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 120px;
+  padding: 8px 4px 0;
+}
+
+.reports-hourly-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.reports-hourly-bar-track {
+  width: 100%;
+  max-width: 32px;
+  height: 96px;
+  display: flex;
+  align-items: flex-end;
+  border-radius: 4px 4px 0 0;
+  background: var(--dashboard-surface);
+  border: 1px solid var(--dashboard-border-soft);
+}
+
+.reports-hourly-bar-fill {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  background: var(--portal-accent);
+  opacity: 0.85;
+}
+
+.reports-hourly-bar-fill--empty {
+  height: 4px;
+  opacity: 0.25;
+  background: var(--dashboard-text-muted);
+}
+
+.reports-hourly-bar-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--dashboard-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.reports-payment-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (min-width: 640px) {
+  .reports-payment-layout {
+    flex-direction: row;
+    align-items: stretch;
+  }
+}
+
+.reports-payment-cards {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.reports-stat-card {
+  border-radius: 8px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  padding: 8px 10px;
+}
+
+.reports-stat-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dashboard-text-muted);
+}
+
+.reports-stat-value {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+.reports-pie-placeholder {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 120px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px dashed var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+}
+
+.reports-pie-placeholder-ring {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px dashed var(--dashboard-border-soft);
+  color: var(--dashboard-text-muted);
+}
+
+.reports-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.reports-table-empty {
+  text-align: center;
+  padding: 24px 12px !important;
+  color: var(--dashboard-text-muted);
+  font-size: 13px;
+}
+
+.reports-tax-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+@media (min-width: 640px) {
+  .reports-tax-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.reports-trends-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+@media (min-width: 768px) {
+  .reports-trends-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .reports-trends-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.reports-trend-card {
+  border-radius: 8px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  padding: 10px 12px;
+}
+
+.reports-trend-value {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 6px;
+  color: var(--dashboard-text-primary);
+}
+
+.reports-exports-panel {
+  margin-bottom: 4px;
+}
+
 /* —— POS Control Center (Sprint 2) —— */
 .pos-hub-home {
   display: flex;

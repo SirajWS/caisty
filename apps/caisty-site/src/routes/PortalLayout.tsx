@@ -18,6 +18,7 @@ import {
   Monitor,
   Receipt,
   ShoppingBag,
+  BarChart3,
   User,
   X,
 } from "lucide-react";
@@ -65,6 +66,11 @@ function usePortalNavItems(): NavItem[] {
       label: t.layout.navOrders,
       icon: <ShoppingBag size={18} />,
       sectionStart: true,
+    },
+    {
+      to: "/portal/reports",
+      label: t.layout.navReports,
+      icon: <BarChart3 size={18} />,
     },
     { to: "/portal/account", label: t.layout.navAccount, icon: <User size={18} /> },
     { to: "/portal/business", label: t.layout.navBusiness, icon: <Building2 size={18} /> },
