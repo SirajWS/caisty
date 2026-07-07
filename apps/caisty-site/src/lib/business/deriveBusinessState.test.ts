@@ -50,7 +50,7 @@ function makeData(overrides: Partial<BusinessData> = {}): BusinessData {
 }
 
 describe("deriveBusinessState", () => {
-  it("uses real profile fields without inventing owner or store id", () => {
+  it("derives compact fiscal summary from profile", () => {
     const state = deriveBusinessState({
       data: makeData(),
       environmentLabel: "staging",
@@ -58,14 +58,13 @@ describe("deriveBusinessState", () => {
       t: portalEn,
     });
 
-    expect(state.overview.find((k) => k.id === "name")?.value).toBe("Caisty Café");
-    expect(state.company.find((f) => f.id === "owner")?.value).toBe("Not configured");
-    expect(state.store.find((f) => f.id === "store_id")?.value).toBe("Not configured");
-    expect(state.contact.find((f) => f.id === "email")?.value).toBe("alex@test.com");
     expect(state.hasProfile).toBe(true);
+    expect(state.fiscalSummary.find((f) => f.id === "country")?.value).toBe("Germany");
+    expect(state.fiscalSummary.find((f) => f.id === "provider")?.value).toContain("Fiskaly");
+    expect(state.fiscalSummary.find((f) => f.id === "vat_status")?.value).toBe("Configured");
   });
 
-  it("shows not configured when profile is missing", () => {
+  it("shows not configured fiscal summary when profile is missing", () => {
     const state = deriveBusinessState({
       data: makeData({ business: null }),
       environmentLabel: "staging",
@@ -74,11 +73,14 @@ describe("deriveBusinessState", () => {
     });
 
     expect(state.hasProfile).toBe(false);
-    expect(state.company.every((f) => f.value === "Not configured")).toBe(true);
-    expect(state.completionPercent).toBe(0);
+    expect(state.setup.percent).toBe(0);
+    expect(state.setup.missingItems).toContain("Business profile");
+    expect(state.fiscalSummary.every((f) => f.id === "vat_status" || f.value === "Not configured")).toBe(
+      true,
+    );
   });
 
-  it("enables edit business quick action", () => {
+  it("tracks business-only setup progress and missing fiscal activation", () => {
     const state = deriveBusinessState({
       data: makeData(),
       environmentLabel: "staging",
@@ -86,8 +88,35 @@ describe("deriveBusinessState", () => {
       t: portalEn,
     });
 
-    const edit = state.quickActions.find((a) => a.id === "edit");
-    expect(edit?.disabled).toBe(false);
-    expect(edit?.action).toBe("scroll_to_edit");
+    expect(state.setup.percent).toBe(89);
+    expect(state.setup.missingItems).toContain("Fiscal activation");
+    expect(state.setup.complete).toBe(false);
+  });
+
+  it("marks setup complete when fiscal is active and fields are filled", () => {
+    const state = deriveBusinessState({
+      data: makeData({ business: makeProfile({ fiscalStatus: "active" }) }),
+      environmentLabel: "staging",
+      locale: "en-US",
+      t: portalEn,
+    });
+
+    expect(state.setup.percent).toBe(100);
+    expect(state.setup.complete).toBe(true);
+    expect(state.setup.missingItems).toHaveLength(0);
+  });
+
+  it("lists missing VAT and tax fields in setup progress", () => {
+    const state = deriveBusinessState({
+      data: makeData({
+        business: makeProfile({ vatId: "", taxId: "" }),
+      }),
+      environmentLabel: "staging",
+      locale: "en-US",
+      t: portalEn,
+    });
+
+    expect(state.setup.missingItems).toContain("VAT ID");
+    expect(state.setup.missingItems).toContain("Tax number");
   });
 });

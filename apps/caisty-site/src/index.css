@@ -2840,11 +2840,175 @@ a {
   border-color: var(--portal-accent-hover);
 }
 
-/* —— Business Management Center (Sprint 7) —— */
+/* —— Business Management Center (Sprint 7 / 1.5) —— */
 .business-center {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
+}
+
+.business-page-header {
+  margin-bottom: 2px;
+}
+
+.business-setup {
+  border-radius: 10px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  padding: 10px 12px;
+}
+
+.business-setup-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.business-setup-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dashboard-text-primary);
+}
+
+.business-setup-percent {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dashboard-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.business-setup-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--dashboard-hover-bg);
+  overflow: hidden;
+}
+
+.business-setup-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--portal-accent, #2563eb);
+  transition: width 0.2s ease;
+}
+
+.business-setup-message,
+.business-setup-missing {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--dashboard-text-muted);
+}
+
+.business-setup-message--complete {
+  margin-bottom: 0;
+  color: var(--dashboard-text-primary);
+}
+
+.business-setup-missing-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.business-setup-missing-list {
+  margin: 0;
+  padding: 0 0 0 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}
+
+.business-setup-missing-list li {
+  list-style: disc;
+}
+
+.business-fiscal-summary {
+  padding: 10px 12px;
+}
+
+.business-fiscal-summary-title {
+  margin-bottom: 8px !important;
+}
+
+.business-fiscal-summary-grid {
+  display: grid;
+  gap: 6px 12px;
+  margin: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 768px) {
+  .business-fiscal-summary-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+.business-fiscal-summary-item {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.business-fiscal-summary-item dt {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dashboard-text-muted);
+}
+
+.business-fiscal-summary-item dd {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dashboard-text-primary);
+  word-break: break-word;
+}
+
+.business-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 0;
+  padding: 8px 2px 2px;
+  border-top: 1px solid var(--dashboard-border-soft);
+  font-size: 12px;
+}
+
+.business-footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.business-footer-item {
+  display: inline-flex;
+  align-items: center;
+}
+
+.business-footer-sep {
+  margin: 0 8px;
+  color: var(--dashboard-text-muted);
+}
+
+.business-center .business-edit-form {
+  padding: 10px 12px;
+}
+
+.business-center .business-form-head {
+  margin-bottom: 8px;
+}
+
+.business-center .business-form {
+  gap: 6px;
+}
+
+.business-center .business-form-grid {
+  gap: 8px;
+}
+
+.business-center .business-form-actions {
+  margin-top: 6px;
 }
 
 .business-kpi-grid {

@@ -6,17 +6,49 @@ import type {
   PortalLicense,
 } from "../portalApi";
 
+export type BusinessField = {
+  id: string;
+  label: string;
+  value: string;
+};
+
+export type BusinessSetupProgress = {
+  percent: number;
+  missingItems: string[];
+  complete: boolean;
+};
+
+export type BusinessData = {
+  business: PortalBusinessProfile | null;
+  licenses: PortalLicense[];
+  devices: PortalDevice[];
+  invoices: PortalInvoice[];
+  customer: PortalCustomer;
+  loading: boolean;
+  error: boolean;
+  lastSyncedAt: Date | null;
+};
+
+/** Serializable snapshot — ready for WebSocket merge later. */
+export type BusinessDerivedState = {
+  setup: BusinessSetupProgress;
+  fiscalSummary: BusinessField[];
+  hasProfile: boolean;
+};
+
+export type DeriveBusinessInput = {
+  data: BusinessData;
+  environmentLabel: string;
+  locale: string;
+  t: import("../translations/portal").PortalTranslations;
+};
+
+/** @deprecated Legacy types kept for unused components — not used by deriveBusinessState. */
 export type BusinessKpi = {
   id: string;
   label: string;
   value: string;
   hint?: string;
-};
-
-export type BusinessField = {
-  id: string;
-  label: string;
-  value: string;
 };
 
 export type ChecklistStatus = "complete" | "incomplete" | "pending";
@@ -46,38 +78,4 @@ export type CloudStatusView = {
   lastSync: string;
   posConnected: string;
   apiStatus: string;
-};
-
-export type BusinessData = {
-  business: PortalBusinessProfile | null;
-  licenses: PortalLicense[];
-  devices: PortalDevice[];
-  invoices: PortalInvoice[];
-  customer: PortalCustomer;
-  loading: boolean;
-  error: boolean;
-  lastSyncedAt: Date | null;
-};
-
-/** Serializable snapshot — ready for WebSocket merge later. */
-export type BusinessDerivedState = {
-  overview: BusinessKpi[];
-  company: BusinessField[];
-  address: BusinessField[];
-  fiscal: BusinessField[];
-  contact: BusinessField[];
-  store: BusinessField[];
-  cloud: CloudStatusView;
-  checklist: ChecklistItem[];
-  completionPercent: number;
-  quickActions: BusinessQuickAction[];
-  futureModules: FutureModule[];
-  hasProfile: boolean;
-};
-
-export type DeriveBusinessInput = {
-  data: BusinessData;
-  environmentLabel: string;
-  locale: string;
-  t: import("../translations/portal").PortalTranslations;
 };

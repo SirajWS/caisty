@@ -7,17 +7,11 @@ import { portalLocaleTag } from "../lib/portalLocale";
 import { getPortalEnvironmentLabel } from "../config/posConfig";
 import { usePortalBusinessData } from "../lib/business/usePortalBusinessData";
 import { deriveBusinessState } from "../lib/business/deriveBusinessState";
-import { BusinessOverview } from "../components/business/BusinessOverview";
+import { BusinessSetupProgress } from "../components/business/BusinessSetupProgress";
 import { BusinessEditForm } from "../components/business/BusinessEditForm";
-import { FiscalConfiguration } from "../components/business/FiscalConfiguration";
-import { BusinessContact } from "../components/business/BusinessContact";
-import { StoreInformation } from "../components/business/StoreInformation";
-import { CloudStatus } from "../components/business/CloudStatus";
-import { CompletionChecklist } from "../components/business/CompletionChecklist";
-import { BusinessQuickActions } from "../components/business/BusinessQuickActions";
-import { FutureModules } from "../components/business/FutureModules";
+import { FiscalSummary } from "../components/business/FiscalSummary";
+import { BusinessFooter } from "../components/business/BusinessFooter";
 import { portalPageShell, portalPageSubtitle, portalPageTitle } from "../lib/portalUi";
-import type { BusinessQuickAction } from "../lib/business/types";
 
 const BUSINESS_EDIT_FORM_ID = "business-edit-form";
 
@@ -45,27 +39,28 @@ const PortalBusinessPage: React.FC = () => {
     [data, environmentLabel, locale, t],
   );
 
-  function scrollToEditForm() {
-    document.getElementById(BUSINESS_EDIT_FORM_ID)?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  }
-
-  function handleQuickAction(action: BusinessQuickAction) {
-    if (action.action === "scroll_to_edit") {
-      scrollToEditForm();
-    }
-  }
+  const footerLinks = React.useMemo(
+    () => [
+      { id: "licenses", label: c.footerLicenses, href: "/portal/licenses" },
+      { id: "devices", label: c.footerDevices, href: "/portal/devices" },
+      { id: "support", label: c.footerSupport, href: "/portal/support" },
+    ],
+    [c.footerDevices, c.footerLicenses, c.footerSupport],
+  );
 
   return (
     <div className={`${portalPageShell()} dashboard-home business-center`}>
-      <header className="space-y-1">
+      <header className="business-page-header">
         <h1 className={portalPageTitle(isLight)}>{c.pageTitle}</h1>
         <p className={portalPageSubtitle(isLight)}>{c.pageSubtitle}</p>
       </header>
 
-      <BusinessOverview kpis={business.overview} loading={data.loading} isLight={isLight} />
+      <BusinessSetupProgress
+        setup={business.setup}
+        title={c.setupTitle}
+        missingLabel={c.setupMissing}
+        completeMessage={c.setupComplete}
+      />
 
       <BusinessEditForm
         formId={BUSINESS_EDIT_FORM_ID}
@@ -76,47 +71,9 @@ const PortalBusinessPage: React.FC = () => {
         onSaved={data.reload}
       />
 
-      <div className="live-dashboard-split">
-        <BusinessContact
-          fields={business.contact}
-          title={c.sectionContact}
-          comingSoonNote={c.contactComingSoon}
-        />
-        <FiscalConfiguration fields={business.fiscal} title={c.sectionFiscal} />
-      </div>
+      <FiscalSummary fields={business.fiscalSummary} title={c.sectionFiscalSummary} />
 
-      <div className="live-dashboard-split">
-        <StoreInformation fields={business.store} title={c.sectionStore} />
-        <CloudStatus
-          cloud={business.cloud}
-          title={c.sectionCloud}
-          labels={{
-            cloudConnected: c.cloudConnectedLabel,
-            lastSync: c.lastSyncLabel,
-            posConnected: c.posConnectedLabel,
-            apiStatus: c.apiStatusLabel,
-          }}
-        />
-      </div>
-
-      <CompletionChecklist
-        items={business.checklist}
-        title={c.sectionChecklist}
-        completionLabel={c.completionLabel}
-        completionPercent={business.completionPercent}
-      />
-
-      <BusinessQuickActions
-        actions={business.quickActions}
-        title={c.sectionActions}
-        onAction={handleQuickAction}
-      />
-
-      <FutureModules
-        modules={business.futureModules}
-        title={c.sectionFuture}
-        comingSoonLabel={c.comingSoon}
-      />
+      <BusinessFooter links={footerLinks} isLight={isLight} />
     </div>
   );
 };
