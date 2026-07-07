@@ -5,10 +5,14 @@ export function ReportsOverview({
   kpis,
   loading,
   isLight,
+  periodLabel,
+  hideHints,
 }: {
   kpis: ReportsKpi[];
   loading: boolean;
   isLight: boolean;
+  periodLabel?: string;
+  hideHints?: boolean;
 }) {
   if (loading) {
     return (
@@ -24,9 +28,11 @@ export function ReportsOverview({
     <div className="dashboard-kpi-grid reports-kpi-grid">
       {kpis.map((kpi) => (
         <div key={kpi.id} className="dashboard-kpi">
-          <span className={portalSectionLabel(isLight)}>{kpi.label}</span>
+          <span className={portalSectionLabel(isLight)}>
+            {periodLabel ? `${kpi.label} · ${periodLabel}` : kpi.label}
+          </span>
           <span className="dashboard-kpi-value tabular-nums">{kpi.value}</span>
-          {kpi.hint ? <span className="dashboard-kpi-hint">{kpi.hint}</span> : null}
+          {!hideHints && kpi.hint ? <span className="dashboard-kpi-hint">{kpi.hint}</span> : null}
         </div>
       ))}
     </div>

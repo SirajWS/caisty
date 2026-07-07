@@ -3,9 +3,11 @@ import type { HourlySalesState } from "../../lib/reports/types";
 export function HourlySalesChart({
   data,
   title,
+  mutedPlaceholder,
 }: {
   data: HourlySalesState;
   title: string;
+  mutedPlaceholder?: boolean;
 }) {
   return (
     <section className="dashboard-panel reports-chart-panel">
@@ -21,9 +23,9 @@ export function HourlySalesChart({
             </div>
           ))}
         </div>
-        <p className="reports-chart-placeholder-text reports-chart-placeholder-text--compact">
-          {data.placeholderMessage}
-        </p>
+        {!mutedPlaceholder ? (
+          <p className="reports-section-hint">{data.placeholderMessage}</p>
+        ) : null}
       </div>
     </section>
   );

@@ -5,12 +5,14 @@ export function TopEmployees({
   loading,
   title,
   emptyLabel,
+  emptyHint,
   columns,
 }: {
   employees: TopEmployeeRow[];
   loading: boolean;
   title: string;
   emptyLabel: string;
+  emptyHint?: string;
   columns: {
     employee: string;
     orders: string;
@@ -18,6 +20,8 @@ export function TopEmployees({
     avgOrder: string;
   };
 }) {
+  const isEmpty = !loading && employees.length === 0;
+
   return (
     <section className="dashboard-panel dashboard-panel--wide">
       <h2 className="dashboard-panel-title">{title}</h2>
@@ -38,10 +42,13 @@ export function TopEmployees({
                   …
                 </td>
               </tr>
-            ) : employees.length === 0 ? (
+            ) : isEmpty ? (
               <tr>
                 <td colSpan={4} className="reports-table-empty">
-                  {emptyLabel}
+                  <span className="reports-table-empty-primary">{emptyLabel}</span>
+                  {emptyHint ? (
+                    <span className="reports-table-empty-secondary">{emptyHint}</span>
+                  ) : null}
                 </td>
               </tr>
             ) : (

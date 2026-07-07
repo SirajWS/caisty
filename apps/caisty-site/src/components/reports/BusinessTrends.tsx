@@ -3,12 +3,14 @@ import type { TrendCard } from "../../lib/reports/types";
 export function BusinessTrends({
   trends,
   title,
+  hint,
 }: {
   trends: TrendCard[];
   title: string;
+  hint?: string;
 }) {
   return (
-    <section className="dashboard-panel dashboard-panel--wide">
+    <section className="dashboard-panel">
       <h2 className="dashboard-panel-title">{title}</h2>
       <div className="reports-trends-grid">
         {trends.map((trend) => (
@@ -18,6 +20,7 @@ export function BusinessTrends({
           </div>
         ))}
       </div>
+      {hint ? <p className="reports-section-hint">{hint}</p> : null}
     </section>
   );
 }

@@ -5,12 +5,14 @@ export function TopProducts({
   loading,
   title,
   emptyLabel,
+  emptyHint,
   columns,
 }: {
   products: TopProductRow[];
   loading: boolean;
   title: string;
   emptyLabel: string;
+  emptyHint?: string;
   columns: {
     product: string;
     quantity: string;
@@ -18,6 +20,8 @@ export function TopProducts({
     category: string;
   };
 }) {
+  const isEmpty = !loading && products.length === 0;
+
   return (
     <section className="dashboard-panel dashboard-panel--wide">
       <h2 className="dashboard-panel-title">{title}</h2>
@@ -38,10 +42,13 @@ export function TopProducts({
                   …
                 </td>
               </tr>
-            ) : products.length === 0 ? (
+            ) : isEmpty ? (
               <tr>
                 <td colSpan={4} className="reports-table-empty">
-                  {emptyLabel}
+                  <span className="reports-table-empty-primary">{emptyLabel}</span>
+                  {emptyHint ? (
+                    <span className="reports-table-empty-secondary">{emptyHint}</span>
+                  ) : null}
                 </td>
               </tr>
             ) : (

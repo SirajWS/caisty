@@ -11,9 +11,13 @@ function toneClass(tone: PosHubTone): string {
 export function TaxesOverview({
   taxes,
   title,
+  hint,
+  dash,
 }: {
   taxes: TaxCard[];
   title: string;
+  hint?: string;
+  dash: string;
 }) {
   return (
     <section className="dashboard-panel">
@@ -22,10 +26,13 @@ export function TaxesOverview({
         {taxes.map((card) => (
           <div key={card.id} className="reports-stat-card">
             <span className="reports-stat-label">{card.label}</span>
-            <span className={`reports-stat-value ${toneClass(card.tone)}`}>{card.value}</span>
+            <span className={`reports-stat-value tabular-nums ${toneClass(card.tone)}`}>
+              {hint ? dash : card.value}
+            </span>
           </div>
         ))}
       </div>
+      {hint ? <p className="reports-section-hint">{hint}</p> : null}
     </section>
   );
 }

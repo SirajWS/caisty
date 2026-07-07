@@ -12,31 +12,35 @@ function toneClass(tone: PosHubTone): string {
 export function PaymentMethods({
   methods,
   title,
-  chartPlaceholder,
+  hint,
+  dash,
 }: {
   methods: PaymentMethodStat[];
   title: string;
-  chartPlaceholder: string;
+  hint?: string;
+  dash: string;
 }) {
   return (
     <section className="dashboard-panel reports-payment-panel">
       <h2 className="dashboard-panel-title">{title}</h2>
       <div className="reports-payment-layout">
-        <div className="reports-payment-cards">
-          {methods.map((card) => (
-            <div key={card.id} className="reports-stat-card">
-              <span className="reports-stat-label">{card.label}</span>
-              <span className={`reports-stat-value ${toneClass(card.tone)}`}>{card.value}</span>
-            </div>
-          ))}
+        <div className="reports-payment-summary">
+          <div className="orders-payment-strip">
+            {methods.map((card) => (
+              <div key={card.id} className="orders-payment-strip-item">
+                <span className="orders-payment-label">{card.label}</span>
+                <span className={`orders-payment-value tabular-nums ${toneClass(card.tone)}`}>
+                  {hint ? dash : card.value}
+                </span>
+              </div>
+            ))}
+          </div>
+          {hint ? <p className="orders-payment-hint">{hint}</p> : null}
         </div>
-        <div className="reports-pie-placeholder" aria-hidden={false}>
+        <div className="reports-pie-placeholder reports-pie-placeholder--muted" aria-hidden={false}>
           <div className="reports-pie-placeholder-ring">
             <PieChart size={24} strokeWidth={1.5} />
           </div>
-          <p className="reports-chart-placeholder-text reports-chart-placeholder-text--compact">
-            {chartPlaceholder}
-          </p>
         </div>
       </div>
     </section>

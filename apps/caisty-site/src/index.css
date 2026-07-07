@@ -1997,8 +1997,45 @@ a {
   gap: 16px;
 }
 
+.reports-period-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+@media (min-width: 640px) {
+  .reports-period-bar {
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px 12px;
+  }
+}
+
+.reports-period-bar-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dashboard-text-muted);
+  flex-shrink: 0;
+  padding-top: 5px;
+}
+
+.reports-period-custom-hint {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--dashboard-text-muted);
+}
+
 .reports-kpi-grid {
   gap: 10px;
+}
+
+@media (min-width: 640px) {
+  .reports-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 1024px) {
@@ -2068,6 +2105,13 @@ a {
   background: var(--dashboard-surface);
 }
 
+.reports-chart-placeholder--muted {
+  min-height: 160px;
+  opacity: 0.72;
+  border-style: solid;
+  border-color: var(--dashboard-border-soft);
+}
+
 .reports-chart-placeholder-icon {
   display: flex;
   align-items: center;
@@ -2116,6 +2160,13 @@ a {
 
 .reports-chart-placeholder-text--compact {
   font-size: 11px;
+}
+
+.reports-section-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dashboard-text-muted);
+  line-height: 1.45;
 }
 
 .reports-hourly-chart {
@@ -2242,6 +2293,15 @@ a {
   color: var(--dashboard-text-muted);
 }
 
+.reports-pie-placeholder--muted {
+  opacity: 0.65;
+}
+
+.reports-payment-summary {
+  flex: 1;
+  min-width: 0;
+}
+
 .reports-table-wrap {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -2249,9 +2309,22 @@ a {
 
 .reports-table-empty {
   text-align: center;
-  padding: 24px 12px !important;
+  padding: 28px 12px !important;
   color: var(--dashboard-text-muted);
   font-size: 13px;
+}
+
+.reports-table-empty-primary {
+  display: block;
+  font-weight: 500;
+  color: var(--dashboard-text-secondary);
+}
+
+.reports-table-empty-secondary {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--dashboard-text-muted);
 }
 
 .reports-tax-grid {
