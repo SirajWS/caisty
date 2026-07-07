@@ -10,7 +10,7 @@ import { pickPrimaryPortalLicense } from "../portalLicensePick";
 import { deriveFiscalVisibility } from "../useFiscalVisibility";
 import { derivePosHubState } from "../posHub/derivePosHubState";
 import { formatInstallerBytes } from "../posHub/format";
-import { isUpdateAvailable, pickHighestSemver } from "../posHub/posVersion";
+import { pickHighestSemver } from "../posHub/posVersion";
 import type {
   BusinessAlert,
   DashboardActivity,
@@ -123,9 +123,9 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
   const dash = input.t.labels.dash;
   const { data } = input;
   const { online, total } = countOnlineDevices(data.devices);
-  const installed = pickHighestSemver(data.devices.map((d) => d.appVersion));
+  const syncHint = l.waitingPosSyncShort;
 
-  let posValue = l.waitingPosSync;
+  let posValue = syncHint;
   let posStatus: DashboardKpi["status"] = "waiting_sync";
   if (total > 0) {
     posValue =
@@ -135,52 +135,58 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
     posStatus = "value";
   }
 
-  const syncValue = data.lastSyncedAt
-    ? data.lastSyncedAt.toLocaleString()
-    : dash;
+  const heartbeat = latestHeartbeat(data.devices);
+  let syncValue = dash;
+  let syncStatus: DashboardKpi["status"] = "waiting_sync";
+  if (heartbeat) {
+    syncValue = new Date(heartbeat).toLocaleString();
+    syncStatus = "value";
+  } else if (data.lastSyncedAt) {
+    syncValue = data.lastSyncedAt.toLocaleString();
+    syncStatus = "value";
+  }
 
   return [
     {
       id: "revenue",
       label: l.kpiRevenueToday,
       value: dash,
-      hint: l.waitingPosSync,
+      hint: syncHint,
       status: "waiting_sync",
     },
     {
       id: "orders",
       label: l.kpiOrdersToday,
       value: dash,
-      hint: l.waitingPosSync,
+      hint: syncHint,
       status: "waiting_sync",
     },
     {
       id: "receipts",
       label: l.kpiReceiptsToday,
       value: dash,
-      hint: l.waitingPosSync,
+      hint: syncHint,
       status: "waiting_sync",
-    },
-    {
-      id: "employees",
-      label: l.kpiEmployeesOnline,
-      value: dash,
-      hint: l.comingSoon,
-      status: "coming_soon",
     },
     {
       id: "pos_status",
       label: l.kpiPosStatus,
       value: posValue,
-      hint: installed ? `${l.kpiPosVersion}: ${installed}` : undefined,
       status: posStatus,
-      href: "/portal/pos",
+      href: "/portal/devices",
+    },
+    {
+      id: "employees",
+      label: l.kpiEmployeesOnline,
+      value: dash,
+      hint: syncHint,
+      status: "waiting_sync",
     },
     {
       id: "last_sync",
       label: l.kpiLastSync,
       value: data.loading ? dash : syncValue,
-      status: data.lastSyncedAt ? "value" : "waiting_sync",
+      status: syncStatus,
     },
   ];
 }
@@ -190,14 +196,14 @@ function deriveStoreStatus(input: DeriveDashboardInput): LiveStoreStatusItem[] {
   const { data } = input;
   const fiscal = deriveFiscalVisibility(data.business);
   const { online, total } = countOnlineDevices(data.devices);
-  const heartbeat = latestHeartbeat(data.devices);
+  const profileDone = isStepCompanyDone(data.business);
 
-  let posValue = l.waiting;
+  let posValue = l.waitingPosSyncShort;
   let posTone: LiveStoreStatusItem["tone"] = "unknown";
   if (total > 0) {
     posValue =
       online > 0
-        ? l.posConnected.replace("{{online}}", String(online)).replace("{{total}}", String(total))
+        ? l.posOnline.replace("{{count}}", String(online))
         : l.posOffline;
     posTone = online > 0 ? "ok" : "attention";
   }
@@ -223,7 +229,7 @@ function deriveStoreStatus(input: DeriveDashboardInput): LiveStoreStatusItem[] {
   const cloudConnected = !data.error && !data.loading;
 
   return [
-    { id: "pos", label: l.storePosConnection, value: posValue, tone: posTone },
+    { id: "pos", label: l.storePosLabel, value: posValue, tone: posTone },
     {
       id: "cloud",
       label: l.storeCloudConnection,
@@ -231,20 +237,11 @@ function deriveStoreStatus(input: DeriveDashboardInput): LiveStoreStatusItem[] {
       tone: cloudConnected ? "ok" : "action_required",
     },
     { id: "fiscal", label: l.storeFiscalStatus, value: fiscalValue, tone: fiscalTone },
-    { id: "shift", label: l.storeCurrentShift, value: l.waiting, tone: "unknown" },
-    { id: "cashier", label: l.storeActiveCashier, value: l.waiting, tone: "unknown" },
-    { id: "printer", label: l.storeReceiptPrinter, value: l.waiting, tone: "unknown" },
-    { id: "drawer", label: l.storeCashDrawer, value: l.waiting, tone: "unknown" },
-    { id: "offline", label: l.storeOfflineMode, value: l.unknown, tone: "unknown" },
     {
-      id: "heartbeat",
-      label: l.storeLastHeartbeat,
-      value: heartbeat
-        ? new Date(heartbeat).toLocaleString()
-        : total > 0
-          ? l.waiting
-          : l.unknown,
-      tone: heartbeat ? "ok" : "unknown",
+      id: "profile",
+      label: l.storeBusinessProfile,
+      value: profileDone ? l.profileComplete : l.profileIncomplete,
+      tone: profileDone ? "ok" : "attention",
     },
   ];
 }
@@ -259,6 +256,26 @@ function alertIconForId(id: string): BusinessAlert["icon"] {
   return "sync";
 }
 
+const ALERT_SEVERITY_WEIGHT: Record<BusinessAlert["severity"], number> = {
+  action_required: 0,
+  attention: 1,
+  ok: 2,
+  unknown: 3,
+};
+
+const DASHBOARD_ALERT_LIMIT = 4;
+
+function alertActionLabel(
+  notificationId: string,
+  l: PortalTranslations["dashboard"]["live"],
+): string | undefined {
+  if (notificationId === "device-offline") return l.alertOpenDevices;
+  if (notificationId === "fiscal") return l.alertOpenBusiness;
+  if (notificationId === "license-expiry") return l.alertViewAction;
+  if (notificationId === "cloud") return l.alertViewAction;
+  return l.alertViewAction;
+}
+
 function deriveAlerts(
   input: DeriveDashboardInput,
   hubNotifications: ReturnType<typeof derivePosHubState>["notifications"],
@@ -266,14 +283,16 @@ function deriveAlerts(
   const l = input.t.dashboard.live;
   const { data } = input;
 
-  const alerts: BusinessAlert[] = hubNotifications.map((n) => ({
-    id: n.id,
-    severity: n.tone,
-    icon: alertIconForId(n.id),
-    message: n.message,
-    actionLabel: n.href ? l.alertViewAction : undefined,
-    href: n.href,
-  }));
+  const alerts: BusinessAlert[] = hubNotifications
+    .filter((n) => n.id !== "update")
+    .map((n) => ({
+      id: n.id,
+      severity: n.tone,
+      icon: alertIconForId(n.id),
+      message: n.message,
+      actionLabel: n.href ? alertActionLabel(n.id, l) : undefined,
+      href: n.href,
+    }));
 
   if (!isStepCompanyDone(data.business)) {
     alerts.push({
@@ -281,12 +300,17 @@ function deriveAlerts(
       severity: "attention",
       icon: "profile",
       message: l.alertProfileIncomplete,
-      actionLabel: l.alertFixAction,
+      actionLabel: l.alertOpenBusiness,
       href: "/portal/business",
     });
   }
 
-  return alerts;
+  return alerts
+    .sort(
+      (a, b) =>
+        ALERT_SEVERITY_WEIGHT[a.severity] - ALERT_SEVERITY_WEIGHT[b.severity],
+    )
+    .slice(0, DASHBOARD_ALERT_LIMIT);
 }
 
 function deriveActivities(input: DeriveDashboardInput): DashboardActivity[] {
@@ -346,7 +370,7 @@ function deriveActivities(input: DeriveDashboardInput): DashboardActivity[] {
   return items
     .filter((a) => Number.isFinite(new Date(a.at).getTime()))
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
-    .slice(0, 12);
+    .slice(0, 8);
 }
 
 function deriveRemoteActions(input: DeriveDashboardInput): RemoteAction[] {
@@ -559,37 +583,41 @@ function deriveSystemHealth(
 }
 
 function deriveQuickActions(input: DeriveDashboardInput): DashboardQuickAction[] {
-  const h = input.t.dashboard.home;
-  const { release } = input;
-  const installed = pickHighestSemver(input.data.devices.map((d) => d.appVersion));
-  const updateAvailable = isUpdateAvailable(installed, release.latestVersion);
+  const l = input.t.dashboard.live;
+  const { data } = input;
 
-  return [
+  const actions: DashboardQuickAction[] = [
     {
       id: "desktop",
-      label: h.actionDesktopPos,
+      label: l.actionOpenDesktopPos,
       onClick: "desktop_protocol",
     },
     {
-      id: "web_pos",
-      label: h.actionWebPos,
-      href: release.web.enabled ? release.web.url ?? undefined : undefined,
-      disabled: !release.web.enabled,
-      badge: release.web.enabled ? undefined : h.webPosComingSoon,
+      id: "orders",
+      label: l.actionViewOrders,
+      href: "/portal/orders",
     },
     {
-      id: "download",
-      label: h.actionDownloadUpdate,
-      href: updateAvailable ? release.installer.downloadUrl : "/portal/pos",
-      external: updateAvailable,
-      disabled: !updateAvailable && !release.installer.downloadUrl,
+      id: "reports",
+      label: l.actionViewReports,
+      href: "/portal/reports",
     },
     {
-      id: "support",
-      label: h.actionSupport,
-      href: "/portal/support",
+      id: "devices",
+      label: l.actionManageDevices,
+      href: "/portal/devices",
     },
   ];
+
+  if (!isStepCompanyDone(data.business)) {
+    actions.push({
+      id: "business",
+      label: l.actionCompleteBusiness,
+      href: "/portal/business",
+    });
+  }
+
+  return actions;
 }
 
 function deriveRoadmap(input: DeriveDashboardInput): DashboardRoadmapModule[] {

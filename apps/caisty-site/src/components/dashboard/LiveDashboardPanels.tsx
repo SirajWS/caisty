@@ -25,6 +25,7 @@ import type {
   BusinessAlert,
   DashboardActivity,
   DashboardKpi,
+  DashboardQuickAction,
   LiveDeviceCard,
   LiveReleaseCenter,
   LiveStoreStatusItem,
@@ -313,19 +314,25 @@ export function TodayActivityTimeline({
   locale,
   title,
   emptyLabel,
+  compact = false,
 }: {
   items: DashboardActivity[];
   locale: string;
   title: string;
   emptyLabel: string;
+  compact?: boolean;
 }) {
+  const listClass = compact
+    ? "dashboard-activity-list dashboard-activity-list--compact"
+    : "dashboard-activity-list";
+
   return (
-    <section className="dashboard-panel">
+    <section className={`dashboard-panel${compact ? " dashboard-panel--compact" : ""}`}>
       <h2 className="dashboard-panel-title">{title}</h2>
       {items.length === 0 ? (
         <p className="dashboard-text-muted">{emptyLabel}</p>
       ) : (
-        <ul className="dashboard-activity-list">
+        <ul className={listClass}>
           {items.map((item) => {
             const Icon = activityIcon(item.kind);
             const time = new Intl.DateTimeFormat(locale, {
@@ -358,6 +365,63 @@ export function TodayActivityTimeline({
           })}
         </ul>
       )}
+    </section>
+  );
+}
+
+export function DashboardQuickActions({
+  actions,
+  release,
+  title,
+}: {
+  actions: DashboardQuickAction[];
+  release: PosReleaseConfig;
+  title: string;
+}) {
+  return (
+    <section className="dashboard-panel">
+      <h2 className="dashboard-panel-title">{title}</h2>
+      <div className="dashboard-quick-actions">
+        {actions.map((action) => {
+          if (action.onClick === "desktop_protocol") {
+            return (
+              <button
+                key={action.id}
+                type="button"
+                className="dashboard-quick-btn dashboard-quick-btn--primary"
+                onClick={() => openDesktopPos(release)}
+              >
+                {action.label}
+              </button>
+            );
+          }
+
+          if (action.href) {
+            if (action.external) {
+              return (
+                <a
+                  key={action.id}
+                  href={action.href}
+                  className="dashboard-quick-btn"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {action.label}
+                  <ExternalLink size={12} className="dashboard-icon--muted" />
+                </a>
+              );
+            }
+
+            return (
+              <Link key={action.id} to={action.href} className="dashboard-quick-btn">
+                {action.label}
+              </Link>
+            );
+          }
+
+          return null;
+        })}
+      </div>
     </section>
   );
 }

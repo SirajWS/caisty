@@ -100,7 +100,7 @@ describe("deriveDashboardState", () => {
     const revenue = state.kpis.find((k) => k.id === "revenue");
     expect(revenue?.status).toBe("waiting_sync");
     expect(revenue?.value).toBe("—");
-    expect(revenue?.hint).toContain("POS synchronization");
+    expect(revenue?.hint).toContain("POS sync");
   });
 
   it("computes health score from readiness checks", () => {

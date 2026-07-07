@@ -1294,6 +1294,22 @@ a {
   flex-shrink: 0;
 }
 
+.dashboard-activity-list--compact .dashboard-activity-row {
+  padding: 4px 2px;
+}
+
+.dashboard-activity-list--compact .dashboard-activity-label {
+  font-size: 13px;
+}
+
+.dashboard-activity-list--compact .dashboard-activity-time {
+  font-size: 11px;
+}
+
+.dashboard-panel--compact .dashboard-panel-title {
+  margin-bottom: 8px;
+}
+
 .dashboard-notify-row {
   border-radius: 8px;
   border: 1px solid;
@@ -1418,7 +1434,7 @@ a {
 .live-dashboard {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .live-dashboard-split {

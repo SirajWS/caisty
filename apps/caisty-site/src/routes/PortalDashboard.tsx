@@ -10,15 +10,11 @@ import { deriveDashboardState } from "../lib/dashboard/deriveDashboardState";
 import { usePortalDashboardData } from "../lib/dashboard/usePortalDashboardData";
 import {
   BusinessAlertCenter,
-  ConnectedDevicesWidget,
+  DashboardQuickActions,
   LiveDashboardHeader,
   LiveDashboardSkeleton,
   LiveKpiStrip,
-  ReleaseCenterWidget,
-  RemoteControlWidget,
-  StoreSnapshotCard,
   StoreStatusWidget,
-  SystemHealthPanel,
   TodayActivityTimeline,
 } from "../components/dashboard/LiveDashboardPanels";
 import { portalPageShell } from "../lib/portalUi";
@@ -82,10 +78,10 @@ const PortalDashboard: React.FC = () => {
 
       <div className="live-dashboard-split">
         <StoreStatusWidget items={dashboard.storeStatus} title={l.storeStatusTitle} />
-        <RemoteControlWidget
-          actions={dashboard.remoteActions}
+        <DashboardQuickActions
+          actions={dashboard.quickActions}
           release={release}
-          title={l.remoteTitle}
+          title={l.quickActionsTitle}
         />
       </div>
 
@@ -95,22 +91,13 @@ const PortalDashboard: React.FC = () => {
         emptyLabel={l.alertsEmpty}
       />
 
-      <div className="live-dashboard-split">
-        <TodayActivityTimeline
-          items={dashboard.activities}
-          locale={locale}
-          title={l.activityTitle}
-          emptyLabel={l.activityEmpty}
-        />
-        <StoreSnapshotCard snapshot={dashboard.snapshot} l={l} />
-      </div>
-
-      <ConnectedDevicesWidget devices={dashboard.liveDevices} loading={data.loading} l={l} />
-
-      <div className="live-dashboard-split">
-        <ReleaseCenterWidget release={dashboard.releaseCenter} l={l} />
-        <SystemHealthPanel items={dashboard.systemHealth} title={l.systemHealthTitle} />
-      </div>
+      <TodayActivityTimeline
+        items={dashboard.activities}
+        locale={locale}
+        title={l.activityTitle}
+        emptyLabel={l.activityEmpty}
+        compact
+      />
     </div>
   );
 };
