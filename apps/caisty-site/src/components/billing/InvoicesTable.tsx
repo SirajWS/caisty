@@ -113,7 +113,6 @@ export function InvoicesTable({
             <th>{t.labels.period}</th>
             <th className="text-right">{t.labels.amount}</th>
             <th>{t.labels.status}</th>
-            <th>{t.labels.createdAt}</th>
             <th aria-label={t.invoices.details} />
           </tr>
         </thead>
@@ -142,9 +141,6 @@ export function InvoicesTable({
               </td>
               <td>
                 <span className={portalInvoiceStatusBadge(inv.status, isLight)}>{inv.status}</span>
-              </td>
-              <td className={`text-xs ${isLight ? "text-slate-600" : "text-slate-300"}`}>
-                {formatDate(inv.createdAt, locale, t.labels.dash)}
               </td>
               <td className="portal-table-actions text-right">
                 <Link

@@ -8,15 +8,10 @@ import { portalLocaleTag } from "../lib/portalLocale";
 import { useCurrency } from "../lib/useCurrency";
 import { usePortalBillingData } from "../lib/billing/usePortalBillingData";
 import { deriveBillingState, pickBillingPrimaryLicense } from "../lib/billing/deriveBillingState";
-import { BillingOverview } from "../components/billing/BillingOverview";
-import { CurrentSubscription } from "../components/billing/CurrentSubscription";
+import { SubscriptionSummary } from "../components/billing/SubscriptionSummary";
 import { BillingPlansPanel } from "../components/billing/BillingPlansPanel";
-import { PaymentSection } from "../components/billing/PaymentSection";
 import { InvoicesSection } from "../components/billing/InvoicesSection";
-import { BillingHistorySection } from "../components/billing/BillingHistorySection";
-import { VatTaxSection } from "../components/billing/VatTaxSection";
-import { BillingDownloads } from "../components/billing/BillingDownloads";
-import { BillingQuickActions } from "../components/billing/BillingQuickActions";
+import { BillingFooter } from "../components/billing/BillingFooter";
 import { portalPageShell, portalPageSubtitle, portalPageTitle } from "../lib/portalUi";
 
 const PortalPlanBillingPage: React.FC = () => {
@@ -43,6 +38,7 @@ const PortalPlanBillingPage: React.FC = () => {
       deriveBillingState({
         customer: data.customer,
         primaryLicense,
+        licenses: data.licenses,
         licensesLoading: data.licensesLoading,
         business: data.business,
         businessLoading: data.businessLoading,
@@ -52,6 +48,7 @@ const PortalPlanBillingPage: React.FC = () => {
       }),
     [
       data.customer,
+      data.licenses,
       primaryLicense,
       data.licensesLoading,
       data.business,
@@ -86,6 +83,18 @@ const PortalPlanBillingPage: React.FC = () => {
     }
   }
 
+  function scrollToPlans() {
+    document.getElementById("billing-plans")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function handleManageBilling() {
+    if (data.customer.stripeBillingPortalEligible) {
+      void handleManageSubscription();
+      return;
+    }
+    scrollToPlans();
+  }
+
   const licensesErrorMessage =
     data.licensesError && !data.licensesLoading
       ? data.licensesError === "load_failed"
@@ -99,6 +108,12 @@ const PortalPlanBillingPage: React.FC = () => {
         ? t.invoices.errorLoad
         : data.invoicesError
       : null;
+
+  const footerLinks = [
+    { id: "invoices", label: c.footerInvoices, href: "#billing-invoices" },
+    { id: "licenses", label: c.footerLicenses, href: "/portal/licenses" },
+    { id: "support", label: c.footerSupport, href: "/portal/support" },
+  ];
 
   return (
     <div className={`${portalPageShell()} dashboard-home billing-center`}>
@@ -115,33 +130,17 @@ const PortalPlanBillingPage: React.FC = () => {
         </div>
       )}
 
-      <BillingOverview kpis={billing.overview} loading={data.licensesLoading} isLight={isLight} />
-
-      <div className="live-dashboard-split">
-        <CurrentSubscription
-          customer={data.customer}
-          primaryLicense={primaryLicense}
-          loading={data.licensesLoading}
-          isLight={isLight}
-          t={t}
-          locale={locale}
-          paidPeriod={data.customer.paidBillingPeriod}
-          stripeEligible={!!data.customer.stripeBillingPortalEligible}
-          busyBillingPortal={busyBillingPortal}
-          onManageSubscription={handleManageSubscription}
-        />
-        <PaymentSection fields={billing.paymentPlaceholders} title={c.sectionPayment} />
-      </div>
-
-      <BillingPlansPanel
-        licenses={data.licenses}
-        setLicenses={data.setLicenses}
+      <SubscriptionSummary
+        summary={billing.subscriptionSummary}
+        primaryLicense={primaryLicense}
         loading={data.licensesLoading}
         isLight={isLight}
         t={t}
-        currency={currency}
-        paidPeriod={data.customer.paidBillingPeriod}
-        onError={setError}
+        busyBillingPortal={busyBillingPortal}
+        showUpgradePlans={billing.showUpgradePlans}
+        onManageSubscription={handleManageSubscription}
+        onManageBilling={handleManageBilling}
+        onUpgrade={scrollToPlans}
       />
 
       <InvoicesSection
@@ -154,25 +153,20 @@ const PortalPlanBillingPage: React.FC = () => {
         title={c.sectionInvoices}
       />
 
-      <div className="live-dashboard-split">
-        <BillingHistorySection title={c.sectionHistory} emptyMessage={c.historyEmpty} />
-        <VatTaxSection
-          fields={billing.vatFields}
-          title={c.sectionVatTax}
-          loading={data.businessLoading}
-        />
-      </div>
-
-      <div className="live-dashboard-split">
-        <BillingDownloads actions={billing.downloadActions} title={c.sectionDownloads} />
-        <BillingQuickActions
-          actions={billing.quickActions}
-          title={c.sectionQuickActions}
+      {billing.showUpgradePlans ? (
+        <BillingPlansPanel
+          licenses={data.licenses}
+          setLicenses={data.setLicenses}
+          loading={data.licensesLoading}
           isLight={isLight}
-          onManageSubscription={handleManageSubscription}
-          busyBillingPortal={busyBillingPortal}
+          t={t}
+          currency={currency}
+          paidPeriod={data.customer.paidBillingPeriod}
+          onError={setError}
         />
-      </div>
+      ) : null}
+
+      <BillingFooter links={footerLinks} isLight={isLight} />
     </div>
   );
 };

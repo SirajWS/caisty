@@ -30,15 +30,30 @@ export type BillingPlaceholderAction = {
 
 export type BillingDerivedState = {
   overview: BillingKpi[];
+  subscriptionSummary: SubscriptionSummaryView;
   paymentPlaceholders: BillingField[];
   vatFields: BillingField[];
   quickActions: BillingPlaceholderAction[];
   downloadActions: BillingPlaceholderAction[];
+  showUpgradePlans: boolean;
+};
+
+/** Compact subscription view for the billing center header card. */
+export type SubscriptionSummaryView = {
+  hasLicense: boolean;
+  planLabel: string;
+  statusLabel: string;
+  intervalLabel: string | null;
+  validUntilLabel: string;
+  licenseKey: string | null;
+  showPaymentEmpty: boolean;
+  showManageSubscription: boolean;
 };
 
 export type DeriveBillingInput = {
   customer: PortalCustomer;
   primaryLicense: PortalLicense | null;
+  licenses: PortalLicense[];
   licensesLoading: boolean;
   business: PortalBusinessProfile | null;
   businessLoading: boolean;

@@ -1,9 +1,10 @@
 import React from "react";
+import { Check } from "lucide-react";
 import {
   createTrialLicense,
   type PortalLicense,
 } from "../../lib/portalApi";
-import { PRICING, TRIAL_DAYS, CURRENCY_SYMBOLS, type Currency } from "../../config/pricing";
+import { PRICING, CURRENCY_SYMBOLS, type Currency } from "../../config/pricing";
 import type { PortalTranslations } from "../../lib/translations/portal";
 import {
   evaluateCheckoutEligibility,
@@ -148,42 +149,49 @@ export function BillingPlansPanel({
     }
   }
 
-  const trialDaysLabel = t.plan.trialPriceSuffix.replace("{{days}}", String(TRIAL_DAYS));
+  const supportEmail =
+    import.meta.env.VITE_PUBLIC_SUPPORT_EMAIL ?? "support@caisty.com";
+
+  const isStarterCurrent =
+    activeCheckoutCtx?.tier === "starter" && activeCheckoutCtx.period === billingPeriod;
+  const isProCurrent =
+    activeCheckoutCtx?.tier === "pro" && activeCheckoutCtx.period === billingPeriod;
+
+  const showTrial = !activePaidPlan;
+
+  const featureList = (features: readonly string[]) => (
+    <ul className="billing-plan-features">
+      {features.map((f) => (
+        <li key={f}>
+          <Check size={14} className="billing-plan-check" aria-hidden />
+          <span>{f}</span>
+        </li>
+      ))}
+    </ul>
+  );
+
+  const priceBlock = (value: string) => (
+    <div className="billing-plan-price">
+      <span className="billing-plan-price-value">{value}</span>
+      <span className="billing-plan-price-cur">{currencySymbol}</span>
+      <span className="billing-plan-price-period">{planPeriodLabel}</span>
+    </div>
+  );
 
   return (
-    <section id="billing-plans" className="dashboard-panel scroll-mt-20 space-y-6">
-      <h2 className="dashboard-panel-title">{c.sectionPlans}</h2>
-      {activePaidPlan && (
-        <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-          {t.plan.overviewPaidPlanLine.replace(
-            "{{plan}}",
-            activePaidPlan === "starter" ? "Starter" : "Pro",
-          )}
-        </p>
-      )}
-
-      <div
-        className={`flex flex-col gap-3 rounded-xl border px-3 py-3 sm:flex-row sm:items-center sm:justify-between ${
-          isLight ? "border-slate-200 bg-slate-50" : "border-slate-700 bg-slate-900/35"
-        }`}
-        role="group"
-        aria-label={t.plan.billingIntervalLabel}
-      >
-        <span
-          className={`text-xs font-semibold tracking-wide uppercase ${isLight ? "text-slate-600" : "text-slate-400"}`}
-        >
-          {t.plan.billingIntervalLabel}
-        </span>
+    <section id="billing-plans" className="dashboard-panel dashboard-panel--wide scroll-mt-20 billing-plans">
+      <div className="billing-plans-head">
+        <h2 className="dashboard-panel-title">{c.sectionUpgradePlans}</h2>
         <div
-          className={`inline-flex self-start rounded-full p-0.5 sm:self-auto ${
-            isLight ? "bg-slate-200/80" : "bg-slate-800/80"
-          }`}
+          className={`inline-flex rounded-full p-0.5 ${isLight ? "bg-slate-200/80" : "bg-slate-800/80"}`}
+          role="group"
+          aria-label={t.plan.billingIntervalLabel}
         >
           <button
             type="button"
             aria-pressed={billingPeriod === "monthly"}
             onClick={() => setBillingPeriod("monthly")}
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
               billingPeriod === "monthly"
                 ? isLight
                   ? "bg-white text-slate-900 shadow-sm"
@@ -199,7 +207,7 @@ export function BillingPlansPanel({
             type="button"
             aria-pressed={billingPeriod === "yearly"}
             onClick={() => setBillingPeriod("yearly")}
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
               billingPeriod === "yearly"
                 ? isLight
                   ? "bg-white text-slate-900 shadow-sm"
@@ -214,35 +222,16 @@ export function BillingPlansPanel({
         </div>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <div className={`flex flex-col justify-between ${portalCardShell(isLight)}`}>
-          <div className="space-y-2">
-            <div className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>
-              {t.plan.trialTitle}
+      <div className={`billing-plan-grid ${showTrial ? "billing-plan-grid--3" : "billing-plan-grid--2"}`}>
+        {showTrial ? (
+          <div className={`billing-plan-card ${portalCardShell(isLight)}`}>
+            <div className="billing-plan-top">
+              <div className="billing-plan-name-row">
+                <span className="billing-plan-name">{t.plan.trialTitle}</span>
+              </div>
+              {priceBlock("0")}
+              {featureList(c.trialFeatures)}
             </div>
-            <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-              {t.plan.trialDesc}
-            </p>
-            <div className="mt-3 flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
-              <span
-                className={`text-3xl font-bold tabular-nums tracking-tight ${
-                  isLight ? "text-orange-600" : "text-orange-400"
-                }`}
-              >
-                0
-              </span>
-              <span className={`text-sm font-semibold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
-                {currencySymbol}
-              </span>
-              <span className={`w-full text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-                {trialDaysLabel}
-              </span>
-            </div>
-            <div className={`mt-1 text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-              {t.plan.trialDeviceNote}
-            </div>
-          </div>
-          <div className="mt-4">
             <button
               type="button"
               onClick={handleCreateTrial}
@@ -255,125 +244,85 @@ export function BillingPlansPanel({
                   ? t.plan.trialBtnBusy
                   : t.plan.trialBtn}
             </button>
-            <p className={`mt-2 text-[11px] ${isLight ? "text-slate-500" : "text-slate-500"}`}>
-              {t.plan.trialHint}
-            </p>
           </div>
+        ) : null}
+
+        <div
+          className={`billing-plan-card ${portalCardShell(isLight)} ${
+            isStarterCurrent || !activePaidPlan ? "billing-plan-card--highlight" : ""
+          }`}
+        >
+          <div className="billing-plan-top">
+            <div className="billing-plan-name-row">
+              <span className="billing-plan-name">{t.pos.planStarter}</span>
+              {isStarterCurrent ? (
+                <span className="billing-plan-badge">{c.currentPlanBadge}</span>
+              ) : !activePaidPlan ? (
+                <span className="billing-plan-badge">{t.labels.recommended}</span>
+              ) : null}
+            </div>
+            {priceBlock(starterPrice.toFixed(priceDecimals))}
+            {featureList(c.starterFeatures)}
+          </div>
+          <button
+            type="button"
+            onClick={() => handleUpgradePlan("starter")}
+            disabled={busyPlan === "starter" || starterPlanDisabled}
+            className={`w-full ${
+              busyPlan === "starter" || starterPlanDisabled
+                ? portalSecondaryCta(isLight)
+                : portalPrimaryCta()
+            }`}
+          >
+            {starterPlanCtaText()}
+          </button>
         </div>
 
         <div
-          className={`relative flex flex-col justify-between ${portalCardShell(isLight)} !border-2 !border-orange-500`}
+          className={`billing-plan-card ${portalCardShell(isLight)} ${
+            isProCurrent ? "billing-plan-card--highlight" : ""
+          }`}
         >
-          <span
-            className={`absolute right-4 top-4 inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
-              isLight ? "bg-orange-500 text-white" : "bg-orange-500 text-white"
+          <div className="billing-plan-top">
+            <div className="billing-plan-name-row">
+              <span className="billing-plan-name">{t.pos.planPro}</span>
+              {isProCurrent ? (
+                <span className="billing-plan-badge">{c.currentPlanBadge}</span>
+              ) : null}
+            </div>
+            {priceBlock(proPrice.toFixed(priceDecimals))}
+            {featureList(c.proFeatures)}
+          </div>
+          <button
+            type="button"
+            onClick={() => handleUpgradePlan("pro")}
+            disabled={busyPlan === "pro" || proPlanDisabled}
+            className={`w-full ${
+              busyPlan === "pro" || proPlanDisabled
+                ? portalSecondaryCta(isLight)
+                : portalPrimaryCta()
             }`}
           >
-            {t.labels.recommended}
-          </span>
-          <div className="space-y-2 pr-14 pt-1">
-            <div className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>
-              Starter
-            </div>
-            <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-              {t.plan.starterDesc}
-            </p>
-            <div className="mt-3 flex flex-wrap items-baseline gap-x-1.5">
-              <span
-                className={`text-3xl font-bold tabular-nums tracking-tight ${
-                  isLight ? "text-orange-600" : "text-orange-400"
-                }`}
-              >
-                {starterPrice.toFixed(priceDecimals)}
-              </span>
-              <span className={`text-sm font-semibold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
-                {currencySymbol}
-              </span>
-            </div>
-            <div className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-              {planPeriodLabel}
-            </div>
-          </div>
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={() => handleUpgradePlan("starter")}
-              disabled={busyPlan === "starter" || starterPlanDisabled}
-              className={`w-full ${
-                busyPlan === "starter" || starterPlanDisabled
-                  ? portalSecondaryCta(isLight)
-                  : portalPrimaryCta()
-              }`}
-            >
-              {starterPlanCtaText()}
-            </button>
-            <p className={`mt-2 text-[11px] ${isLight ? "text-slate-500" : "text-slate-500"}`}>
-              {t.plan.purchaseHint}
-            </p>
-          </div>
-        </div>
-
-        <div className={`flex flex-col justify-between ${portalCardShell(isLight)}`}>
-          <div className="space-y-2">
-            <div className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>
-              Pro
-            </div>
-            <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-              {t.plan.proDesc}
-            </p>
-            <div className="mt-3 flex flex-wrap items-baseline gap-x-1.5">
-              <span
-                className={`text-3xl font-bold tabular-nums tracking-tight ${
-                  isLight ? "text-orange-600" : "text-orange-400"
-                }`}
-              >
-                {proPrice.toFixed(priceDecimals)}
-              </span>
-              <span className={`text-sm font-semibold ${isLight ? "text-slate-700" : "text-slate-300"}`}>
-                {currencySymbol}
-              </span>
-            </div>
-            <div className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-              {planPeriodLabel}
-            </div>
-          </div>
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={() => handleUpgradePlan("pro")}
-              disabled={busyPlan === "pro" || proPlanDisabled}
-              className={`w-full ${
-                busyPlan === "pro" || proPlanDisabled
-                  ? portalSecondaryCta(isLight)
-                  : portalPrimaryCta()
-              }`}
-            >
-              {proPlanCtaText()}
-            </button>
-            <p className={`mt-2 text-[11px] ${isLight ? "text-slate-500" : "text-slate-500"}`}>
-              {t.plan.purchaseHint}
-            </p>
-          </div>
-        </div>
-
-        <div className={`flex flex-col justify-between ${portalCardShell(isLight)} opacity-85`}>
-          <div className="space-y-2">
-            <div className={`text-sm font-semibold ${isLight ? "text-slate-900" : "text-slate-50"}`}>
-              Enterprise
-            </div>
-            <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-              {c.enterpriseDesc}
-            </p>
-          </div>
-          <div className="mt-4">
-            <span className="dashboard-quick-btn dashboard-quick-btn--disabled w-full justify-center" aria-disabled>
-              {c.comingSoon}
-            </span>
-          </div>
+            {proPlanCtaText()}
+          </button>
         </div>
       </div>
 
-      <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-500"}`}>{t.plan.vatFootnote}</p>
+      <div className={`billing-enterprise-card ${portalCardShell(isLight)}`}>
+        <div className="billing-enterprise-info">
+          <span className="billing-plan-name">{c.enterpriseTitle}</span>
+          <span className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+            {c.enterpriseDesc}
+          </span>
+        </div>
+        <a href={`mailto:${supportEmail}`} className={`billing-enterprise-btn ${portalSecondaryCta(isLight)}`}>
+          {c.enterpriseContact}
+        </a>
+      </div>
+
+      <p className={`billing-plans-footnote text-xs ${isLight ? "text-slate-500" : "text-slate-500"}`}>
+        {t.plan.vatFootnote}
+      </p>
     </section>
   );
 }

@@ -1,5 +1,5 @@
-import { pickPrimaryPortalLicense } from "../portalLicensePick";
-import type { BillingDerivedState, DeriveBillingInput } from "./types";
+import { getActivePaidPlanTier, pickPrimaryPortalLicense } from "../portalLicensePick";
+import type { BillingDerivedState, DeriveBillingInput, SubscriptionSummaryView } from "./types";
 
 function notConfigured(t: DeriveBillingInput["t"]): string {
   return t.billing.center.notConfigured;
@@ -7,10 +7,22 @@ function notConfigured(t: DeriveBillingInput["t"]): string {
 
 function planLabel(plan: string | undefined, t: DeriveBillingInput["t"]): string {
   if (!plan) return notConfigured(t);
-  if (plan === "trial") return t.plan.trialTitle;
-  if (plan === "starter") return "Starter";
-  if (plan === "pro") return "Pro";
+  const p = plan.trim().toLowerCase();
+  if (p === "trial") return t.plan.trialTitle;
+  if (p === "starter") return t.pos.planStarter;
+  if (p === "pro") return t.pos.planPro;
+  if (p === "enterprise") return t.pos.planEnterprise;
   return plan;
+}
+
+function licenseStatusLabel(status: string, t: DeriveBillingInput["t"]): string {
+  const s = status.trim().toLowerCase();
+  const l = t.licenses;
+  if (s === "active") return l.statusActive;
+  if (s === "revoked" || s === "blocked") return l.statusRevoked;
+  if (s === "expired") return l.statusExpired;
+  if (s === "inactive") return l.statusInactive;
+  return status.trim() || l.statusUnknown;
 }
 
 function billingIntervalLabel(
@@ -217,13 +229,62 @@ function deriveDownloadActions(input: DeriveBillingInput): BillingDerivedState["
   ];
 }
 
+/** Show upgrade plans when trial, no paid plan, or an upgrade path exists. */
+export function shouldShowUpgradePlans(
+  licenses: DeriveBillingInput["licenses"],
+  paidPeriod: "monthly" | "yearly" | null | undefined,
+): boolean {
+  const activePaid = getActivePaidPlanTier(licenses);
+  if (!activePaid) return true;
+  if (activePaid === "starter") return true;
+  if (activePaid === "pro" && paidPeriod === "monthly") return true;
+  return false;
+}
+
+function deriveSubscriptionSummary(input: DeriveBillingInput): SubscriptionSummaryView {
+  const c = input.t.billing.center;
+  const license = input.primaryLicense;
+  const dash = input.t.labels.dash;
+  const stripeEligible = !!input.customer.stripeBillingPortalEligible;
+  const activePaid = getActivePaidPlanTier(input.licenses);
+
+  if (input.licensesLoading) {
+    return {
+      hasLicense: false,
+      planLabel: dash,
+      statusLabel: dash,
+      intervalLabel: null,
+      validUntilLabel: dash,
+      licenseKey: null,
+      showPaymentEmpty: false,
+      showManageSubscription: stripeEligible,
+    };
+  }
+
+  return {
+    hasLicense: Boolean(license),
+    planLabel: license ? planLabel(license.plan, input.t) : c.noActivePlan,
+    statusLabel: license ? licenseStatusLabel(license.status ?? "", input.t) : dash,
+    intervalLabel:
+      license && (license.plan === "starter" || license.plan === "pro")
+        ? billingIntervalLabel(input.customer.paidBillingPeriod, input.t)
+        : null,
+    validUntilLabel: formatDate(license?.validUntil, input.locale, dash),
+    licenseKey: license?.key?.trim() || null,
+    showPaymentEmpty: !stripeEligible && !activePaid,
+    showManageSubscription: stripeEligible,
+  };
+}
+
 export function deriveBillingState(input: DeriveBillingInput): BillingDerivedState {
   return {
     overview: deriveOverview(input),
+    subscriptionSummary: deriveSubscriptionSummary(input),
     paymentPlaceholders: derivePaymentPlaceholders(input),
     vatFields: deriveVatFields(input),
     quickActions: deriveQuickActions(input),
     downloadActions: deriveDownloadActions(input),
+    showUpgradePlans: shouldShowUpgradePlans(input.licenses, input.customer.paidBillingPeriod),
   };
 }
 
