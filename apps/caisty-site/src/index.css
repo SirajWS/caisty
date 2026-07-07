@@ -1961,6 +1961,47 @@ a {
   color: var(--dashboard-text-primary);
 }
 
+.licenses-key-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.licenses-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.licenses-copy-btn--light {
+  color: var(--dashboard-text-muted);
+}
+
+.licenses-copy-btn--light:hover {
+  background: var(--dashboard-hover-bg);
+  border-color: var(--dashboard-border-soft);
+  color: var(--dashboard-text-primary);
+}
+
+.licenses-copy-btn--dark {
+  color: var(--dashboard-text-muted);
+}
+
+.licenses-copy-btn--dark:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--dashboard-border-soft);
+  color: var(--dashboard-text-primary);
+}
+
 .orders-empty-desc {
   font-size: 13px;
   line-height: 1.45;
@@ -2412,20 +2453,19 @@ a {
 }
 
 .devices-card {
-  display: block;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   text-align: left;
   border-radius: 10px;
   border: 1px solid var(--dashboard-border-soft);
   background: var(--dashboard-surface);
   padding: 12px 14px;
-  cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
 
 .devices-card:hover {
   border-color: var(--dashboard-accent-border-soft);
-  background: var(--dashboard-hover-bg);
 }
 
 .devices-card-head {
@@ -2838,6 +2878,204 @@ a {
 .devices-empty-cta:hover {
   background: var(--portal-accent-hover);
   border-color: var(--portal-accent-hover);
+}
+
+.devices-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.devices-empty-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  color: var(--dashboard-text-secondary);
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.devices-empty-download:hover {
+  border-color: var(--dashboard-accent-border-soft);
+  background: var(--dashboard-hover-bg);
+}
+
+/* —— Device Management (Sprint 1.7) —— */
+.devices-seat-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.devices-seat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  color: var(--dashboard-text-secondary);
+}
+
+.devices-seat-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.devices-seat-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.devices-seat-plan {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dashboard-text-primary);
+}
+
+.devices-seat-available {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dashboard-text-muted);
+}
+
+.devices-seat-used {
+  margin: 2px 0 8px;
+  font-size: 12px;
+  color: var(--dashboard-text-muted);
+}
+
+.devices-seat-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--dashboard-border-soft);
+  overflow: hidden;
+}
+
+.devices-seat-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--portal-accent);
+  transition: width 0.3s ease;
+}
+
+.devices-slot-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .devices-slot-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .devices-slot-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.devices-card-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  color: var(--dashboard-text-secondary);
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.devices-card-action:hover {
+  border-color: var(--dashboard-accent-border-soft);
+  background: var(--dashboard-hover-bg);
+}
+
+.devices-slot-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+  border-radius: 10px;
+  border: 1px dashed var(--dashboard-border-soft);
+  background: transparent;
+  padding: 18px 14px;
+}
+
+.devices-slot-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  color: var(--dashboard-text-muted);
+}
+
+.devices-slot-empty-title {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dashboard-text-primary);
+}
+
+.devices-slot-empty-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--dashboard-text-muted);
+}
+
+.devices-slot-empty-btn {
+  margin-top: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--portal-accent);
+  background: var(--portal-accent);
+  color: #fff;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.devices-slot-empty-btn:hover {
+  background: var(--portal-accent-hover);
+  border-color: var(--portal-accent-hover);
+}
+
+.devices-slot-empty-hint {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--dashboard-text-muted);
 }
 
 /* —— Business Management Center (Sprint 7 / 1.5) —— */

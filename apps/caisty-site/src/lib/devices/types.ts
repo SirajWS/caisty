@@ -23,6 +23,7 @@ export type DeviceCardView = {
   version: string;
   currentUser: string;
   heartbeat: string;
+  lastSync: string;
   connection: string;
   cloudStatus: string;
   environment: string;
@@ -33,6 +34,22 @@ export type DeviceCardView = {
   statusTone: PosHubTone;
   source: PortalDevice;
 };
+
+/** Compact seat/plan summary for the Device Management header. */
+export type DeviceSeatSummaryView = {
+  plan: string;
+  planLabel: string;
+  hasLicense: boolean;
+  maxDevices: number;
+  usedDevices: number;
+  availableSlots: number;
+  percent: number;
+};
+
+/** A single slot in the device management grid: a registered device or a free seat. */
+export type DeviceSlotView =
+  | { kind: "device"; id: string; card: DeviceCardView }
+  | { kind: "empty"; id: string };
 
 export type DeviceDetailView = {
   deviceId: string;
@@ -124,6 +141,8 @@ export type DevicesDerivedState = {
   multiStore: MultiStorePlaceholder;
   health: DeviceHealthItem[];
   hasDevices: boolean;
+  seats: DeviceSeatSummaryView;
+  slots: DeviceSlotView[];
 };
 
 export type DeriveDevicesInput = {

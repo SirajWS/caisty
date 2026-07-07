@@ -1,26 +1,18 @@
-import { HardDrive, Monitor } from "lucide-react";
+import { Download, HardDrive, Monitor } from "lucide-react";
 import type { PosReleaseConfig } from "../../config/posConfig";
-
-const DESKTOP_OPEN_TIMEOUT_MS = 1800;
-
-function openDesktopPos(release: PosReleaseConfig) {
-  if (typeof window === "undefined") return;
-  const iframe = document.createElement("iframe");
-  iframe.style.display = "none";
-  iframe.src = release.desktop.openUrl;
-  document.body.appendChild(iframe);
-  window.setTimeout(() => iframe.remove(), DESKTOP_OPEN_TIMEOUT_MS);
-}
+import { openDesktopPos } from "./openDesktopPos";
 
 export function DeviceEmptyState({
   headline,
   description,
   ctaLabel,
+  downloadLabel,
   release,
 }: {
   headline: string;
   description: string;
   ctaLabel: string;
+  downloadLabel: string;
   release: PosReleaseConfig;
 }) {
   return (
@@ -30,14 +22,24 @@ export function DeviceEmptyState({
       </div>
       <h2 className="devices-empty-headline">{headline}</h2>
       <p className="devices-empty-desc">{description}</p>
-      <button
-        type="button"
-        className="devices-empty-cta"
-        onClick={() => openDesktopPos(release)}
-      >
-        <Monitor size={16} />
-        {ctaLabel}
-      </button>
+      <div className="devices-empty-actions">
+        <button
+          type="button"
+          className="devices-empty-cta"
+          onClick={() => openDesktopPos(release)}
+        >
+          <Monitor size={16} />
+          {ctaLabel}
+        </button>
+        <a
+          className="devices-empty-download"
+          href={release.installer.downloadUrl}
+          download
+        >
+          <Download size={16} />
+          {downloadLabel}
+        </a>
+      </div>
     </section>
   );
 }

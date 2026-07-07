@@ -1,5 +1,8 @@
+import { ExternalLink } from "lucide-react";
+import type { PosReleaseConfig } from "../../config/posConfig";
 import type { PosHubTone } from "../../lib/posHub/types";
 import type { DeviceCardView } from "../../lib/devices/types";
+import { openDesktopPos } from "./openDesktopPos";
 
 function toneClass(tone: PosHubTone): string {
   if (tone === "ok") return "devices-status-badge--online";
@@ -11,29 +14,20 @@ function toneClass(tone: PosHubTone): string {
 export function DeviceCard({
   device,
   labels,
-  onSelect,
+  release,
 }: {
   device: DeviceCardView;
   labels: {
-    platform: string;
     version: string;
-    currentUser: string;
     heartbeat: string;
-    connection: string;
-    cloudStatus: string;
-    environment: string;
+    lastSync: string;
     license: string;
-    store: string;
+    openPos: string;
   };
-  onSelect: (id: string) => void;
+  release: PosReleaseConfig;
 }) {
   return (
-    <button
-      type="button"
-      className="devices-card"
-      onClick={() => onSelect(device.id)}
-      aria-label={device.name}
-    >
+    <article className="devices-card">
       <div className="devices-card-head">
         <span className="devices-card-name">{device.name}</span>
         <span className={`devices-status-badge ${toneClass(device.statusTone)}`}>
@@ -42,42 +36,30 @@ export function DeviceCard({
       </div>
       <dl className="devices-card-meta">
         <div className="devices-card-row">
-          <dt>{labels.platform}</dt>
-          <dd>{device.platform}</dd>
-        </div>
-        <div className="devices-card-row">
           <dt>{labels.version}</dt>
           <dd>{device.version}</dd>
-        </div>
-        <div className="devices-card-row">
-          <dt>{labels.currentUser}</dt>
-          <dd>{device.currentUser}</dd>
         </div>
         <div className="devices-card-row">
           <dt>{labels.heartbeat}</dt>
           <dd>{device.heartbeat}</dd>
         </div>
         <div className="devices-card-row">
-          <dt>{labels.connection}</dt>
-          <dd>{device.connection}</dd>
-        </div>
-        <div className="devices-card-row">
-          <dt>{labels.cloudStatus}</dt>
-          <dd>{device.cloudStatus}</dd>
-        </div>
-        <div className="devices-card-row">
-          <dt>{labels.environment}</dt>
-          <dd>{device.environment}</dd>
+          <dt>{labels.lastSync}</dt>
+          <dd>{device.lastSync}</dd>
         </div>
         <div className="devices-card-row">
           <dt>{labels.license}</dt>
           <dd className="font-mono text-xs">{device.license}</dd>
         </div>
-        <div className="devices-card-row">
-          <dt>{labels.store}</dt>
-          <dd>{device.store}</dd>
-        </div>
       </dl>
-    </button>
+      <button
+        type="button"
+        className="devices-card-action"
+        onClick={() => openDesktopPos(release)}
+      >
+        <ExternalLink size={15} />
+        {labels.openPos}
+      </button>
+    </article>
   );
 }

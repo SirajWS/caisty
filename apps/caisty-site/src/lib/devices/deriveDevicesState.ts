@@ -1,4 +1,5 @@
 import { countOnlineDevices } from "../dashboard/deriveDashboardState";
+import { pickPrimaryPortalLicense } from "../portalLicensePick";
 import { isUpdateAvailable, pickHighestSemver } from "../posHub/posVersion";
 import { deriveFiscalVisibility } from "../useFiscalVisibility";
 import type { PortalDevice } from "../portalApi";
@@ -12,11 +13,22 @@ import type {
   DeviceHealthItem,
   DeviceHealthStatus,
   DeviceKpi,
+  DeviceSeatSummaryView,
+  DeviceSlotView,
   DeviceTimelineEvent,
   DevicesDerivedState,
   RemoteAction,
   VersionManagementView,
 } from "./types";
+
+function formatPlanLabel(plan: string, t: DeriveDevicesInput["t"]): string {
+  const p = plan.trim().toLowerCase();
+  if (p === "trial") return t.pos.planTrial;
+  if (p === "starter") return t.pos.planStarter;
+  if (p === "pro") return t.pos.planPro;
+  if (p === "enterprise") return t.pos.planEnterprise;
+  return plan || t.labels.dash;
+}
 
 function latestHeartbeat(devices: PortalDevice[]): string | null {
   let latest: number | null = null;
@@ -148,6 +160,9 @@ function deriveDeviceCards(input: DeriveDevicesInput): DeviceCardView[] {
       currentUser: waiting,
       heartbeat: device.lastSeenAt
         ? new Date(device.lastSeenAt).toLocaleString(input.locale)
+        : waiting,
+      lastSync: input.data.lastSyncedAt
+        ? input.data.lastSyncedAt.toLocaleString(input.locale)
         : waiting,
       connection: isOnline ? d.connectionConnected : d.connectionDisconnected,
       cloudStatus: isOnline ? d.cloudConnected : d.cloudDisconnected,
@@ -383,12 +398,62 @@ export function deriveRemoteActions(input: DeriveDevicesInput): RemoteAction[] {
   ];
 }
 
+/**
+ * Seat/plan summary from the primary license. maxDevices comes from the license;
+ * availableSlots = maxDevices - registered devices (never negative).
+ */
+export function deriveDeviceSeats(
+  cards: DeviceCardView[],
+  input: DeriveDevicesInput,
+): DeviceSeatSummaryView {
+  const primary = pickPrimaryPortalLicense(input.data.licenses);
+  const plan = primary?.plan ?? "";
+  const maxDevices = Math.max(0, primary?.maxDevices ?? 0);
+  const usedDevices = cards.length;
+  const availableSlots = Math.max(0, maxDevices - usedDevices);
+  const percent =
+    maxDevices > 0 ? Math.min(100, Math.round((usedDevices / maxDevices) * 100)) : 0;
+
+  return {
+    plan,
+    planLabel: formatPlanLabel(plan, input.t),
+    hasLicense: Boolean(primary),
+    maxDevices,
+    usedDevices,
+    availableSlots,
+    percent,
+  };
+}
+
+/**
+ * Ordered grid slots: registered devices first, then free seats up to maxDevices.
+ * If more devices exist than seats, every device is still shown (no empty slots).
+ */
+export function deriveDeviceSlots(
+  cards: DeviceCardView[],
+  seats: DeviceSeatSummaryView,
+): DeviceSlotView[] {
+  const slots: DeviceSlotView[] = cards.map((card) => ({
+    kind: "device",
+    id: card.id,
+    card,
+  }));
+
+  for (let i = 0; i < seats.availableSlots; i += 1) {
+    slots.push({ kind: "empty", id: `empty-${i}` });
+  }
+
+  return slots;
+}
+
 export function deriveDevicesState(input: DeriveDevicesInput): DevicesDerivedState {
   const d = input.t.devices;
+  const cards = deriveDeviceCards(input);
+  const seats = deriveDeviceSeats(cards, input);
 
   return {
     overview: deriveOverview(input),
-    devices: deriveDeviceCards(input),
+    devices: cards,
     alerts: deriveAlerts(input),
     version: deriveVersion(input),
     multiStore: {
@@ -397,6 +462,8 @@ export function deriveDevicesState(input: DeriveDevicesInput): DevicesDerivedSta
       stores: [d.multiStorePlaceholderA, d.multiStorePlaceholderB, d.multiStorePlaceholderC],
     },
     health: derivePageHealth(input),
-    hasDevices: input.data.devices.length > 0,
+    hasDevices: cards.length > 0,
+    seats,
+    slots: deriveDeviceSlots(cards, seats),
   };
 }
