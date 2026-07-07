@@ -14,38 +14,47 @@ const baseCustomer = {
   portalStatus: "active" as const,
 };
 
-describe("deriveAccountState", () => {
-  it("uses real customer fields without inventing session history", () => {
-    const state = deriveAccountState({
-      customer: baseCustomer,
-      languageLabel: "English",
-      themeLabel: "Light",
-      securityStatusLabel: securityStatusLabel("active", portalEn),
-      emailStatusLabel: emailVerificationLabel("active", portalEn),
-      roleLabel: portalEn.account.center.roleOwner,
-      browserLabel: "Google Chrome",
-      t: portalEn,
-    });
+function makeInput(
+  overrides: Partial<Parameters<typeof deriveAccountState>[0]> = {},
+) {
+  const customer = overrides.customer ?? baseCustomer;
+  const t = overrides.t ?? portalEn;
+  return {
+    customer,
+    securityStatusLabel:
+      overrides.securityStatusLabel ??
+      securityStatusLabel(customer.portalStatus, t),
+    emailStatusLabel:
+      overrides.emailStatusLabel ??
+      emailVerificationLabel(customer.portalStatus, t),
+    t,
+  };
+}
 
-    expect(state.overview.find((k) => k.id === "name")?.value).toBe("Alex");
-    expect(state.session.find((f) => f.id === "activity")?.value).toBe(
-      portalEn.account.center.sessionActiveNow,
-    );
-    expect(state.checklist.find((i) => i.id === "2fa")?.status).toBe("coming_soon");
+describe("deriveAccountState", () => {
+  it("derives compact security status from portal status", () => {
+    const state = deriveAccountState(makeInput());
+
+    expect(state.securityStatus).toHaveLength(2);
+    expect(state.securityStatus[0].value).toBe(portalEn.account.center.emailVerified);
+    expect(state.securityStatus[1].value).toBe(portalEn.account.center.securityProtected);
+    expect(state.securityStatus[0].tone).toBe("ok");
   });
 
   it("marks pending email verification honestly", () => {
-    const state = deriveAccountState({
-      customer: { ...baseCustomer, portalStatus: "pending" },
-      languageLabel: "English",
-      themeLabel: "Light",
-      securityStatusLabel: securityStatusLabel("pending", portalEn),
-      emailStatusLabel: emailVerificationLabel("pending", portalEn),
-      roleLabel: portalEn.account.center.roleOwner,
-      browserLabel: null,
-      t: portalEn,
-    });
+    const state = deriveAccountState(
+      makeInput({ customer: { ...baseCustomer, portalStatus: "pending" } }),
+    );
 
-    expect(state.checklist.find((i) => i.id === "email")?.status).toBe("pending");
+    expect(state.securityStatus[0].tone).toBe("attention");
+    expect(state.securityStatus[0].value).toBe(portalEn.account.center.emailPending);
+  });
+
+  it("includes legal footer links and support mailto", () => {
+    const state = deriveAccountState(makeInput());
+
+    expect(state.legalDocuments.length).toBeGreaterThanOrEqual(6);
+    expect(state.legalDocuments[0].shortTitle).toBeTruthy();
+    expect(state.supportHref).toMatch(/^mailto:/);
   });
 });

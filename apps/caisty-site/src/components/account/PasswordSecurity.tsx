@@ -20,12 +20,6 @@ export function PasswordSecurity({
   const [error, setError] = React.useState<string | null>(null);
   const [success, setSuccess] = React.useState<string | null>(null);
 
-  const placeholders = [
-    { id: "2fa", label: c.placeholder2fa },
-    { id: "alerts", label: c.placeholderLoginAlerts },
-    { id: "recovery", label: c.placeholderRecoveryEmail },
-  ];
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -61,7 +55,6 @@ export function PasswordSecurity({
   return (
     <section className="dashboard-panel">
       <h2 className="dashboard-panel-title">{c.sectionPassword}</h2>
-      <p className="dashboard-text-muted text-xs mt-0 mb-3">{a.securityHint}</p>
 
       {(error || success) && (
         <div
@@ -115,15 +108,6 @@ export function PasswordSecurity({
           </button>
         </div>
       </form>
-
-      <ul className="account-placeholder-list">
-        {placeholders.map((item) => (
-          <li key={item.id} className="account-placeholder-row">
-            <span>{item.label}</span>
-            <span className="dashboard-quick-badge">{c.comingSoon}</span>
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }

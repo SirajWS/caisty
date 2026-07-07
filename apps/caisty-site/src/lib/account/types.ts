@@ -1,5 +1,39 @@
 import type { PortalCustomer } from "../portalApi";
 
+export type SecurityStatusTone = "ok" | "attention" | "unknown";
+
+export type SecurityStatusItem = {
+  id: string;
+  label: string;
+  value: string;
+  tone: SecurityStatusTone;
+};
+
+export type LegalDocumentLink = {
+  id: string;
+  title: string;
+  shortTitle: string;
+  path: string;
+};
+
+export type AccountDerivedState = {
+  securityStatus: SecurityStatusItem[];
+  legalDocuments: LegalDocumentLink[];
+  supportHref: string;
+};
+
+export type DeriveAccountInput = {
+  customer: PortalCustomer;
+  securityStatusLabel: string;
+  emailStatusLabel: string;
+  t: import("../translations/portal").PortalTranslations;
+};
+
+export type AccountData = {
+  customer: PortalCustomer;
+};
+
+/** Legacy types — unused by account page after Sprint 1.4 cleanup */
 export type AccountKpi = {
   id: string;
   label: string;
@@ -28,34 +62,4 @@ export type AccountPlaceholderAction = {
   disabled: boolean;
   badge?: string;
   href?: string;
-};
-
-export type LegalDocumentLink = {
-  id: string;
-  title: string;
-  path: string;
-};
-
-export type AccountDerivedState = {
-  overview: AccountKpi[];
-  session: AccountField[];
-  preferences: AccountField[];
-  checklist: SecurityChecklistItem[];
-  legalDocuments: LegalDocumentLink[];
-  dataActions: AccountPlaceholderAction[];
-};
-
-export type DeriveAccountInput = {
-  customer: PortalCustomer;
-  languageLabel: string;
-  themeLabel: string;
-  securityStatusLabel: string;
-  emailStatusLabel: string;
-  roleLabel: string;
-  browserLabel: string | null;
-  t: import("../translations/portal").PortalTranslations;
-};
-
-export type AccountData = {
-  customer: PortalCustomer;
 };

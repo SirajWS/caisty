@@ -57,9 +57,8 @@ export function AccountProfileForm({
   }
 
   return (
-    <section className="dashboard-panel">
+    <section className="dashboard-panel account-profile">
       <h2 className="dashboard-panel-title">{c.sectionProfile}</h2>
-      <p className="dashboard-text-muted text-xs mt-0 mb-3">{a.profileHint}</p>
 
       {(error || success) && (
         <div
