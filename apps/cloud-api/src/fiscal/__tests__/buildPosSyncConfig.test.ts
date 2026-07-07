@@ -79,6 +79,9 @@ function makeDevice(): typeof devices.$inferSelect {
     licenseId: "lic-1",
     fingerprint: "fp-abc",
     lastHeartbeatAt: new Date("2026-06-01T13:00:00.000Z"),
+    appVersion: null,
+    lastSalesSyncAt: null,
+    offlineQueueCount: 0,
   };
 }
 

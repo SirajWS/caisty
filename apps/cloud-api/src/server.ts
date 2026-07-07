@@ -31,6 +31,7 @@ import { registerPortalLicensesRoutes } from "./routes/portal-licenses.js";
 import { registerPortalInvoiceRoutes } from "./routes/portal-invoices.js";
 import { registerPortalBusinessRoutes } from "./routes/portal-business.js";
 import { registerPosConfigRoutes } from "./routes/pos-config.js";
+import { registerPosSyncRoutes } from "./routes/pos-sync.js";
 import { registerCountryConfigRoutes } from "./routes/country-config.js";
 import { registerAdminFiscalRoutes } from "./routes/admin/fiscal.js";
 
@@ -83,6 +84,7 @@ export async function buildServer() {
       (url === "/devices/bind" && method === "POST") ||
       (url === "/devices/heartbeat" && method === "POST") ||
       (url === "/pos/config" && method === "GET") ||
+      (url === "/pos/sync/batch" && method === "POST") ||
       url.startsWith("/country-config") ||
       (url.startsWith("/invoices/") && url.endsWith("/html")) || // Invoice HTML-Export (mit Auth im Handler)
       (env.NODE_ENV === "development" && url.startsWith("/test-email")) || // Test-Endpoint nur in Development
@@ -185,6 +187,7 @@ export async function buildServer() {
   // ---------------------------------------------------------------------------
   await registerPublicLicenseRoutes(app);
   await registerPosConfigRoutes(app);
+  await registerPosSyncRoutes(app);
 
   // ---------------------------------------------------------------------------
   // Payments & Webhooks

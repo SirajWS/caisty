@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, varchar, timestamp, integer } from "drizzle-orm/pg-core";
 import { orgs } from "./orgs";
 import { customers } from "./customers";
 
@@ -19,4 +19,7 @@ export const devices = pgTable("devices", {
   licenseId: text("license_id"),
   fingerprint: text("fingerprint"),
   lastHeartbeatAt: timestamp("last_heartbeat_at", { withTimezone: true }),
+  appVersion: varchar("app_version", { length: 64 }),
+  lastSalesSyncAt: timestamp("last_sales_sync_at", { withTimezone: true }),
+  offlineQueueCount: integer("offline_queue_count").notNull().default(0),
 });
