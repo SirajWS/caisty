@@ -53,21 +53,12 @@ export type BusinessEvent = {
   at: string;
 };
 
-export type OrdersQuickAction = {
-  id: string;
-  label: string;
-  disabled: boolean;
-  badge?: string;
-};
-
 export type OrdersDerivedState = {
   summary: OrdersKpi[];
   orders: PosOrderRow[];
   receipts: PosReceiptRow[];
   payments: PaymentMethodCard[];
-  events: BusinessEvent[];
-  quickActions: OrdersQuickAction[];
-  hasPosSync: boolean;
+  hasSalesData: boolean;
 };
 
 export type DeriveOrdersInput = {

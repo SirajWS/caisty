@@ -6,6 +6,7 @@ export function OrdersTable({
   columns,
   emptyLabel,
   title,
+  primary = false,
 }: {
   orders: PosOrderRow[];
   loading: boolean;
@@ -20,9 +21,14 @@ export function OrdersTable({
   };
   emptyLabel: string;
   title: string;
+  primary?: boolean;
 }) {
+  const panelClass = primary
+    ? "dashboard-panel dashboard-panel--wide orders-panel--primary"
+    : "dashboard-panel dashboard-panel--wide";
+
   return (
-    <section className="dashboard-panel dashboard-panel--wide">
+    <section className={panelClass}>
       <h2 className="dashboard-panel-title">{title}</h2>
       <div className="orders-table-wrap">
         <table className="portal-table orders-table">

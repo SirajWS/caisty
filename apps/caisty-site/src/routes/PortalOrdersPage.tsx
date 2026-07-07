@@ -3,7 +3,6 @@ import { usePortalOutlet } from "./PortalLayout";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
-import { portalLocaleTag } from "../lib/portalLocale";
 import { getPosReleaseConfig } from "../config/posConfig";
 import { deriveOrdersState } from "../lib/orders/deriveOrdersState";
 import { usePortalOrdersData } from "../lib/orders/usePortalOrdersData";
@@ -11,9 +10,8 @@ import { OrdersSummary } from "../components/orders/OrdersSummary";
 import { OrdersTable } from "../components/orders/OrdersTable";
 import { ReceiptsTable } from "../components/orders/ReceiptsTable";
 import { PaymentOverview } from "../components/orders/PaymentOverview";
-import { BusinessTimeline } from "../components/orders/BusinessTimeline";
 import { OrdersEmptyState } from "../components/orders/OrdersEmptyState";
-import { OrdersFilters, OrdersQuickActions } from "../components/orders/OrdersFilters";
+import { OrdersFilters } from "../components/orders/OrdersFilters";
 import { portalPageShell, portalPageSubtitle, portalPageTitle } from "../lib/portalUi";
 
 const PortalOrdersPage: React.FC = () => {
@@ -22,7 +20,6 @@ const PortalOrdersPage: React.FC = () => {
   const { language } = useLanguage();
   const t = getPortalTranslations(language);
   const o = t.orders;
-  const locale = portalLocaleTag(language);
   const isLight = theme === "light";
 
   const release = React.useMemo(() => getPosReleaseConfig(), []);
@@ -33,16 +30,18 @@ const PortalOrdersPage: React.FC = () => {
     [data, t],
   );
 
-  const showEmptyHero = !data.loading && !orders.hasPosSync;
+  const showEmptyHero = !data.loading && !orders.hasSalesData;
 
   return (
     <div className={`${portalPageShell()} dashboard-home orders-ops`}>
-      <header className="space-y-1">
+      <header className="orders-page-header">
         <h1 className={portalPageTitle(isLight)}>{o.title}</h1>
         <p className={portalPageSubtitle(isLight)}>{o.subtitle}</p>
       </header>
 
       <OrdersSummary kpis={orders.summary} loading={data.loading} isLight={isLight} />
+
+      <OrdersFilters label={o.filtersTitle} todayLabel={o.filterToday} />
 
       {showEmptyHero ? (
         <OrdersEmptyState
@@ -53,13 +52,12 @@ const PortalOrdersPage: React.FC = () => {
         />
       ) : null}
 
-      <OrdersFilters o={o} />
-
       <OrdersTable
         orders={orders.orders}
         loading={data.loading}
         title={o.ordersFeedTitle}
         emptyLabel={o.ordersEmpty}
+        primary
         columns={{
           time: o.colTime,
           orderNumber: o.colOrderNumber,
@@ -90,17 +88,11 @@ const PortalOrdersPage: React.FC = () => {
         }}
       />
 
-      <div className="live-dashboard-split">
-        <PaymentOverview payments={orders.payments} title={o.paymentOverviewTitle} />
-        <BusinessTimeline
-          events={orders.events}
-          locale={locale}
-          title={o.eventsTitle}
-          emptyLabel={o.eventsEmpty}
-        />
-      </div>
-
-      <OrdersQuickActions actions={orders.quickActions} title={o.quickActionsTitle} />
+      <PaymentOverview
+        payments={orders.payments}
+        title={o.paymentSummaryTitle}
+        hint={orders.hasSalesData ? undefined : o.paymentEmptyHint}
+      />
     </div>
   );
 };

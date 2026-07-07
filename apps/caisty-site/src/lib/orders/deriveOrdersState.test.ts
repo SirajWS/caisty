@@ -45,11 +45,13 @@ describe("deriveOrdersState", () => {
 
     expect(state.orders).toEqual([]);
     expect(state.receipts).toEqual([]);
+    expect(state.summary).toHaveLength(4);
     expect(state.summary.every((k) => k.value === "—")).toBe(true);
+    expect(state.summary.every((k) => k.hint === "Waiting for POS sync")).toBe(true);
   });
 
-  it("detects POS sync from device heartbeat", () => {
-    const synced = deriveOrdersState({
+  it("tracks sales data only from orders and receipts", () => {
+    const empty = deriveOrdersState({
       data: makeData({
         devices: [
           {
@@ -64,9 +66,14 @@ describe("deriveOrdersState", () => {
       }),
       t: portalEn,
     });
-    expect(synced.hasPosSync).toBe(true);
+    expect(empty.hasSalesData).toBe(false);
 
-    const notSynced = deriveOrdersState({ data: makeData(), t: portalEn });
-    expect(notSynced.hasPosSync).toBe(false);
+    const noDevices = deriveOrdersState({ data: makeData(), t: portalEn });
+    expect(noDevices.hasSalesData).toBe(false);
+  });
+
+  it("uses dash values for payment summary without inventing totals", () => {
+    const state = deriveOrdersState({ data: makeData(), t: portalEn });
+    expect(state.payments.every((p) => p.value === "—")).toBe(true);
   });
 });

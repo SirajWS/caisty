@@ -28,6 +28,9 @@ export function ReceiptsTable({
   emptyLabel: string;
   title: string;
 }) {
+  const showActions = receipts.length > 0;
+  const colSpan = showActions ? 7 : 6;
+
   return (
     <section className="dashboard-panel dashboard-panel--wide">
       <h2 className="dashboard-panel-title">{title}</h2>
@@ -41,19 +44,19 @@ export function ReceiptsTable({
               <th>{columns.payment}</th>
               <th>{columns.fiscal}</th>
               <th>{columns.amount}</th>
-              <th>{actionsLabel}</th>
+              {showActions ? <th>{actionsLabel}</th> : null}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="orders-table-empty">
+                <td colSpan={colSpan} className="orders-table-empty">
                   …
                 </td>
               </tr>
             ) : receipts.length === 0 ? (
               <tr>
-                <td colSpan={7} className="orders-table-empty">
+                <td colSpan={colSpan} className="orders-table-empty">
                   {emptyLabel}
                 </td>
               </tr>

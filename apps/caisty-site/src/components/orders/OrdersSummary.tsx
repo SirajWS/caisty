@@ -12,8 +12,8 @@ export function OrdersSummary({
 }) {
   if (loading) {
     return (
-      <div className="dashboard-kpi-grid">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="dashboard-kpi-grid dashboard-kpi-grid--orders">
+        {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="dashboard-kpi dashboard-kpi--skeleton animate-pulse" />
         ))}
       </div>
@@ -21,7 +21,7 @@ export function OrdersSummary({
   }
 
   return (
-    <div className="dashboard-kpi-grid">
+    <div className="dashboard-kpi-grid dashboard-kpi-grid--orders">
       {kpis.map((kpi) => (
         <div key={kpi.id} className="dashboard-kpi">
           <span className={portalSectionLabel(isLight)}>{kpi.label}</span>

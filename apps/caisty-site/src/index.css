@@ -1779,7 +1779,67 @@ a {
 .orders-ops {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+}
+
+.orders-page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashboard-kpi-grid--orders {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .dashboard-kpi-grid--orders {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.orders-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 2px;
+}
+
+.orders-filter-bar-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dashboard-text-muted);
+}
+
+.orders-panel--primary .dashboard-panel-title {
+  font-size: 15px;
+}
+
+.orders-panel--primary .orders-table-empty {
+  padding: 40px 12px !important;
+}
+
+.orders-payment-summary {
+  padding-bottom: 14px;
+}
+
+.orders-payment-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+
+.orders-payment-strip-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.orders-payment-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--dashboard-text-muted);
 }
 
 .orders-table-wrap {
