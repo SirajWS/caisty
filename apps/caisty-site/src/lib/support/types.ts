@@ -60,12 +60,18 @@ export type RemoteSupportItem = {
 
 export type SupportDerivedState = {
   overview: SupportKpi[];
+  summary: SupportSummaryView;
   helpCategories: HelpCategory[];
   quickActions: SupportPlaceholderAction[];
   systemStatus: ServiceStatusItem[];
   remoteSupport: RemoteSupportItem[];
   contactOptions: SupportContactOption[];
   knowledgeBase: KnowledgeBaseItem[];
+};
+
+/** Compact header metrics for the support center. */
+export type SupportSummaryView = {
+  openCount: number;
 };
 
 export type DeriveSupportInput = {

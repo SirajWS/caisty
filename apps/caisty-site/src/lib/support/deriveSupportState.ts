@@ -326,9 +326,18 @@ function deriveKnowledgeBase(input: DeriveSupportInput): SupportDerivedState["kn
   ];
 }
 
+function deriveSupportSummary(input: DeriveSupportInput): SupportDerivedState["summary"] {
+  const openCount = input.messages.filter(
+    (m) => m.status === "open" || m.status === "in_progress",
+  ).length;
+
+  return { openCount };
+}
+
 export function deriveSupportState(input: DeriveSupportInput): SupportDerivedState {
   return {
     overview: deriveOverview(input),
+    summary: deriveSupportSummary(input),
     helpCategories: deriveHelpCategories(input),
     quickActions: deriveQuickActions(input),
     systemStatus: deriveSystemStatus(input),

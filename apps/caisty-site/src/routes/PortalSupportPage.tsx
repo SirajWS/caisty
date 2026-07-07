@@ -6,16 +6,11 @@ import { getPortalTranslations } from "../lib/translations";
 import { portalLocaleTag } from "../lib/portalLocale";
 import { usePortalSupportData } from "../lib/support/usePortalSupportData";
 import { deriveSupportState } from "../lib/support/deriveSupportState";
-import { SupportOverview } from "../components/support/SupportOverview";
+import { SupportSummary } from "../components/support/SupportSummary";
 import { SupportRequestForm } from "../components/support/SupportRequestForm";
 import { SupportRequestsList } from "../components/support/SupportRequestsList";
-import { HelpCategories } from "../components/support/HelpCategories";
-import { SupportQuickActions } from "../components/support/SupportQuickActions";
-import { SystemServiceStatus } from "../components/support/SystemServiceStatus";
-import { RemoteSupportCard } from "../components/support/RemoteSupportCard";
-import { SupportContactOptions } from "../components/support/SupportContactOptions";
-import { KnowledgeBase } from "../components/support/KnowledgeBase";
-import { portalPageShell, portalPageSubtitle, portalPageTitle } from "../lib/portalUi";
+import { SupportFooter } from "../components/support/SupportFooter";
+import { portalPageShell } from "../lib/portalUi";
 
 export default function PortalSupportPage() {
   const { customer } = usePortalOutlet();
@@ -47,49 +42,38 @@ export default function PortalSupportPage() {
     [data, locale, t],
   );
 
+  const supportEmail =
+    import.meta.env.VITE_PUBLIC_SUPPORT_EMAIL ?? "support@caisty.com";
+  const statusPageUrl =
+    (import.meta.env.VITE_STATUS_PAGE_URL as string | undefined)?.trim() || null;
+
   return (
     <div className={`${portalPageShell()} dashboard-home support-center`}>
-      <header className="space-y-1">
-        <h1 className={portalPageTitle(isLight)}>{c.pageTitle}</h1>
-        <p className={portalPageSubtitle(isLight)}>{c.pageSubtitle}</p>
-      </header>
-
-      <SupportOverview
-        kpis={support.overview}
-        loading={data.messagesLoading && data.licensesLoading}
+      <SupportSummary
+        summary={support.summary}
+        loading={data.messagesLoading}
         isLight={isLight}
+        t={t}
+        supportEmail={supportEmail}
       />
 
-      <div className="live-dashboard-split">
-        <SupportQuickActions
-          actions={support.quickActions}
-          title={c.sectionQuickActions}
-          isLight={isLight}
-        />
-        <SystemServiceStatus items={support.systemStatus} title={c.sectionSystemStatus} />
-      </div>
+      <SupportRequestForm isLight={isLight} t={t} onSubmitted={data.reloadMessages} />
 
-      <div className="live-dashboard-split">
-        <SupportRequestForm isLight={isLight} t={t} onSubmitted={data.reloadMessages} />
-        <SupportRequestsList
-          messages={data.messages}
-          loading={data.messagesLoading}
-          isLight={isLight}
-          locale={locale}
-          t={t}
-        />
-      </div>
+      <SupportRequestsList
+        messages={data.messages}
+        loading={data.messagesLoading}
+        isLight={isLight}
+        locale={locale}
+        t={t}
+      />
 
-      <HelpCategories categories={support.helpCategories} title={c.sectionHelpCategories} />
-
-      <div className="live-dashboard-split">
-        <RemoteSupportCard items={support.remoteSupport} title={c.sectionRemoteSupport} />
-        <KnowledgeBase items={support.knowledgeBase} title={c.sectionKnowledgeBase} />
-      </div>
-
-      <SupportContactOptions
-        options={support.contactOptions}
-        title={c.sectionContact}
+      <SupportFooter
+        supportEmail={supportEmail}
+        supportEmailLabel={c.footerSupportEmail}
+        statusPageUrl={statusPageUrl}
+        statusPageLabel={c.footerStatusPage}
+        privacyLabel={t.account.center.legalShort.privacy}
+        termsLabel={t.account.center.legalShort.terms}
         isLight={isLight}
       />
     </div>

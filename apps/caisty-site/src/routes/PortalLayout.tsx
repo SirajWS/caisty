@@ -52,38 +52,65 @@ type NavItem = {
   label: string;
   icon: React.ReactNode;
   end?: boolean;
-  sectionStart?: boolean;
 };
 
-function usePortalNavItems(): NavItem[] {
+type NavSection = {
+  label: string;
+  items: NavItem[];
+};
+
+type PortalNav = {
+  dashboard: NavItem;
+  sections: NavSection[];
+};
+
+function usePortalNav(): PortalNav {
   const { language } = useLanguage();
   const t = getPortalTranslations(language);
-  return [
-    { to: "/portal", label: t.layout.navDashboard, icon: <LayoutDashboard size={18} />, end: true },
-    {
-      to: "/portal/orders",
-      label: t.layout.navOrders,
-      icon: <ShoppingBag size={18} />,
-      sectionStart: true,
+  return {
+    dashboard: {
+      to: "/portal",
+      label: t.layout.navDashboard,
+      icon: <LayoutDashboard size={18} />,
+      end: true,
     },
-    {
-      to: "/portal/reports",
-      label: t.layout.navReports,
-      icon: <BarChart3 size={18} />,
-    },
-    { to: "/portal/account", label: t.layout.navAccount, icon: <User size={18} /> },
-    { to: "/portal/business", label: t.layout.navBusiness, icon: <Building2 size={18} /> },
-    { to: "/portal/licenses", label: t.layout.navLicenses, icon: <KeyRound size={18} /> },
-    { to: "/portal/devices", label: t.layout.navDevices, icon: <HardDrive size={18} /> },
-    { to: "/portal/billing", label: t.layout.navPlans, icon: <CreditCard size={18} /> },
-    { to: "/portal/support", label: t.layout.navSupport, icon: <LifeBuoy size={18} /> },
-    {
-      to: "/portal/pos",
-      label: t.layout.navPos,
-      icon: <Monitor size={18} />,
-      sectionStart: true,
-    },
-  ];
+    sections: [
+      {
+        label: t.layout.navSectionBusiness,
+        items: [
+          { to: "/portal/business", label: t.layout.navBusiness, icon: <Building2 size={18} /> },
+          { to: "/portal/account", label: t.layout.navAccount, icon: <User size={18} /> },
+        ],
+      },
+      {
+        label: t.layout.navSectionSales,
+        items: [
+          { to: "/portal/orders", label: t.layout.navOrders, icon: <ShoppingBag size={18} /> },
+          { to: "/portal/reports", label: t.layout.navReports, icon: <BarChart3 size={18} /> },
+        ],
+      },
+      {
+        label: t.layout.navSectionSubscription,
+        items: [
+          { to: "/portal/licenses", label: t.layout.navLicenses, icon: <KeyRound size={18} /> },
+          { to: "/portal/devices", label: t.layout.navDevices, icon: <HardDrive size={18} /> },
+          { to: "/portal/billing", label: t.layout.navPlans, icon: <CreditCard size={18} /> },
+        ],
+      },
+      {
+        label: t.layout.navSectionHelp,
+        items: [{ to: "/portal/support", label: t.layout.navSupport, icon: <LifeBuoy size={18} /> }],
+      },
+      {
+        label: t.layout.navSectionPos,
+        items: [{ to: "/portal/pos", label: t.layout.navPos, icon: <Monitor size={18} /> }],
+      },
+    ],
+  };
+}
+
+function flattenNavItems(nav: PortalNav): NavItem[] {
+  return [nav.dashboard, ...nav.sections.flatMap((section) => section.items)];
 }
 
 function pageTitle(pathname: string, items: NavItem[]): string {
@@ -97,7 +124,8 @@ export default function PortalLayout() {
   const { language } = useLanguage();
   const t = getPortalTranslations(language);
   const { theme } = useTheme();
-  const navItems = usePortalNavItems();
+  const nav = usePortalNav();
+  const navItems = flattenNavItems(nav);
   const [customer, setCustomer] = React.useState<PortalCustomer | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [mobileOpen, setMobileOpen] = React.useState(false);
@@ -207,22 +235,35 @@ export default function PortalLayout() {
           </div>
         </div>
         <nav className="portal-nav">
-          {navItems.map((item) => {
-            const active = item.end
-              ? location.pathname === item.to
-              : location.pathname.startsWith(item.to);
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={`portal-nav-link ${active ? "is-active" : ""} ${item.sectionStart ? "portal-nav-link--section-start" : ""}`}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </NavLink>
-            );
-          })}
+          <NavLink
+            to={nav.dashboard.to}
+            end={nav.dashboard.end}
+            className={({ isActive }) =>
+              `portal-nav-link${isActive ? " is-active" : ""}`
+            }
+          >
+            {nav.dashboard.icon}
+            <span>{nav.dashboard.label}</span>
+          </NavLink>
+
+          {nav.sections.map((section) => (
+            <div key={section.label} className="portal-nav-section" role="group" aria-label={section.label}>
+              <div className="portal-nav-section-label">{section.label}</div>
+              {section.items.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `portal-nav-link${isActive ? " is-active" : ""}`
+                  }
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+            </div>
+          ))}
         </nav>
       </aside>
 

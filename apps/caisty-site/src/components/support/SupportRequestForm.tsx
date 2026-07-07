@@ -49,9 +49,8 @@ export function SupportRequestForm({
   }
 
   return (
-    <section id="support-request-form" className="dashboard-panel scroll-mt-20">
+    <section id="support-request-form" className="dashboard-panel dashboard-panel--wide support-form-panel scroll-mt-20">
       <h2 className="dashboard-panel-title">{c.sectionNewRequest}</h2>
-      <p className="dashboard-text-muted text-xs mt-0 mb-3">{s.subtitle}</p>
 
       {(error || success) && (
         <div
@@ -79,9 +78,9 @@ export function SupportRequestForm({
             <textarea
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              rows={4}
+              rows={3}
               placeholder={s.messagePlaceholder}
-              className={`min-h-[8rem] resize-y ${portalInputClass(isLight)}`}
+              className={`min-h-[5.5rem] resize-y ${portalInputClass(isLight)}`}
             />
           </div>
         </div>

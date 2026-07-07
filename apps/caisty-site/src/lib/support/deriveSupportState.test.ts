@@ -53,6 +53,7 @@ describe("deriveSupportState", () => {
       t: portalEn,
     });
 
+    expect(state.summary.openCount).toBe(1);
     expect(state.overview.find((k) => k.id === "open")?.value).toBe("1");
     expect(state.remoteSupport.every((r) => r.tone === "coming_soon")).toBe(true);
   });
@@ -73,6 +74,7 @@ describe("deriveSupportState", () => {
       t: portalEn,
     });
 
+    expect(state.summary.openCount).toBe(0);
     expect(state.overview.find((k) => k.id === "last")?.value).toBe(
       portalEn.support.center.noRequestsYet,
     );
