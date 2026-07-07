@@ -39,6 +39,8 @@ const PortalSupportPage = lazy(() => import("./routes/PortalSupportPage"));
 const PortalUpgradeResultPage = lazy(() => import("./routes/PortalUpgradeResultPage"));
 const PortalBusinessPage = lazy(() => import("./routes/PortalBusinessPage"));
 const PortalPosPage = lazy(() => import("./routes/PortalPosPage"));
+const PortalOrdersPage = lazy(() => import("./routes/PortalOrdersPage"));
+const PortalReportsPage = lazy(() => import("./routes/PortalReportsPage"));
 
 function RouteFallback() {
   return (
@@ -84,7 +86,8 @@ export default function App() {
         <Route path="/portal" element={<PortalLayout />}>
           <Route index element={<Lazy><PortalDashboard /></Lazy>} />
           <Route path="licenses" element={<Lazy><PortalLicensesPage /></Lazy>} />
-          <Route path="plan" element={<Lazy><PortalPlanBillingPage /></Lazy>} />
+          <Route path="billing" element={<Lazy><PortalPlanBillingPage /></Lazy>} />
+          <Route path="plan" element={<Navigate to="/portal/billing" replace />} />
           <Route path="checkout" element={<Lazy><PortalCheckoutPage /></Lazy>} />
           <Route path="checkout/success" element={<Lazy><PortalCheckoutSuccessPage /></Lazy>} />
           <Route path="checkout/cancel" element={<Lazy><PortalCheckoutCancelPage /></Lazy>} />
@@ -94,6 +97,8 @@ export default function App() {
           <Route path="business" element={<Lazy><PortalBusinessPage /></Lazy>} />
           <Route path="support" element={<Lazy><PortalSupportPage /></Lazy>} />
           <Route path="pos" element={<Lazy><PortalPosPage /></Lazy>} />
+          <Route path="orders" element={<Lazy><PortalOrdersPage /></Lazy>} />
+          <Route path="reports" element={<Lazy><PortalReportsPage /></Lazy>} />
           <Route path="account" element={<Lazy><PortalAccountPage /></Lazy>} />
           <Route path="install" element={<Lazy><PortalInstallPage /></Lazy>} />
           <Route path="upgrade/result" element={<Lazy><PortalUpgradeResultPage /></Lazy>} />

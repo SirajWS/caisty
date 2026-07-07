@@ -54,6 +54,13 @@ export type PosHubSystemStatus = {
   lastSyncLabel: string;
 };
 
+export type PosHubSummaryView = {
+  posStatusLabel: string;
+  posStatusTone: PosHubTone;
+  licensePlanLabel: string;
+  devicesShortLabel: string;
+};
+
 export type PosHubData = {
   licenses: PortalLicense[];
   devices: PortalDevice[];
@@ -74,6 +81,7 @@ export type DerivePosHubInput = {
 
 export type PosHubDerivedState = {
   release: PosReleaseConfig;
+  summary: PosHubSummaryView;
   version: PosHubVersionView;
   license: PosHubLicenseView;
   readiness: PosHubReadinessItem[];

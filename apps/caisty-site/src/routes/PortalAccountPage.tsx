@@ -1,343 +1,78 @@
-// apps/caisty-site/src/routes/PortalAccountPage.tsx
 import React from "react";
-import {
-  changePortalPassword,
-  updatePortalAccount,
-} from "../lib/portalApi";
 import { usePortalOutlet } from "./PortalLayout";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
+import { usePortalAccountData } from "../lib/account/usePortalAccountData";
 import {
-  portalCardShell,
-  portalInputClass,
-  portalPageShell,
-  portalPageSubtitle,
-  portalPageTitle,
-  portalPrimaryCta,
-  portalTextLink,
-} from "../lib/portalUi";
-import { PortalLegalDocumentsSection } from "../components/PortalLegalDocumentsSection";
-
-const SUPPORT_EMAIL =
-  import.meta.env.VITE_PUBLIC_SUPPORT_EMAIL ?? "support@caisty.com";
+  deriveAccountState,
+  emailVerificationLabel,
+  securityStatusLabel,
+} from "../lib/account/deriveAccountState";
+import { AccountProfileForm } from "../components/account/AccountProfileForm";
+import { PasswordSecurity } from "../components/account/PasswordSecurity";
+import { SecurityStatus } from "../components/account/SecurityStatus";
+import { AccountFooter } from "../components/account/AccountFooter";
+import { portalPageShell, portalPageSubtitle, portalPageTitle } from "../lib/portalUi";
+import type { PortalCustomer } from "../lib/portalApi";
 
 const PortalAccountPage: React.FC = () => {
-  const { customer, setCustomer } = usePortalOutlet();
+  const { customer: outletCustomer, setCustomer } = usePortalOutlet();
   const { theme } = useTheme();
   const { language } = useLanguage();
   const t = getPortalTranslations(language);
+  const c = t.account.center;
   const isLight = theme === "light";
 
-  const [name, setName] = React.useState(customer.name);
-  const [email, setEmail] = React.useState(customer.email);
+  const { customer, setCustomer: setLocalCustomer } = usePortalAccountData(outletCustomer);
 
-  const [profileSaving, setProfileSaving] = React.useState(false);
-  const [profileError, setProfileError] = React.useState<string | null>(
-    null,
+  const account = React.useMemo(
+    () =>
+      deriveAccountState({
+        customer,
+        securityStatusLabel: securityStatusLabel(customer.portalStatus, t),
+        emailStatusLabel: emailVerificationLabel(customer.portalStatus, t),
+        t,
+      }),
+    [customer, t],
   );
-  const [profileSuccess, setProfileSuccess] =
-    React.useState<string | null>(null);
 
-  const [currentPassword, setCurrentPassword] = React.useState("");
-  const [newPassword, setNewPassword] = React.useState("");
-  const [newPasswordRepeat, setNewPasswordRepeat] =
-    React.useState("");
-  const [passwordSaving, setPasswordSaving] =
-    React.useState(false);
-  const [passwordError, setPasswordError] =
-    React.useState<string | null>(null);
-  const [passwordSuccess, setPasswordSuccess] =
-    React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    setName(customer.name);
-    setEmail(customer.email);
-  }, [customer.name, customer.email]);
-
-  async function handleProfileSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setProfileError(null);
-    setProfileSuccess(null);
-
-    if (
-      name.trim() === customer.name &&
-      email.trim().toLowerCase() === customer.email.toLowerCase()
-    ) {
-      setProfileSuccess(t.account.noChanges);
-      return;
-    }
-
-    setProfileSaving(true);
-    try {
-      const updated = await updatePortalAccount({
-        name: name.trim(),
-        email: email.trim(),
-      });
-
-      setCustomer((prev) => {
-        if (!prev) return updated;
-        return {
-          ...prev,
-          ...updated,
-          primaryLicense: prev.primaryLicense,
-        };
-      });
-
-      setProfileSuccess(t.account.updateSuccess);
-    } catch (err) {
-      console.error(err);
-      setProfileError(
-        err instanceof Error
-          ? err.message
-          : t.account.updateError,
-      );
-    } finally {
-      setProfileSaving(false);
-    }
-  }
-
-  async function handlePasswordSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setPasswordError(null);
-    setPasswordSuccess(null);
-
-    if (!currentPassword || !newPassword) {
-      setPasswordError(t.account.fillAllFields);
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setPasswordError(t.account.passwordTooShort);
-      return;
-    }
-
-    if (newPassword !== newPasswordRepeat) {
-      setPasswordError(t.account.passwordMismatch);
-      return;
-    }
-
-    setPasswordSaving(true);
-    try {
-      await changePortalPassword({
-        currentPassword,
-        newPassword,
-      });
-
-      setPasswordSuccess(t.account.passwordSuccess);
-      setCurrentPassword("");
-      setNewPassword("");
-      setNewPasswordRepeat("");
-    } catch (err) {
-      console.error(err);
-      setPasswordError(
-        err instanceof Error
-          ? err.message
-          : t.account.passwordError,
-      );
-    } finally {
-      setPasswordSaving(false);
-    }
+  function handleProfileUpdated(updated: PortalCustomer) {
+    setLocalCustomer(updated);
+    setCustomer((prev) => {
+      if (!prev) return updated;
+      return { ...prev, ...updated, primaryLicense: prev.primaryLicense };
+    });
   }
 
   return (
-    <div className={portalPageShell()}>
-      <header className="space-y-1">
-        <h1 className={portalPageTitle(isLight)}>{t.account.title}</h1>
-        <p className={portalPageSubtitle(isLight)}>{t.account.subtitle}</p>
+    <div className={`${portalPageShell()} dashboard-home account-center`}>
+      <header className="account-page-header">
+        <h1 className={portalPageTitle(isLight)}>{c.pageTitle}</h1>
+        <p className={portalPageSubtitle(isLight)}>{c.pageSubtitle}</p>
       </header>
 
-      <section className={`${portalCardShell(isLight)} space-y-4`}>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className={`text-sm font-semibold uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-              {t.account.profileTitle}
-            </p>
-            <p className={`mt-1 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-              {t.account.profileHint}
-            </p>
-          </div>
-          <span className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-[11px] ${isLight ? "border-slate-300 text-slate-600" : "border-white/15 text-slate-300"}`}>
-            {t.account.versionBadge}
-          </span>
+      <div className="account-layout">
+        <div className="account-layout-col">
+          <AccountProfileForm
+            customer={customer}
+            isLight={isLight}
+            t={t}
+            onUpdated={handleProfileUpdated}
+          />
+          <SecurityStatus items={account.securityStatus} title={c.sectionSecurityStatus} />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-1 text-xs">
-          <form
-            onSubmit={handleProfileSubmit}
-            className="space-y-3"
-          >
-            <div className="grid gap-3 md:grid-cols-2">
-              <LabeledInput
-                label={t.account.nameLabel}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-              <LabeledInput
-                label={t.account.emailLabel}
-                value={email}
-                type="email"
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            {profileError && (
-              <div className={`rounded-xl border px-3 py-2 text-[11px] ${isLight ? "border-rose-300 bg-rose-50 text-rose-800" : "border-rose-500/60 bg-rose-500/10 text-rose-200"}`}>
-                {profileError}
-              </div>
-            )}
-            {profileSuccess && (
-              <div className={`rounded-xl border px-3 py-2 text-[11px] ${isLight ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-emerald-500/60 bg-emerald-500/10 text-emerald-200"}`}>
-                {profileSuccess}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={profileSaving}
-              className={`${portalPrimaryCta()} disabled:opacity-60`}
-            >
-              {profileSaving ? t.account.saveBusy : t.account.save}
-            </button>
-          </form>
+        <div className="account-layout-col">
+          <PasswordSecurity isLight={isLight} t={t} />
         </div>
-      </section>
-
-      <section className={`${portalCardShell(isLight)} space-y-3`}>
-        <div>
-          <p className={`text-sm font-semibold uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-            {t.account.securityTitle}
-          </p>
-          <p className={`mt-1 text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-            {t.account.securityHint}
-          </p>
-        </div>
-
-        <form
-          onSubmit={handlePasswordSubmit}
-          className="grid gap-3 md:grid-cols-3 text-xs"
-        >
-          <div className="space-y-2.5 md:col-span-2">
-            <PasswordInput
-              label={t.account.currentPassword}
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-            />
-            <PasswordInput
-              label={t.account.newPassword}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-            />
-            <PasswordInput
-              label={t.account.repeatPassword}
-              value={newPasswordRepeat}
-              onChange={(e) =>
-                setNewPasswordRepeat(e.target.value)
-              }
-            />
-
-            {passwordError && (
-              <div className={`rounded-xl border px-3 py-2 text-[11px] ${isLight ? "border-rose-300 bg-rose-50 text-rose-800" : "border-rose-500/60 bg-rose-500/10 text-rose-200"}`}>
-                {passwordError}
-              </div>
-            )}
-            {passwordSuccess && (
-              <div className={`rounded-xl border px-3 py-2 text-[11px] ${isLight ? "border-emerald-300 bg-emerald-50 text-emerald-800" : "border-emerald-500/60 bg-emerald-500/10 text-emerald-200"}`}>
-                {passwordSuccess}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={passwordSaving}
-              className={`inline-flex items-center justify-center rounded-lg border px-4 py-2.5 text-xs font-medium transition-colors disabled:opacity-60 ${
-                isLight
-                  ? "border-slate-300 text-slate-900 hover:bg-slate-50"
-                  : "border-white/20 text-white hover:bg-white/[0.06]"
-              }`}
-            >
-              {passwordSaving
-                ? t.account.passwordBusy
-                : t.account.passwordSubmit}
-            </button>
-          </div>
-
-          <div className={`text-xs space-y-2 max-w-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-            <div className={`font-semibold ${isLight ? "text-slate-900" : "text-slate-200"}`}>
-              {t.account.hintsTitle}
-            </div>
-            <p>
-              {t.account.hintsP1}
-            </p>
-            <p>
-              {t.account.hintsP2}
-            </p>
-          </div>
-        </form>
-      </section>
-
-      <section className={`${portalCardShell(isLight)}`}>
-        <PortalLegalDocumentsSection />
-      </section>
-
-      <p className={`text-sm ${isLight ? "text-slate-600" : "text-slate-400"}`}>
-        <span className={`font-medium ${isLight ? "text-slate-700" : "text-slate-300"}`}>
-          {t.account.dataExportTitle}:
-        </span>{" "}
-        {t.account.dataExportInline.split(SUPPORT_EMAIL)[0]}
-        <a
-          href={`mailto:${SUPPORT_EMAIL}`}
-          className={`no-underline hover:underline ${portalTextLink(isLight)}`}
-        >
-          {SUPPORT_EMAIL}
-        </a>
-        {t.account.dataExportInline.split(SUPPORT_EMAIL)[1] ?? ""}
-      </p>
-    </div>
-  );
-};
-
-const LabeledInput: React.FC<{
-  label: string;
-  value: string;
-  type?: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}> = ({ label, value, type = "text", onChange }) => {
-  const { theme } = useTheme();
-  const isLight = theme === "light";
-  return (
-    <div className="space-y-1.5">
-      <div className={`text-[11px] font-medium uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-        {label}
       </div>
-      <input
-        type={type}
-        value={value}
-        onChange={onChange}
-        className={portalInputClass(isLight)}
-      />
-    </div>
-  );
-};
 
-const PasswordInput: React.FC<{
-  label: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}> = ({ label, value, onChange }) => {
-  const { theme } = useTheme();
-  const isLight = theme === "light";
-  return (
-    <div className="space-y-1.5">
-      <div className={`text-[11px] font-medium uppercase tracking-wider ${isLight ? "text-slate-500" : "text-slate-400"}`}>
-        {label}
-      </div>
-      <input
-        type="password"
-        autoComplete="new-password"
-        value={value}
-        onChange={onChange}
-        className={portalInputClass(isLight)}
+      <AccountFooter
+        documents={account.legalDocuments}
+        supportHref={account.supportHref}
+        supportLabel={c.actionContactSupport}
+        isLight={isLight}
       />
     </div>
   );

@@ -1,0 +1,34 @@
+import { portalSectionLabel } from "../../lib/portalUi";
+import type { SupportKpi } from "../../lib/support/types";
+
+export function SupportOverview({
+  kpis,
+  loading,
+  isLight,
+}: {
+  kpis: SupportKpi[];
+  loading: boolean;
+  isLight: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="dashboard-kpi-grid support-kpi-grid">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="dashboard-kpi dashboard-kpi--skeleton animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="dashboard-kpi-grid support-kpi-grid">
+      {kpis.map((kpi) => (
+        <div key={kpi.id} className="dashboard-kpi">
+          <span className={portalSectionLabel(isLight)}>{kpi.label}</span>
+          <span className="dashboard-kpi-value">{kpi.value}</span>
+          {kpi.hint ? <span className="dashboard-kpi-hint">{kpi.hint}</span> : null}
+        </div>
+      ))}
+    </div>
+  );
+}

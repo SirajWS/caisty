@@ -122,7 +122,7 @@ export function setupStepHref(stepId: SetupStepId): string {
     case "company":
       return "/portal/business";
     case "license_plan":
-      return "/portal/plan";
+      return "/portal/billing";
     case "install":
       return "/portal/install";
     default:

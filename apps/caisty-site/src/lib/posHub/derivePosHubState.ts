@@ -23,12 +23,55 @@ import type {
   PosHubLicenseView,
   PosHubNotification,
   PosHubReadinessItem,
+  PosHubSummaryView,
   PosHubSystemStatus,
   PosHubTone,
   PosHubVersionView,
 } from "./types";
 
 const LICENSE_EXPIRY_WARNING_DAYS = 30;
+
+function countOnlineDevices(devices: PortalDevice[]): { online: number; total: number } {
+  const total = devices.length;
+  const online = devices.filter(
+    (d) => (d.status ?? "").toLowerCase() === "online",
+  ).length;
+  return { online, total };
+}
+
+function derivePosSummary(
+  input: DerivePosHubInput,
+  license: PosHubLicenseView,
+): PosHubSummaryView {
+  const p = input.t.pos;
+  const { online, total } = countOnlineDevices(input.data.devices);
+
+  let posStatusLabel = p.statusNotConnected;
+  let posStatusTone: PosHubTone = "attention";
+  if (total > 0) {
+    if (online > 0) {
+      posStatusLabel = p.statusOnline;
+      posStatusTone = "ok";
+    } else {
+      posStatusLabel = p.statusOffline;
+      posStatusTone = "attention";
+    }
+  }
+
+  const devicesShortLabel =
+    total === 0
+      ? p.summaryNoDevices
+      : p.summaryDevicesConnected
+          .replace("{{online}}", String(online))
+          .replace("{{total}}", String(total));
+
+  return {
+    posStatusLabel,
+    posStatusTone,
+    licensePlanLabel: license.planLabel,
+    devicesShortLabel,
+  };
+}
 
 function deriveInstalledVersion(devices: PortalDevice[]): string | null {
   return pickHighestSemver(devices.map((d) => d.appVersion));
@@ -73,7 +116,7 @@ function deriveLicenseView(
 ): PosHubLicenseView {
   const primary = pickPrimaryPortalLicense(licenses);
   const dash = t.labels.dash;
-  const upgradeHref = "/portal/plan";
+  const upgradeHref = "/portal/billing";
 
   if (!primary) {
     return {
@@ -242,7 +285,7 @@ function deriveNotifications(
         "{{version}}",
         version.latest,
       ),
-      href: "#pos-release-center",
+      href: "#pos-version-updates",
     });
   }
 
@@ -258,7 +301,7 @@ function deriveNotifications(
       id: "license-expiry",
       tone: days <= 7 ? "action_required" : "attention",
       message: p.notifyLicenseExpires.replace("{{days}}", String(days)),
-      href: "/portal/plan",
+      href: "/portal/billing",
     });
   }
 
@@ -338,6 +381,7 @@ export function derivePosHubState(input: DerivePosHubInput): PosHubDerivedState 
     input.data.invoices,
     input.t,
   );
+  const summary = derivePosSummary(input, license);
   const readiness = deriveReadiness(input, fiscalVisibility);
   const notifications = deriveNotifications(
     input,
@@ -349,6 +393,7 @@ export function derivePosHubState(input: DerivePosHubInput): PosHubDerivedState 
 
   return {
     release: input.release,
+    summary,
     version,
     license,
     readiness,

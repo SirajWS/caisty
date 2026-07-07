@@ -13,7 +13,7 @@ export default function PortalCheckoutCancelPage() {
     const invoiceId = sessionStorage.getItem("pendingInvoiceId");
     const destination = invoiceId
       ? `/portal/invoices/${invoiceId}`
-      : "/portal/invoices";
+      : "/portal/billing#billing-invoices";
 
     const timer = setTimeout(() => {
       navigate(destination, { replace: true });
@@ -53,7 +53,7 @@ export default function PortalCheckoutCancelPage() {
           onClick={() => {
             const invoiceId = sessionStorage.getItem("pendingInvoiceId");
             navigate(
-              invoiceId ? `/portal/invoices/${invoiceId}` : "/portal/invoices",
+              invoiceId ? `/portal/invoices/${invoiceId}` : "/portal/billing#billing-invoices",
             );
           }}
           className="w-full rounded-full bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 transition-colors"

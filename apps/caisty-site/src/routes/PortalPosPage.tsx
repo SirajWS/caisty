@@ -4,23 +4,16 @@ import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
 import { portalLocaleTag } from "../lib/portalLocale";
-import { getPosReleaseConfig, getPortalEnvironmentLabel } from "../config/posConfig";
+import { getPosReleaseConfig } from "../config/posConfig";
 import { derivePosHubState } from "../lib/posHub/derivePosHubState";
-import { translatePortalEnvironment } from "../lib/posHub/format";
 import { usePortalPosHubData } from "../lib/posHub/usePortalPosHubData";
-import {
-  PosHubComingSoon,
-  PosHubDevices,
-  PosHubDownloadCard,
-  PosHubLicenseCard,
-  PosHubNotifications,
-  PosHubQuickActions,
-  PosHubReadiness,
-  PosHubReleaseCenter,
-  PosHubSystemStatus,
-  PosHubVersionHero,
-} from "../components/posHub/PosHubPanels";
-import { portalPageShell, portalPageSubtitle, portalPageTitle } from "../lib/portalUi";
+import { PosHubNotifications } from "../components/posHub/PosHubPanels";
+import { PosSummary } from "../components/posHub/PosSummary";
+import { PosMainActions } from "../components/posHub/PosMainActions";
+import { PosVersionUpdates } from "../components/posHub/PosVersionUpdates";
+import { PosLaunchChecklist } from "../components/posHub/PosLaunchChecklist";
+import { PosFooter } from "../components/posHub/PosFooter";
+import { portalPageShell } from "../lib/portalUi";
 
 const PortalPosPage: React.FC = () => {
   const { customer } = usePortalOutlet();
@@ -41,74 +34,58 @@ const PortalPosPage: React.FC = () => {
         data: hubData,
         release,
         t,
-        environmentLabel: getPortalEnvironmentLabel(),
+        environmentLabel: "",
       }),
     [hubData, release, t],
   );
 
-  const envLabel = translatePortalEnvironment(getPortalEnvironmentLabel(), {
-    production: p.envProduction,
-    staging: p.envStaging,
-    development: p.envDevelopment,
-  });
-
-  const comingSoonItems = [
-    p.comingSoonApiLatency,
-    p.comingSoonSeatCount,
-    p.comingSoonAutoUpdates,
-    p.comingSoonPrinter,
-    p.comingSoonCashDrawer,
-    p.comingSoonOfflineSync,
-    p.comingSoonFiscalStatus,
-    p.comingSoonSystemHealth,
+  const footerLinks = [
+    { id: "devices", label: p.footerDevices, href: "/portal/devices" },
+    { id: "business", label: p.footerBusiness, href: "/portal/business" },
+    { id: "support", label: p.footerSupport, href: "/portal/support" },
   ];
 
+  if (hubData.loading && !hubData.lastSyncedAt) {
+    return (
+      <div className={`${portalPageShell()} pos-hub-home`}>
+        <PosSummary
+          summary={hub.summary}
+          loading
+          isLight={isLight}
+          p={p}
+          release={release}
+          dash={dash}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className={portalPageShell()}>
-      <header className="space-y-1">
-        <h1 className={portalPageTitle(isLight)}>{p.title}</h1>
-        <p className={portalPageSubtitle(isLight)}>{p.subtitle}</p>
-      </header>
+    <div className={`${portalPageShell()} pos-hub-home`}>
+      <PosSummary
+        summary={hub.summary}
+        loading={hubData.loading}
+        isLight={isLight}
+        p={p}
+        release={release}
+        dash={dash}
+      />
 
-      <PosHubNotifications items={hub.notifications} isLight={isLight} />
+      <PosHubNotifications items={hub.notifications} />
 
-      <PosHubVersionHero hub={hub} loading={hubData.loading} isLight={isLight} p={p} />
+      <PosMainActions release={release} p={p} isLight={isLight} />
 
-      <PosHubLicenseCard hub={hub} loading={hubData.loading} isLight={isLight} p={p} />
+      <PosVersionUpdates hub={hub} release={release} p={p} locale={locale} />
 
-      <PosHubQuickActions release={release} isLight={isLight} p={p} />
-
-      <PosHubDownloadCard release={release} isLight={isLight} p={p} locale={locale} />
-
-      <PosHubReadiness
+      <PosLaunchChecklist
+        hub={hub}
         items={hub.readiness}
         loading={hubData.loading}
-        isLight={isLight}
         p={p}
         dash={dash}
       />
 
-      <PosHubDevices
-        devices={hubData.devices}
-        loading={hubData.loading}
-        isLight={isLight}
-        p={p}
-        locale={locale}
-        dash={dash}
-      />
-
-      <PosHubSystemStatus
-        hub={hub}
-        envLabel={envLabel}
-        loading={hubData.loading}
-        isLight={isLight}
-        p={p}
-        dash={dash}
-      />
-
-      <PosHubReleaseCenter hub={hub} release={release} isLight={isLight} p={p} locale={locale} />
-
-      <PosHubComingSoon items={comingSoonItems} isLight={isLight} p={p} />
+      <PosFooter links={footerLinks} isLight={isLight} />
     </div>
   );
 };
