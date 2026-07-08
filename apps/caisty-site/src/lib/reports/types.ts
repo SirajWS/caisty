@@ -1,5 +1,6 @@
 import type { PosHubTone } from "../posHub/types";
-import type { DashboardData } from "../dashboard/types";
+import type { PortalCustomer, PortalDevice, PortalReportsSummary } from "../portalApi";
+import type { ReportsPeriodId } from "./reportsPeriod";
 
 export type ReportsKpi = {
   id: string;
@@ -10,10 +11,18 @@ export type ReportsKpi = {
 
 export type RevenueTimeRange = "today" | "7d" | "30d" | "12m" | "all";
 
+export type RevenueSeriesPoint = {
+  label: string;
+  bucketStart: string;
+  revenueMinor: number;
+  ordersCount: number;
+};
+
 export type RevenueChartState = {
   range: RevenueTimeRange;
   hasData: boolean;
   placeholderMessage: string;
+  series: RevenueSeriesPoint[];
 };
 
 export type HourlyBar = {
@@ -83,7 +92,18 @@ export type ReportsDerivedState = {
   hasPosSync: boolean;
 };
 
+export type ReportsData = {
+  devices: PortalDevice[];
+  reportsSummary: PortalReportsSummary | null;
+  customer: PortalCustomer;
+  period: ReportsPeriodId;
+  loading: boolean;
+  error: boolean;
+  lastSyncedAt: Date | null;
+};
+
 export type DeriveReportsInput = {
-  data: DashboardData;
+  data: ReportsData;
   t: import("../translations/portal").PortalTranslations;
+  locale: string;
 };

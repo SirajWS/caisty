@@ -529,6 +529,98 @@ export interface PortalOrdersResponse {
   receipts: PortalReceiptRecord[];
 }
 
+export interface PortalDashboardSummary {
+  timezone: string;
+  period: "today";
+  todayRevenueCents: number;
+  ordersToday: number;
+  receiptsToday: number;
+  currency: string;
+  lastSynchronizationAt: string | null;
+  hasSalesData: boolean;
+}
+
+/** POS sales analytics — monetary fields are ISO 4217 minor units. */
+export type PortalReportsPeriod =
+  | "today"
+  | "yesterday"
+  | "this_week"
+  | "7_days"
+  | "30_days"
+  | "this_month"
+  | "12_months"
+  | "this_year"
+  | "all_time";
+
+export interface PortalReportsOverview {
+  revenueMinor: number;
+  ordersCount: number;
+  receiptsCount: number;
+  refundsCount: number;
+  averageOrderMinor: number;
+  vatMinor: number;
+  currency: string;
+}
+
+export interface PortalReportsRevenuePoint {
+  label: string;
+  bucketStart: string;
+  revenueMinor: number;
+  ordersCount: number;
+}
+
+export interface PortalReportsHourlyPoint {
+  hour: number;
+  revenueMinor: number;
+  ordersCount: number;
+}
+
+export interface PortalReportsPaymentMethods {
+  cashMinor: number;
+  cardMinor: number;
+  voucherMinor: number;
+  otherMinor: number;
+  currency: string;
+}
+
+export interface PortalReportsTopProduct {
+  productName: string;
+  quantity: number;
+  revenueMinor: number;
+  category: string | null;
+}
+
+export interface PortalReportsTaxes {
+  netRevenueMinor: number;
+  vatMinor: number;
+  grossRevenueMinor: number;
+  fiscalReceiptsCount: number;
+  currency: string;
+}
+
+export interface PortalReportsBusinessTrends {
+  bestSalesDay: string | null;
+  bestSalesHour: string | null;
+  largestReceiptMinor: number;
+  mostUsedPayment: string | null;
+  mostSoldProduct: string | null;
+  currency: string;
+}
+
+export interface PortalReportsSummary {
+  timezone: string;
+  period: PortalReportsPeriod;
+  hasSalesData: boolean;
+  overview: PortalReportsOverview;
+  revenueSeries: PortalReportsRevenuePoint[];
+  salesByHour: PortalReportsHourlyPoint[];
+  paymentMethods: PortalReportsPaymentMethods;
+  topProducts: PortalReportsTopProduct[];
+  topEmployees: [];
+  taxes: PortalReportsTaxes;
+  businessTrends: PortalReportsBusinessTrends;
+}
+
 export interface PortalInvoiceAmountBreakdown {
   netCents: number;
   taxCents: number;
@@ -606,6 +698,19 @@ export async function fetchPortalDevices(): Promise<PortalDevice[]> {
 
 export async function fetchPortalOrders(): Promise<PortalOrdersResponse> {
   return authGet<PortalOrdersResponse>("/portal/orders");
+}
+
+export async function fetchPortalDashboardSummary(): Promise<PortalDashboardSummary> {
+  return authGet<PortalDashboardSummary>("/portal/dashboard/summary");
+}
+
+export async function fetchPortalReportsSummary(
+  period: string,
+): Promise<PortalReportsSummary> {
+  const query = new URLSearchParams({ period });
+  return authGet<PortalReportsSummary>(
+    `/portal/reports/summary?${query.toString()}`,
+  );
 }
 
 export async function fetchPortalInvoices(): Promise<PortalInvoice[]> {

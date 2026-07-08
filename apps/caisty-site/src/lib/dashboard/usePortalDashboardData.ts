@@ -1,16 +1,29 @@
 import React from "react";
 import {
   fetchPortalBusiness,
+  fetchPortalDashboardSummary,
   fetchPortalDevices,
   fetchPortalInvoices,
   fetchPortalLicenses,
   type PortalCustomer,
+  type PortalDashboardSummary,
 } from "../portalApi";
 import type { DashboardData } from "./types";
 
 export type UsePortalDashboardDataResult = DashboardData & {
   reload: () => void;
 };
+
+const emptySalesSummary = (): PortalDashboardSummary => ({
+  timezone: "Europe/Berlin",
+  period: "today",
+  todayRevenueCents: 0,
+  ordersToday: 0,
+  receiptsToday: 0,
+  currency: "EUR",
+  lastSynchronizationAt: null,
+  hasSalesData: false,
+});
 
 const initialData = (
   customer: PortalCustomer,
@@ -20,6 +33,7 @@ const initialData = (
   invoices: [],
   business: null,
   customer,
+  salesSummary: null,
 });
 
 export function usePortalDashboardData(
@@ -45,7 +59,8 @@ export function usePortalDashboardData(
       let hadError = false;
 
       try {
-        const [licenses, devices, invoices, business] = await Promise.all([
+        const [licenses, devices, invoices, business, salesSummary] =
+          await Promise.all([
           fetchPortalLicenses().catch(() => {
             hadError = true;
             return [];
@@ -59,6 +74,10 @@ export function usePortalDashboardData(
             hadError = true;
             return null;
           }),
+          fetchPortalDashboardSummary().catch(() => {
+            hadError = true;
+            return emptySalesSummary();
+          }),
         ]);
 
         if (cancelled) return;
@@ -68,6 +87,7 @@ export function usePortalDashboardData(
           devices,
           invoices,
           business,
+          salesSummary,
           customer,
           loading: false,
           error: hadError,

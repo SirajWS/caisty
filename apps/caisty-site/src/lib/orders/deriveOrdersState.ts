@@ -1,3 +1,4 @@
+import { formatMinorUnits } from "../money/formatMinorUnits";
 import type {
   DeriveOrdersInput,
   OrdersDerivedState,
@@ -7,11 +8,9 @@ import type {
   PortalReceiptRecord,
 } from "./types";
 
-function formatMoney(cents: number, currency: string, locale: string): string {
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: currency || "EUR",
-  }).format(cents / 100);
+// POS Sales amounts are ISO 4217 minor units (Cent for EUR, Millime for TND).
+function formatMoney(minor: number, currency: string, locale: string): string {
+  return formatMinorUnits(minor, currency, locale);
 }
 
 function formatTime(iso: string | null, locale: string, timezone: string): string {

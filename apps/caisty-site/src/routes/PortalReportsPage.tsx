@@ -4,6 +4,7 @@ import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
 import { getPosReleaseConfig } from "../config/posConfig";
+import { portalLocaleTag } from "../lib/portalLocale";
 import { deriveReportsState } from "../lib/reports/deriveReportsState";
 import { usePortalReportsData } from "../lib/reports/usePortalReportsData";
 import {
@@ -33,16 +34,17 @@ const PortalReportsPage: React.FC = () => {
   const isLight = theme === "light";
 
   const release = React.useMemo(() => getPosReleaseConfig(), []);
-  const data = usePortalReportsData(customer);
+  const locale = portalLocaleTag(language);
   const [period, setPeriod] = React.useState<ReportsPeriodId>(DEFAULT_REPORTS_PERIOD);
+  const data = usePortalReportsData(customer, period);
 
   const reports = React.useMemo(
-    () => deriveReportsState({ data, t }),
-    [data, t],
+    () => deriveReportsState({ data, t, locale }),
+    [data, t, locale],
   );
 
   const periodLabel = getReportsPeriodLabel(period, r);
-  const hasSalesData = reports.revenueChart.hasData;
+  const hasSalesData = Boolean(data.reportsSummary?.hasSalesData);
   const showEmptyHero = !data.loading && !hasSalesData;
   const mutedPlaceholders = showEmptyHero;
   const syncHint = r.paymentEmptyHint;
@@ -76,7 +78,7 @@ const PortalReportsPage: React.FC = () => {
 
       <RevenueChart
         title={r.revenueChartTitle}
-        placeholderMessage={reports.revenueChart.placeholderMessage}
+        chart={reports.revenueChart}
         mutedPlaceholder={mutedPlaceholders}
       />
 

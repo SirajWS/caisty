@@ -206,6 +206,64 @@ describe("deriveOrdersState", () => {
     expect(state.payments.find((p) => p.id === "card")?.tone).toBe("ok");
   });
 
+  it("formats TND amounts as minor units (millimes, ÷1000)", () => {
+    const state = deriveOrdersState(
+      deriveInput(
+        makeData({
+          sales: makeSales({
+            summary: {
+              ordersCount: 1,
+              receiptsCount: 1,
+              refundsCount: 0,
+              openShift: null,
+              paymentSummary: {
+                cashCents: 6000,
+                cardCents: 0,
+                voucherCents: 0,
+                otherCents: 0,
+                currency: "TND",
+              },
+            },
+            orders: [
+              {
+                id: "o1",
+                localOrderId: "ORD-1",
+                soldAt: "2026-07-08T08:15:00.000Z",
+                status: "closed",
+                paymentMethod: "cash",
+                amountCents: 6000,
+                currency: "TND",
+                cashier: null,
+                deviceName: "Kasse 1",
+              },
+            ],
+            receipts: [
+              {
+                id: "r1",
+                localReceiptId: "RCPT-1",
+                receiptNumber: "R-001",
+                issuedAt: "2026-07-08T08:16:00.000Z",
+                customer: null,
+                paymentMethod: "cash",
+                fiscalStatus: "pending",
+                amountCents: 6000,
+                currency: "TND",
+              },
+            ],
+          }),
+        }),
+      ),
+    );
+
+    // 6000 millimes → 6.000, not 60.000
+    expect(state.orders[0].amount).toContain("6.000");
+    expect(state.orders[0].amount).not.toContain("60.000");
+    expect(state.receipts[0].amount).toContain("6.000");
+    expect(state.payments.find((p) => p.id === "cash")?.value).toContain(
+      "6.000",
+    );
+  });
+
   it("shows Not linked only when sales arrays are empty", () => {
     const withSales = deriveOrdersState(
       deriveInput(

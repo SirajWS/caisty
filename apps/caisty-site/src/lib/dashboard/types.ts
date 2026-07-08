@@ -4,6 +4,7 @@ import type { PortalTranslations } from "../translations/portal";
 import type {
   PortalBusinessProfile,
   PortalCustomer,
+  PortalDashboardSummary,
   PortalDevice,
   PortalInvoice,
   PortalLicense,
@@ -145,6 +146,7 @@ export type DashboardData = {
   invoices: PortalInvoice[];
   business: PortalBusinessProfile | null;
   customer: PortalCustomer;
+  salesSummary: PortalDashboardSummary | null;
   loading: boolean;
   error: boolean;
   lastSyncedAt: Date | null;
@@ -155,6 +157,7 @@ export type DeriveDashboardInput = {
   release: PosReleaseConfig;
   t: PortalTranslations;
   environmentLabel: string;
+  locale: string;
 };
 
 export type DashboardDerivedState = {

@@ -44,8 +44,9 @@ const PortalDashboard: React.FC = () => {
         release,
         t,
         environmentLabel: envLabel,
+        locale,
       }),
-    [data, release, t, envLabel],
+    [data, release, t, envLabel, locale],
   );
 
   const scrollToAlerts = React.useCallback(() => {

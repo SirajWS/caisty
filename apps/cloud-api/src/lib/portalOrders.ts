@@ -1,5 +1,7 @@
 /** POS portal orders helpers (timezone day window + payment buckets). */
 
+import { sql } from "drizzle-orm";
+
 export const PORTAL_ORDERS_TIMEZONE = "Europe/Berlin";
 
 export type PaymentBucket = "cash" | "card" | "voucher" | "other";
@@ -10,6 +12,12 @@ export type PaymentSummaryCents = {
   voucherCents: number;
   otherCents: number;
 };
+
+/** PostgreSQL filter: timestamp column falls on today in Europe/Berlin. */
+export function sqlIsTodayBerlin(column: unknown) {
+  const tz = PORTAL_ORDERS_TIMEZONE;
+  return sql`(${column} AT TIME ZONE ${tz})::date = (NOW() AT TIME ZONE ${tz})::date`;
+}
 
 export function bucketPaymentMethod(method: string): PaymentBucket {
   const m = method.trim().toLowerCase();

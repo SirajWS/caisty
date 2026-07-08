@@ -8,6 +8,7 @@ import {
 import { formatLicenseStatus, formatProviderLabel } from "../caistyTerminology";
 import { pickPrimaryPortalLicense } from "../portalLicensePick";
 import { deriveFiscalVisibility } from "../useFiscalVisibility";
+import { formatMinorUnits } from "../money/formatMinorUnits";
 import { derivePosHubState } from "../posHub/derivePosHubState";
 import { formatInstallerBytes } from "../posHub/format";
 import { pickHighestSemver } from "../posHub/posVersion";
@@ -118,12 +119,25 @@ function deriveHealth(input: DeriveDashboardInput): DashboardHealth {
   return { score, items };
 }
 
+// POS Sales revenue is stored in ISO 4217 minor units (Cent for EUR, Millime for TND).
+function formatMoney(minor: number, currency: string, locale: string): string {
+  return formatMinorUnits(minor, currency, locale);
+}
+
+function resolveLastSynchronization(input: DeriveDashboardInput): string | null {
+  const fromSummary = input.data.salesSummary?.lastSynchronizationAt ?? null;
+  if (fromSummary) return fromSummary;
+  return latestHeartbeat(input.data.devices);
+}
+
 function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
   const l = input.t.dashboard.live;
   const dash = input.t.labels.dash;
   const { data } = input;
   const { online, total } = countOnlineDevices(data.devices);
   const syncHint = l.waitingPosSyncShort;
+  const sales = data.salesSummary;
+  const hasSales = Boolean(sales?.hasSalesData);
 
   let posValue = syncHint;
   let posStatus: DashboardKpi["status"] = "waiting_sync";
@@ -135,38 +149,48 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
     posStatus = "value";
   }
 
-  const heartbeat = latestHeartbeat(data.devices);
+  const lastSyncIso = resolveLastSynchronization(input);
   let syncValue = dash;
   let syncStatus: DashboardKpi["status"] = "waiting_sync";
-  if (heartbeat) {
-    syncValue = new Date(heartbeat).toLocaleString();
+  if (lastSyncIso) {
+    syncValue = new Date(lastSyncIso).toLocaleString(input.locale);
     syncStatus = "value";
   } else if (data.lastSyncedAt) {
-    syncValue = data.lastSyncedAt.toLocaleString();
+    syncValue = data.lastSyncedAt.toLocaleString(input.locale);
     syncStatus = "value";
   }
+
+  const revenueValue = hasSales
+    ? formatMoney(
+        sales!.todayRevenueCents,
+        sales!.currency || data.business?.currency || "EUR",
+        input.locale,
+      )
+    : dash;
+  const ordersValue = hasSales ? String(sales!.ordersToday) : dash;
+  const receiptsValue = hasSales ? String(sales!.receiptsToday) : dash;
 
   return [
     {
       id: "revenue",
       label: l.kpiRevenueToday,
-      value: dash,
-      hint: syncHint,
-      status: "waiting_sync",
+      value: revenueValue,
+      hint: hasSales ? undefined : syncHint,
+      status: hasSales ? "value" : "waiting_sync",
     },
     {
       id: "orders",
       label: l.kpiOrdersToday,
-      value: dash,
-      hint: syncHint,
-      status: "waiting_sync",
+      value: ordersValue,
+      hint: hasSales ? undefined : syncHint,
+      status: hasSales ? "value" : "waiting_sync",
     },
     {
       id: "receipts",
       label: l.kpiReceiptsToday,
-      value: dash,
-      hint: syncHint,
-      status: "waiting_sync",
+      value: receiptsValue,
+      hint: hasSales ? undefined : syncHint,
+      status: hasSales ? "value" : "waiting_sync",
     },
     {
       id: "pos_status",
@@ -524,6 +548,8 @@ function deriveSystemHealth(
   const dash = input.t.labels.dash;
   const { data } = input;
   const { online, total } = countOnlineDevices(data.devices);
+  const sales = data.salesSummary;
+  const lastSyncIso = resolveLastSynchronization(input);
 
   let desktopValue = l.waitingPosSync;
   let desktopTone: SystemHealthItem["tone"] = "unknown";
@@ -534,7 +560,9 @@ function deriveSystemHealth(
     desktopTone = desktopHealthy ? "ok" : "attention";
   }
 
-  const syncHealthy = !data.error && Boolean(data.lastSyncedAt);
+  const syncHealthy =
+    !data.error &&
+    Boolean(lastSyncIso || data.lastSyncedAt || sales?.hasSalesData);
 
   return [
     {
@@ -575,8 +603,12 @@ function deriveSystemHealth(
     {
       id: "last_sync",
       label: l.systemLastSync,
-      value: data.lastSyncedAt ? data.lastSyncedAt.toLocaleString() : dash,
-      tone: data.lastSyncedAt ? "ok" : "unknown",
+      value: lastSyncIso
+        ? new Date(lastSyncIso).toLocaleString(input.locale)
+        : data.lastSyncedAt
+          ? data.lastSyncedAt.toLocaleString(input.locale)
+          : dash,
+      tone: lastSyncIso || data.lastSyncedAt ? "ok" : "unknown",
       healthy: Boolean(data.lastSyncedAt),
     },
   ];

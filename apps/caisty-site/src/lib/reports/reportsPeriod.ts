@@ -43,6 +43,35 @@ export function getReportsPeriodLabel(
   }
 }
 
+/** Map UI period filter to GET /portal/reports/summary query values. */
+export function mapReportsPeriodToApi(
+  period: ReportsPeriodId,
+): string {
+  switch (period) {
+    case "today":
+      return "today";
+    case "yesterday":
+      return "yesterday";
+    case "week":
+      return "this_week";
+    case "7d":
+      return "7_days";
+    case "30d":
+      return "30_days";
+    case "month":
+      return "this_month";
+    case "12m":
+      return "12_months";
+    case "year":
+      return "this_year";
+    case "all":
+      return "all_time";
+    case "custom":
+      // Custom range picker not implemented yet — use rolling 30 days.
+      return "30_days";
+  }
+}
+
 export function getReportsPeriodFilters(
   r: PortalTranslations["reports"],
 ): { id: ReportsPeriodId; label: string }[] {

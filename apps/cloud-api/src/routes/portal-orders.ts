@@ -12,6 +12,7 @@ import {
   aggregatePaymentSummary,
   pickPrimaryPaymentMethod,
   PORTAL_ORDERS_TIMEZONE,
+  sqlIsTodayBerlin,
 } from "../lib/portalOrders.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 
@@ -32,8 +33,7 @@ function getPortalAuth(request: FastifyRequest): PortalJwtPayload {
 }
 
 function isTodayBerlin(column: typeof posOrders.soldAt) {
-  const tz = PORTAL_ORDERS_TIMEZONE;
-  return sql`(${column} AT TIME ZONE ${tz})::date = (NOW() AT TIME ZONE ${tz})::date`;
+  return sqlIsTodayBerlin(column);
 }
 
 function toIso(value: Date | null | undefined): string | null {
