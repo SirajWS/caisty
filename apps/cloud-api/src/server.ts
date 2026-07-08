@@ -24,6 +24,7 @@ import { registerPortalGoogleAuthRoutes } from "./routes/portal-google-auth.js";
 import { registerPortalPasswordResetRoutes } from "./routes/portal-password-reset.js";
 import { registerEmailVerificationRoutes } from "./routes/portal-email-verification.js";
 import { registerPortalDataRoutes } from "./routes/portal-data.js";
+import { registerPortalOrdersRoutes } from "./routes/portal-orders.js";
 import { registerPortalSupportRoutes } from "./routes/portal-support.js";
 import { registerPortalTrialLicenseRoutes } from "./routes/portal-trial-license.js";
 import { registerPortalUpgradeRoutes } from "./routes/portal-upgrade.js";
@@ -150,6 +151,7 @@ export async function buildServer() {
   await registerPortalPasswordResetRoutes(app); // Password Reset
   await registerEmailVerificationRoutes(app); // Email verification
   await registerPortalDataRoutes(app);
+  await registerPortalOrdersRoutes(app);
   await registerPortalTrialLicenseRoutes(app);
   await registerPortalSupportRoutes(app);
   await registerPortalUpgradeRoutes(app); // Upgrade + PayPal

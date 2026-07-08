@@ -481,6 +481,54 @@ export function normalizePortalDevice(raw: PortalDevice): PortalDevice {
   };
 }
 
+export type PortalOrdersPaymentSummary = {
+  cashCents: number;
+  cardCents: number;
+  voucherCents: number;
+  otherCents: number;
+  currency: string;
+};
+
+export type PortalOrdersSummary = {
+  ordersCount: number;
+  receiptsCount: number;
+  refundsCount: number;
+  openShift: boolean | null;
+  paymentSummary: PortalOrdersPaymentSummary;
+};
+
+export type PortalOrderRecord = {
+  id: string;
+  localOrderId: string;
+  soldAt: string | null;
+  status: string;
+  paymentMethod: string | null;
+  amountCents: number;
+  currency: string;
+  cashier: string | null;
+  deviceName: string;
+};
+
+export type PortalReceiptRecord = {
+  id: string;
+  localReceiptId: string;
+  receiptNumber: string | null;
+  issuedAt: string | null;
+  customer: string | null;
+  paymentMethod: string | null;
+  fiscalStatus: string;
+  amountCents: number;
+  currency: string;
+};
+
+export interface PortalOrdersResponse {
+  timezone: string;
+  period: "today";
+  summary: PortalOrdersSummary;
+  orders: PortalOrderRecord[];
+  receipts: PortalReceiptRecord[];
+}
+
 export interface PortalInvoiceAmountBreakdown {
   netCents: number;
   taxCents: number;
@@ -554,6 +602,10 @@ export async function fetchPortalLicenses(): Promise<PortalLicense[]> {
 export async function fetchPortalDevices(): Promise<PortalDevice[]> {
   const raw = await authGet<PortalDevice[]>("/portal/devices");
   return Array.isArray(raw) ? raw.map(normalizePortalDevice) : [];
+}
+
+export async function fetchPortalOrders(): Promise<PortalOrdersResponse> {
+  return authGet<PortalOrdersResponse>("/portal/orders");
 }
 
 export async function fetchPortalInvoices(): Promise<PortalInvoice[]> {

@@ -25,9 +25,18 @@ const PortalOrdersPage: React.FC = () => {
   const release = React.useMemo(() => getPosReleaseConfig(), []);
   const data = usePortalOrdersData(customer);
 
+  const locale =
+    language === "de"
+      ? "de-DE"
+      : language === "fr"
+        ? "fr-FR"
+        : language === "ar"
+          ? "ar-EG"
+          : "en-US";
+
   const orders = React.useMemo(
-    () => deriveOrdersState({ data, t }),
-    [data, t],
+    () => deriveOrdersState({ data, t, locale }),
+    [data, t, locale],
   );
 
   const showEmptyHero = !data.loading && !orders.hasSalesData;

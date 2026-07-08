@@ -1,5 +1,10 @@
 import type { PosHubTone } from "../posHub/types";
-import type { DashboardData } from "../dashboard/types";
+import type {
+  PortalCustomer,
+  PortalOrderRecord,
+  PortalOrdersResponse,
+  PortalReceiptRecord,
+} from "../portalApi";
 
 export type OrdersKpi = {
   id: string;
@@ -61,7 +66,18 @@ export type OrdersDerivedState = {
   hasSalesData: boolean;
 };
 
-export type DeriveOrdersInput = {
-  data: DashboardData;
-  t: import("../translations/portal").PortalTranslations;
+export type OrdersData = {
+  customer: PortalCustomer;
+  sales: PortalOrdersResponse | null;
+  loading: boolean;
+  error: boolean;
+  lastSyncedAt: Date | null;
 };
+
+export type DeriveOrdersInput = {
+  data: OrdersData;
+  t: import("../translations/portal").PortalTranslations;
+  locale: string;
+};
+
+export type { PortalOrderRecord, PortalReceiptRecord, PortalOrdersResponse };
