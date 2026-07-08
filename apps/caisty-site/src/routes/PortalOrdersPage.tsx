@@ -6,6 +6,7 @@ import { getPortalTranslations } from "../lib/translations";
 import { getPosReleaseConfig } from "../config/posConfig";
 import { deriveOrdersState } from "../lib/orders/deriveOrdersState";
 import { usePortalOrdersData } from "../lib/orders/usePortalOrdersData";
+import { ORDERS_PREVIEW_LIMIT } from "../lib/orders/ordersPreview";
 import { OrdersSummary } from "../components/orders/OrdersSummary";
 import { OrdersTable } from "../components/orders/OrdersTable";
 import { ReceiptsTable } from "../components/orders/ReceiptsTable";
@@ -24,6 +25,8 @@ const PortalOrdersPage: React.FC = () => {
 
   const release = React.useMemo(() => getPosReleaseConfig(), []);
   const data = usePortalOrdersData(customer);
+  const [ordersExpanded, setOrdersExpanded] = React.useState(false);
+  const [receiptsExpanded, setReceiptsExpanded] = React.useState(false);
 
   const locale =
     language === "de"
@@ -41,6 +44,25 @@ const PortalOrdersPage: React.FC = () => {
 
   const showEmptyHero = !data.loading && !orders.hasSalesData;
 
+  const ordersExpandLabels = React.useMemo(
+    () => ({
+      viewAll: o.viewAllOrders.replace("{{count}}", String(orders.orders.length)),
+      showLess: o.showLess,
+    }),
+    [o.viewAllOrders, o.showLess, orders.orders.length],
+  );
+
+  const receiptsExpandLabels = React.useMemo(
+    () => ({
+      viewAll: o.viewAllReceipts.replace(
+        "{{count}}",
+        String(orders.receipts.length),
+      ),
+      showLess: o.showLess,
+    }),
+    [o.viewAllReceipts, o.showLess, orders.receipts.length],
+  );
+
   return (
     <div className={`${portalPageShell()} dashboard-home orders-ops`}>
       <header className="orders-page-header">
@@ -49,6 +71,12 @@ const PortalOrdersPage: React.FC = () => {
       </header>
 
       <OrdersSummary kpis={orders.summary} loading={data.loading} isLight={isLight} />
+
+      <PaymentOverview
+        payments={orders.payments}
+        title={o.paymentSummaryTitle}
+        hint={orders.hasSalesData ? undefined : o.paymentEmptyHint}
+      />
 
       <OrdersFilters label={o.filtersTitle} todayLabel={o.filterToday} />
 
@@ -67,6 +95,11 @@ const PortalOrdersPage: React.FC = () => {
         title={o.ordersFeedTitle}
         emptyLabel={o.ordersEmpty}
         primary
+        previewLimit={ORDERS_PREVIEW_LIMIT}
+        totalCount={orders.orders.length}
+        expanded={ordersExpanded}
+        onToggleExpand={() => setOrdersExpanded((value) => !value)}
+        expandLabels={ordersExpandLabels}
         columns={{
           time: o.colTime,
           orderNumber: o.colOrderNumber,
@@ -87,6 +120,11 @@ const PortalOrdersPage: React.FC = () => {
         actionView={o.actionView}
         actionPrint={o.actionPrint}
         actionDownload={o.actionDownloadPdf}
+        previewLimit={ORDERS_PREVIEW_LIMIT}
+        totalCount={orders.receipts.length}
+        expanded={receiptsExpanded}
+        onToggleExpand={() => setReceiptsExpanded((value) => !value)}
+        expandLabels={receiptsExpandLabels}
         columns={{
           receipt: o.colReceipt,
           time: o.colTime,
@@ -95,12 +133,6 @@ const PortalOrdersPage: React.FC = () => {
           fiscal: o.colFiscal,
           amount: o.colAmount,
         }}
-      />
-
-      <PaymentOverview
-        payments={orders.payments}
-        title={o.paymentSummaryTitle}
-        hint={orders.hasSalesData ? undefined : o.paymentEmptyHint}
       />
     </div>
   );

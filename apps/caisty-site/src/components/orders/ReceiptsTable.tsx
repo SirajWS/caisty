@@ -10,6 +10,11 @@ export function ReceiptsTable({
   actionDownload,
   emptyLabel,
   title,
+  previewLimit,
+  totalCount,
+  expanded = false,
+  onToggleExpand,
+  expandLabels,
 }: {
   receipts: PosReceiptRow[];
   loading: boolean;
@@ -27,9 +32,20 @@ export function ReceiptsTable({
   actionDownload: string;
   emptyLabel: string;
   title: string;
+  previewLimit?: number;
+  totalCount?: number;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
+  expandLabels?: { viewAll: string; showLess: string };
 }) {
-  const showActions = receipts.length > 0;
+  const count = totalCount ?? receipts.length;
+  const limit = previewLimit ?? receipts.length;
+  const visibleReceipts =
+    expanded || count <= limit ? receipts : receipts.slice(0, limit);
+  const showActions = visibleReceipts.length > 0;
   const colSpan = showActions ? 7 : 6;
+  const showExpandToggle =
+    Boolean(onToggleExpand && expandLabels && previewLimit != null && count > limit);
 
   return (
     <section className="dashboard-panel dashboard-panel--wide">
@@ -54,14 +70,14 @@ export function ReceiptsTable({
                   …
                 </td>
               </tr>
-            ) : receipts.length === 0 ? (
+            ) : visibleReceipts.length === 0 ? (
               <tr>
                 <td colSpan={colSpan} className="orders-table-empty">
                   {emptyLabel}
                 </td>
               </tr>
             ) : (
-              receipts.map((row) => (
+              visibleReceipts.map((row) => (
                 <tr key={row.id}>
                   <td data-label={columns.receipt}>{row.receiptNumber}</td>
                   <td data-label={columns.time}>{row.time}</td>
@@ -88,6 +104,17 @@ export function ReceiptsTable({
           </tbody>
         </table>
       </div>
+      {showExpandToggle ? (
+        <div className="orders-table-footer">
+          <button
+            type="button"
+            className="orders-table-expand-btn"
+            onClick={onToggleExpand}
+          >
+            {expanded ? expandLabels!.showLess : expandLabels!.viewAll}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

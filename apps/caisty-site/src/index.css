@@ -1872,6 +1872,29 @@ a {
   font-size: 13px;
 }
 
+.orders-table-footer {
+  display: flex;
+  justify-content: center;
+  padding: 10px 12px 4px;
+  border-top: 1px solid var(--dashboard-border-soft);
+}
+
+.orders-table-expand-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--portal-accent);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.orders-table-expand-btn:hover {
+  background: color-mix(in srgb, var(--portal-accent) 10%, transparent);
+}
+
 .orders-receipt-actions {
   display: flex;
   flex-wrap: wrap;

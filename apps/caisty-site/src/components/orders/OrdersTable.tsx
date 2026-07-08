@@ -7,6 +7,11 @@ export function OrdersTable({
   emptyLabel,
   title,
   primary = false,
+  previewLimit,
+  totalCount,
+  expanded = false,
+  onToggleExpand,
+  expandLabels,
 }: {
   orders: PosOrderRow[];
   loading: boolean;
@@ -22,10 +27,22 @@ export function OrdersTable({
   emptyLabel: string;
   title: string;
   primary?: boolean;
+  previewLimit?: number;
+  totalCount?: number;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
+  expandLabels?: { viewAll: string; showLess: string };
 }) {
   const panelClass = primary
     ? "dashboard-panel dashboard-panel--wide orders-panel--primary"
     : "dashboard-panel dashboard-panel--wide";
+
+  const count = totalCount ?? orders.length;
+  const limit = previewLimit ?? orders.length;
+  const visibleOrders =
+    expanded || count <= limit ? orders : orders.slice(0, limit);
+  const showExpandToggle =
+    Boolean(onToggleExpand && expandLabels && previewLimit != null && count > limit);
 
   return (
     <section className={panelClass}>
@@ -50,14 +67,14 @@ export function OrdersTable({
                   …
                 </td>
               </tr>
-            ) : orders.length === 0 ? (
+            ) : visibleOrders.length === 0 ? (
               <tr>
                 <td colSpan={7} className="orders-table-empty">
                   {emptyLabel}
                 </td>
               </tr>
             ) : (
-              orders.map((row) => (
+              visibleOrders.map((row) => (
                 <tr key={row.id}>
                   <td data-label={columns.time}>{row.time}</td>
                   <td data-label={columns.orderNumber}>{row.orderNumber}</td>
@@ -72,6 +89,17 @@ export function OrdersTable({
           </tbody>
         </table>
       </div>
+      {showExpandToggle ? (
+        <div className="orders-table-footer">
+          <button
+            type="button"
+            className="orders-table-expand-btn"
+            onClick={onToggleExpand}
+          >
+            {expanded ? expandLabels!.showLess : expandLabels!.viewAll}
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
