@@ -21,6 +21,11 @@ import type {
   VersionManagementView,
 } from "./types";
 
+function resolveLicenseKey(device: PortalDevice): string | null {
+  const key = device.licenseKey ?? device.licenseKeys?.[0]?.key ?? null;
+  return key?.trim() ? key.trim() : null;
+}
+
 function formatPlanLabel(plan: string, t: DeriveDevicesInput["t"]): string {
   const p = plan.trim().toLowerCase();
   if (p === "trial") return t.pos.planTrial;
@@ -85,7 +90,7 @@ function countNeedsAttention(devices: PortalDevice[], latestVersion: string): nu
   return devices.filter((d) => {
     const s = (d.status ?? "").toLowerCase();
     if (s === "offline" || s === "never_seen") return true;
-    if (!d.licenseKey?.trim()) return true;
+    if (!resolveLicenseKey(d)) return true;
     if (d.appVersion?.trim() && isUpdateAvailable(d.appVersion, latestVersion)) {
       return true;
     }
@@ -167,7 +172,7 @@ function deriveDeviceCards(input: DeriveDevicesInput): DeviceCardView[] {
       connection: isOnline ? d.connectionConnected : d.connectionDisconnected,
       cloudStatus: isOnline ? d.cloudConnected : d.cloudDisconnected,
       environment: input.environmentLabel,
-      license: device.licenseKey?.trim() || d.notLinked,
+      license: resolveLicenseKey(device) || d.notLinked,
       store: device.storeName?.trim() || device.location?.trim() || storeFallback,
       status: cardStatus,
       statusLabel: statusLabel(device, input.t),

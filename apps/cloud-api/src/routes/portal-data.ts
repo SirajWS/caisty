@@ -50,6 +50,7 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
         createdAt: devices.createdAt,
         lastSeenAt: devices.lastSeenAt,
         lastHeartbeatAt: devices.lastHeartbeatAt,
+        appVersion: devices.appVersion,
         licenseKey: licenses.key,
         licensePlan: licenses.plan,
       })
@@ -58,18 +59,45 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
       .where(eq(devices.customerId, payload.customerId))
       .orderBy(desc(devices.createdAt));
 
+    const now = Date.now();
+    const ONLINE_WINDOW_MS = 5 * 60 * 1000;
+
+    const normalizeStatus = (
+      lastSeenAt: Date | null,
+      lastHeartbeatAt: Date | null,
+    ): "online" | "offline" | "never_seen" => {
+      const seen = lastSeenAt ? lastSeenAt.getTime() : null;
+      const beat = lastHeartbeatAt ? lastHeartbeatAt.getTime() : null;
+      const latest = Math.max(seen ?? 0, beat ?? 0);
+      if (!latest) return "never_seen";
+      return now - latest <= ONLINE_WINDOW_MS ? "online" : "offline";
+    };
+
+    const derivePlatform = (type: string | null): string | null => {
+      if (!type) return null;
+      const t = type.toLowerCase();
+      if (t === "pos" || t === "kiosk" || t === "tablet") return null;
+      return null;
+    };
+
     const grouped = Object.values(
       rows.reduce((acc: Record<string, any>, row: any) => {
         const key = row.fingerprint || row.id;
         if (!acc[key]) {
           acc[key] = {
+            id: row.id,
+            deviceId: row.id,
             fingerprint: row.fingerprint,
             name: row.name,
             type: row.type,
-            status: row.status,
+            status: normalizeStatus(row.lastSeenAt, row.lastHeartbeatAt),
             createdAt: row.createdAt,
             lastSeenAt: row.lastSeenAt,
             lastHeartbeatAt: row.lastHeartbeatAt,
+            appVersion: row.appVersion ?? null,
+            platform: derivePlatform(row.type),
+            licenseKey: null,
+            licensePlan: null,
             licenseKeys: [],
           };
         }
@@ -78,6 +106,10 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
             key: row.licenseKey,
             plan: row.licensePlan,
           });
+          if (!acc[key].licenseKey) {
+            acc[key].licenseKey = row.licenseKey;
+            acc[key].licensePlan = row.licensePlan ?? null;
+          }
         }
         return acc;
       }, {} as Record<string, any>) as any[]

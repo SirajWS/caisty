@@ -452,11 +452,33 @@ export interface PortalDevice {
   lastSeenAt: string | null; // ISO oder null
   status: "online" | "offline" | "never_seen" | string;
   licenseKey: string | null;
+  licensePlan?: string | null;
+  /**
+   * Legacy/grouped shape from /portal/devices. Kept optional for backward
+   * compatibility; `licenseKey` is derived from this when absent.
+   */
+  licenseKeys?: Array<{ key: string; plan?: string | null }> | null;
   /** Reported by POS heartbeat when available. */
   appVersion?: string | null;
   platform?: string | null;
   storeName?: string | null;
   location?: string | null;
+}
+
+/** Normalize the /portal/devices response into a stable PortalDevice shape. */
+export function normalizePortalDevice(raw: PortalDevice): PortalDevice {
+  const licenseKey =
+    raw.licenseKey ?? raw.licenseKeys?.[0]?.key ?? null;
+  const licensePlan =
+    raw.licensePlan ?? raw.licenseKeys?.[0]?.plan ?? null;
+
+  return {
+    ...raw,
+    id: raw.id ?? raw.deviceId,
+    deviceId: raw.deviceId ?? raw.id,
+    licenseKey,
+    licensePlan,
+  };
 }
 
 export interface PortalInvoiceAmountBreakdown {
@@ -530,7 +552,8 @@ export async function fetchPortalLicenses(): Promise<PortalLicense[]> {
 }
 
 export async function fetchPortalDevices(): Promise<PortalDevice[]> {
-  return authGet<PortalDevice[]>("/portal/devices");
+  const raw = await authGet<PortalDevice[]>("/portal/devices");
+  return Array.isArray(raw) ? raw.map(normalizePortalDevice) : [];
 }
 
 export async function fetchPortalInvoices(): Promise<PortalInvoice[]> {

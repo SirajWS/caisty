@@ -140,4 +140,102 @@ describe("deriveDevicesState", () => {
     expect(state.seats.availableSlots).toBe(0);
     expect(state.slots).toEqual([]);
   });
+
+  it("shows the license key when only licenseKeys[] is provided", () => {
+    const state = deriveDevicesState({
+      data: makeData({
+        devices: [
+          {
+            id: "d1",
+            name: "Till 1",
+            deviceId: "d1",
+            lastSeenAt: "2026-07-05T09:00:00Z",
+            status: "online",
+            licenseKey: null,
+            licenseKeys: [{ key: "CSTY-PRO-XXXX", plan: "pro" }],
+          },
+        ],
+      }),
+      release: getPosReleaseConfig(),
+      environmentLabel: "staging",
+      locale: "en-US",
+      t: portalEn,
+    });
+
+    expect(state.devices[0].license).toBe("CSTY-PRO-XXXX");
+    expect(state.devices[0].license).not.toBe(portalEn.devices.notLinked);
+  });
+
+  it("shows the license key when licenseKey is provided directly", () => {
+    const state = deriveDevicesState({
+      data: makeData({
+        devices: [
+          {
+            id: "d1",
+            name: "Till 1",
+            deviceId: "d1",
+            lastSeenAt: "2026-07-05T09:00:00Z",
+            status: "online",
+            licenseKey: "CSTY-DIRECT-KEY",
+          },
+        ],
+      }),
+      release: getPosReleaseConfig(),
+      environmentLabel: "staging",
+      locale: "en-US",
+      t: portalEn,
+    });
+
+    expect(state.devices[0].license).toBe("CSTY-DIRECT-KEY");
+  });
+
+  it("shows Not linked only when no license is present at all", () => {
+    const state = deriveDevicesState({
+      data: makeData({
+        devices: [
+          {
+            id: "d1",
+            name: "Till 1",
+            deviceId: "d1",
+            lastSeenAt: "2026-07-05T09:00:00Z",
+            status: "online",
+            licenseKey: null,
+            licenseKeys: [],
+          },
+        ],
+      }),
+      release: getPosReleaseConfig(),
+      environmentLabel: "staging",
+      locale: "en-US",
+      t: portalEn,
+    });
+
+    expect(state.devices[0].license).toBe(portalEn.devices.notLinked);
+  });
+
+  it("does not mark a fresh online device as warning", () => {
+    const state = deriveDevicesState({
+      data: makeData({
+        devices: [
+          {
+            id: "d1",
+            name: "Till 1",
+            deviceId: "d1",
+            lastSeenAt: "2026-07-05T09:00:00Z",
+            status: "online",
+            licenseKey: "CSTY-PRO-XXXX",
+            appVersion: "0.3.2",
+          },
+        ],
+      }),
+      release: getPosReleaseConfig(),
+      environmentLabel: "staging",
+      locale: "en-US",
+      t: portalEn,
+    });
+
+    expect(state.devices[0].status).toBe("online");
+    expect(state.devices[0].statusTone).toBe("ok");
+    expect(state.devices[0].version).toBe("0.3.2");
+  });
 });
