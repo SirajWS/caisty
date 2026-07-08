@@ -4,14 +4,14 @@ import { portalEn } from "../translations/portal/en";
 import type { PosReleaseConfig } from "../../config/posConfig";
 
 const release: PosReleaseConfig = {
-  latestVersion: "0.3.2",
+  latestVersion: "0.3.3",
   releaseDate: null,
   releaseNotesUrl: null,
   releaseNotesSummary: null,
   installer: {
     platform: "Windows x64",
-    fileName: "Caisty.PoS_0.3.2_x64-setup.exe",
-    downloadUrl: "/downloads/Caisty.PoS_0.3.2_x64-setup.exe",
+    fileName: "Caisty.PoS_0.3.3_x64-setup.exe",
+    downloadUrl: "/downloads/Caisty.PoS_0.3.3_x64-setup.exe",
     sizeBytes: null,
     sha256: null,
   },
