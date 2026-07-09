@@ -13,9 +13,15 @@ import { ReceiptsTable } from "../components/orders/ReceiptsTable";
 import { PaymentOverview } from "../components/orders/PaymentOverview";
 import { OrdersEmptyState } from "../components/orders/OrdersEmptyState";
 import { OrdersFilters } from "../components/orders/OrdersFilters";
+import { ReceiptDetailDrawer } from "../components/orders/ReceiptDetailDrawer";
 import { PortalExportPdfButton } from "../components/portal/PortalExportPdfButton";
-import { buildOrdersDocumentLabels } from "../lib/documents/documentLabels";
+import {
+  buildOrdersDocumentLabels,
+  buildReceiptDocumentLabels,
+} from "../lib/documents/documentLabels";
+import type { DocumentIdentity } from "../lib/documents/types";
 import { buildDocumentMeta, resolveDocumentIdentity } from "../lib/documents/documentMeta";
+import type { PosReceiptRow } from "../lib/orders/types";
 import { portalPageShell, portalPageSubtitle, portalPageTitle, portalSecondaryCta } from "../lib/portalUi";
 
 const PortalOrdersPage: React.FC = () => {
@@ -47,7 +53,24 @@ const PortalOrdersPage: React.FC = () => {
 
   const showEmptyHero = !data.loading && !orders.hasSalesData;
   const [exportingPdf, setExportingPdf] = React.useState(false);
+  const [selectedReceipt, setSelectedReceipt] =
+    React.useState<PosReceiptRow | null>(null);
+  const [downloadingReceiptId, setDownloadingReceiptId] = React.useState<
+    string | null
+  >(null);
+  const [receiptIdentity, setReceiptIdentity] =
+    React.useState<DocumentIdentity | null>(null);
   const periodLabel = o.filterToday;
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void resolveDocumentIdentity(customer).then((identity) => {
+      if (!cancelled) setReceiptIdentity(identity);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [customer]);
 
   React.useEffect(() => {
     if (exportingPdf) return;
@@ -90,6 +113,64 @@ const PortalOrdersPage: React.FC = () => {
       setExportingPdf(false);
     }
   }, [customer, data.sales, locale, periodLabel, t]);
+
+  const handleViewReceipt = React.useCallback((receipt: PosReceiptRow) => {
+    setSelectedReceipt(receipt);
+  }, []);
+
+  const handleDownloadReceiptPdf = React.useCallback(
+    async (receipt: PosReceiptRow) => {
+      const sales = data.sales;
+      if (!sales) return;
+
+      setDownloadingReceiptId(receipt.id);
+      try {
+        const identity =
+          receiptIdentity ?? (await resolveDocumentIdentity(customer));
+        const { exportReceiptPdf } = await import(
+          "../lib/documents/receiptDocument"
+        );
+        const receiptLabel =
+          receipt.source.receiptNumber?.trim() ||
+          receipt.source.localReceiptId;
+
+        exportReceiptPdf({
+          meta: buildDocumentMeta({
+            identity,
+            period: { label: receiptLabel },
+            generatedAt: new Date(),
+            timezone: sales.timezone,
+            currency: receipt.source.currency,
+            locale,
+          }),
+          labels: buildReceiptDocumentLabels(t),
+          receipt: receipt.source,
+        });
+      } finally {
+        setDownloadingReceiptId(null);
+      }
+    },
+    [customer, data.sales, locale, receiptIdentity, t],
+  );
+
+  const receiptDrawerLabels = React.useMemo(
+    () => ({
+      title: o.receiptDetailTitle,
+      business: t.pdfDocuments.business,
+      store: t.pdfDocuments.store,
+      receipt: o.colReceipt,
+      time: o.colTime,
+      customer: o.colCustomer,
+      payment: o.colPayment,
+      fiscal: o.colFiscal,
+      amount: o.colAmount,
+      device: o.colDevice,
+      fiscalPending: o.receiptFiscalPending,
+      close: o.receiptDetailClose,
+      dash: t.labels.dash,
+    }),
+    [o, t],
+  );
 
   const ordersExpandLabels = React.useMemo(
     () => ({
@@ -195,6 +276,9 @@ const PortalOrdersPage: React.FC = () => {
         expanded={receiptsExpanded}
         onToggleExpand={() => setReceiptsExpanded((value) => !value)}
         expandLabels={receiptsExpandLabels}
+        onView={handleViewReceipt}
+        onDownloadPdf={handleDownloadReceiptPdf}
+        downloadingReceiptId={downloadingReceiptId}
         columns={{
           receipt: o.colReceipt,
           time: o.colTime,
@@ -203,6 +287,15 @@ const PortalOrdersPage: React.FC = () => {
           fiscal: o.colFiscal,
           amount: o.colAmount,
         }}
+      />
+      <ReceiptDetailDrawer
+        open={selectedReceipt !== null}
+        receipt={selectedReceipt}
+        identity={receiptIdentity}
+        labels={receiptDrawerLabels}
+        locale={locale}
+        timezone={data.sales?.timezone ?? "Europe/Berlin"}
+        onClose={() => setSelectedReceipt(null)}
       />
     </div>
   );

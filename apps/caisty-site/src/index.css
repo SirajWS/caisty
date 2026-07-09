@@ -1956,6 +1956,134 @@ a {
   color: var(--dashboard-text-muted);
   opacity: 0.55;
   cursor: not-allowed;
+  background: transparent;
+}
+
+.orders-action-btn--link {
+  opacity: 1;
+  color: var(--dashboard-text-secondary);
+  cursor: pointer;
+}
+
+.orders-action-btn--link:hover:not(:disabled) {
+  border-color: var(--dashboard-accent-border-soft);
+  color: var(--portal-accent);
+  background: var(--dashboard-hover-bg);
+}
+
+.orders-action-btn--link:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.orders-action-btn--disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.receipt-detail-root {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.receipt-detail-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(15, 23, 42, 0.55);
+  cursor: pointer;
+}
+
+.receipt-detail-panel {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 24rem);
+  height: 100%;
+  overflow-y: auto;
+  background: #ffffff;
+  border-left: 1px solid #e2e8f0;
+  box-shadow: -12px 0 32px rgba(15, 23, 42, 0.12);
+  padding: 20px 18px 24px;
+  text-align: left;
+}
+
+.receipt-detail-head {
+  margin-bottom: 16px;
+}
+
+.receipt-detail-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.receipt-detail-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.receipt-detail-grid {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.receipt-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.receipt-detail-row dt {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.receipt-detail-row dd {
+  margin: 0;
+  color: #0f172a;
+  text-align: right;
+}
+
+.receipt-detail-notice {
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.receipt-detail-footer {
+  margin-top: 20px;
+}
+
+.receipt-detail-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.receipt-detail-close-btn:hover {
+  background: #f8fafc;
 }
 
 .orders-payment-grid {

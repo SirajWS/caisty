@@ -15,6 +15,9 @@ export function ReceiptsTable({
   expanded = false,
   onToggleExpand,
   expandLabels,
+  onView,
+  onDownloadPdf,
+  downloadingReceiptId = null,
 }: {
   receipts: PosReceiptRow[];
   loading: boolean;
@@ -37,6 +40,9 @@ export function ReceiptsTable({
   expanded?: boolean;
   onToggleExpand?: () => void;
   expandLabels?: { viewAll: string; showLess: string };
+  onView?: (receipt: PosReceiptRow) => void;
+  onDownloadPdf?: (receipt: PosReceiptRow) => void;
+  downloadingReceiptId?: string | null;
 }) {
   const count = totalCount ?? receipts.length;
   const limit = previewLimit ?? receipts.length;
@@ -77,29 +83,45 @@ export function ReceiptsTable({
                 </td>
               </tr>
             ) : (
-              visibleReceipts.map((row) => (
-                <tr key={row.id}>
-                  <td data-label={columns.receipt}>{row.receiptNumber}</td>
-                  <td data-label={columns.time}>{row.time}</td>
-                  <td data-label={columns.customer}>{row.customer}</td>
-                  <td data-label={columns.payment}>{row.payment}</td>
-                  <td data-label={columns.fiscal}>{row.fiscal}</td>
-                  <td data-label={columns.amount}>{row.amount}</td>
-                  <td data-label={actionsLabel}>
-                    <div className="orders-receipt-actions">
-                      <span className="orders-action-btn" aria-disabled>
-                        {actionView}
-                      </span>
-                      <span className="orders-action-btn" aria-disabled>
-                        {actionPrint}
-                      </span>
-                      <span className="orders-action-btn" aria-disabled>
-                        {actionDownload}
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ))
+              visibleReceipts.map((row) => {
+                const isDownloading = downloadingReceiptId === row.id;
+
+                return (
+                  <tr key={row.id}>
+                    <td data-label={columns.receipt}>{row.receiptNumber}</td>
+                    <td data-label={columns.time}>{row.time}</td>
+                    <td data-label={columns.customer}>{row.customer}</td>
+                    <td data-label={columns.payment}>{row.payment}</td>
+                    <td data-label={columns.fiscal}>{row.fiscal}</td>
+                    <td data-label={columns.amount}>{row.amount}</td>
+                    <td data-label={actionsLabel}>
+                      <div className="orders-receipt-actions">
+                        <button
+                          type="button"
+                          className="orders-action-btn orders-action-btn--link"
+                          onClick={() => onView?.(row)}
+                        >
+                          {actionView}
+                        </button>
+                        <span
+                          className="orders-action-btn orders-action-btn--disabled"
+                          aria-disabled
+                        >
+                          {actionPrint}
+                        </span>
+                        <button
+                          type="button"
+                          className="orders-action-btn orders-action-btn--link"
+                          disabled={isDownloading}
+                          onClick={() => onDownloadPdf?.(row)}
+                        >
+                          {isDownloading ? `${actionDownload}…` : actionDownload}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

@@ -116,5 +116,29 @@ export type OrdersDocumentInput = {
   sales: PortalOrdersResponse;
 };
 
+export type ReceiptDocumentLabels = PdfDocumentLabels & {
+  docTitle: string;
+  receiptDetails: string;
+  fiscalPendingNote: string;
+  colReceipt: string;
+  colTime: string;
+  colCustomer: string;
+  colPayment: string;
+  colFiscal: string;
+  colAmount: string;
+  colDevice: string;
+  paymentCash: string;
+  paymentCard: string;
+  paymentVoucher: string;
+  paymentOther: string;
+  dash: string;
+};
+
+export type ReceiptDocumentInput = {
+  meta: DocumentMeta;
+  labels: ReceiptDocumentLabels;
+  receipt: import("../portalApi").PortalReceiptRecord;
+};
+
 /** Reserved for a future print action alongside export. */
 export type DocumentDeliveryMode = "export" | "print";

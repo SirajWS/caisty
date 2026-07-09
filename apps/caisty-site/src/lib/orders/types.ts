@@ -32,6 +32,8 @@ export type PosReceiptRow = {
   payment: string;
   fiscal: string;
   amount: string;
+  /** Raw API record for PDF export and detail view. */
+  source: PortalReceiptRecord;
 };
 
 export type PaymentMethodCard = {

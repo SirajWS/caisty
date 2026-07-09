@@ -6,6 +6,7 @@ export {
 } from "./documentMeta";
 export {
   buildOrdersDocumentLabels,
+  buildReceiptDocumentLabels,
   buildReportsDocumentLabels,
 } from "./documentLabels";
 export {
@@ -19,6 +20,7 @@ export {
   sanitizeFilenamePart,
 } from "./formatters";
 export { exportOrdersPdf, buildOrdersPdfFilename } from "./ordersDocument";
+export { exportReceiptPdf, buildReceiptPdfFilename } from "./receiptDocument";
 export { exportReportsPdf, buildReportsPdfFilename } from "./reportsDocument";
 export type { InvoiceDocumentPlaceholder } from "./invoiceDocument";
 export type {
@@ -29,6 +31,8 @@ export type {
   OrdersDocumentInput,
   OrdersDocumentLabels,
   PdfDocumentLabels,
+  ReceiptDocumentInput,
+  ReceiptDocumentLabels,
   ReportsDocumentInput,
   ReportsDocumentLabels,
 } from "./types";

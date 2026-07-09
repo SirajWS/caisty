@@ -163,6 +163,7 @@ function mapReceiptRow(
     payment: formatPaymentLabel(receipt.paymentMethod, input.t),
     fiscal: formatFiscalStatus(receipt.fiscalStatus, dash),
     amount: formatMoney(receipt.amountCents, receipt.currency, input.locale),
+    source: receipt,
   };
 }
 

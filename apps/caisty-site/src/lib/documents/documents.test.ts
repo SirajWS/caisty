@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildOrdersPdfFilename, buildReportsPdfFilename } from "./index";
+import { buildOrdersPdfFilename, buildReceiptPdfFilename, buildReportsPdfFilename } from "./index";
 import { sanitizeFilenamePart } from "./formatters";
 
 describe("document export filenames", () => {
@@ -17,6 +17,9 @@ describe("document export filenames", () => {
     );
     expect(buildOrdersPdfFilename(generatedAt, "Today")).toBe(
       "caisty-orders-today-2026-07-08.pdf",
+    );
+    expect(buildReceiptPdfFilename("R-001", generatedAt)).toBe(
+      "caisty-receipt-r-001-2026-07-08.pdf",
     );
   });
 });

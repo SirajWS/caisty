@@ -1,5 +1,5 @@
 import type { PortalTranslations } from "../translations/portal";
-import type { OrdersDocumentLabels, ReportsDocumentLabels } from "./types";
+import type { OrdersDocumentLabels, ReceiptDocumentLabels, ReportsDocumentLabels } from "./types";
 
 export function buildReportsDocumentLabels(
   t: PortalTranslations,
@@ -112,5 +112,48 @@ export function buildOrdersDocumentLabels(
     ordersEmpty: o.ordersEmpty,
     receiptsEmpty: o.receiptsEmpty,
     dash: t.labels.dash,
+  };
+}
+
+export function buildReceiptDocumentLabels(
+  t: PortalTranslations,
+): ReceiptDocumentLabels {
+  const pdf = t.pdfDocuments;
+  const o = t.orders;
+  const dash = t.labels.dash;
+
+  return {
+    brandCloud: pdf.brandCloud,
+    docTitle: pdf.receiptTitle,
+    generatedAt: pdf.generatedAt,
+    timezone: pdf.timezone,
+    currency: pdf.currency,
+    business: pdf.business,
+    store: pdf.store,
+    period: pdf.period,
+    date: pdf.date,
+    executiveSummary: pdf.executiveSummary,
+    generatedBy: pdf.generatedBy,
+    website: pdf.website,
+    totals: pdf.totals,
+    hour: pdf.hour,
+    colRevenue: o.colAmount,
+    colOrders: o.kpiOrders,
+    segment: pdf.segment,
+    noData: pdf.noData,
+    receiptDetails: o.receiptDetailTitle,
+    fiscalPendingNote: o.receiptFiscalPending,
+    colReceipt: o.colReceipt,
+    colTime: o.colTime,
+    colCustomer: o.colCustomer,
+    colPayment: o.colPayment,
+    colFiscal: o.colFiscal,
+    colAmount: o.colAmount,
+    colDevice: o.colDevice,
+    paymentCash: o.paymentCash,
+    paymentCard: o.paymentCard,
+    paymentVoucher: o.paymentVoucher,
+    paymentOther: o.paymentOther,
+    dash,
   };
 }

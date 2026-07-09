@@ -1,0 +1,159 @@
+import { useEffect, useId, useRef } from "react";
+import { createPortal } from "react-dom";
+import { formatDocumentDateTime } from "../../lib/documents/formatters";
+import type { DocumentIdentity } from "../../lib/documents/types";
+import type { PosReceiptRow } from "../../lib/orders/types";
+
+function isFiscalPending(status: string): boolean {
+  return status.trim().toLowerCase() === "pending";
+}
+
+export function ReceiptDetailDrawer({
+  open,
+  receipt,
+  identity,
+  labels,
+  locale,
+  timezone,
+  onClose,
+}: {
+  open: boolean;
+  receipt: PosReceiptRow | null;
+  identity: DocumentIdentity | null;
+  labels: {
+    title: string;
+    business: string;
+    store: string;
+    receipt: string;
+    time: string;
+    customer: string;
+    payment: string;
+    fiscal: string;
+    amount: string;
+    device: string;
+    fiscalPending: string;
+    close: string;
+    dash: string;
+  };
+  locale: string;
+  timezone: string;
+  onClose: () => void;
+}) {
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
+  useEffect(() => {
+    if (open) panelRef.current?.focus();
+  }, [open]);
+
+  if (!open || !receipt) return null;
+
+  const issuedAtLabel = receipt.source.issuedAt
+    ? formatDocumentDateTime(
+        new Date(receipt.source.issuedAt),
+        locale,
+        timezone,
+      )
+    : labels.dash;
+
+  const showFiscalPending = isFiscalPending(receipt.source.fiscalStatus);
+
+  return createPortal(
+    <div className="receipt-detail-root">
+      <button
+        type="button"
+        className="receipt-detail-backdrop"
+        aria-label={labels.close}
+        onClick={onClose}
+      />
+      <aside
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="receipt-detail-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="receipt-detail-head">
+          <h2 id={titleId} className="receipt-detail-title">
+            {labels.title}
+          </h2>
+          <p className="receipt-detail-subtitle">{receipt.receiptNumber}</p>
+        </header>
+
+        <dl className="receipt-detail-grid">
+          <div className="receipt-detail-row">
+            <dt>{labels.receipt}</dt>
+            <dd>{receipt.receiptNumber}</dd>
+          </div>
+          <div className="receipt-detail-row">
+            <dt>{labels.time}</dt>
+            <dd>{issuedAtLabel}</dd>
+          </div>
+          <div className="receipt-detail-row">
+            <dt>{labels.business}</dt>
+            <dd>{identity?.businessName || labels.dash}</dd>
+          </div>
+          <div className="receipt-detail-row">
+            <dt>{labels.store}</dt>
+            <dd>{identity?.storeName || labels.dash}</dd>
+          </div>
+          <div className="receipt-detail-row">
+            <dt>{labels.payment}</dt>
+            <dd>{receipt.payment}</dd>
+          </div>
+          <div className="receipt-detail-row">
+            <dt>{labels.fiscal}</dt>
+            <dd>{receipt.fiscal}</dd>
+          </div>
+          <div className="receipt-detail-row">
+            <dt>{labels.amount}</dt>
+            <dd>{receipt.amount}</dd>
+          </div>
+          <div className="receipt-detail-row">
+            <dt>{labels.device}</dt>
+            <dd>{labels.dash}</dd>
+          </div>
+          <div className="receipt-detail-row">
+            <dt>{labels.customer}</dt>
+            <dd>{receipt.customer}</dd>
+          </div>
+        </dl>
+
+        {showFiscalPending ? (
+          <p className="receipt-detail-notice">{labels.fiscalPending}</p>
+        ) : null}
+
+        <footer className="receipt-detail-footer">
+          <button
+            type="button"
+            className="receipt-detail-close-btn"
+            onClick={onClose}
+          >
+            {labels.close}
+          </button>
+        </footer>
+      </aside>
+    </div>,
+    document.body,
+  );
+}
