@@ -13,6 +13,9 @@ import { ReceiptsTable } from "../components/orders/ReceiptsTable";
 import { PaymentOverview } from "../components/orders/PaymentOverview";
 import { OrdersEmptyState } from "../components/orders/OrdersEmptyState";
 import { OrdersFilters } from "../components/orders/OrdersFilters";
+import { PortalExportPdfButton } from "../components/portal/PortalExportPdfButton";
+import { buildOrdersDocumentLabels } from "../lib/documents/documentLabels";
+import { buildDocumentMeta, resolveDocumentIdentity } from "../lib/documents/documentMeta";
 import { portalPageShell, portalPageSubtitle, portalPageTitle } from "../lib/portalUi";
 
 const PortalOrdersPage: React.FC = () => {
@@ -43,6 +46,33 @@ const PortalOrdersPage: React.FC = () => {
   );
 
   const showEmptyHero = !data.loading && !orders.hasSalesData;
+  const [exportingPdf, setExportingPdf] = React.useState(false);
+  const periodLabel = o.filterToday;
+
+  const handleExportPdf = React.useCallback(async () => {
+    const sales = data.sales;
+    if (!sales) return;
+
+    setExportingPdf(true);
+    try {
+      const identity = await resolveDocumentIdentity(customer);
+      const { exportOrdersPdf } = await import("../lib/documents/ordersDocument");
+      exportOrdersPdf({
+        meta: buildDocumentMeta({
+          identity,
+          period: { label: periodLabel },
+          generatedAt: new Date(),
+          timezone: sales.timezone,
+          currency: sales.summary.paymentSummary.currency,
+          locale,
+        }),
+        labels: buildOrdersDocumentLabels(t),
+        sales,
+      });
+    } finally {
+      setExportingPdf(false);
+    }
+  }, [customer, data.sales, locale, periodLabel, t]);
 
   const ordersExpandLabels = React.useMemo(
     () => ({
@@ -65,9 +95,19 @@ const PortalOrdersPage: React.FC = () => {
 
   return (
     <div className={`${portalPageShell()} dashboard-home orders-ops`}>
-      <header className="orders-page-header">
-        <h1 className={portalPageTitle(isLight)}>{o.title}</h1>
-        <p className={portalPageSubtitle(isLight)}>{o.subtitle}</p>
+      <header className="portal-page-header">
+        <div className="portal-page-header-copy">
+          <h1 className={portalPageTitle(isLight)}>{o.title}</h1>
+          <p className={portalPageSubtitle(isLight)}>{o.subtitle}</p>
+        </div>
+        <PortalExportPdfButton
+          label={o.actionExportPdf}
+          loadingLabel={t.pdfDocuments.exporting}
+          disabled={data.loading || !orders.hasSalesData}
+          loading={exportingPdf}
+          onClick={handleExportPdf}
+          isLight={isLight}
+        />
       </header>
 
       <OrdersSummary kpis={orders.summary} loading={data.loading} isLight={isLight} />

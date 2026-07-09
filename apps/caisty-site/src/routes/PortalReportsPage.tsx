@@ -22,6 +22,9 @@ import { TopProducts } from "../components/reports/TopProducts";
 import { TopEmployees } from "../components/reports/TopEmployees";
 import { TaxesOverview } from "../components/reports/TaxesOverview";
 import { BusinessTrends } from "../components/reports/BusinessTrends";
+import { PortalExportPdfButton } from "../components/portal/PortalExportPdfButton";
+import { buildReportsDocumentLabels } from "../lib/documents/documentLabels";
+import { buildDocumentMeta, resolveDocumentIdentity } from "../lib/documents/documentMeta";
 import { portalPageShell, portalPageSubtitle, portalPageTitle } from "../lib/portalUi";
 
 const PortalReportsPage: React.FC = () => {
@@ -49,12 +52,48 @@ const PortalReportsPage: React.FC = () => {
   const mutedPlaceholders = showEmptyHero;
   const syncHint = r.paymentEmptyHint;
   const fiscalHint = r.fiscalEmptyHint;
+  const [exportingPdf, setExportingPdf] = React.useState(false);
+
+  const handleExportPdf = React.useCallback(async () => {
+    const summary = data.reportsSummary;
+    if (!summary) return;
+
+    setExportingPdf(true);
+    try {
+      const identity = await resolveDocumentIdentity(customer);
+      const { exportReportsPdf } = await import("../lib/documents/reportsDocument");
+      exportReportsPdf({
+        meta: buildDocumentMeta({
+          identity,
+          period: { label: periodLabel },
+          generatedAt: new Date(),
+          timezone: summary.timezone,
+          currency: summary.overview.currency,
+          locale,
+        }),
+        labels: buildReportsDocumentLabels(t),
+        summary,
+      });
+    } finally {
+      setExportingPdf(false);
+    }
+  }, [customer, data.reportsSummary, locale, periodLabel, t]);
 
   return (
     <div className={`${portalPageShell()} dashboard-home reports-center`}>
-      <header className="space-y-1">
-        <h1 className={portalPageTitle(isLight)}>{r.title}</h1>
-        <p className={portalPageSubtitle(isLight)}>{r.subtitle}</p>
+      <header className="portal-page-header">
+        <div className="portal-page-header-copy">
+          <h1 className={portalPageTitle(isLight)}>{r.title}</h1>
+          <p className={portalPageSubtitle(isLight)}>{r.subtitle}</p>
+        </div>
+        <PortalExportPdfButton
+          label={r.exportPdf}
+          loadingLabel={t.pdfDocuments.exporting}
+          disabled={data.loading || !hasSalesData}
+          loading={exportingPdf}
+          onClick={handleExportPdf}
+          isLight={isLight}
+        />
       </header>
 
       <ReportsFilters r={r} period={period} onPeriodChange={setPeriod} />
