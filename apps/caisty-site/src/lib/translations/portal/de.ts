@@ -402,6 +402,7 @@ export const portalDe: PortalTranslations = {
     filterThisYear: "Dieses Jahr",
     filterCustom: "Benutzerdefiniert",
     filterCustomHint: "Benutzerdefinierte Datumsfilter demnächst.",
+    filterComingSoon: "Demnächst",
     colProduct: "Produkt",
     colQuantity: "Menge",
     colRevenue: "Umsatz",

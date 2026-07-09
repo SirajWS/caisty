@@ -2201,6 +2201,26 @@ a {
   color: var(--portal-accent);
 }
 
+.reports-filter-btn--disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.reports-filter-btn--disabled:hover {
+  border-color: var(--dashboard-border-soft);
+  background: transparent;
+  color: var(--dashboard-text-muted);
+}
+
+.reports-filter-btn-badge {
+  margin-inline-start: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--dashboard-text-muted);
+}
+
 .reports-chart-panel {
   padding-bottom: 16px;
 }

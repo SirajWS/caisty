@@ -402,6 +402,7 @@ export const portalEn = {
     filterThisYear: "This year",
     filterCustom: "Custom",
     filterCustomHint: "Custom date filtering coming soon.",
+    filterComingSoon: "Coming soon",
     colProduct: "Product",
     colQuantity: "Quantity",
     colRevenue: "Revenue",

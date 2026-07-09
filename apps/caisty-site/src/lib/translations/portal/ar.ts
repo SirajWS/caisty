@@ -401,6 +401,7 @@ export const portalAr: PortalTranslations = {
     filterThisYear: "هذا العام",
     filterCustom: "مخصص",
     filterCustomHint: "تصفية التاريخ المخصص قريباً.",
+    filterComingSoon: "قريباً",
     colProduct: "المنتج",
     colQuantity: "الكمية",
     colRevenue: "الإيرادات",

@@ -72,19 +72,28 @@ export function mapReportsPeriodToApi(
   }
 }
 
+export type ReportsPeriodFilterOption = {
+  id: ReportsPeriodId;
+  label: string;
+  disabled?: boolean;
+  hint?: string;
+};
+
 export function getReportsPeriodFilters(
   r: PortalTranslations["reports"],
-): { id: ReportsPeriodId; label: string }[] {
+): ReportsPeriodFilterOption[] {
   return [
     { id: "today", label: r.filterToday },
     { id: "yesterday", label: r.filterYesterday },
     { id: "week", label: r.filterThisWeek },
-    { id: "7d", label: r.revenueRanges.days7 },
-    { id: "30d", label: r.revenueRanges.days30 },
     { id: "month", label: r.filterThisMonth },
-    { id: "12m", label: r.revenueRanges.months12 },
     { id: "year", label: r.filterThisYear },
     { id: "all", label: r.revenueRanges.allTime },
-    { id: "custom", label: r.filterCustom },
+    {
+      id: "custom",
+      label: r.filterCustom,
+      disabled: true,
+      hint: r.filterCustomHint,
+    },
   ];
 }

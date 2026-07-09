@@ -401,6 +401,7 @@ export const portalFr: PortalTranslations = {
     filterThisYear: "Cette année",
     filterCustom: "Personnalisé",
     filterCustomHint: "Filtrage de dates personnalisé bientôt disponible.",
+    filterComingSoon: "Bientôt",
     colProduct: "Produit",
     colQuantity: "Quantité",
     colRevenue: "Chiffre",
