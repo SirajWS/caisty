@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql, type AnyColumn } from "drizzle-orm";
 
 import { db } from "../db/client.js";
 import { devices } from "../db/schema/devices.js";
@@ -91,6 +91,25 @@ export type PortalReportsSummaryData = {
   taxes: PortalReportsTaxes;
   businessTrends: PortalReportsBusinessTrends;
 };
+
+/**
+ * Berlin TZ as SQL literal for GROUP BY / ORDER BY expressions.
+ * Drizzle binds `${tz}` separately per clause ($1, $2, …); PostgreSQL 16 then
+ * rejects SELECT vs GROUP BY as non-matching ("sold_at must appear in GROUP BY").
+ */
+const berlinTzSql = sql.raw(`'${PORTAL_ORDERS_TIMEZONE}'`);
+
+function soldAtBerlinHour(column: AnyColumn) {
+  return sql`extract(hour from ${column} AT TIME ZONE ${berlinTzSql})::int`;
+}
+
+function soldAtBerlinDate(column: AnyColumn) {
+  return sql`(${column} AT TIME ZONE ${berlinTzSql})::date`;
+}
+
+function soldAtBerlinMonth(column: AnyColumn) {
+  return sql`date_trunc('month', ${column} AT TIME ZONE ${berlinTzSql})::date`;
+}
 
 function customerDeviceScope(orgId: string, customerId: string) {
   return and(eq(devices.orgId, orgId), eq(devices.customerId, customerId));
@@ -233,7 +252,6 @@ export async function fetchPortalReportsSummary(input: {
   period: PortalReportsPeriod;
 }): Promise<PortalReportsSummaryData> {
   const { orgId, customerId, period } = input;
-  const tz = PORTAL_ORDERS_TIMEZONE;
   const granularity = revenueSeriesGranularity(period);
 
   const [orderStats] = await db
@@ -295,32 +313,28 @@ export async function fetchPortalReportsSummary(input: {
 
   let revenueSeries: PortalReportsRevenuePoint[] = [];
   if (granularity === "hour") {
+    const receiptHourExpr = soldAtBerlinHour(posReceipts.soldAt);
     const rows = await db
       .select({
-        hour: sql<number>`extract(hour from ${posReceipts.soldAt} AT TIME ZONE ${tz})::int`,
+        hour: receiptHourExpr,
         revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}), 0)::int`,
       })
       .from(posReceipts)
       .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
       .where(receiptScope(orgId, customerId, period))
-      .groupBy(
-        sql`extract(hour from ${posReceipts.soldAt} AT TIME ZONE ${tz})::int`,
-      )
-      .orderBy(
-        sql`extract(hour from ${posReceipts.soldAt} AT TIME ZONE ${tz})::int`,
-      );
+      .groupBy(receiptHourExpr)
+      .orderBy(receiptHourExpr);
 
+    const orderHourExpr = soldAtBerlinHour(posOrders.soldAt);
     const orderHourRows = await db
       .select({
-        hour: sql<number>`extract(hour from ${posOrders.soldAt} AT TIME ZONE ${tz})::int`,
+        hour: orderHourExpr,
         count: sql<number>`count(*)::int`,
       })
       .from(posOrders)
       .innerJoin(devices, eq(posOrders.deviceId, devices.id))
       .where(orderScope(orgId, customerId, period))
-      .groupBy(
-        sql`extract(hour from ${posOrders.soldAt} AT TIME ZONE ${tz})::int`,
-      );
+      .groupBy(orderHourExpr);
 
     const ordersByHour = new Map(
       orderHourRows.map((row) => [row.hour, row.count]),
@@ -336,26 +350,28 @@ export async function fetchPortalReportsSummary(input: {
       };
     });
   } else if (granularity === "day") {
+    const receiptDayExpr = soldAtBerlinDate(posReceipts.soldAt);
     const rows = await db
       .select({
-        bucket: sql<string>`(${posReceipts.soldAt} AT TIME ZONE ${tz})::date`,
+        bucket: receiptDayExpr,
         revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}), 0)::int`,
       })
       .from(posReceipts)
       .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
       .where(receiptScope(orgId, customerId, period))
-      .groupBy(sql`(${posReceipts.soldAt} AT TIME ZONE ${tz})::date`)
-      .orderBy(sql`(${posReceipts.soldAt} AT TIME ZONE ${tz})::date`);
+      .groupBy(receiptDayExpr)
+      .orderBy(receiptDayExpr);
 
+    const orderDayExpr = soldAtBerlinDate(posOrders.soldAt);
     const orderDayRows = await db
       .select({
-        bucket: sql<string>`(${posOrders.soldAt} AT TIME ZONE ${tz})::date`,
+        bucket: orderDayExpr,
         count: sql<number>`count(*)::int`,
       })
       .from(posOrders)
       .innerJoin(devices, eq(posOrders.deviceId, devices.id))
       .where(orderScope(orgId, customerId, period))
-      .groupBy(sql`(${posOrders.soldAt} AT TIME ZONE ${tz})::date`);
+      .groupBy(orderDayExpr);
 
     const ordersByDay = new Map(
       orderDayRows.map((row) => [String(row.bucket), row.count]),
@@ -371,32 +387,28 @@ export async function fetchPortalReportsSummary(input: {
       };
     });
   } else {
+    const receiptMonthExpr = soldAtBerlinMonth(posReceipts.soldAt);
     const rows = await db
       .select({
-        bucket: sql<string>`date_trunc('month', ${posReceipts.soldAt} AT TIME ZONE ${tz})::date`,
+        bucket: receiptMonthExpr,
         revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}), 0)::int`,
       })
       .from(posReceipts)
       .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
       .where(receiptScope(orgId, customerId, period))
-      .groupBy(
-        sql`date_trunc('month', ${posReceipts.soldAt} AT TIME ZONE ${tz})::date`,
-      )
-      .orderBy(
-        sql`date_trunc('month', ${posReceipts.soldAt} AT TIME ZONE ${tz})::date`,
-      );
+      .groupBy(receiptMonthExpr)
+      .orderBy(receiptMonthExpr);
 
+    const orderMonthExpr = soldAtBerlinMonth(posOrders.soldAt);
     const orderMonthRows = await db
       .select({
-        bucket: sql<string>`date_trunc('month', ${posOrders.soldAt} AT TIME ZONE ${tz})::date`,
+        bucket: orderMonthExpr,
         count: sql<number>`count(*)::int`,
       })
       .from(posOrders)
       .innerJoin(devices, eq(posOrders.deviceId, devices.id))
       .where(orderScope(orgId, customerId, period))
-      .groupBy(
-        sql`date_trunc('month', ${posOrders.soldAt} AT TIME ZONE ${tz})::date`,
-      );
+      .groupBy(orderMonthExpr);
 
     const ordersByMonth = new Map(
       orderMonthRows.map((row) => [String(row.bucket), row.count]),
@@ -413,29 +425,27 @@ export async function fetchPortalReportsSummary(input: {
     });
   }
 
+  const receiptHourlyExpr = soldAtBerlinHour(posReceipts.soldAt);
   const hourlyReceiptRows = await db
     .select({
-      hour: sql<number>`extract(hour from ${posReceipts.soldAt} AT TIME ZONE ${tz})::int`,
+      hour: receiptHourlyExpr,
       revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}), 0)::int`,
     })
     .from(posReceipts)
     .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
     .where(receiptScope(orgId, customerId, period))
-    .groupBy(
-      sql`extract(hour from ${posReceipts.soldAt} AT TIME ZONE ${tz})::int`,
-    );
+    .groupBy(receiptHourlyExpr);
 
+  const orderHourlyExpr = soldAtBerlinHour(posOrders.soldAt);
   const hourlyOrderRows = await db
     .select({
-      hour: sql<number>`extract(hour from ${posOrders.soldAt} AT TIME ZONE ${tz})::int`,
+      hour: orderHourlyExpr,
       count: sql<number>`count(*)::int`,
     })
     .from(posOrders)
     .innerJoin(devices, eq(posOrders.deviceId, devices.id))
     .where(orderScope(orgId, customerId, period))
-    .groupBy(
-      sql`extract(hour from ${posOrders.soldAt} AT TIME ZONE ${tz})::int`,
-    );
+    .groupBy(orderHourlyExpr);
 
   const revenueByHour = new Map(
     hourlyReceiptRows.map((row) => [row.hour, row.revenue]),
