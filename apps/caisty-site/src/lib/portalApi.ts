@@ -514,6 +514,14 @@ export type PortalOrderRecord = {
   deviceName: string;
 };
 
+export type PortalReceiptLineItem = {
+  productName: string | null;
+  sku: string | null;
+  quantity: number;
+  unitPriceCents: number;
+  lineTotalCents: number;
+};
+
 export type PortalReceiptRecord = {
   id: string;
   localReceiptId: string;
@@ -524,6 +532,7 @@ export type PortalReceiptRecord = {
   fiscalStatus: string;
   amountCents: number;
   currency: string;
+  items: PortalReceiptLineItem[];
 };
 
 export interface PortalOrdersResponse {

@@ -79,5 +79,24 @@ export function exportReceiptPdf(input: ReceiptDocumentInput): void {
     pdf.drawKeyValueRows([[labels.colFiscal, labels.fiscalPendingNote]]);
   }
 
+  pdf.drawSectionTitle(labels.itemsTitle);
+  pdf.drawTable({
+    head: [
+      labels.colProduct,
+      labels.colQuantity,
+      labels.colUnitPrice,
+      labels.colLineTotal,
+    ],
+    body: (receipt.items ?? []).map((line) => [
+      line.productName?.trim() || line.sku?.trim() || dash,
+      String(line.quantity),
+      line.unitPriceCents != null
+        ? formatDocumentMoney(line.unitPriceCents, currency, locale)
+        : dash,
+      formatDocumentMoney(line.lineTotalCents, currency, locale),
+    ]),
+    emptyMessage: labels.itemsEmpty,
+  });
+
   pdf.save(buildReceiptPdfFilename(receiptLabel, meta.generatedAt));
 }

@@ -120,6 +120,12 @@ export type ReceiptDocumentLabels = PdfDocumentLabels & {
   docTitle: string;
   receiptDetails: string;
   fiscalPendingNote: string;
+  itemsTitle: string;
+  itemsEmpty: string;
+  colProduct: string;
+  colQuantity: string;
+  colUnitPrice: string;
+  colLineTotal: string;
   colReceipt: string;
   colTime: string;
   colCustomer: string;

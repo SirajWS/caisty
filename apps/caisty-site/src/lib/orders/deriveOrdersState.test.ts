@@ -122,6 +122,7 @@ describe("deriveOrdersState", () => {
                 fiscalStatus: "pending",
                 amountCents: 500,
                 currency: "EUR",
+                items: [],
               },
               {
                 id: "r2",
@@ -133,6 +134,7 @@ describe("deriveOrdersState", () => {
                 fiscalStatus: "signed",
                 amountCents: 1500,
                 currency: "EUR",
+                items: [],
               },
             ],
           }),
@@ -147,6 +149,67 @@ describe("deriveOrdersState", () => {
     expect(state.summary.find((k) => k.id === "receipts")?.value).toBe("2");
     expect(state.orders[0].orderNumber).toBe("ORD-1");
     expect(state.receipts[0].receiptNumber).toBe("R-001");
+  });
+
+  it("maps receipt line items for display", () => {
+    const state = deriveOrdersState(
+      deriveInput(
+        makeData({
+          sales: makeSales({
+            summary: {
+              ordersCount: 1,
+              receiptsCount: 1,
+              refundsCount: 0,
+              openShift: null,
+              paymentSummary: {
+                cashCents: 680,
+                cardCents: 0,
+                voucherCents: 0,
+                otherCents: 0,
+                currency: "EUR",
+              },
+            },
+            receipts: [
+              {
+                id: "r1",
+                localReceiptId: "RCPT-1",
+                receiptNumber: "R-001",
+                issuedAt: "2026-07-08T08:16:00.000Z",
+                customer: null,
+                paymentMethod: "cash",
+                fiscalStatus: "pending",
+                amountCents: 680,
+                currency: "EUR",
+                items: [
+                  {
+                    productName: "Espresso",
+                    sku: null,
+                    quantity: 2,
+                    unitPriceCents: 250,
+                    lineTotalCents: 500,
+                  },
+                  {
+                    productName: null,
+                    sku: "CR-01",
+                    quantity: 1,
+                    unitPriceCents: 180,
+                    lineTotalCents: 180,
+                  },
+                ],
+              },
+            ],
+          }),
+        }),
+      ),
+    );
+
+    expect(state.receipts[0].items).toHaveLength(2);
+    expect(state.receipts[0].items[0].product).toBe("Espresso");
+    expect(state.receipts[0].items[0].quantity).toBe("2");
+    expect(state.receipts[0].items[0].unitPrice).toBe("€2.50");
+    expect(state.receipts[0].items[0].total).toBe("€5.00");
+    expect(state.receipts[0].items[1].product).toBe("CR-01");
+    expect(state.receipts[0].items[1].total).toBe("€1.80");
   });
 
   it("calculates payment summary buckets from API totals", () => {
@@ -191,6 +254,7 @@ describe("deriveOrdersState", () => {
                 fiscalStatus: "pending",
                 amountCents: 800,
                 currency: "EUR",
+                items: [],
               },
             ],
           }),
@@ -248,6 +312,7 @@ describe("deriveOrdersState", () => {
                 fiscalStatus: "pending",
                 amountCents: 6000,
                 currency: "TND",
+                items: [],
               },
             ],
           }),

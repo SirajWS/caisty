@@ -2063,6 +2063,48 @@ a {
   line-height: 1.45;
 }
 
+.receipt-detail-items {
+  margin-top: 16px;
+}
+
+.receipt-detail-items-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.receipt-detail-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.receipt-detail-items-table th,
+.receipt-detail-items-table td {
+  padding: 8px 6px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.receipt-detail-items-table th {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.receipt-detail-items-table td:last-child,
+.receipt-detail-items-table th:last-child {
+  text-align: right;
+}
+
+.receipt-detail-items-empty {
+  margin: 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .receipt-detail-footer {
   margin-top: 20px;
 }

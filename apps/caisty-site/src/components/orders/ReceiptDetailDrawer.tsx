@@ -32,6 +32,12 @@ export function ReceiptDetailDrawer({
     amount: string;
     device: string;
     fiscalPending: string;
+    itemsTitle: string;
+    itemsEmpty: string;
+    colProduct: string;
+    colQuantity: string;
+    colUnitPrice: string;
+    colLineTotal: string;
     close: string;
     dash: string;
   };
@@ -142,6 +148,34 @@ export function ReceiptDetailDrawer({
         {showFiscalPending ? (
           <p className="receipt-detail-notice">{labels.fiscalPending}</p>
         ) : null}
+
+        <section className="receipt-detail-items">
+          <h3 className="receipt-detail-items-title">{labels.itemsTitle}</h3>
+          {receipt.items.length > 0 ? (
+            <table className="receipt-detail-items-table">
+              <thead>
+                <tr>
+                  <th scope="col">{labels.colProduct}</th>
+                  <th scope="col">{labels.colQuantity}</th>
+                  <th scope="col">{labels.colUnitPrice}</th>
+                  <th scope="col">{labels.colLineTotal}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {receipt.items.map((line, index) => (
+                  <tr key={`${line.product}-${index}`}>
+                    <td>{line.product}</td>
+                    <td>{line.quantity}</td>
+                    <td>{line.unitPrice}</td>
+                    <td>{line.total}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="receipt-detail-items-empty">{labels.itemsEmpty}</p>
+          )}
+        </section>
 
         <footer className="receipt-detail-footer">
           <button

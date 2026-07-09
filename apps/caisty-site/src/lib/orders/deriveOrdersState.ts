@@ -147,6 +147,23 @@ function mapOrderRow(
   };
 }
 
+function mapReceiptLineItems(
+  receipt: PortalReceiptRecord,
+  input: DeriveOrdersInput,
+): OrdersDerivedState["receipts"][number]["items"] {
+  const dash = input.t.labels.dash;
+  return (receipt.items ?? []).map((line) => ({
+    product:
+      line.productName?.trim() || line.sku?.trim() || dash,
+    quantity: String(line.quantity),
+    unitPrice:
+      line.unitPriceCents != null
+        ? formatMoney(line.unitPriceCents, receipt.currency, input.locale)
+        : dash,
+    total: formatMoney(line.lineTotalCents, receipt.currency, input.locale),
+  }));
+}
+
 function mapReceiptRow(
   receipt: PortalReceiptRecord,
   input: DeriveOrdersInput,
@@ -163,6 +180,7 @@ function mapReceiptRow(
     payment: formatPaymentLabel(receipt.paymentMethod, input.t),
     fiscal: formatFiscalStatus(receipt.fiscalStatus, dash),
     amount: formatMoney(receipt.amountCents, receipt.currency, input.locale),
+    items: mapReceiptLineItems(receipt, input),
     source: receipt,
   };
 }

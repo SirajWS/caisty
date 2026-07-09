@@ -4,14 +4,17 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { devices } from "../db/schema/devices.js";
 import {
+  posOrderLines,
   posOrders,
   posReceipts,
   posSalePayments,
 } from "../db/schema/posSync.js";
 import {
   aggregatePaymentSummary,
+  groupOrderLinesByDeviceLocalId,
   pickPrimaryPaymentMethod,
   PORTAL_ORDERS_TIMEZONE,
+  resolveReceiptLineItems,
   sqlIsTodayBerlin,
 } from "../lib/portalOrders.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
@@ -77,9 +80,35 @@ export async function registerPortalOrdersRoutes(app: FastifyInstance) {
         )
         .orderBy(desc(posOrders.soldAt));
 
+      const lineRows = await db
+        .select({
+          deviceId: posOrders.deviceId,
+          localOrderId: posOrders.localOrderId,
+          lineIndex: posOrderLines.lineIndex,
+          productName: posOrderLines.productName,
+          sku: posOrderLines.sku,
+          quantity: posOrderLines.quantity,
+          unitPriceCents: posOrderLines.unitPriceCents,
+          lineTotalCents: posOrderLines.lineTotalCents,
+        })
+        .from(posOrderLines)
+        .innerJoin(posOrders, eq(posOrderLines.orderId, posOrders.id))
+        .innerJoin(devices, eq(posOrders.deviceId, devices.id))
+        .where(
+          and(
+            eq(posOrders.orgId, payload.orgId),
+            eq(devices.customerId, payload.customerId),
+            isTodayBerlin(posOrders.soldAt),
+          ),
+        )
+        .orderBy(posOrderLines.lineIndex);
+
+      const linesByOrderKey = groupOrderLinesByDeviceLocalId(lineRows);
+
       const receiptRows = await db
         .select({
           id: posReceipts.id,
+          deviceId: posReceipts.deviceId,
           localReceiptId: posReceipts.localReceiptId,
           receiptNumber: posReceipts.receiptNumber,
           soldAt: posReceipts.soldAt,
@@ -180,6 +209,11 @@ export async function registerPortalOrdersRoutes(app: FastifyInstance) {
           fiscalStatus: row.fiscalStatus,
           amountCents: row.grossCents,
           currency: row.currency,
+          items: resolveReceiptLineItems(
+            linesByOrderKey,
+            row.deviceId,
+            row.localOrderId,
+          ),
         })),
       };
     } catch (err: unknown) {

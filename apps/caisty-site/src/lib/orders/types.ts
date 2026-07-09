@@ -24,6 +24,13 @@ export type PosOrderRow = {
   device: string;
 };
 
+export type PosReceiptLineRow = {
+  product: string;
+  quantity: string;
+  unitPrice: string;
+  total: string;
+};
+
 export type PosReceiptRow = {
   id: string;
   receiptNumber: string;
@@ -32,6 +39,7 @@ export type PosReceiptRow = {
   payment: string;
   fiscal: string;
   amount: string;
+  items: PosReceiptLineRow[];
   /** Raw API record for PDF export and detail view. */
   source: PortalReceiptRecord;
 };

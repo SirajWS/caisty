@@ -73,3 +73,53 @@ export function pickPrimaryPaymentMethod(
   if (!methods.length) return null;
   return methods[0]?.trim() || null;
 }
+
+export type PortalReceiptLineItem = {
+  productName: string | null;
+  sku: string | null;
+  quantity: number;
+  unitPriceCents: number;
+  lineTotalCents: number;
+};
+
+export type OrderLineLookupRow = PortalReceiptLineItem & {
+  deviceId: string;
+  localOrderId: string;
+  lineIndex: number;
+};
+
+/** Join key: receipt.deviceId + receipt.localOrderId → pos_orders → pos_order_lines */
+export function orderLinesLookupKey(
+  deviceId: string,
+  localOrderId: string,
+): string {
+  return `${deviceId}:${localOrderId}`;
+}
+
+export function groupOrderLinesByDeviceLocalId(
+  lines: OrderLineLookupRow[],
+): Map<string, PortalReceiptLineItem[]> {
+  const map = new Map<string, PortalReceiptLineItem[]>();
+  for (const line of lines) {
+    const key = orderLinesLookupKey(line.deviceId, line.localOrderId);
+    const list = map.get(key) ?? [];
+    list.push({
+      productName: line.productName,
+      sku: line.sku,
+      quantity: line.quantity,
+      unitPriceCents: line.unitPriceCents,
+      lineTotalCents: line.lineTotalCents,
+    });
+    map.set(key, list);
+  }
+  return map;
+}
+
+export function resolveReceiptLineItems(
+  linesByKey: Map<string, PortalReceiptLineItem[]>,
+  deviceId: string,
+  localOrderId: string | null | undefined,
+): PortalReceiptLineItem[] {
+  if (!localOrderId) return [];
+  return linesByKey.get(orderLinesLookupKey(deviceId, localOrderId)) ?? [];
+}
