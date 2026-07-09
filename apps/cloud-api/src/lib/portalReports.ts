@@ -216,6 +216,23 @@ function pickMostUsedPayment(summary: ReturnType<typeof aggregatePaymentSummary>
   return best ? paymentBucketLabel(best) : null;
 }
 
+export function fillSalesByHour24(
+  points: PortalReportsHourlyPoint[],
+): PortalReportsHourlyPoint[] {
+  const byHour = new Map(points.map((point) => [point.hour, point]));
+  const filled: PortalReportsHourlyPoint[] = [];
+  for (let hour = 0; hour <= 23; hour++) {
+    filled.push(
+      byHour.get(hour) ?? {
+        hour,
+        revenueMinor: 0,
+        ordersCount: 0,
+      },
+    );
+  }
+  return filled;
+}
+
 export function buildPortalReportsResponse(input: {
   period: PortalReportsPeriod;
   overview: PortalReportsOverview;
@@ -454,14 +471,13 @@ export async function fetchPortalReportsSummary(input: {
     hourlyOrderRows.map((row) => [row.hour, row.count]),
   );
 
-  const salesByHour: PortalReportsHourlyPoint[] = [];
-  for (let hour = 8; hour <= 22; hour++) {
-    salesByHour.push({
+  const salesByHour = fillSalesByHour24(
+    Array.from({ length: 24 }, (_, hour) => ({
       hour,
       revenueMinor: revenueByHour.get(hour) ?? 0,
       ordersCount: ordersByHour.get(hour) ?? 0,
-    });
-  }
+    })),
+  );
 
   const topProductRows = await db
     .select({

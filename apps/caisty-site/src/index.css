@@ -2578,19 +2578,21 @@ body:has(.portal-root--dark) .receipt-detail-panel {
 .reports-hourly-bars {
   display: flex;
   align-items: flex-end;
-  justify-content: space-between;
-  gap: 6px;
+  justify-content: flex-start;
+  gap: 4px;
   min-height: 120px;
   padding: 8px 4px 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .reports-hourly-bar-col {
-  flex: 1;
+  flex: 0 0 1.35rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  min-width: 0;
+  min-width: 1.35rem;
 }
 
 .reports-hourly-bar-track {

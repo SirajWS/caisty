@@ -110,7 +110,10 @@ describe("deriveReportsState", () => {
     expect(state.topEmployees).toEqual([]);
     expect(state.overview.every((k) => k.value === "—")).toBe(true);
     expect(state.revenueChart.hasData).toBe(false);
+    expect(state.hourlySales.bars).toHaveLength(24);
     expect(state.hourlySales.bars.every((b) => b.value === null)).toBe(true);
+    expect(state.hourlySales.bars[0]?.hour).toBe("00");
+    expect(state.hourlySales.bars[23]?.hour).toBe("23");
   });
 
   it("detects POS sync from device heartbeat", () => {
@@ -154,6 +157,24 @@ describe("deriveReportsState", () => {
     expect(state.topProducts).toHaveLength(1);
     expect(state.topProducts[0]?.name).toBe("Coffee");
     expect(state.paymentMethods.find((p) => p.id === "cash")?.tone).toBe("ok");
+  });
+
+  it("renders 24 hourly bars when sales data exists", () => {
+    const state = deriveReportsState({
+      data: makeData({
+        reportsSummary: makeReportsSummary({
+          salesByHour: [{ hour: 10, revenueMinor: 6000, ordersCount: 1 }],
+        }),
+      }),
+      t: portalEn,
+      locale: "en-GB",
+    });
+
+    expect(state.hourlySales.bars).toHaveLength(24);
+    expect(state.hourlySales.bars[0]?.hour).toBe("00");
+    expect(state.hourlySales.bars[10]?.value).toBe(6000);
+    expect(state.hourlySales.bars[9]?.value).toBeNull();
+    expect(state.hourlySales.bars[23]?.hour).toBe("23");
   });
 
   it("formats TND minor units correctly (6000 → 6.000, not 60.000)", () => {

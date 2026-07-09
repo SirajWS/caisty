@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildPortalReportsResponse } from "../portalReports.js";
+import { buildPortalReportsResponse, fillSalesByHour24 } from "../portalReports.js";
 import {
   parsePortalReportsPeriod,
   revenueSeriesGranularity,
@@ -36,6 +36,23 @@ describe("revenueSeriesGranularity", () => {
     expect(revenueSeriesGranularity("12_months")).toBe("month");
     expect(revenueSeriesGranularity("this_year")).toBe("month");
     expect(revenueSeriesGranularity("all_time")).toBe("month");
+  });
+});
+
+describe("fillSalesByHour24", () => {
+  it("returns all 24 hours with zero-filled gaps", () => {
+    const filled = fillSalesByHour24([
+      { hour: 10, revenueMinor: 6000, ordersCount: 1 },
+    ]);
+
+    expect(filled).toHaveLength(24);
+    expect(filled[0]).toEqual({ hour: 0, revenueMinor: 0, ordersCount: 0 });
+    expect(filled[10]).toEqual({
+      hour: 10,
+      revenueMinor: 6000,
+      ordersCount: 1,
+    });
+    expect(filled[23]).toEqual({ hour: 23, revenueMinor: 0, ordersCount: 0 });
   });
 });
 

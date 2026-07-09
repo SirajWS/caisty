@@ -11,6 +11,7 @@ import type {
   TopProductRow,
   TrendCard,
 } from "./types";
+import { normalizeSalesByHour } from "./salesByHour";
 
 // POS Sales amounts are ISO 4217 minor units (Cent for EUR, Millime for TND).
 function formatMoney(minor: number, currency: string, locale: string): string {
@@ -124,14 +125,14 @@ function deriveOverview(input: DeriveReportsInput): ReportsKpi[] {
 
 function deriveHourlyBars(input: DeriveReportsInput): HourlyBar[] {
   const summary = input.data.reportsSummary;
-  if (!summary?.hasSalesData || summary.salesByHour.length === 0) {
-    return ["08", "09", "10", "11", "12", "13", "14"].map((hour) => ({
-      hour,
+  if (!summary?.hasSalesData) {
+    return normalizeSalesByHour([]).map((point) => ({
+      hour: String(point.hour).padStart(2, "0"),
       value: null,
     }));
   }
 
-  return summary.salesByHour.map((point) => ({
+  return normalizeSalesByHour(summary.salesByHour).map((point) => ({
     hour: String(point.hour).padStart(2, "0"),
     value: point.revenueMinor > 0 ? point.revenueMinor : null,
   }));

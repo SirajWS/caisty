@@ -5,6 +5,7 @@ import {
   formatPaymentMethodLabel,
   sanitizeFilenamePart,
 } from "./formatters";
+import { normalizeSalesByHour } from "../reports/salesByHour";
 import type { ReportsDocumentInput } from "./types";
 
 type TopEmployeeRow = {
@@ -158,10 +159,11 @@ export function exportReportsPdf(input: ReportsDocumentInput): void {
   ]);
 
   if (hasHourlyData(summary.salesByHour)) {
+    const salesByHour = normalizeSalesByHour(summary.salesByHour);
     pdf.drawSectionTitle(labels.salesByHour);
     pdf.drawTable({
       head: [labels.hour, labels.colRevenue, labels.colOrders],
-      body: summary.salesByHour.map((point) => [
+      body: salesByHour.map((point) => [
         formatHourLabel(point.hour),
         formatDocumentMoney(point.revenueMinor, currency, locale),
         String(point.ordersCount),
