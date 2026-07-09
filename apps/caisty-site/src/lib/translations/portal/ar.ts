@@ -315,6 +315,9 @@ export const portalAr: PortalTranslations = {
     actionExportCsv: "تصدير CSV",
     actionExportExcel: "تصدير Excel",
     actionExportPdf: "تصدير PDF",
+    actionRefresh: "تحديث",
+    refreshLoading: "جارٍ التحديث…",
+    autoRefreshHint: "تحديث تلقائي كل 30 ثانية",
     actionViewReports: "عرض التقارير",
     actionOpenAnalytics: "فتح التحليلات",
     actionView: "عرض",
@@ -546,9 +549,11 @@ export const portalAr: PortalTranslations = {
     releasedOn: "تم التحرير في",
     releasedLicense: "مُحرَّر",
     statusReleased: "مُحرَّر",
-    releaseDialogTitle: "تحرير الجهاز",
-    releaseDialogMessage:
-      "سيفقد هذا الجهاز الوصول إلى هذه الرخصة.\n\nسيصبح مقعد الرخصة متاحًا فورًا لجهاز POS آخر.\n\nلن يتم حذف سجل المبيعات أو التقارير أو بيانات التدقيق.",
+    releaseDialogTitle: "تحرير الجهاز؟",
+    releaseDialogDescription:
+      "سيفقد هذا الجهاز الوصول إلى هذه الرخصة. سيصبح مقعد الرخصة متاحًا فورًا لجهاز POS آخر.",
+    releaseDialogNotice:
+      "لن يتم حذف سجل المبيعات أو التقارير أو بيانات التدقيق.",
     releaseDialogCancel: "إلغاء",
     releaseDialogConfirm: "تحرير الجهاز",
     releaseDialogError: "تعذر تحرير الجهاز. يرجى المحاولة مرة أخرى.",

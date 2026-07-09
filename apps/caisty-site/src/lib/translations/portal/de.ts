@@ -316,6 +316,9 @@ export const portalDe: PortalTranslations = {
     actionExportCsv: "CSV exportieren",
     actionExportExcel: "Excel exportieren",
     actionExportPdf: "PDF exportieren",
+    actionRefresh: "Aktualisieren",
+    refreshLoading: "Wird aktualisiert…",
+    autoRefreshHint: "Automatische Aktualisierung alle 30 Sekunden",
     actionViewReports: "Berichte anzeigen",
     actionOpenAnalytics: "Analytics öffnen",
     actionView: "Ansehen",
@@ -548,9 +551,11 @@ export const portalDe: PortalTranslations = {
     releasedOn: "Freigegeben am",
     releasedLicense: "Freigegeben",
     statusReleased: "Freigegeben",
-    releaseDialogTitle: "Gerät freigeben",
-    releaseDialogMessage:
-      "Dieses Gerät verliert den Zugang zu dieser Lizenz.\n\nDer Lizenzplatz steht sofort für ein anderes POS-Gerät zur Verfügung.\n\nVerkaufshistorie, Reports und Audit-Daten werden NICHT gelöscht.",
+    releaseDialogTitle: "Gerät freigeben?",
+    releaseDialogDescription:
+      "Dieses Gerät verliert den Zugang zu dieser Lizenz. Der Lizenzplatz steht sofort für ein anderes POS-Gerät zur Verfügung.",
+    releaseDialogNotice:
+      "Verkaufshistorie, Reports und Audit-Daten werden NICHT gelöscht.",
     releaseDialogCancel: "Abbrechen",
     releaseDialogConfirm: "Gerät freigeben",
     releaseDialogError: "Gerät konnte nicht freigegeben werden. Bitte erneut versuchen.",

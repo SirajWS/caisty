@@ -16,7 +16,7 @@ import { OrdersFilters } from "../components/orders/OrdersFilters";
 import { PortalExportPdfButton } from "../components/portal/PortalExportPdfButton";
 import { buildOrdersDocumentLabels } from "../lib/documents/documentLabels";
 import { buildDocumentMeta, resolveDocumentIdentity } from "../lib/documents/documentMeta";
-import { portalPageShell, portalPageSubtitle, portalPageTitle } from "../lib/portalUi";
+import { portalPageShell, portalPageSubtitle, portalPageTitle, portalSecondaryCta } from "../lib/portalUi";
 
 const PortalOrdersPage: React.FC = () => {
   const { customer } = usePortalOutlet();
@@ -48,6 +48,23 @@ const PortalOrdersPage: React.FC = () => {
   const showEmptyHero = !data.loading && !orders.hasSalesData;
   const [exportingPdf, setExportingPdf] = React.useState(false);
   const periodLabel = o.filterToday;
+
+  React.useEffect(() => {
+    if (exportingPdf) return;
+
+    const intervalId = window.setInterval(() => {
+      data.reload();
+    }, 30_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [data.reload, exportingPdf]);
+
+  const handleRefresh = React.useCallback(() => {
+    if (exportingPdf || data.refreshing) return;
+    data.reload();
+  }, [data, exportingPdf]);
 
   const handleExportPdf = React.useCallback(async () => {
     const sales = data.sales;
@@ -100,14 +117,27 @@ const PortalOrdersPage: React.FC = () => {
           <h1 className={portalPageTitle(isLight)}>{o.title}</h1>
           <p className={portalPageSubtitle(isLight)}>{o.subtitle}</p>
         </div>
-        <PortalExportPdfButton
-          label={o.actionExportPdf}
-          loadingLabel={t.pdfDocuments.exporting}
-          disabled={data.loading || !orders.hasSalesData}
-          loading={exportingPdf}
-          onClick={handleExportPdf}
-          isLight={isLight}
-        />
+        <div className="portal-page-header-actions">
+          <p className="portal-auto-refresh-hint">{o.autoRefreshHint}</p>
+          <div className="portal-page-header-buttons">
+            <button
+              type="button"
+              className={`portal-refresh-btn ${portalSecondaryCta(isLight)}`}
+              disabled={data.loading || data.refreshing || exportingPdf}
+              onClick={handleRefresh}
+            >
+              {data.refreshing ? o.refreshLoading : o.actionRefresh}
+            </button>
+            <PortalExportPdfButton
+              label={o.actionExportPdf}
+              loadingLabel={t.pdfDocuments.exporting}
+              disabled={data.loading || !orders.hasSalesData}
+              loading={exportingPdf}
+              onClick={handleExportPdf}
+              isLight={isLight}
+            />
+          </div>
+        </div>
       </header>
 
       <OrdersSummary kpis={orders.summary} loading={data.loading} isLight={isLight} />

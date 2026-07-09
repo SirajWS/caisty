@@ -132,7 +132,8 @@ const PortalDevicesPage: React.FC = () => {
       <ReleaseDeviceDialog
         open={releaseTargetId !== null}
         title={d.releaseDialogTitle}
-        message={d.releaseDialogMessage}
+        description={d.releaseDialogDescription}
+        notice={d.releaseDialogNotice}
         cancelLabel={d.releaseDialogCancel}
         confirmLabel={d.releaseDialogConfirm}
         busy={releaseBusy}

@@ -8,6 +8,7 @@ import type { OrdersData } from "./types";
 
 export type UsePortalOrdersDataResult = OrdersData & {
   reload: () => void;
+  refreshing: boolean;
 };
 
 const emptySales = (): PortalOrdersResponse => ({
@@ -41,21 +42,33 @@ export function usePortalOrdersData(
     lastSyncedAt: null,
   }));
   const [tick, setTick] = React.useState(0);
+  const [refreshing, setRefreshing] = React.useState(false);
+  const hasLoadedRef = React.useRef(false);
 
   const reload = React.useCallback(() => {
     setTick((n) => n + 1);
   }, []);
 
   React.useEffect(() => {
+    hasLoadedRef.current = false;
+  }, [customer.id]);
+
+  React.useEffect(() => {
     let cancelled = false;
+    const isBackgroundRefresh = hasLoadedRef.current;
+
+    if (isBackgroundRefresh) {
+      setRefreshing(true);
+    } else {
+      setState((prev) => ({ ...prev, loading: true, error: false }));
+    }
 
     (async () => {
-      setState((prev) => ({ ...prev, loading: true, error: false }));
-
       try {
         const sales = await fetchPortalOrders();
         if (cancelled) return;
 
+        hasLoadedRef.current = true;
         setState({
           customer,
           sales,
@@ -65,6 +78,7 @@ export function usePortalOrdersData(
         });
       } catch {
         if (!cancelled) {
+          hasLoadedRef.current = true;
           setState({
             customer,
             sales: emptySales(),
@@ -72,6 +86,10 @@ export function usePortalOrdersData(
             error: true,
             lastSyncedAt: new Date(),
           });
+        }
+      } finally {
+        if (!cancelled) {
+          setRefreshing(false);
         }
       }
     })();
@@ -81,5 +99,5 @@ export function usePortalOrdersData(
     };
   }, [customer, tick]);
 
-  return { ...state, reload };
+  return { ...state, reload, refreshing };
 }

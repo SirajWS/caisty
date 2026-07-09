@@ -1822,6 +1822,31 @@ a {
   gap: 4px;
 }
 
+.portal-page-header-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.portal-page-header-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.portal-auto-refresh-hint {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--dashboard-text-muted);
+  text-align: right;
+}
+
+.portal-refresh-btn,
 .portal-export-pdf-btn {
   flex-shrink: 0;
   align-self: flex-start;
@@ -3130,52 +3155,131 @@ a {
   position: absolute;
   inset: 0;
   border: none;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(15, 23, 42, 0.72);
   cursor: pointer;
 }
 
 .devices-release-dialog {
   position: relative;
   z-index: 1;
-  width: min(100%, 28rem);
-  border-radius: 12px;
-  border: 1px solid var(--dashboard-border-soft);
-  background: var(--dashboard-surface);
-  padding: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  width: min(100%, 26rem);
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  padding: 24px;
+  box-shadow:
+    0 24px 48px rgba(15, 23, 42, 0.18),
+    0 8px 16px rgba(15, 23, 42, 0.08);
+  text-align: left;
+}
+
+.devices-release-dialog-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 14px;
+  border-radius: 999px;
+  color: #b45309;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
 }
 
 .devices-release-dialog-title {
-  margin: 0 0 12px;
-  font-size: 18px;
+  margin: 0 0 10px;
+  font-size: 20px;
   font-weight: 700;
-  color: var(--dashboard-text-primary);
+  line-height: 1.3;
+  color: #0f172a;
 }
 
-.devices-release-dialog-message {
+.devices-release-dialog-description {
   margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #475569;
+}
+
+.devices-release-dialog-notice {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
   font-size: 13px;
   line-height: 1.55;
-  color: var(--dashboard-text-secondary);
-  white-space: pre-line;
+  font-weight: 600;
+  color: #166534;
 }
 
 .devices-release-dialog-error {
   margin: 12px 0 0;
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.45;
   color: #b91c1c;
 }
 
 .devices-release-dialog-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 20px;
+  gap: 10px;
+  margin-top: 22px;
 }
 
-.devices-release-dialog-actions .devices-card-action {
-  margin-top: 0;
-  width: auto;
+.devices-release-dialog-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.devices-release-dialog-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.devices-release-dialog-btn--secondary {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+}
+
+.devices-release-dialog-btn--secondary:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.devices-release-dialog-btn--destructive {
+  border: 1px solid #dc2626;
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.devices-release-dialog-btn--destructive:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+@media (max-width: 480px) {
+  .devices-release-dialog {
+    padding: 20px 18px;
+  }
+
+  .devices-release-dialog-actions {
+    flex-direction: column-reverse;
+  }
+
+  .devices-release-dialog-btn {
+    width: 100%;
+  }
 }
 
 .devices-slot-empty {

@@ -1,10 +1,12 @@
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
+import { TriangleAlert } from "lucide-react";
 
 type ReleaseDeviceDialogProps = {
   open: boolean;
   title: string;
-  message: string;
+  description: string;
+  notice: string;
   cancelLabel: string;
   confirmLabel: string;
   busy?: boolean;
@@ -16,7 +18,8 @@ type ReleaseDeviceDialogProps = {
 export function ReleaseDeviceDialog({
   open,
   title,
-  message,
+  description,
+  notice,
   cancelLabel,
   confirmLabel,
   busy = false,
@@ -61,22 +64,28 @@ export function ReleaseDeviceDialog({
       />
       <div
         ref={panelRef}
-        role="dialog"
+        role="alertdialog"
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
         className="devices-release-dialog"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="devices-release-dialog-icon" aria-hidden>
+          <TriangleAlert size={22} strokeWidth={2.25} />
+        </div>
         <h2 id={titleId} className="devices-release-dialog-title">
           {title}
         </h2>
-        <p className="devices-release-dialog-message">{message}</p>
+        <p className="devices-release-dialog-description">{description}</p>
+        <div className="devices-release-dialog-notice" role="note">
+          {notice}
+        </div>
         {error ? <p className="devices-release-dialog-error">{error}</p> : null}
         <div className="devices-release-dialog-actions">
           <button
             type="button"
-            className="devices-card-action"
+            className="devices-release-dialog-btn devices-release-dialog-btn--secondary"
             onClick={onCancel}
             disabled={busy}
           >
@@ -84,7 +93,7 @@ export function ReleaseDeviceDialog({
           </button>
           <button
             type="button"
-            className="devices-card-action devices-card-action--destructive"
+            className="devices-release-dialog-btn devices-release-dialog-btn--destructive"
             onClick={onConfirm}
             disabled={busy}
           >

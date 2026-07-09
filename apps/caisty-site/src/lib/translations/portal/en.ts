@@ -316,6 +316,9 @@ export const portalEn = {
     actionExportCsv: "Export CSV",
     actionExportExcel: "Export Excel",
     actionExportPdf: "Export PDF",
+    actionRefresh: "Refresh",
+    refreshLoading: "Refreshing…",
+    autoRefreshHint: "Auto-refreshes every 30 seconds",
     actionViewReports: "View reports",
     actionOpenAnalytics: "Open analytics",
     actionView: "View",
@@ -549,9 +552,11 @@ export const portalEn = {
     releasedOn: "Released on",
     releasedLicense: "Released",
     statusReleased: "Released",
-    releaseDialogTitle: "Release Device",
-    releaseDialogMessage:
-      "This device will lose access to this license.\n\nThe license seat will immediately become available for another POS device.\n\nSales history, reports and audit data will NOT be deleted.",
+    releaseDialogTitle: "Release Device?",
+    releaseDialogDescription:
+      "This device will lose access to this license. The license seat will immediately become available for another POS device.",
+    releaseDialogNotice:
+      "Sales history, reports and audit data will NOT be deleted.",
     releaseDialogCancel: "Cancel",
     releaseDialogConfirm: "Release Device",
     releaseDialogError: "Device could not be released. Please try again.",

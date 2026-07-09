@@ -315,6 +315,9 @@ export const portalFr: PortalTranslations = {
     actionExportCsv: "Exporter CSV",
     actionExportExcel: "Exporter Excel",
     actionExportPdf: "Exporter PDF",
+    actionRefresh: "Actualiser",
+    refreshLoading: "Actualisation…",
+    autoRefreshHint: "Actualisation automatique toutes les 30 secondes",
     actionViewReports: "Voir les rapports",
     actionOpenAnalytics: "Ouvrir analytics",
     actionView: "Voir",
@@ -547,9 +550,11 @@ export const portalFr: PortalTranslations = {
     releasedOn: "Libéré le",
     releasedLicense: "Libéré",
     statusReleased: "Libéré",
-    releaseDialogTitle: "Libérer l'appareil",
-    releaseDialogMessage:
-      "Cet appareil perdra l'accès à cette licence.\n\nLe siège de licence sera immédiatement disponible pour un autre terminal POS.\n\nL'historique des ventes, les rapports et les données d'audit ne seront PAS supprimés.",
+    releaseDialogTitle: "Libérer l'appareil ?",
+    releaseDialogDescription:
+      "Cet appareil perdra l'accès à cette licence. Le siège de licence sera immédiatement disponible pour un autre terminal POS.",
+    releaseDialogNotice:
+      "L'historique des ventes, les rapports et les données d'audit ne seront PAS supprimés.",
     releaseDialogCancel: "Annuler",
     releaseDialogConfirm: "Libérer l'appareil",
     releaseDialogError: "Impossible de libérer l'appareil. Veuillez réessayer.",
