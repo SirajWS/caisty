@@ -8,6 +8,7 @@ export function DeviceManagement({
   cardLabels,
   slotLabels,
   release,
+  onRelease,
 }: {
   title: string;
   slots: DeviceSlotView[];
@@ -17,6 +18,8 @@ export function DeviceManagement({
     lastSync: string;
     license: string;
     openPos: string;
+    releaseDevice: string;
+    releasedOn: string;
   };
   slotLabels: {
     title: string;
@@ -25,6 +28,7 @@ export function DeviceManagement({
     hint: string;
   };
   release: PosReleaseConfig;
+  onRelease?: (deviceId: string) => void;
 }) {
   return (
     <section className="dashboard-panel dashboard-panel--wide devices-management">
@@ -34,6 +38,7 @@ export function DeviceManagement({
         cardLabels={cardLabels}
         slotLabels={slotLabels}
         release={release}
+        onRelease={onRelease}
       />
     </section>
   );

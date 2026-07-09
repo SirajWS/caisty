@@ -2575,6 +2575,12 @@ a {
   background: transparent;
 }
 
+.devices-status-badge--released {
+  color: var(--dashboard-text-muted);
+  border-color: var(--dashboard-border-soft);
+  background: rgba(100, 116, 139, 0.12);
+}
+
 .devices-card-meta {
   display: grid;
   gap: 6px;
@@ -3075,6 +3081,101 @@ a {
 .devices-card-action:hover {
   border-color: var(--dashboard-accent-border-soft);
   background: var(--dashboard-hover-bg);
+}
+
+.devices-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.devices-card-actions .devices-card-action {
+  margin-top: 0;
+  width: 100%;
+}
+
+.devices-card-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.devices-card-action:disabled:hover {
+  border-color: var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+}
+
+.devices-card-action--destructive {
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.35);
+  background: rgba(185, 28, 28, 0.06);
+}
+
+.devices-card-action--destructive:hover:not(:disabled) {
+  border-color: rgba(185, 28, 28, 0.55);
+  background: rgba(185, 28, 28, 0.12);
+}
+
+.devices-release-dialog-root {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.devices-release-dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+
+.devices-release-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 28rem);
+  border-radius: 12px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+  padding: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+}
+
+.devices-release-dialog-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--dashboard-text-primary);
+}
+
+.devices-release-dialog-message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--dashboard-text-secondary);
+  white-space: pre-line;
+}
+
+.devices-release-dialog-error {
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: #b91c1c;
+}
+
+.devices-release-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.devices-release-dialog-actions .devices-card-action {
+  margin-top: 0;
+  width: auto;
 }
 
 .devices-slot-empty {

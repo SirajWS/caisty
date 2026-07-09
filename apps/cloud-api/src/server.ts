@@ -24,6 +24,7 @@ import { registerPortalGoogleAuthRoutes } from "./routes/portal-google-auth.js";
 import { registerPortalPasswordResetRoutes } from "./routes/portal-password-reset.js";
 import { registerEmailVerificationRoutes } from "./routes/portal-email-verification.js";
 import { registerPortalDataRoutes } from "./routes/portal-data.js";
+import { registerPortalDevicesRoutes } from "./routes/portal-devices.js";
 import { registerPortalOrdersRoutes } from "./routes/portal-orders.js";
 import { registerPortalDashboardRoutes } from "./routes/portal-dashboard.js";
 import { registerPortalReportsRoutes } from "./routes/portal-reports.js";
@@ -153,6 +154,7 @@ export async function buildServer() {
   await registerPortalPasswordResetRoutes(app); // Password Reset
   await registerEmailVerificationRoutes(app); // Email verification
   await registerPortalDataRoutes(app);
+  await registerPortalDevicesRoutes(app);
   await registerPortalOrdersRoutes(app);
   await registerPortalDashboardRoutes(app);
   await registerPortalReportsRoutes(app);

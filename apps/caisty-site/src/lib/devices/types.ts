@@ -32,6 +32,8 @@ export type DeviceCardView = {
   status: DeviceCardStatus;
   statusLabel: string;
   statusTone: PosHubTone;
+  isReleased: boolean;
+  releasedAtLabel: string | null;
   source: PortalDevice;
 };
 

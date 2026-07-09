@@ -1,12 +1,17 @@
 // apps/cloud-api/src/routes/public-license.ts
 import type { FastifyInstance } from "fastify";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
-import { db } from "../db/client";
-import { licenses } from "../db/schema/licenses";
-import { devices } from "../db/schema/devices";
-import { licenseEvents } from "../db/schema/licenseEvents";
-import { customers } from "../db/schema/customers";
+import { db } from "../db/client.js";
+import { licenses } from "../db/schema/licenses.js";
+import { devices } from "../db/schema/devices.js";
+import { licenseEvents } from "../db/schema/licenseEvents.js";
+import { customers } from "../db/schema/customers.js";
+import {
+  DEVICE_RELEASED_STATUS,
+  findDeviceById,
+} from "../lib/deviceLifecycleService.js";
+import { countBoundDevicesForLicense } from "../lib/deviceSeats.js";
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -66,12 +71,7 @@ async function findLicenseByKey(key: string) {
 }
 
 async function countDevicesForLicense(licenseId: string) {
-  const [row] = await db
-    .select({ value: sql<number>`count(*)` })
-    .from(devices)
-    .where(eq(devices.licenseId, licenseId));
-
-  return row?.value ?? 0;
+  return countBoundDevicesForLicense(licenseId);
 }
 
 // Cloud-Customer-Profil in customers.profile übernehmen / mergen
@@ -378,6 +378,28 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
       }
 
       const now = new Date();
+
+      const existing = await findDeviceById(body.deviceId);
+
+      if (!existing) {
+        return {
+          ok: false,
+          reason: "device_not_found",
+          message: "Device not found.",
+        };
+      }
+
+      if (
+        existing.status === DEVICE_RELEASED_STATUS ||
+        !existing.licenseId
+      ) {
+        reply.code(403);
+        return {
+          ok: false,
+          reason: "DEVICE_RELEASED",
+          message: "This device has been released from its license.",
+        };
+      }
 
       const [updated] = await db
         .update(devices)

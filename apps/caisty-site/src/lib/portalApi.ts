@@ -451,6 +451,9 @@ export interface PortalDevice {
   deviceId: string;
   lastSeenAt: string | null; // ISO oder null
   status: "online" | "offline" | "never_seen" | string;
+  /** License seat binding — separate from connection status. */
+  bindingStatus?: "bound" | "released";
+  releasedAt?: string | null;
   licenseKey: string | null;
   licensePlan?: string | null;
   /**
@@ -476,6 +479,8 @@ export function normalizePortalDevice(raw: PortalDevice): PortalDevice {
     ...raw,
     id: raw.id ?? raw.deviceId,
     deviceId: raw.deviceId ?? raw.id,
+    bindingStatus: raw.bindingStatus ?? "bound",
+    releasedAt: raw.releasedAt ?? null,
     licenseKey,
     licensePlan,
   };
@@ -685,6 +690,37 @@ async function authGet<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+async function authPost<T>(path: string): Promise<T> {
+  const token = getStoredPortalToken();
+  if (!token) {
+    throw new Error("Kein Portal-Token vorhanden.");
+  }
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (res.status === 401) {
+    clearPortalToken();
+    throw new Error("Nicht angemeldet.");
+  }
+
+  const data = (await res.json()) as T & { message?: string; code?: string };
+  if (!res.ok) {
+    throw new Error(data.message ?? `Fehler bei ${path}: ${res.status}`);
+  }
+
+  return data;
+}
+
+export type ReleasePortalDeviceResult = {
+  ok: true;
+  deviceId: string;
+  releasedAt: string;
+  licenseDevices: { used: number; limit: number } | null;
+};
+
 // ---------- Portal-Listen ----------
 
 export async function fetchPortalLicenses(): Promise<PortalLicense[]> {
@@ -694,6 +730,14 @@ export async function fetchPortalLicenses(): Promise<PortalLicense[]> {
 export async function fetchPortalDevices(): Promise<PortalDevice[]> {
   const raw = await authGet<PortalDevice[]>("/portal/devices");
   return Array.isArray(raw) ? raw.map(normalizePortalDevice) : [];
+}
+
+export async function releasePortalDevice(
+  deviceId: string,
+): Promise<ReleasePortalDeviceResult> {
+  return authPost<ReleasePortalDeviceResult>(
+    `/portal/devices/${encodeURIComponent(deviceId)}/release`,
+  );
 }
 
 export async function fetchPortalOrders(): Promise<PortalOrdersResponse> {

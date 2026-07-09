@@ -1,14 +1,11 @@
 // apps/cloud-api/src/routes/admin/devices.ts
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { eq, sql } from "drizzle-orm";
-import { db } from "../../db/client.js";
-import { devices } from "../../db/schema/devices.js";
-import { licenses } from "../../db/schema/licenses.js";
+import { releaseDevice } from "../../lib/deviceLifecycleService.js";
 
-type DeleteDeviceParams = { deviceId: string };
+type ReleaseDeviceParams = { deviceId: string };
 
-async function deleteDeviceHandler(
-  request: FastifyRequest<{ Params: DeleteDeviceParams }>,
+async function releaseDeviceHandler(
+  request: FastifyRequest<{ Params: ReleaseDeviceParams }>,
   reply: FastifyReply,
 ) {
   const user = (request as { user?: { adminUserId?: string } }).user;
@@ -16,74 +13,55 @@ async function deleteDeviceHandler(
     reply.code(403);
     return {
       error: "Forbidden",
-      message: "Nur Administratoren dürfen Geräte löschen.",
+      message: "Nur Administratoren dürfen Geräte freigeben.",
     };
   }
 
   const { deviceId } = request.params;
 
   try {
-    const [existing] = await db
-      .select({
-        id: devices.id,
-        licenseId: devices.licenseId,
-        customerId: devices.customerId,
-        name: devices.name,
-      })
-      .from(devices)
-      .where(eq(devices.id, deviceId))
-      .limit(1);
+    const result = await releaseDevice(deviceId, {
+      type: "admin",
+      adminUserId: user.adminUserId,
+    });
 
-    if (!existing) {
-      reply.code(404);
+    if (!result.ok) {
+      const status =
+        result.code === "not_found"
+          ? 404
+          : result.code === "forbidden"
+            ? 403
+            : 409;
+      reply.code(status);
       return {
-        error: "not_found",
-        message: "Gerät wurde nicht gefunden.",
-      };
-    }
-
-    await db.delete(devices).where(eq(devices.id, deviceId));
-
-    let licenseDevices: { used: number; limit: number } | null = null;
-    if (existing.licenseId) {
-      const [countRow] = await db
-        .select({ value: sql<number>`count(*)` })
-        .from(devices)
-        .where(eq(devices.licenseId, existing.licenseId));
-
-      const [license] = await db
-        .select({ maxDevices: licenses.maxDevices })
-        .from(licenses)
-        .where(eq(licenses.id, existing.licenseId))
-        .limit(1);
-
-      licenseDevices = {
-        used: Number(countRow?.value ?? 0),
-        limit: license?.maxDevices ?? 1,
+        ok: false,
+        error: result.code,
+        message: result.message,
       };
     }
 
     return {
       ok: true,
-      message: "Gerät wurde entfernt.",
-      deviceId: existing.id,
-      customerId: existing.customerId,
-      licenseId: existing.licenseId,
-      licenseDevices,
+      message: "Gerät wurde freigegeben.",
+      deviceId: result.deviceId,
+      customerId: result.customerId,
+      licenseId: result.licenseId,
+      releasedAt: result.releasedAt,
+      licenseDevices: result.licenseDevices,
     };
   } catch (err) {
-    request.log.error({ err, deviceId }, "Error deleting device");
+    request.log.error({ err, deviceId }, "Error releasing device");
     reply.code(500);
     return {
-      error: "delete_failed",
-      message: "Gerät konnte nicht gelöscht werden.",
+      error: "release_failed",
+      message: "Gerät konnte nicht freigegeben werden.",
     };
   }
 }
 
 export async function registerAdminDevicesRoutes(app: FastifyInstance) {
-  app.delete<{ Params: DeleteDeviceParams }>(
+  app.delete<{ Params: ReleaseDeviceParams }>(
     "/admin/devices/:deviceId",
-    deleteDeviceHandler,
+    releaseDeviceHandler,
   );
 }

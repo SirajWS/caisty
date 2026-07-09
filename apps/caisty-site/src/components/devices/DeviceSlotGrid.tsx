@@ -8,6 +8,7 @@ export function DeviceSlotGrid({
   cardLabels,
   slotLabels,
   release,
+  onRelease,
 }: {
   slots: DeviceSlotView[];
   cardLabels: {
@@ -16,6 +17,8 @@ export function DeviceSlotGrid({
     lastSync: string;
     license: string;
     openPos: string;
+    releaseDevice: string;
+    releasedOn: string;
   };
   slotLabels: {
     title: string;
@@ -24,6 +27,7 @@ export function DeviceSlotGrid({
     hint: string;
   };
   release: PosReleaseConfig;
+  onRelease?: (deviceId: string) => void;
 }) {
   return (
     <div className="devices-slot-grid">
@@ -34,6 +38,7 @@ export function DeviceSlotGrid({
             device={slot.card}
             labels={cardLabels}
             release={release}
+            onRelease={onRelease}
           />
         ) : (
           <EmptySlotCard key={slot.id} labels={slotLabels} release={release} />

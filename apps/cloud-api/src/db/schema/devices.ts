@@ -22,4 +22,5 @@ export const devices = pgTable("devices", {
   appVersion: varchar("app_version", { length: 64 }),
   lastSalesSyncAt: timestamp("last_sales_sync_at", { withTimezone: true }),
   offlineQueueCount: integer("offline_queue_count").notNull().default(0),
+  releasedAt: timestamp("released_at", { withTimezone: true }),
 });

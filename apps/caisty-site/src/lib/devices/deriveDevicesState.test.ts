@@ -238,4 +238,52 @@ describe("deriveDevicesState", () => {
     expect(state.devices[0].statusTone).toBe("ok");
     expect(state.devices[0].version).toBe("0.3.2");
   });
+
+  it("does not count released devices toward used seats", () => {
+    const state = deriveDevicesState({
+      data: makeData({
+        licenses: [
+          {
+            id: "l1",
+            key: "PRO-KEY",
+            plan: "pro",
+            status: "active",
+            maxDevices: 3,
+            validUntil: "2027-01-01T00:00:00Z",
+            createdAt: "2026-01-01T00:00:00Z",
+          },
+        ],
+        devices: [
+          {
+            id: "d1",
+            name: "Till 1",
+            deviceId: "dev-1",
+            lastSeenAt: "2026-07-05T09:00:00Z",
+            status: "online",
+            licenseKey: "PRO-KEY",
+            bindingStatus: "bound",
+          },
+          {
+            id: "d2",
+            name: "Old Till",
+            deviceId: "dev-2",
+            lastSeenAt: "2026-06-01T09:00:00Z",
+            status: "offline",
+            licenseKey: null,
+            bindingStatus: "released",
+            releasedAt: "2026-07-01T12:00:00Z",
+          },
+        ],
+      }),
+      release: getPosReleaseConfig(),
+      environmentLabel: "staging",
+      locale: "en-US",
+      t: portalEn,
+    });
+
+    expect(state.seats.usedDevices).toBe(1);
+    expect(state.seats.availableSlots).toBe(2);
+    expect(state.devices[1].isReleased).toBe(true);
+    expect(state.devices[1].statusLabel).toBe(portalEn.devices.statusReleased);
+  });
 });

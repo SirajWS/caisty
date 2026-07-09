@@ -62,7 +62,12 @@ function normalizePlatform(
   return raw.trim();
 }
 
+function isReleasedDevice(device: PortalDevice): boolean {
+  return device.bindingStatus === "released";
+}
+
 function deriveCardStatus(device: PortalDevice): DeviceCardStatus {
+  if (isReleasedDevice(device)) return "offline";
   const s = (device.status ?? "").toLowerCase();
   if (s === "online") return "online";
   if (s === "offline") return "offline";
@@ -79,6 +84,7 @@ function statusLabel(
   device: PortalDevice,
   t: DeriveDevicesInput["t"],
 ): string {
+  if (isReleasedDevice(device)) return t.devices.statusReleased;
   const s = (device.status ?? "").toLowerCase();
   if (s === "online") return t.devices.statusOnline;
   if (s === "offline") return t.devices.statusOffline;
@@ -86,8 +92,17 @@ function statusLabel(
   return t.devices.statusWarning;
 }
 
+function statusToneForDevice(
+  device: PortalDevice,
+  cardStatus: DeviceCardStatus,
+): PosHubTone {
+  if (isReleasedDevice(device)) return "unknown";
+  return statusTone(cardStatus);
+}
+
 function countNeedsAttention(devices: PortalDevice[], latestVersion: string): number {
   return devices.filter((d) => {
+    if (isReleasedDevice(d)) return false;
     const s = (d.status ?? "").toLowerCase();
     if (s === "offline" || s === "never_seen") return true;
     if (!resolveLicenseKey(d)) return true;
@@ -103,9 +118,13 @@ function deriveOverview(input: DeriveDevicesInput): DeviceKpi[] {
   const dash = input.t.labels.dash;
   const waiting = d.waitingSync;
   const { devices } = input.data;
-  const { online, total } = countOnlineDevices(devices);
+  const activeDevices = devices.filter((d) => !isReleasedDevice(d));
+  const { online } = countOnlineDevices(activeDevices);
+  const total = devices.length;
   const offline = devices.filter(
-    (dev) => (dev.status ?? "").toLowerCase() === "offline",
+    (dev) =>
+      !isReleasedDevice(dev) &&
+      (dev.status ?? "").toLowerCase() === "offline",
   ).length;
   const needsAttention = countNeedsAttention(devices, input.release.latestVersion);
   const lastBeat = latestHeartbeat(devices);
@@ -154,8 +173,13 @@ function deriveDeviceCards(input: DeriveDevicesInput): DeviceCardView[] {
     dash;
 
   return input.data.devices.map((device) => {
+    const released = isReleasedDevice(device);
     const cardStatus = deriveCardStatus(device);
-    const isOnline = cardStatus === "online";
+    const isOnline = !released && cardStatus === "online";
+    const releasedAtLabel =
+      released && device.releasedAt
+        ? new Date(device.releasedAt).toLocaleString(input.locale)
+        : null;
 
     return {
       id: device.id,
@@ -172,11 +196,13 @@ function deriveDeviceCards(input: DeriveDevicesInput): DeviceCardView[] {
       connection: isOnline ? d.connectionConnected : d.connectionDisconnected,
       cloudStatus: isOnline ? d.cloudConnected : d.cloudDisconnected,
       environment: input.environmentLabel,
-      license: resolveLicenseKey(device) || d.notLinked,
+      license: released ? d.releasedLicense : resolveLicenseKey(device) || d.notLinked,
       store: device.storeName?.trim() || device.location?.trim() || storeFallback,
       status: cardStatus,
       statusLabel: statusLabel(device, input.t),
-      statusTone: statusTone(cardStatus),
+      statusTone: statusToneForDevice(device, cardStatus),
+      isReleased: released,
+      releasedAtLabel,
       source: device,
     };
   });
@@ -198,6 +224,7 @@ function deriveAlerts(input: DeriveDevicesInput): DeviceAlert[] {
   }
 
   for (const device of devices) {
+    if (isReleasedDevice(device)) continue;
     const name = device.name?.trim() || device.deviceId || d.unnamedDevice;
     const s = (device.status ?? "").toLowerCase();
 
@@ -414,7 +441,7 @@ export function deriveDeviceSeats(
   const primary = pickPrimaryPortalLicense(input.data.licenses);
   const plan = primary?.plan ?? "";
   const maxDevices = Math.max(0, primary?.maxDevices ?? 0);
-  const usedDevices = cards.length;
+  const usedDevices = cards.filter((card) => !card.isReleased).length;
   const availableSlots = Math.max(0, maxDevices - usedDevices);
   const percent =
     maxDevices > 0 ? Math.min(100, Math.round((usedDevices / maxDevices) * 100)) : 0;

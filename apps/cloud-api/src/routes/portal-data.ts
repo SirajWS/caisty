@@ -6,6 +6,7 @@ import { invoices } from "../db/schema/invoices.js";
 import { subscriptions } from "../db/schema/subscriptions.js";
 import { desc, eq } from "drizzle-orm";
 import { verifyPortalToken } from "../lib/portalJwt.js";
+import { DEVICE_RELEASED_STATUS } from "../lib/deviceLifecycleService.js";
 import { portalInvoiceDisplayBreakdown } from "../lib/portalInvoiceDisplayAmount.js";
 import {
   formatBillingPeriodLabel,
@@ -46,10 +47,12 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
         name: devices.name,
         type: devices.type,
         status: devices.status,
+        licenseId: devices.licenseId,
         fingerprint: devices.fingerprint,
         createdAt: devices.createdAt,
         lastSeenAt: devices.lastSeenAt,
         lastHeartbeatAt: devices.lastHeartbeatAt,
+        releasedAt: devices.releasedAt,
         appVersion: devices.appVersion,
         licenseKey: licenses.key,
         licensePlan: licenses.plan,
@@ -80,9 +83,20 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
       return null;
     };
 
+    const deriveBindingStatus = (
+      dbStatus: string,
+      licenseId: string | null,
+    ): "bound" | "released" => {
+      if (dbStatus === DEVICE_RELEASED_STATUS || !licenseId) {
+        return "released";
+      }
+      return "bound";
+    };
+
     const grouped = Object.values(
       rows.reduce((acc: Record<string, any>, row: any) => {
         const key = row.fingerprint || row.id;
+        const bindingStatus = deriveBindingStatus(row.status, row.licenseId);
         if (!acc[key]) {
           acc[key] = {
             id: row.id,
@@ -91,6 +105,10 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
             name: row.name,
             type: row.type,
             status: normalizeStatus(row.lastSeenAt, row.lastHeartbeatAt),
+            bindingStatus,
+            releasedAt: row.releasedAt
+              ? new Date(row.releasedAt).toISOString()
+              : null,
             createdAt: row.createdAt,
             lastSeenAt: row.lastSeenAt,
             lastHeartbeatAt: row.lastHeartbeatAt,
@@ -101,7 +119,7 @@ export async function registerPortalDataRoutes(app: FastifyInstance) {
             licenseKeys: [],
           };
         }
-        if (row.licenseKey) {
+        if (row.licenseKey && bindingStatus === "bound") {
           acc[key].licenseKeys.push({
             key: row.licenseKey,
             plan: row.licensePlan,

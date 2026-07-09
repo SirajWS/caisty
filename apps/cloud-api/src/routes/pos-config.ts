@@ -1,14 +1,17 @@
 // Public POS fiscal configuration (device + license scoped, no secrets).
 import type { FastifyInstance } from "fastify";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { db } from "../db/client.js";
-import { devices } from "../db/schema/devices.js";
 import { licenses } from "../db/schema/licenses.js";
 import { businessProfiles } from "../db/schema/businessProfiles.js";
 import { orgs } from "../db/schema/orgs.js";
 import { syncFiscalConfigurationForOrg } from "../fiscal/fiscalConfigurationService.js";
 import { buildPosSyncConfig } from "../fiscal/buildPosSyncConfig.js";
+import {
+  DEVICE_RELEASED_STATUS,
+  findDeviceById,
+} from "../lib/deviceLifecycleService.js";
 
 type PosConfigQuery = {
   deviceId?: string;
@@ -45,18 +48,19 @@ export async function registerPosConfigRoutes(app: FastifyInstance) {
         return { ok: false, error: "invalid_license" };
       }
 
-      const [device] = await db
-        .select()
-        .from(devices)
-        .where(
-          and(
-            eq(devices.id, deviceId.trim()),
-            eq(devices.licenseId, license.id),
-          ),
-        )
-        .limit(1);
+      const device = await findDeviceById(deviceId.trim());
 
       if (!device) {
+        reply.code(404);
+        return { ok: false, error: "device_not_found" };
+      }
+
+      if (device.status === DEVICE_RELEASED_STATUS || !device.licenseId) {
+        reply.code(403);
+        return { ok: false, error: "device_released" };
+      }
+
+      if (String(device.licenseId) !== String(license.id)) {
         reply.code(403);
         return { ok: false, error: "device_not_bound" };
       }

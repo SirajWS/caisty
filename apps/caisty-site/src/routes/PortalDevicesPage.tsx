@@ -7,10 +7,12 @@ import { portalLocaleTag } from "../lib/portalLocale";
 import { getPortalEnvironmentLabel, getPosReleaseConfig } from "../config/posConfig";
 import { usePortalDevicesData } from "../lib/devices/usePortalDevicesData";
 import { deriveDevicesState } from "../lib/devices/deriveDevicesState";
+import { releasePortalDevice } from "../lib/portalApi";
 import { DeviceSeatSummary } from "../components/devices/DeviceSeatSummary";
 import { DeviceManagement } from "../components/devices/DeviceManagement";
 import { DeviceEmptyState } from "../components/devices/DeviceEmptyState";
 import { DevicesFooter } from "../components/devices/DevicesFooter";
+import { ReleaseDeviceDialog } from "../components/devices/ReleaseDeviceDialog";
 import { portalPageShell, portalPageSubtitle, portalPageTitle } from "../lib/portalUi";
 
 const PortalDevicesPage: React.FC = () => {
@@ -25,6 +27,10 @@ const PortalDevicesPage: React.FC = () => {
   const release = React.useMemo(() => getPosReleaseConfig(), []);
   const environmentLabel = React.useMemo(() => getPortalEnvironmentLabel(), []);
   const data = usePortalDevicesData(customer);
+
+  const [releaseTargetId, setReleaseTargetId] = React.useState<string | null>(null);
+  const [releaseBusy, setReleaseBusy] = React.useState(false);
+  const [releaseError, setReleaseError] = React.useState<string | null>(null);
 
   const deriveInput = React.useMemo(
     () => ({ data, release, environmentLabel, locale, t }),
@@ -41,6 +47,8 @@ const PortalDevicesPage: React.FC = () => {
     lastSync: d.cardLastSync,
     license: d.colLicense,
     openPos: d.cardOpenPos,
+    releaseDevice: d.cardReleaseDevice,
+    releasedOn: d.releasedOn,
   };
 
   const slotLabels = {
@@ -55,6 +63,29 @@ const PortalDevicesPage: React.FC = () => {
     { id: "pos", label: d.footerPos, href: "/portal/pos" },
     { id: "support", label: d.footerSupport, href: "/portal/support" },
   ];
+
+  const closeReleaseDialog = React.useCallback(() => {
+    if (releaseBusy) return;
+    setReleaseTargetId(null);
+    setReleaseError(null);
+  }, [releaseBusy]);
+
+  const confirmRelease = React.useCallback(async () => {
+    if (!releaseTargetId || releaseBusy) return;
+    setReleaseBusy(true);
+    setReleaseError(null);
+    try {
+      await releasePortalDevice(releaseTargetId);
+      setReleaseTargetId(null);
+      data.reload();
+    } catch (err) {
+      setReleaseError(
+        err instanceof Error ? err.message : d.releaseDialogError,
+      );
+    } finally {
+      setReleaseBusy(false);
+    }
+  }, [releaseTargetId, releaseBusy, data, d.releaseDialogError]);
 
   return (
     <div className={`${portalPageShell()} dashboard-home devices-center`}>
@@ -91,11 +122,24 @@ const PortalDevicesPage: React.FC = () => {
             cardLabels={cardLabels}
             slotLabels={slotLabels}
             release={release}
+            onRelease={setReleaseTargetId}
           />
         </>
       )}
 
       <DevicesFooter links={footerLinks} isLight={isLight} />
+
+      <ReleaseDeviceDialog
+        open={releaseTargetId !== null}
+        title={d.releaseDialogTitle}
+        message={d.releaseDialogMessage}
+        cancelLabel={d.releaseDialogCancel}
+        confirmLabel={d.releaseDialogConfirm}
+        busy={releaseBusy}
+        error={releaseError}
+        onCancel={closeReleaseDialog}
+        onConfirm={confirmRelease}
+      />
     </div>
   );
 };
