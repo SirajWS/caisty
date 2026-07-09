@@ -46,7 +46,8 @@ export function ReceiptDetailDrawer({
   onClose: () => void;
 }) {
   const titleId = useId();
-  const panelRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -67,7 +68,7 @@ export function ReceiptDetailDrawer({
   }, [open, onClose]);
 
   useEffect(() => {
-    if (open) panelRef.current?.focus();
+    if (open) closeBtnRef.current?.focus();
   }, [open]);
 
   if (!open || !receipt) return null;
@@ -95,7 +96,6 @@ export function ReceiptDetailDrawer({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        tabIndex={-1}
         className="receipt-detail-panel"
         onClick={(e) => e.stopPropagation()}
       >
@@ -152,26 +152,44 @@ export function ReceiptDetailDrawer({
         <section className="receipt-detail-items">
           <h3 className="receipt-detail-items-title">{labels.itemsTitle}</h3>
           {receipt.items.length > 0 ? (
-            <table className="receipt-detail-items-table">
-              <thead>
-                <tr>
-                  <th scope="col">{labels.colProduct}</th>
-                  <th scope="col">{labels.colQuantity}</th>
-                  <th scope="col">{labels.colUnitPrice}</th>
-                  <th scope="col">{labels.colLineTotal}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {receipt.items.map((line, index) => (
-                  <tr key={`${line.product}-${index}`}>
-                    <td>{line.product}</td>
-                    <td>{line.quantity}</td>
-                    <td>{line.unitPrice}</td>
-                    <td>{line.total}</td>
+            <div className="receipt-detail-items-scroll">
+              <table className="receipt-detail-items-table">
+                <thead>
+                  <tr>
+                    <th scope="col" className="receipt-detail-items-col-product">
+                      {labels.colProduct}
+                    </th>
+                    <th scope="col" className="receipt-detail-items-col-qty">
+                      {labels.colQuantity}
+                    </th>
+                    <th scope="col" className="receipt-detail-items-col-money">
+                      {labels.colUnitPrice}
+                    </th>
+                    <th scope="col" className="receipt-detail-items-col-money">
+                      {labels.colLineTotal}
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {receipt.items.map((line, index) => (
+                    <tr key={`${line.product}-${index}`}>
+                      <td className="receipt-detail-items-col-product">
+                        {line.product}
+                      </td>
+                      <td className="receipt-detail-items-col-qty">
+                        {line.quantity}
+                      </td>
+                      <td className="receipt-detail-items-col-money">
+                        {line.unitPrice}
+                      </td>
+                      <td className="receipt-detail-items-col-money">
+                        {line.total}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             <p className="receipt-detail-items-empty">{labels.itemsEmpty}</p>
           )}
@@ -179,6 +197,7 @@ export function ReceiptDetailDrawer({
 
         <footer className="receipt-detail-footer">
           <button
+            ref={closeBtnRef}
             type="button"
             className="receipt-detail-close-btn"
             onClick={onClose}
