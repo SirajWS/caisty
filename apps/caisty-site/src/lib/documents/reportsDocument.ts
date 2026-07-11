@@ -5,11 +5,7 @@ import {
   formatPaymentMethodLabel,
   sanitizeFilenamePart,
 } from "./formatters";
-import {
-  isHourlyRevenueSeries,
-  resolveNormalizedHourlyReportPoints,
-} from "../reports/salesByHour";
-import type { PortalReportsHourlyPoint } from "../portalApi";
+import { normalizeSalesByHour } from "../reports/salesByHour";
 import type { ReportsDocumentInput } from "./types";
 
 type TopEmployeeRow = {
@@ -29,18 +25,6 @@ function hasRevenueSeriesData(
   points: ReportsDocumentInput["summary"]["revenueSeries"],
 ): boolean {
   return points.some((point) => point.revenueMinor > 0 || point.ordersCount > 0);
-}
-
-function hourlyReportTableRow(
-  point: PortalReportsHourlyPoint,
-  currency: string,
-  locale: string,
-): [string, string, string] {
-  return [
-    formatHourLabel(point.hour),
-    formatDocumentMoney(point.revenueMinor, currency, locale),
-    String(point.ordersCount),
-  ];
 }
 
 export function buildReportsPdfFilename(
@@ -175,34 +159,27 @@ export function exportReportsPdf(input: ReportsDocumentInput): void {
   ]);
 
   if (hasHourlyData(summary.salesByHour)) {
-    const salesByHour = resolveNormalizedHourlyReportPoints(
-      summary.salesByHour,
-      summary.revenueSeries,
-    );
+    const salesByHour = normalizeSalesByHour(summary.salesByHour);
     pdf.drawSectionTitle(labels.salesByHour);
     pdf.drawTable({
       head: [labels.hour, labels.colRevenue, labels.colOrders],
-      body: salesByHour.map((point) =>
-        hourlyReportTableRow(point, currency, locale),
-      ),
+      body: salesByHour.map((point) => [
+        formatHourLabel(point.hour),
+        formatDocumentMoney(point.revenueMinor, currency, locale),
+        String(point.ordersCount),
+      ]),
     });
   }
 
   if (hasRevenueSeriesData(summary.revenueSeries)) {
     pdf.drawSectionTitle(labels.revenueSection);
-    const revenueBody = isHourlyRevenueSeries(summary.revenueSeries)
-      ? resolveNormalizedHourlyReportPoints(
-          summary.salesByHour,
-          summary.revenueSeries,
-        ).map((point) => hourlyReportTableRow(point, currency, locale))
-      : summary.revenueSeries.map((point) => [
-          point.label,
-          formatDocumentMoney(point.revenueMinor, currency, locale),
-          String(point.ordersCount),
-        ]);
     pdf.drawTable({
       head: [labels.segment, labels.colRevenue, labels.colOrders],
-      body: revenueBody,
+      body: summary.revenueSeries.map((point) => [
+        point.label,
+        formatDocumentMoney(point.revenueMinor, currency, locale),
+        String(point.ordersCount),
+      ]),
     });
   }
 
