@@ -1,5 +1,6 @@
 import React from "react";
 import type { PosReleaseConfig } from "../../config/posConfig";
+import { openDesktopPos } from "../devices/openDesktopPos";
 
 const DESKTOP_OPEN_TIMEOUT_MS = 1800;
 
@@ -21,6 +22,11 @@ export function useOpenDesktopPos(release: PosReleaseConfig) {
   );
 
   function openDesktop() {
+    if (import.meta.env.DEV) {
+      openDesktopPos(release);
+      return;
+    }
+
     setDesktopFallback(false);
     setDesktopMobileHint(false);
     if (isMobileUserAgent()) {

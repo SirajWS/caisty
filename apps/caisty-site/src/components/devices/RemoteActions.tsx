@@ -1,17 +1,7 @@
 import { Monitor } from "lucide-react";
 import type { PosReleaseConfig } from "../../config/posConfig";
 import type { RemoteAction } from "../../lib/devices/types";
-
-const DESKTOP_OPEN_TIMEOUT_MS = 1800;
-
-function openDesktopPos(release: PosReleaseConfig) {
-  if (typeof window === "undefined") return;
-  const iframe = document.createElement("iframe");
-  iframe.style.display = "none";
-  iframe.src = release.desktop.openUrl;
-  document.body.appendChild(iframe);
-  window.setTimeout(() => iframe.remove(), DESKTOP_OPEN_TIMEOUT_MS);
-}
+import { openDesktopPos } from "./openDesktopPos";
 
 export function RemoteActions({
   actions,

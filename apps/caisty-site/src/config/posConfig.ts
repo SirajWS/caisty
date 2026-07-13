@@ -37,6 +37,14 @@ const INSTALLER_VERSION_RE = /Caisty\.PoS_([\d.]+)_x64-setup\.exe/i;
 const DEFAULT_FALLBACK_VERSION = "0.3.3";
 const DEFAULT_PLATFORM = "Windows x64";
 const DEFAULT_DESKTOP_PROTOCOL = "caisty";
+const DEFAULT_DEV_DESKTOP_OPEN_URL = "http://localhost:5174/pos";
+
+function resolveDesktopOpenUrl(protocol: string): string {
+  if (import.meta.env.DEV) {
+    return DEFAULT_DEV_DESKTOP_OPEN_URL;
+  }
+  return `${protocol}://open`;
+}
 
 function env(key: string): string {
   return String(import.meta.env[key] ?? "").trim();
@@ -110,7 +118,7 @@ export function getPosReleaseConfig(): PosReleaseConfig {
     },
     desktop: {
       protocol,
-      openUrl: `${protocol}://open`,
+      openUrl: resolveDesktopOpenUrl(protocol),
     },
   };
 }

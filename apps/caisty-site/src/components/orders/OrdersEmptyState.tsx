@@ -1,16 +1,6 @@
 import { Monitor, ShoppingBag } from "lucide-react";
 import type { PosReleaseConfig } from "../../config/posConfig";
-
-const DESKTOP_OPEN_TIMEOUT_MS = 1800;
-
-function openDesktopPos(release: PosReleaseConfig) {
-  if (typeof window === "undefined") return;
-  const iframe = document.createElement("iframe");
-  iframe.style.display = "none";
-  iframe.src = release.desktop.openUrl;
-  document.body.appendChild(iframe);
-  window.setTimeout(() => iframe.remove(), DESKTOP_OPEN_TIMEOUT_MS);
-}
+import { openDesktopPos } from "../devices/openDesktopPos";
 
 export function OrdersEmptyState({
   headline,

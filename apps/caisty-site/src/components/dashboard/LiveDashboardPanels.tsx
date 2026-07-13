@@ -34,9 +34,8 @@ import type {
   SystemHealthItem,
 } from "../../lib/dashboard/types";
 import type { PosReleaseConfig } from "../../config/posConfig";
+import { openDesktopPos } from "../devices/openDesktopPos";
 import { portalSectionLabel } from "../../lib/portalUi";
-
-const DESKTOP_OPEN_TIMEOUT_MS = 1800;
 
 type LiveCopy = PortalTranslations["dashboard"]["live"];
 
@@ -94,15 +93,6 @@ function activityIcon(kind: DashboardActivity["kind"]) {
     default:
       return Circle;
   }
-}
-
-function openDesktopPos(release: PosReleaseConfig) {
-  if (typeof window === "undefined") return;
-  const iframe = document.createElement("iframe");
-  iframe.style.display = "none";
-  iframe.src = release.desktop.openUrl;
-  document.body.appendChild(iframe);
-  window.setTimeout(() => iframe.remove(), DESKTOP_OPEN_TIMEOUT_MS);
 }
 
 export function LiveDashboardSkeleton() {

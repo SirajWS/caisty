@@ -2,9 +2,15 @@ import type { PosReleaseConfig } from "../../config/posConfig";
 
 const DESKTOP_OPEN_TIMEOUT_MS = 1800;
 
-/** Launch the installed Desktop POS via its custom protocol (no backend call). */
+/** Launch Desktop POS (local HTTP in dev, custom protocol in production). */
 export function openDesktopPos(release: PosReleaseConfig) {
   if (typeof window === "undefined") return;
+
+  if (import.meta.env.DEV) {
+    window.open(release.desktop.openUrl, "_blank", "noopener,noreferrer");
+    return;
+  }
+
   const iframe = document.createElement("iframe");
   iframe.style.display = "none";
   iframe.src = release.desktop.openUrl;

@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import {
   Check,
@@ -20,8 +19,7 @@ import type {
 } from "../../lib/posHub/types";
 import { formatInstallerBytes } from "../../lib/posHub/format";
 import { portalSectionLabel } from "../../lib/portalUi";
-
-const DESKTOP_OPEN_TIMEOUT_MS = 1800;
+import { useOpenDesktopPos } from "./useOpenDesktopPos";
 
 function toneIconClass(tone: PosHubTone): string {
   if (tone === "ok") return "dashboard-icon--ok";
@@ -40,11 +38,6 @@ function toneBadgeClass(tone: PosHubTone): string {
   if (tone === "ok") return "pos-hub-badge--ok";
   if (tone === "attention") return "pos-hub-badge--attention";
   return "";
-}
-
-function isMobileUserAgent(): boolean {
-  if (typeof navigator === "undefined") return false;
-  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
 
 function deviceStatusClass(status: string): string {
@@ -256,37 +249,7 @@ export function PosHubActionPanel({
   isLight: boolean;
   p: PortalTranslations["pos"];
 }) {
-  const [desktopFallback, setDesktopFallback] = React.useState(false);
-  const [desktopMobileHint, setDesktopMobileHint] = React.useState(false);
-  const timerRef = React.useRef<number | null>(null);
-
-  React.useEffect(
-    () => () => {
-      if (timerRef.current !== null) window.clearTimeout(timerRef.current);
-    },
-    [],
-  );
-
-  function openDesktop() {
-    setDesktopFallback(false);
-    setDesktopMobileHint(false);
-    if (isMobileUserAgent()) {
-      setDesktopMobileHint(true);
-      return;
-    }
-    const onBlur = () => {
-      if (timerRef.current !== null) window.clearTimeout(timerRef.current);
-      window.removeEventListener("blur", onBlur);
-      setDesktopFallback(false);
-    };
-    window.addEventListener("blur", onBlur);
-    timerRef.current = window.setTimeout(() => {
-      window.removeEventListener("blur", onBlur);
-      timerRef.current = null;
-      setDesktopFallback(true);
-    }, DESKTOP_OPEN_TIMEOUT_MS);
-    window.location.href = release.desktop.openUrl;
-  }
+  const { openDesktop, desktopFallback, desktopMobileHint } = useOpenDesktopPos(release);
 
   const webDesc = release.web.enabled
     ? p.openWebPosDesc

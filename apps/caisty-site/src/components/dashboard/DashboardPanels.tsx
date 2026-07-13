@@ -25,9 +25,8 @@ import type {
   DashboardRoadmapModule,
 } from "../../lib/dashboard/types";
 import type { PosReleaseConfig } from "../../config/posConfig";
+import { openDesktopPos } from "../devices/openDesktopPos";
 import { portalSectionLabel } from "../../lib/portalUi";
-
-const DESKTOP_OPEN_TIMEOUT_MS = 1800;
 
 function toneIconClass(tone: PosHubTone): string {
   if (tone === "ok") return "dashboard-icon--ok";
@@ -243,16 +242,6 @@ export function DashboardHealthPanel({
       </div>
     </section>
   );
-}
-
-function openDesktopPos(release: PosReleaseConfig) {
-  if (typeof window === "undefined") return;
-  const url = release.desktop.openUrl;
-  const iframe = document.createElement("iframe");
-  iframe.style.display = "none";
-  iframe.src = url;
-  document.body.appendChild(iframe);
-  window.setTimeout(() => iframe.remove(), DESKTOP_OPEN_TIMEOUT_MS);
 }
 
 export function DashboardQuickActions({
