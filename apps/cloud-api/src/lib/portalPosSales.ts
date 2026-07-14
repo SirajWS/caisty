@@ -12,6 +12,8 @@ import { fetchPortalOrdersPage } from "./portalOrdersPage.js";
 export type PortalTodaySalesSummary = {
   todayRevenueCents: number;
   ordersToday: number;
+  liveOrdersCount: number;
+  onlineOrdersCount: number;
   receiptsToday: number;
   refundsCount: number;
   averageOrderMinor: number;
@@ -77,9 +79,14 @@ export async function fetchPortalTodaySalesSummary(input: {
   return {
     todayRevenueCents: stats.revenueCents,
     ordersToday: stats.ordersCount,
+    liveOrdersCount: stats.liveOrdersCount,
+    onlineOrdersCount: stats.onlineOrdersCount,
     receiptsToday: stats.receiptsCount,
     refundsCount: stats.refundsCount,
-    averageOrderMinor: averageOrderMinor(stats.revenueCents, stats.ordersCount),
+    averageOrderMinor: averageOrderMinor(
+      stats.revenueCents,
+      stats.kpiReceiptsCount,
+    ),
     currency: stats.currency,
     lastSynchronizationAt,
   };
@@ -98,6 +105,8 @@ export function buildPortalDashboardSummaryResponse(
     period: "today" as const,
     todayRevenueCents: summary.todayRevenueCents,
     ordersToday: summary.ordersToday,
+    liveOrdersCount: summary.liveOrdersCount,
+    onlineOrdersCount: summary.onlineOrdersCount,
     receiptsToday: summary.receiptsToday,
     refundsCount: summary.refundsCount,
     averageOrderMinor: summary.averageOrderMinor,

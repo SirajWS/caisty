@@ -192,4 +192,5 @@ export type DashboardDerivedState = {
   systemHealth: SystemHealthItem[];
   recentOrders: PortalDashboardRecentOrder[];
   paymentSummary: import("../portalApi").PortalOrdersPaymentSummary | null;
+  paymentCards: import("../orders/types").PaymentMethodCard[];
 };

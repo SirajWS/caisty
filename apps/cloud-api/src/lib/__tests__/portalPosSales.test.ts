@@ -8,6 +8,8 @@ describe("buildPortalDashboardSummaryResponse", () => {
       {
         todayRevenueCents: 572800,
         ordersToday: 10,
+        liveOrdersCount: 8,
+        onlineOrdersCount: 2,
         receiptsToday: 10,
         refundsCount: 0,
         averageOrderMinor: 57280,
@@ -27,6 +29,8 @@ describe("buildPortalDashboardSummaryResponse", () => {
     expect(withSales.hasSalesData).toBe(true);
     expect(withSales.todayRevenueCents).toBe(572800);
     expect(withSales.ordersToday).toBe(10);
+    expect(withSales.liveOrdersCount).toBe(8);
+    expect(withSales.onlineOrdersCount).toBe(2);
     expect(withSales.receiptsToday).toBe(10);
     expect(withSales.currency).toBe("TND");
     expect(withSales.timezone).toBe("Europe/Berlin");
@@ -37,6 +41,8 @@ describe("buildPortalDashboardSummaryResponse", () => {
       {
         todayRevenueCents: 0,
         ordersToday: 0,
+        liveOrdersCount: 0,
+        onlineOrdersCount: 0,
         receiptsToday: 0,
         refundsCount: 0,
         averageOrderMinor: 0,

@@ -45,6 +45,16 @@ describe("formatMinorUnits", () => {
     expect(out).toContain("572.800");
   });
 
+  it("formats TND payment totals without factor-10 scaling error", () => {
+    expect(formatMinorUnits(12000, "TND", "en-GB")).toContain("12.000");
+    expect(formatMinorUnits(441000, "TND", "en-GB")).toContain("441.000");
+    expect(formatMinorUnits(453000, "TND", "en-GB")).toContain("453.000");
+  });
+
+  it("formats EUR cents with 2 decimals (1200 → 12.00)", () => {
+    expect(formatMinorUnits(1200, "EUR", "en-GB")).toContain("12.00");
+  });
+
   it("defaults to EUR when currency is empty", () => {
     const out = formatMinorUnits(600, "", "en-GB");
     expect(out).toContain("6.00");

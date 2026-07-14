@@ -82,54 +82,17 @@ const PortalDashboard: React.FC = () => {
 
       {dashboard.paymentSummary ? (
         <PaymentOverview
-          payments={[
-            {
-              id: "cash",
-              label: t.orders.paymentCash,
-              value: data.loading
-                ? t.labels.dash
-                : new Intl.NumberFormat(locale, {
-                    style: "currency",
-                    currency: dashboard.paymentSummary.currency || "EUR",
-                  }).format(dashboard.paymentSummary.cashCents / 100),
-              tone: dashboard.paymentSummary.cashCents > 0 ? "ok" : "unknown",
-            },
-            {
-              id: "card",
-              label: t.orders.paymentCard,
-              value: data.loading
-                ? t.labels.dash
-                : new Intl.NumberFormat(locale, {
-                    style: "currency",
-                    currency: dashboard.paymentSummary.currency || "EUR",
-                  }).format(dashboard.paymentSummary.cardCents / 100),
-              tone: dashboard.paymentSummary.cardCents > 0 ? "ok" : "unknown",
-            },
-            {
-              id: "voucher",
-              label: t.orders.paymentVoucher,
-              value: data.loading
-                ? t.labels.dash
-                : new Intl.NumberFormat(locale, {
-                    style: "currency",
-                    currency: dashboard.paymentSummary.currency || "EUR",
-                  }).format(dashboard.paymentSummary.voucherCents / 100),
-              tone: dashboard.paymentSummary.voucherCents > 0 ? "ok" : "unknown",
-            },
-            {
-              id: "other",
-              label: t.orders.paymentOther,
-              value: data.loading
-                ? t.labels.dash
-                : new Intl.NumberFormat(locale, {
-                    style: "currency",
-                    currency: dashboard.paymentSummary.currency || "EUR",
-                  }).format(dashboard.paymentSummary.otherCents / 100),
-              tone: dashboard.paymentSummary.otherCents > 0 ? "ok" : "unknown",
-            },
-          ]}
+          payments={dashboard.paymentCards}
           title={l.paymentSummaryTitle}
-          hint={dashboard.paymentSummary.cashCents + dashboard.paymentSummary.cardCents + dashboard.paymentSummary.voucherCents + dashboard.paymentSummary.otherCents === 0 ? o.waitingPosSyncShort : undefined}
+          hint={
+            dashboard.paymentSummary.cashCents +
+              dashboard.paymentSummary.cardCents +
+              dashboard.paymentSummary.voucherCents +
+              dashboard.paymentSummary.otherCents ===
+            0
+              ? o.waitingPosSyncShort
+              : undefined
+          }
         />
       ) : null}
 

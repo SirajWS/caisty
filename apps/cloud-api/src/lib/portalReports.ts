@@ -485,7 +485,10 @@ export async function fetchPortalReportsSummary(input: {
     ordersCount,
     receiptsCount,
     refundsCount: periodStats.refundsCount,
-    averageOrderMinor: averageOrderMinorLocal(revenueMinor, ordersCount),
+    averageOrderMinor: averageOrderMinorLocal(
+      revenueMinor,
+      periodStats.kpiReceiptsCount,
+    ),
     vatMinor,
     currency,
   };

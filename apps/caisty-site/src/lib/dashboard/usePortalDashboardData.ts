@@ -21,6 +21,8 @@ const emptySalesSummary = (): PortalDashboardSummary => ({
   period: "today",
   todayRevenueCents: 0,
   ordersToday: 0,
+  liveOrdersCount: 0,
+  onlineOrdersCount: 0,
   receiptsToday: 0,
   refundsCount: 0,
   averageOrderMinor: 0,

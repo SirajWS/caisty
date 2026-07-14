@@ -83,6 +83,8 @@ function salesSummary(
     period: "today",
     todayRevenueCents: 0,
     ordersToday: 0,
+    liveOrdersCount: 0,
+    onlineOrdersCount: 0,
     receiptsToday: 0,
     refundsCount: 0,
     averageOrderMinor: 0,
@@ -132,6 +134,65 @@ describe("deriveDashboardState", () => {
     expect(revenue?.status).toBe("waiting_sync");
     expect(revenue?.value).toBe("—");
     expect(revenue?.hint).toContain("POS sync");
+  });
+
+  it("formats TND payment summary with millimes (not /100)", () => {
+    const state = deriveDashboardState(
+      deriveInput(
+        makeData({
+          salesSummary: salesSummary({
+            todayRevenueCents: 453000,
+            ordersToday: 32,
+            liveOrdersCount: 27,
+            onlineOrdersCount: 5,
+            receiptsToday: 27,
+            averageOrderMinor: 16778,
+            currency: "TND",
+            hasSalesData: true,
+            paymentSummary: {
+              cashCents: 441000,
+              cardCents: 12000,
+              voucherCents: 0,
+              otherCents: 0,
+              currency: "TND",
+            },
+          }),
+        }),
+      ),
+    );
+
+    const cash = state.paymentCards.find((p) => p.id === "cash");
+    const card = state.paymentCards.find((p) => p.id === "card");
+    const revenue = state.kpis.find((k) => k.id === "revenue");
+    const orders = state.kpis.find((k) => k.id === "orders");
+
+    expect(revenue?.value).toContain("453.000");
+    expect(cash?.value).toContain("441.000");
+    expect(card?.value).toContain("12.000");
+    expect(cash?.value).not.toContain("4,410");
+    expect(card?.value).not.toContain("120.000");
+    expect(orders?.value).toBe("32");
+  });
+
+  it("counts orders today as live plus online orders", () => {
+    const state = deriveDashboardState(
+      deriveInput(
+        makeData({
+          salesSummary: salesSummary({
+            ordersToday: 32,
+            liveOrdersCount: 27,
+            onlineOrdersCount: 5,
+            receiptsToday: 27,
+            todayRevenueCents: 453000,
+            currency: "TND",
+            hasSalesData: true,
+          }),
+        }),
+      ),
+    );
+
+    const orders = state.kpis.find((k) => k.id === "orders");
+    expect(orders?.value).toBe("32");
   });
 
   it("shows real revenue, orders and average order when POS data exists", () => {

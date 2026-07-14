@@ -13,6 +13,7 @@ import { formatMinorUnits } from "../money/formatMinorUnits";
 import { derivePosHubState } from "../posHub/derivePosHubState";
 import { formatInstallerBytes } from "../posHub/format";
 import { pickHighestSemver } from "../posHub/posVersion";
+import type { PaymentMethodCard } from "../orders/types";
 import type {
   BusinessAlert,
   DashboardActivity,
@@ -687,6 +688,42 @@ function deriveRecentOrders(input: DeriveDashboardInput): PortalDashboardRecentO
   }));
 }
 
+function derivePaymentCards(input: DeriveDashboardInput): PaymentMethodCard[] {
+  const o = input.t.orders;
+  const dash = input.t.labels.dash;
+  const sales = input.data.salesSummary;
+
+  if (!sales?.hasSalesData || !sales.paymentSummary) {
+    return [
+      { id: "cash", label: o.paymentCash, value: dash, tone: "unknown" },
+      { id: "card", label: o.paymentCard, value: dash, tone: "unknown" },
+      { id: "voucher", label: o.paymentVoucher, value: dash, tone: "unknown" },
+      { id: "other", label: o.paymentOther, value: dash, tone: "unknown" },
+    ];
+  }
+
+  const { paymentSummary } = sales;
+  const currency = paymentSummary.currency || sales.currency || "EUR";
+
+  const card = (
+    id: PaymentMethodCard["id"],
+    label: string,
+    cents: number,
+  ): PaymentMethodCard => ({
+    id,
+    label,
+    value: formatMoney(cents, currency, input.locale),
+    tone: cents > 0 ? "ok" : "unknown",
+  });
+
+  return [
+    card("cash", o.paymentCash, paymentSummary.cashCents),
+    card("card", o.paymentCard, paymentSummary.cardCents),
+    card("voucher", o.paymentVoucher, paymentSummary.voucherCents),
+    card("other", o.paymentOther, paymentSummary.otherCents),
+  ];
+}
+
 function deriveRoadmap(input: DeriveDashboardInput): DashboardRoadmapModule[] {
   const h = input.t.dashboard.home;
   return [
@@ -742,5 +779,6 @@ export function deriveDashboardState(
     systemHealth: deriveSystemHealth(input, hub),
     recentOrders: deriveRecentOrders(input),
     paymentSummary: data.salesSummary?.paymentSummary ?? null,
+    paymentCards: derivePaymentCards(input),
   };
 }

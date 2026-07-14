@@ -480,7 +480,7 @@ export async function fetchPortalOrdersPage(input: {
       revenueCents: periodStats.revenueCents,
       averageOrderMinor: averageOrderMinor(
         periodStats.revenueCents,
-        periodStats.ordersCount,
+        periodStats.kpiReceiptsCount,
       ),
       openShift,
       paymentSummary: periodStats.paymentSummary,

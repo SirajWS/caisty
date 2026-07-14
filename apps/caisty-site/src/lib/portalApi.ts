@@ -759,6 +759,8 @@ export interface PortalDashboardSummary {
   period: "today";
   todayRevenueCents: number;
   ordersToday: number;
+  liveOrdersCount: number;
+  onlineOrdersCount: number;
   receiptsToday: number;
   refundsCount: number;
   averageOrderMinor: number;
