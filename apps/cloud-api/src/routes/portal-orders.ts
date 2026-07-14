@@ -21,6 +21,7 @@ import {
   mapPortalReceiptRecord,
   toPortalReceiptIso,
 } from "../lib/portalReceipts.js";
+import { shiftService } from "../lib/shiftService.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 
 interface PortalJwtPayload {
@@ -168,6 +169,11 @@ export async function registerPortalOrdersRoutes(app: FastifyInstance) {
         paymentRows[0]?.currency ??
         "EUR";
 
+      const openShift = await shiftService.getOpenShiftForCustomer(
+        payload.orgId,
+        payload.customerId,
+      );
+
       return {
         timezone: PORTAL_ORDERS_TIMEZONE,
         period: "today" as const,
@@ -175,7 +181,7 @@ export async function registerPortalOrdersRoutes(app: FastifyInstance) {
           ordersCount: orderRows.length,
           receiptsCount: receiptRows.length,
           refundsCount: 0,
-          openShift: null,
+          openShift,
           paymentSummary: {
             ...paymentSummary,
             currency,

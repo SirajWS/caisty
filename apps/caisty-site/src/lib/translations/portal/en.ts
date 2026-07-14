@@ -289,6 +289,8 @@ export const portalEn = {
     kpiRefunds: "Refunds",
     kpiAvgOrder: "Average order",
     kpiOpenShift: "Open shift",
+    openShiftYes: "Yes",
+    openShiftNo: "No",
     ordersFeedTitle: "Live orders",
     ordersEmpty: "No orders yet.",
     receiptsTitle: "Recent receipts",

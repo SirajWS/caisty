@@ -29,6 +29,7 @@ import { registerPortalOrdersRoutes } from "./routes/portal-orders.js";
 import { registerPortalDashboardRoutes } from "./routes/portal-dashboard.js";
 import { registerPortalReportsRoutes } from "./routes/portal-reports.js";
 import { registerPortalReceiptsRoutes } from "./routes/portal-receipts.js";
+import { registerPortalShiftsRoutes } from "./routes/portal-shifts.js";
 import { registerPortalSupportRoutes } from "./routes/portal-support.js";
 import { registerPortalTrialLicenseRoutes } from "./routes/portal-trial-license.js";
 import { registerPortalUpgradeRoutes } from "./routes/portal-upgrade.js";
@@ -160,6 +161,7 @@ export async function buildServer() {
   await registerPortalDashboardRoutes(app);
   await registerPortalReportsRoutes(app);
   await registerPortalReceiptsRoutes(app);
+  await registerPortalShiftsRoutes(app);
   await registerPortalTrialLicenseRoutes(app);
   await registerPortalSupportRoutes(app);
   await registerPortalUpgradeRoutes(app); // Upgrade + PayPal

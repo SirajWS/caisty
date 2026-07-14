@@ -2,7 +2,8 @@ export type PosSyncEventType =
   | "order"
   | "receipt"
   | "payment"
-  | "receipt_event";
+  | "receipt_event"
+  | "shift";
 
 export type PosSyncBatchMeta = {
   batchId: string;
@@ -62,6 +63,20 @@ export type PosSyncReceiptEventPayload = {
   receiptNumber?: string;
 };
 
+export type PosSyncShiftPayload = {
+  localShiftId: string;
+  status: "open" | "closed";
+  cashier?: string;
+  businessDate: string;
+  startedAt: string;
+  endedAt?: string | null;
+  openingFloatMinor: number;
+  closingFloatMinor?: number | null;
+  previousClosingFloatMinor?: number | null;
+  currency?: string;
+  schemaVersion: number;
+};
+
 export type PosSyncEvent = {
   eventId: string;
   type: PosSyncEventType;
@@ -69,7 +84,8 @@ export type PosSyncEvent = {
     | PosSyncOrderPayload
     | PosSyncReceiptPayload
     | PosSyncPaymentPayload
-    | PosSyncReceiptEventPayload;
+    | PosSyncReceiptEventPayload
+    | PosSyncShiftPayload;
 };
 
 export type PosSyncBatchRequest = {

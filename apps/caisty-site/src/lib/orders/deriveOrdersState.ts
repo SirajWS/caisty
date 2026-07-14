@@ -1,4 +1,5 @@
 import { formatMinorUnits } from "../money/formatMinorUnits";
+import type { PortalOpenShiftRecord } from "../portalApi";
 import type {
   DeriveOrdersInput,
   OrdersDerivedState,
@@ -77,19 +78,36 @@ function deriveSummary(input: DeriveOrdersInput): OrdersKpi[] {
   }
 
   const { summary } = sales;
-  const openShiftValue =
-    summary.openShift === true
-      ? "Yes"
-      : summary.openShift === false
-        ? "No"
-        : dash;
+  const openShiftValue = formatOpenShiftKpi(summary.openShift, o);
 
   return [
     { id: "orders", label: o.kpiOrders, value: String(summary.ordersCount) },
     { id: "receipts", label: o.kpiReceipts, value: String(summary.receiptsCount) },
     { id: "refunds", label: o.kpiRefunds, value: String(summary.refundsCount) },
-    { id: "open_shift", label: o.kpiOpenShift, value: openShiftValue },
+    { id: "open_shift", label: o.kpiOpenShift, ...openShiftValue },
   ];
+}
+
+function formatOpenShiftKpi(
+  openShift: PortalOpenShiftRecord | null | undefined,
+  o: DeriveOrdersInput["t"]["orders"],
+): { value: string; hint?: string } {
+  if (!openShift) {
+    return { value: o.openShiftNo };
+  }
+
+  const parts = [
+    openShift.cashier?.trim(),
+    openShift.deviceName?.trim(),
+  ].filter(Boolean);
+
+  return {
+    value: o.openShiftYes,
+    hint:
+      parts.length > 0
+        ? parts.join(" · ")
+        : `${openShift.durationMinutes} min`,
+  };
 }
 
 function derivePayments(input: DeriveOrdersInput): PaymentMethodCard[] {

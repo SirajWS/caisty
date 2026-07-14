@@ -6,11 +6,18 @@ import type {
   PosSyncPaymentPayload,
   PosSyncReceiptEventPayload,
   PosSyncReceiptPayload,
+  PosSyncShiftPayload,
 } from "./types.js";
 import {
   isReceiptEventType,
   isSupportedReceiptEventSchemaVersion,
 } from "../lib/receiptEventTypes.js";
+import {
+  isBusinessDate,
+  isShiftStatus,
+  isSupportedShiftSchemaVersion,
+  SHIFT_STATUS,
+} from "../lib/shiftTypes.js";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -185,13 +192,14 @@ function validateSyncEvent(
     type !== "order" &&
     type !== "receipt" &&
     type !== "payment" &&
-    type !== "receipt_event"
+    type !== "receipt_event" &&
+    type !== "shift"
   ) {
     return {
       ok: false,
       error: {
         code: "invalid_request",
-        message: `events[${index}].type must be order, receipt, payment, or receipt_event.`,
+        message: `events[${index}].type must be order, receipt, payment, receipt_event, or shift.`,
       },
     };
   }
@@ -223,7 +231,8 @@ function validateEventPayload(
         | PosSyncOrderPayload
         | PosSyncReceiptPayload
         | PosSyncPaymentPayload
-        | PosSyncReceiptEventPayload;
+        | PosSyncReceiptEventPayload
+        | PosSyncShiftPayload;
     }
   | { ok: false; error: SyncBatchValidationError } {
   if (!payload || typeof payload !== "object") {
@@ -419,6 +428,149 @@ function validateEventPayload(
             : undefined,
       },
     };
+  }
+
+  if (type === "shift") {
+    const localShiftId =
+      typeof payloadObj.localShiftId === "string"
+        ? payloadObj.localShiftId.trim()
+        : "";
+    if (!localShiftId) {
+      return invalidPayload(index, "localShiftId is required for shift events.");
+    }
+
+    const status =
+      typeof payloadObj.status === "string" ? payloadObj.status.trim() : "";
+    if (!isShiftStatus(status)) {
+      return invalidPayload(index, "status must be open or closed.");
+    }
+
+    const businessDate =
+      typeof payloadObj.businessDate === "string"
+        ? payloadObj.businessDate.trim()
+        : "";
+    if (!businessDate || !isBusinessDate(businessDate)) {
+      return invalidPayload(
+        index,
+        "businessDate must be a valid YYYY-MM-DD date.",
+      );
+    }
+
+    const startedAt =
+      typeof payloadObj.startedAt === "string" ? payloadObj.startedAt : "";
+    if (!startedAt || !parseIsoDate(startedAt, "startedAt")) {
+      return invalidPayload(index, "startedAt must be a valid ISO timestamp.");
+    }
+
+    const endedAtRaw = payloadObj.endedAt;
+    const endedAt =
+      endedAtRaw === null || endedAtRaw === undefined
+        ? null
+        : typeof endedAtRaw === "string"
+          ? endedAtRaw
+          : "";
+
+    if (status === SHIFT_STATUS.CLOSED) {
+      if (!endedAt || !parseIsoDate(endedAt, "endedAt")) {
+        return invalidPayload(
+          index,
+          "endedAt is required for closed shift events.",
+        );
+      }
+    } else if (endedAt !== null && endedAt !== "" && !parseIsoDate(endedAt, "endedAt")) {
+      return invalidPayload(index, "endedAt must be null or a valid ISO timestamp.");
+    }
+
+    const openingFloatMinor = payloadObj.openingFloatMinor;
+    if (
+      typeof openingFloatMinor !== "number" ||
+      !Number.isInteger(openingFloatMinor) ||
+      openingFloatMinor < 0
+    ) {
+      return invalidPayload(
+        index,
+        "openingFloatMinor must be a non-negative integer.",
+      );
+    }
+
+    const parseOptionalMinor = (
+      field: string,
+      value: unknown,
+    ): number | null | undefined => {
+      if (value === null || value === undefined) return null;
+      if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+        return undefined;
+      }
+      return value;
+    };
+
+    const closingFloatMinor = parseOptionalMinor(
+      "closingFloatMinor",
+      payloadObj.closingFloatMinor,
+    );
+    if (closingFloatMinor === undefined) {
+      return invalidPayload(
+        index,
+        "closingFloatMinor must be a non-negative integer or null.",
+      );
+    }
+
+    const previousClosingFloatMinor = parseOptionalMinor(
+      "previousClosingFloatMinor",
+      payloadObj.previousClosingFloatMinor,
+    );
+    if (previousClosingFloatMinor === undefined) {
+      return invalidPayload(
+        index,
+        "previousClosingFloatMinor must be a non-negative integer or null.",
+      );
+    }
+
+    const schemaVersion = payloadObj.schemaVersion;
+    if (
+      typeof schemaVersion !== "number" ||
+      !Number.isInteger(schemaVersion) ||
+      !isSupportedShiftSchemaVersion(schemaVersion)
+    ) {
+      return invalidPayload(
+        index,
+        "schemaVersion must be a supported integer (currently 1).",
+      );
+    }
+
+    const currencyRaw =
+      typeof payloadObj.currency === "string"
+        ? payloadObj.currency.trim().toUpperCase()
+        : "EUR";
+    if (!/^[A-Z]{3}$/.test(currencyRaw)) {
+      return invalidPayload(index, "currency must be a 3-letter ISO code.");
+    }
+
+    const cashier =
+      typeof payloadObj.cashier === "string"
+        ? payloadObj.cashier.trim()
+        : undefined;
+
+    return {
+      ok: true,
+      payload: {
+        localShiftId,
+        status,
+        cashier: cashier || undefined,
+        businessDate,
+        startedAt,
+        endedAt: status === SHIFT_STATUS.CLOSED ? endedAt! : null,
+        openingFloatMinor,
+        closingFloatMinor,
+        previousClosingFloatMinor,
+        currency: currencyRaw,
+        schemaVersion,
+      },
+    };
+  }
+
+  if (type !== "payment") {
+    return invalidPayload(index, "Unsupported event payload type.");
   }
 
   const localPaymentId =

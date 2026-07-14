@@ -8,7 +8,9 @@ import {
   uniqueIndex,
   index,
   jsonb,
+  date,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { orgs } from "./orgs.js";
 import { customers } from "./customers.js";
 import { devices } from "./devices.js";
@@ -307,6 +309,62 @@ export const posReceiptEvents = pgTable(
     idxOrgEventType: index("idx_pos_receipt_events_org_event_type").on(
       t.orgId,
       t.eventType,
+    ),
+  }),
+);
+
+export const posShifts = pgTable(
+  "pos_shifts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => orgs.id, { onDelete: "cascade" }),
+    customerId: uuid("customer_id").references(() => customers.id, {
+      onDelete: "set null",
+    }),
+    deviceId: uuid("device_id")
+      .notNull()
+      .references(() => devices.id, { onDelete: "cascade" }),
+    localShiftId: text("local_shift_id").notNull(),
+    status: varchar("status", { length: 16 }).notNull(),
+    cashier: text("cashier"),
+    businessDate: date("business_date").notNull(),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull(),
+    endedAt: timestamp("ended_at", { withTimezone: true }),
+    openingFloatMinor: integer("opening_float_minor").notNull().default(0),
+    closingFloatMinor: integer("closing_float_minor"),
+    previousClosingFloatMinor: integer("previous_closing_float_minor"),
+    currency: varchar("currency", { length: 3 }).notNull().default("EUR"),
+    schemaVersion: integer("schema_version").notNull().default(1),
+    syncBatchId: uuid("sync_batch_id").references(() => posSyncBatches.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    uqOrgDeviceLocal: uniqueIndex("uq_pos_shifts_org_device_local").on(
+      t.orgId,
+      t.deviceId,
+      t.localShiftId,
+    ),
+    uqDeviceOpen: uniqueIndex("uq_pos_shifts_device_open")
+      .on(t.deviceId)
+      .where(sql`${t.status} = 'open'`),
+    idxOrgStatus: index("idx_pos_shifts_org_status").on(t.orgId, t.status),
+    idxOrgBusinessDate: index("idx_pos_shifts_org_business_date").on(
+      t.orgId,
+      t.businessDate,
+    ),
+    idxOrgDeviceStarted: index("idx_pos_shifts_org_device_started").on(
+      t.orgId,
+      t.deviceId,
+      t.startedAt,
     ),
   }),
 );

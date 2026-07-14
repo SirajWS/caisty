@@ -13,6 +13,7 @@ import {
 } from "../db/schema/posSync.js";
 import type { PosDeviceAuthContext } from "../lib/posDeviceAuth.js";
 import { receiptEventService } from "../lib/receiptEventService.js";
+import { shiftService } from "../lib/shiftService.js";
 import { DEFAULT_RECEIPT_STATUS } from "../lib/receiptStatus.js";
 import { parseIsoDate } from "./validateSyncBatch.js";
 import type {
@@ -24,6 +25,7 @@ import type {
   PosSyncPaymentPayload,
   PosSyncReceiptEventPayload,
   PosSyncReceiptPayload,
+  PosSyncShiftPayload,
   POS_SYNC_IDEMPOTENCY_SCOPE,
 } from "./types.js";
 
@@ -277,6 +279,9 @@ export class PosSyncService {
     if (event.type === "receipt_event") {
       return (event.payload as PosSyncReceiptEventPayload).localReceiptId;
     }
+    if (event.type === "shift") {
+      return (event.payload as PosSyncShiftPayload).localShiftId;
+    }
     return (event.payload as PosSyncPaymentPayload).localPaymentId;
   }
 
@@ -305,6 +310,13 @@ export class PosSyncService {
     if (event.type === "receipt_event") {
       return this.appendReceiptEvent(
         event.payload as PosSyncReceiptEventPayload,
+        auth,
+        batchId,
+      );
+    }
+    if (event.type === "shift") {
+      return this.upsertShift(
+        event.payload as PosSyncShiftPayload,
         auth,
         batchId,
       );
@@ -489,6 +501,51 @@ export class PosSyncService {
       payload: payload.payload,
       schemaVersion: payload.schemaVersion,
       syncBatchId: batchId,
+    });
+  }
+
+  private async upsertShift(
+    payload: PosSyncShiftPayload,
+    auth: PosDeviceAuthContext,
+    batchId: string,
+  ) {
+    const startedAt = parseIsoDate(payload.startedAt, "startedAt");
+    if (!startedAt) {
+      return {
+        status: "failed" as const,
+        code: "invalid_payload",
+        error: "startedAt is invalid",
+      };
+    }
+
+    const endedAt =
+      payload.endedAt != null
+        ? parseIsoDate(payload.endedAt, "endedAt")
+        : null;
+    if (payload.status === "closed" && !endedAt) {
+      return {
+        status: "failed" as const,
+        code: "invalid_payload",
+        error: "endedAt is invalid",
+      };
+    }
+
+    return shiftService.upsertShiftSnapshot({
+      orgId: auth.orgId,
+      customerId: auth.customerId,
+      deviceId: auth.deviceId,
+      syncBatchId: batchId,
+      localShiftId: payload.localShiftId,
+      status: payload.status,
+      cashier: payload.cashier ?? null,
+      businessDate: payload.businessDate,
+      startedAt,
+      endedAt,
+      openingFloatMinor: payload.openingFloatMinor,
+      closingFloatMinor: payload.closingFloatMinor ?? null,
+      previousClosingFloatMinor: payload.previousClosingFloatMinor ?? null,
+      currency: payload.currency ?? "EUR",
+      schemaVersion: payload.schemaVersion,
     });
   }
 }

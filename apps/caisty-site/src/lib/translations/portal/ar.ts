@@ -288,6 +288,8 @@ export const portalAr: PortalTranslations = {
     kpiRefunds: "المستردات",
     kpiAvgOrder: "متوسط الطلب",
     kpiOpenShift: "الوردية المفتوحة",
+    openShiftYes: "نعم",
+    openShiftNo: "لا",
     ordersFeedTitle: "الطلبات المباشرة",
     ordersEmpty: "لا توجد طلبات بعد.",
     receiptsTitle: "الإيصالات الأخيرة",

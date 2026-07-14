@@ -374,4 +374,55 @@ describe("deriveOrdersState", () => {
     const empty = deriveOrdersState(deriveInput(makeData({ sales: makeSales() })));
     expect(empty.hasSalesData).toBe(false);
   });
+
+  it("shows open shift KPI when an open shift is present", () => {
+    const state = deriveOrdersState(
+      deriveInput(
+        makeData({
+          sales: makeSales({
+            summary: {
+              ordersCount: 1,
+              receiptsCount: 1,
+              refundsCount: 0,
+              openShift: {
+                shiftId: "shift-1",
+                status: "open",
+                cashier: "Anna",
+                deviceName: "Till 1",
+                businessDate: "2026-07-14",
+                startedAt: "2026-07-14T08:00:00.000Z",
+                durationMinutes: 45,
+                openingFloatMinor: 5000,
+                currency: "EUR",
+              },
+              paymentSummary: {
+                cashCents: 100,
+                cardCents: 0,
+                voucherCents: 0,
+                otherCents: 0,
+                currency: "EUR",
+              },
+            },
+            orders: [
+              {
+                id: "o1",
+                localOrderId: "ORD-1",
+                soldAt: "2026-07-08T08:15:00.000Z",
+                status: "closed",
+                paymentMethod: "cash",
+                amountCents: 100,
+                currency: "EUR",
+                cashier: null,
+                deviceName: "Kasse 1",
+              },
+            ],
+          }),
+        }),
+      ),
+    );
+
+    const openShiftKpi = state.summary.find((kpi) => kpi.id === "open_shift");
+    expect(openShiftKpi?.value).toBe("Yes");
+    expect(openShiftKpi?.hint).toBe("Anna · Till 1");
+  });
 });

@@ -288,6 +288,8 @@ export const portalFr: PortalTranslations = {
     kpiRefunds: "Remboursements",
     kpiAvgOrder: "Panier moyen",
     kpiOpenShift: "Service ouvert",
+    openShiftYes: "Oui",
+    openShiftNo: "Non",
     ordersFeedTitle: "Commandes en direct",
     ordersEmpty: "Aucune commande pour le moment.",
     receiptsTitle: "Reçus récents",

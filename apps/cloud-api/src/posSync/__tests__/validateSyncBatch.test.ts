@@ -248,3 +248,78 @@ describe("validateSyncBatchRequest receipt_event", () => {
     }
   });
 });
+
+const SHIFT_ID = "55555555-5555-4555-8555-555555555555";
+
+describe("validateSyncBatchRequest shift", () => {
+  it("accepts an open shift event", () => {
+    const result = validateSyncBatchRequest({
+      deviceId: DEVICE_ID,
+      licenseKey: "CSTY-TEST",
+      batch: { batchId: BATCH_ID },
+      events: [
+        {
+          eventId: SHIFT_ID,
+          type: "shift",
+          payload: {
+            localShiftId: "shift-local-1",
+            status: "open",
+            cashier: "Anna",
+            businessDate: "2026-07-14",
+            startedAt: "2026-07-14T08:00:00.000Z",
+            openingFloatMinor: 5000,
+            schemaVersion: 1,
+            currency: "EUR",
+          },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+
+  it("requires endedAt for closed shift", () => {
+    const result = validateSyncBatchRequest({
+      deviceId: DEVICE_ID,
+      licenseKey: "CSTY-TEST",
+      batch: { batchId: BATCH_ID },
+      events: [
+        {
+          eventId: SHIFT_ID,
+          type: "shift",
+          payload: {
+            localShiftId: "shift-local-1",
+            status: "closed",
+            businessDate: "2026-07-14",
+            startedAt: "2026-07-14T08:00:00.000Z",
+            openingFloatMinor: 5000,
+            schemaVersion: 1,
+          },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(false);
+  });
+
+  it("keeps backward compatibility for batches without shift", () => {
+    const result = validateSyncBatchRequest({
+      deviceId: DEVICE_ID,
+      licenseKey: "CSTY-TEST",
+      batch: { batchId: BATCH_ID },
+      events: [
+        {
+          eventId: EVENT_ID,
+          type: "order",
+          payload: {
+            localOrderId: "order-local-1",
+            totalCents: 1250,
+            soldAt: "2026-07-08T10:00:00.000Z",
+          },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+  });
+});

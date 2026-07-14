@@ -494,11 +494,23 @@ export type PortalOrdersPaymentSummary = {
   currency: string;
 };
 
+export type PortalOpenShiftRecord = {
+  shiftId: string;
+  status: "open" | "closed";
+  cashier: string | null;
+  deviceName: string | null;
+  businessDate: string;
+  startedAt: string;
+  durationMinutes: number;
+  openingFloatMinor: number;
+  currency: string;
+};
+
 export type PortalOrdersSummary = {
   ordersCount: number;
   receiptsCount: number;
   refundsCount: number;
-  openShift: boolean | null;
+  openShift: PortalOpenShiftRecord | null;
   paymentSummary: PortalOrdersPaymentSummary;
 };
 
@@ -843,6 +855,46 @@ export async function fetchPortalReceiptDetail(
 ): Promise<PortalReceiptDetailResponse> {
   return authGet<PortalReceiptDetailResponse>(
     `/portal/receipts/${encodeURIComponent(receiptId)}`,
+  );
+}
+
+export type PortalShiftRecord = {
+  id: string;
+  localShiftId: string;
+  status: "open" | "closed";
+  cashier: string | null;
+  deviceId: string;
+  deviceName: string | null;
+  businessDate: string;
+  startedAt: string;
+  endedAt: string | null;
+  durationMinutes: number | null;
+  openingFloatMinor: number;
+  closingFloatMinor: number | null;
+  previousClosingFloatMinor: number | null;
+  currency: string;
+};
+
+export type PortalShiftsQuery = {
+  status?: string;
+  from?: string;
+  to?: string;
+  deviceId?: string;
+  limit?: number;
+};
+
+export async function fetchPortalShifts(
+  query: PortalShiftsQuery = {},
+): Promise<{ shifts: PortalShiftRecord[] }> {
+  const params = new URLSearchParams();
+  if (query.status) params.set("status", query.status);
+  if (query.from) params.set("from", query.from);
+  if (query.to) params.set("to", query.to);
+  if (query.deviceId) params.set("deviceId", query.deviceId);
+  if (query.limit != null) params.set("limit", String(query.limit));
+  const qs = params.toString();
+  return authGet<{ shifts: PortalShiftRecord[] }>(
+    qs ? `/portal/shifts?${qs}` : "/portal/shifts",
   );
 }
 
