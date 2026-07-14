@@ -1,6 +1,7 @@
 import type {
   PortalCustomer,
   PortalReceiptDetailResponse,
+  PortalReceiptRefundSummary,
   PortalReceiptsResponse,
 } from "../portalApi";
 
@@ -52,7 +53,16 @@ export type ReceiptEventRow = {
   time: string;
   label: string;
   actor: string;
-  kind: "created" | "printed" | "reprinted" | "other";
+  summary: string;
+  kind:
+    | "created"
+    | "printed"
+    | "reprinted"
+    | "refund"
+    | "partial_refund"
+    | "payment_changed"
+    | "voided"
+    | "other";
 };
 
 export type ReceiptsDerivedState = {
@@ -66,6 +76,8 @@ export type ReceiptsDerivedState = {
     lastPrintTime: string;
   };
   detailReceipt: PortalReceiptDetailResponse["receipt"] | null;
+  refundSummary: PortalReceiptRefundSummary | null;
+  hasPaymentChange: boolean;
   hasReceipts: boolean;
 };
 

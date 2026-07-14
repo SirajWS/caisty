@@ -9,7 +9,7 @@ import type {
   PosSyncShiftPayload,
 } from "./types.js";
 import {
-  isReceiptEventType,
+  isPosSyncReceiptEventType,
   isSupportedReceiptEventSchemaVersion,
 } from "../lib/receiptEventTypes.js";
 import {
@@ -267,11 +267,16 @@ function validateEventPayload(
     }
 
     const status =
-      payloadObj.status === "open" ||
-      payloadObj.status === "closed" ||
-      payloadObj.status === "cancelled"
-        ? payloadObj.status
+      typeof payloadObj.status === "string" && payloadObj.status.trim()
+        ? payloadObj.status.trim().slice(0, 32)
         : undefined;
+
+    const optionalText = (field: string): string | undefined => {
+      const value = payloadObj[field];
+      return typeof value === "string" && value.trim()
+        ? value.trim()
+        : undefined;
+    };
 
     return {
       ok: true,
@@ -289,6 +294,14 @@ function validateEventPayload(
               .map((line, lineIndex) => validateOrderLine(line, lineIndex))
               .filter((line): line is NonNullable<typeof line> => line !== null)
           : undefined,
+        platform: optionalText("platform"),
+        providerOrderId: optionalText("providerOrderId"),
+        customerName: optionalText("customerName"),
+        customerPhone: optionalText("customerPhone"),
+        customerEmail: optionalText("customerEmail"),
+        deliveryAddress: optionalText("deliveryAddress"),
+        customerNote: optionalText("customerNote"),
+        paymentStatus: optionalText("paymentStatus"),
       },
     };
   }
@@ -367,7 +380,7 @@ function validateEventPayload(
       typeof payloadObj.eventType === "string"
         ? payloadObj.eventType.trim()
         : "";
-    if (!isReceiptEventType(eventType)) {
+    if (!isPosSyncReceiptEventType(eventType)) {
       return invalidPayload(
         index,
         "eventType must be created, printed, or reprinted.",

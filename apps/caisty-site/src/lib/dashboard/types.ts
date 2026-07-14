@@ -140,6 +140,19 @@ export type SystemHealthItem = {
   healthy: boolean;
 };
 
+export type PortalDashboardRecentOrder = {
+  id: string;
+  time: string;
+  orderNumber: string;
+  status: string;
+  statusKey: string;
+  payment: string;
+  amount: string;
+  receiptNumber: string;
+  isProviderOrder?: boolean;
+  providerName?: string | null;
+};
+
 export type DashboardData = {
   licenses: PortalLicense[];
   devices: PortalDevice[];
@@ -177,4 +190,6 @@ export type DashboardDerivedState = {
   liveDevices: LiveDeviceCard[];
   releaseCenter: LiveReleaseCenter;
   systemHealth: SystemHealthItem[];
+  recentOrders: PortalDashboardRecentOrder[];
+  paymentSummary: import("../portalApi").PortalOrdersPaymentSummary | null;
 };

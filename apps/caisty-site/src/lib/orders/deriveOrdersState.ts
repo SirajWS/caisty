@@ -1,4 +1,8 @@
 import { formatMinorUnits } from "../money/formatMinorUnits";
+import {
+  formatPortalOrderStatus,
+  formatPortalPaymentMethod,
+} from "../portal/portalSalesLabels";
 import type { PortalOpenShiftRecord } from "../portalApi";
 import type {
   DeriveOrdersInput,
@@ -7,9 +11,10 @@ import type {
   PaymentMethodCard,
   PortalOrderRecord,
   PortalReceiptRecord,
+  PosOrderRow,
+  ProviderOrderRow,
 } from "./types";
 
-// POS Sales amounts are ISO 4217 minor units (Cent for EUR, Millime for TND).
 function formatMoney(minor: number, currency: string, locale: string): string {
   return formatMinorUnits(minor, currency, locale);
 }
@@ -23,33 +28,6 @@ function formatTime(iso: string | null, locale: string, timezone: string): strin
     minute: "2-digit",
     timeZone: timezone,
   });
-}
-
-function formatPaymentLabel(
-  method: string | null | undefined,
-  t: DeriveOrdersInput["t"],
-): string {
-  if (!method?.trim()) return "—";
-  const m = method.trim().toLowerCase();
-  if (m === "cash" || m.includes("cash")) return t.orders.paymentCash;
-  if (
-    m === "card" ||
-    m.includes("card") ||
-    m === "credit" ||
-    m === "debit"
-  ) {
-    return t.orders.paymentCard;
-  }
-  if (m === "voucher" || m.includes("voucher") || m.includes("gift")) {
-    return t.orders.paymentVoucher;
-  }
-  return t.orders.paymentOther;
-}
-
-function formatStatus(status: string, dash: string): string {
-  const s = status.trim();
-  if (!s) return dash;
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function formatFiscalStatus(status: string, dash: string): string {
@@ -146,10 +124,38 @@ function derivePayments(input: DeriveOrdersInput): PaymentMethodCard[] {
   ];
 }
 
+function mapProviderOrderRow(
+  order: PortalOrderRecord,
+  input: DeriveOrdersInput,
+): ProviderOrderRow {
+  const dash = input.t.labels.dash;
+  const o = input.t.orders;
+  const timezone = input.data.sales?.timezone ?? "Europe/Berlin";
+
+  return {
+    id: order.id,
+    time: formatTime(order.soldAt, input.locale, timezone),
+    orderNumber: order.localOrderId || dash,
+    provider:
+      order.providerName?.trim() ||
+      (order.platform?.trim() ? order.platform.trim() : o.unknownProvider),
+    customer: order.customerName?.trim() || dash,
+    details: order.detailsSummary?.trim() || dash,
+    status: formatPortalOrderStatus(
+      order.normalizedStatus ?? order.status,
+      input.t,
+    ),
+    statusKey: order.normalizedStatus ?? order.status ?? "completed",
+    payment: order.paymentDisplay || formatPortalPaymentMethod(order.paymentMethod, input.t),
+    amount: formatMoney(order.amountCents, order.currency, input.locale),
+    source: order,
+  };
+}
+
 function mapOrderRow(
   order: PortalOrderRecord,
   input: DeriveOrdersInput,
-): OrdersDerivedState["orders"][number] {
+): PosOrderRow {
   const dash = input.t.labels.dash;
   const timezone = input.data.sales?.timezone ?? "Europe/Berlin";
 
@@ -157,11 +163,21 @@ function mapOrderRow(
     id: order.id,
     time: formatTime(order.soldAt, input.locale, timezone),
     orderNumber: order.localOrderId || dash,
-    status: formatStatus(order.status, dash),
-    payment: formatPaymentLabel(order.paymentMethod, input.t),
+    status: formatPortalOrderStatus(
+      order.normalizedStatus ?? order.status,
+      input.t,
+    ),
+    statusKey: order.normalizedStatus ?? order.status ?? "completed",
+    payment: formatPortalPaymentMethod(order.paymentMethod, input.t),
     amount: formatMoney(order.amountCents, order.currency, input.locale),
     cashier: order.cashier?.trim() || dash,
     device: order.deviceName?.trim() || dash,
+    receiptId: order.receiptId,
+    receiptNumber: order.receiptNumber?.trim() || dash,
+    receiptStatus: order.receiptStatus,
+    refundedAmountCents: order.refundedAmountCents,
+    hasPaymentChange: order.hasPaymentChange,
+    source: order,
   };
 }
 
@@ -195,7 +211,7 @@ function mapReceiptRow(
       receipt.receiptNumber?.trim() || receipt.localReceiptId || dash,
     time: formatTime(receipt.issuedAt, input.locale, timezone),
     customer: receipt.customer?.trim() || dash,
-    payment: formatPaymentLabel(receipt.paymentMethod, input.t),
+    payment: formatPortalPaymentMethod(receipt.paymentMethod, input.t),
     fiscal: formatFiscalStatus(receipt.fiscalStatus, dash),
     amount: formatMoney(receipt.amountCents, receipt.currency, input.locale),
     items: mapReceiptLineItems(receipt, input),
@@ -205,22 +221,26 @@ function mapReceiptRow(
 
 function hasSalesData(
   orders: OrdersDerivedState["orders"],
+  providerOrders: OrdersDerivedState["providerOrders"],
   receipts: OrdersDerivedState["receipts"],
 ): boolean {
-  return orders.length > 0 || receipts.length > 0;
+  return orders.length > 0 || providerOrders.length > 0 || receipts.length > 0;
 }
 
 export function deriveOrdersState(input: DeriveOrdersInput): OrdersDerivedState {
   const sales = input.data.sales;
   const orders = sales?.orders.map((order) => mapOrderRow(order, input)) ?? [];
+  const providerOrders =
+    sales?.providerOrders.map((order) => mapProviderOrderRow(order, input)) ?? [];
   const receipts =
     sales?.receipts.map((receipt) => mapReceiptRow(receipt, input)) ?? [];
 
   return {
     summary: deriveSummary(input),
     orders,
+    providerOrders,
     receipts,
     payments: derivePayments(input),
-    hasSalesData: hasSalesData(orders, receipts),
+    hasSalesData: hasSalesData(orders, providerOrders, receipts),
   };
 }

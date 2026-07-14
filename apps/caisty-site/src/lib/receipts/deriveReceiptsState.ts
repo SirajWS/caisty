@@ -88,6 +88,14 @@ function formatEventLabel(
       return t.receipts.eventPrinted;
     case "reprinted":
       return t.receipts.eventReprinted;
+    case "refund":
+      return t.receipts.eventRefunded;
+    case "partial_refund":
+      return t.receipts.eventPartialRefund;
+    case "payment_changed":
+      return t.receipts.eventPaymentChanged;
+    case "voided":
+      return t.receipts.eventVoided;
     default:
       return eventType;
   }
@@ -102,7 +110,7 @@ function deriveSummary(input: DeriveReceiptsInput): ReceiptsKpi[] {
   const dash = input.t.labels.dash;
   const page = input.data.page;
 
-  if (!page || page.receipts.length === 0) {
+  if (!page || page.summary.receiptsCount === 0) {
     const hint = r.waitingPosSyncShort;
     return [
       waitingKpi("receipts_today", r.kpiReceiptsToday, hint, dash),
@@ -148,7 +156,7 @@ function derivePayments(input: DeriveReceiptsInput): ReceiptPaymentCard[] {
   const dash = input.t.labels.dash;
   const page = input.data.page;
 
-  if (!page || page.receipts.length === 0) {
+  if (!page || page.summary.receiptsCount === 0) {
     return [
       { id: "cash", label: r.paymentCash, value: dash, tone: "unknown" },
       { id: "card", label: r.paymentCard, value: dash, tone: "unknown" },
@@ -215,11 +223,32 @@ function mapEventRows(input: DeriveReceiptsInput): ReceiptEventRow[] {
 
   if (!detail) return [];
 
+  if (detail.timeline?.length) {
+    return detail.timeline.map((entry) => ({
+      id: entry.id,
+      time: formatTime(entry.occurredAt, input.locale, timezone),
+      label: formatEventLabel(entry.kind, input.t),
+      actor: entry.actor?.trim() || dash,
+      summary: entry.summary?.trim() || dash,
+      kind:
+        entry.kind === "created" ||
+        entry.kind === "printed" ||
+        entry.kind === "reprinted" ||
+        entry.kind === "refund" ||
+        entry.kind === "partial_refund" ||
+        entry.kind === "payment_changed" ||
+        entry.kind === "voided"
+          ? entry.kind
+          : "other",
+    }));
+  }
+
   return detail.events.map((event) => ({
     id: event.id,
     time: formatTime(event.occurredAt, input.locale, timezone),
     label: formatEventLabel(event.eventType, input.t),
     actor: event.actor?.trim() || dash,
+    summary: dash,
     kind:
       event.eventType === "created"
         ? "created"
@@ -227,7 +256,15 @@ function mapEventRows(input: DeriveReceiptsInput): ReceiptEventRow[] {
           ? "printed"
           : event.eventType === "reprinted"
             ? "reprinted"
-            : "other",
+            : event.eventType === "refund"
+              ? "refund"
+              : event.eventType === "partial_refund"
+                ? "partial_refund"
+                : event.eventType === "payment_changed"
+                  ? "payment_changed"
+                  : event.eventType === "voided"
+                    ? "voided"
+                    : "other",
   }));
 }
 
@@ -267,6 +304,8 @@ export function deriveReceiptsState(input: DeriveReceiptsInput): ReceiptsDerived
     events: mapEventRows(input),
     printStats: derivePrintStats(input),
     detailReceipt: input.data.detail?.receipt ?? null,
-    hasReceipts: receipts.length > 0,
+    refundSummary: input.data.detail?.refundSummary ?? null,
+    hasPaymentChange: input.data.detail?.hasPaymentChange ?? false,
+    hasReceipts: (input.data.page?.pagination.total ?? 0) > 0,
   };
 }

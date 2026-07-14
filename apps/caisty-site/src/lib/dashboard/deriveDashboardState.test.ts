@@ -84,9 +84,19 @@ function salesSummary(
     todayRevenueCents: 0,
     ordersToday: 0,
     receiptsToday: 0,
+    refundsCount: 0,
+    averageOrderMinor: 0,
     currency: "EUR",
     lastSynchronizationAt: null,
     hasSalesData: false,
+    paymentSummary: {
+      cashCents: 0,
+      cardCents: 0,
+      voucherCents: 0,
+      otherCents: 0,
+      currency: "EUR",
+    },
+    recentOrders: [],
     ...overrides,
   };
 }
@@ -124,7 +134,7 @@ describe("deriveDashboardState", () => {
     expect(revenue?.hint).toContain("POS sync");
   });
 
-  it("shows real revenue, orders and receipts when POS data exists", () => {
+  it("shows real revenue, orders and average order when POS data exists", () => {
     const state = deriveDashboardState(
       deriveInput(
         makeData({
@@ -132,6 +142,7 @@ describe("deriveDashboardState", () => {
             todayRevenueCents: 572800,
             ordersToday: 10,
             receiptsToday: 10,
+            averageOrderMinor: 57280,
             currency: "TND",
             lastSynchronizationAt: "2026-07-08T10:00:00.000Z",
             hasSalesData: true,
@@ -142,7 +153,7 @@ describe("deriveDashboardState", () => {
 
     const revenue = state.kpis.find((k) => k.id === "revenue");
     const orders = state.kpis.find((k) => k.id === "orders");
-    const receipts = state.kpis.find((k) => k.id === "receipts");
+    const avgOrder = state.kpis.find((k) => k.id === "avg_order");
     const lastSync = state.kpis.find((k) => k.id === "last_sync");
 
     expect(revenue?.status).toBe("value");
@@ -150,7 +161,7 @@ describe("deriveDashboardState", () => {
     expect(revenue?.value).toContain("572.800");
     expect(revenue?.hint).toBeUndefined();
     expect(orders?.value).toBe("10");
-    expect(receipts?.value).toBe("10");
+    expect(avgOrder?.value).toContain("57.280");
     expect(lastSync?.status).toBe("value");
   });
 

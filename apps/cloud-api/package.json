@@ -10,6 +10,7 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:apply-027": "tsx scripts/apply-migration-027.ts",
     "db:seed": "tsx src/db/seed.ts",
     "db:seed-payments": "tsx src/db/seed-payments-webhooks.ts",
     "db:seed:admin": "tsx src/db/seedAdminUsers.ts"

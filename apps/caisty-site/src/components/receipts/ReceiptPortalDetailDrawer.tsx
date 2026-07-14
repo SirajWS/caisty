@@ -18,6 +18,7 @@ export function ReceiptPortalDetailDrawer({
   detailLoading,
   events,
   printStats,
+  refundSummary,
   identity,
   labels,
   locale,
@@ -35,6 +36,12 @@ export function ReceiptPortalDetailDrawer({
     lastPrintTime: string;
   };
   identity: DocumentIdentity | null;
+  refundSummary?: {
+    originalAmountCents: number;
+    refundedAmountCents: number;
+    refundableAmountCents: number;
+    currency: string;
+  } | null;
   labels: {
     title: string;
     business: string;
@@ -74,6 +81,8 @@ export function ReceiptPortalDetailDrawer({
     statusRefunded: string;
     statusPartialRefund: string;
     statusVoided: string;
+    refundedAmount: string;
+    currentPaymentMethod: string;
   };
   locale: string;
   timezone: string;
@@ -193,6 +202,12 @@ export function ReceiptPortalDetailDrawer({
                 <dt>{labels.payment}</dt>
                 <dd>{receipt.paymentMethod || labels.dash}</dd>
               </div>
+              {refundSummary && refundSummary.refundedAmountCents > 0 ? (
+                <div className="receipt-detail-row">
+                  <dt>{labels.refundedAmount}</dt>
+                  <dd>{formatMoney(refundSummary.refundedAmountCents)}</dd>
+                </div>
+              ) : null}
               <div className="receipt-detail-row">
                 <dt>{labels.fiscal}</dt>
                 <dd>{receipt.fiscalStatus}</dd>

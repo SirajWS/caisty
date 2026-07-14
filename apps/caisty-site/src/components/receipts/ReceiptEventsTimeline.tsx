@@ -1,4 +1,4 @@
-import { Printer, Receipt, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, Ban, Printer, Receipt, RefreshCw, Undo2 } from "lucide-react";
 import type { ReceiptEventRow } from "../../lib/receipts/types";
 
 function eventIcon(kind: ReceiptEventRow["kind"]) {
@@ -9,6 +9,13 @@ function eventIcon(kind: ReceiptEventRow["kind"]) {
       return Printer;
     case "reprinted":
       return RefreshCw;
+    case "refund":
+    case "partial_refund":
+      return Undo2;
+    case "payment_changed":
+      return ArrowLeftRight;
+    case "voided":
+      return Ban;
     default:
       return Receipt;
   }
@@ -42,7 +49,12 @@ export function ReceiptEventsTimeline({
                   <Icon size={14} className="dashboard-icon--muted" />
                   <span className="receipt-event-time">{event.time}</span>
                   <span className="dashboard-activity-label">{event.label}</span>
-                  <span className="receipt-event-actor">{event.actor}</span>
+                  <span className="receipt-event-actor">
+                    {event.summary !== event.actor ? event.summary : event.actor}
+                  </span>
+                  {event.summary !== event.actor && event.actor ? (
+                    <span className="receipt-event-actor">{event.actor}</span>
+                  ) : null}
                 </div>
               </li>
             );

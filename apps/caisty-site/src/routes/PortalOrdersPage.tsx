@@ -9,19 +9,21 @@ import { usePortalOrdersData } from "../lib/orders/usePortalOrdersData";
 import { ORDERS_PREVIEW_LIMIT } from "../lib/orders/ordersPreview";
 import { OrdersSummary } from "../components/orders/OrdersSummary";
 import { OrdersTable } from "../components/orders/OrdersTable";
-import { ReceiptsTable } from "../components/orders/ReceiptsTable";
+import { OnlineOrdersTable } from "../components/orders/OnlineOrdersTable";
 import { PaymentOverview } from "../components/orders/PaymentOverview";
 import { OrdersEmptyState } from "../components/orders/OrdersEmptyState";
+import { OrdersErrorState } from "../components/orders/OrdersErrorState";
 import { OrdersFilters } from "../components/orders/OrdersFilters";
 import { ReceiptDetailDrawer } from "../components/orders/ReceiptDetailDrawer";
+import { OrderDetailDrawer } from "../components/orders/OrderDetailDrawer";
+import { formatPortalPaymentMethod } from "../lib/portal/portalSalesLabels";
 import { PortalExportPdfButton } from "../components/portal/PortalExportPdfButton";
 import {
   buildOrdersDocumentLabels,
-  buildReceiptDocumentLabels,
 } from "../lib/documents/documentLabels";
 import type { DocumentIdentity } from "../lib/documents/types";
 import { buildDocumentMeta, resolveDocumentIdentity } from "../lib/documents/documentMeta";
-import type { PosReceiptRow } from "../lib/orders/types";
+import type { PosOrderRow, PosReceiptRow, ProviderOrderRow } from "../lib/orders/types";
 import { portalPageShell, portalPageSubtitle, portalPageTitle, portalSecondaryCta } from "../lib/portalUi";
 
 const PortalOrdersPage: React.FC = () => {
@@ -33,9 +35,10 @@ const PortalOrdersPage: React.FC = () => {
   const isLight = theme === "light";
 
   const release = React.useMemo(() => getPosReleaseConfig(), []);
-  const data = usePortalOrdersData(customer);
+  const [exportingPdf, setExportingPdf] = React.useState(false);
+  const data = usePortalOrdersData(customer, { pollingPaused: exportingPdf });
   const [ordersExpanded, setOrdersExpanded] = React.useState(false);
-  const [receiptsExpanded, setReceiptsExpanded] = React.useState(false);
+  const [providerOrdersExpanded, setProviderOrdersExpanded] = React.useState(false);
 
   const locale =
     language === "de"
@@ -51,13 +54,14 @@ const PortalOrdersPage: React.FC = () => {
     [data, t, locale],
   );
 
-  const showEmptyHero = !data.loading && !orders.hasSalesData;
-  const [exportingPdf, setExportingPdf] = React.useState(false);
+  const showErrorHero = !data.loading && data.error && !data.sales;
+  const showEmptyHero =
+    !data.loading && !data.error && data.sales !== null && !orders.hasSalesData;
   const [selectedReceipt, setSelectedReceipt] =
     React.useState<PosReceiptRow | null>(null);
-  const [downloadingReceiptId, setDownloadingReceiptId] = React.useState<
-    string | null
-  >(null);
+  const [selectedOrder, setSelectedOrder] = React.useState<PosOrderRow | null>(
+    null,
+  );
   const [receiptIdentity, setReceiptIdentity] =
     React.useState<DocumentIdentity | null>(null);
   const periodLabel = o.filterToday;
@@ -71,18 +75,6 @@ const PortalOrdersPage: React.FC = () => {
       cancelled = true;
     };
   }, [customer]);
-
-  React.useEffect(() => {
-    if (exportingPdf) return;
-
-    const intervalId = window.setInterval(() => {
-      data.reload();
-    }, 30_000);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [data.reload, exportingPdf]);
 
   const handleRefresh = React.useCallback(() => {
     if (exportingPdf || data.refreshing) return;
@@ -114,43 +106,19 @@ const PortalOrdersPage: React.FC = () => {
     }
   }, [customer, data.sales, locale, periodLabel, t]);
 
-  const handleViewReceipt = React.useCallback((receipt: PosReceiptRow) => {
-    setSelectedReceipt(receipt);
+  const handleViewOrder = React.useCallback((order: PosOrderRow | ProviderOrderRow) => {
+    setSelectedOrder(order as PosOrderRow);
   }, []);
 
-  const handleDownloadReceiptPdf = React.useCallback(
-    async (receipt: PosReceiptRow) => {
-      const sales = data.sales;
-      if (!sales) return;
-
-      setDownloadingReceiptId(receipt.id);
-      try {
-        const identity =
-          receiptIdentity ?? (await resolveDocumentIdentity(customer));
-        const { exportReceiptPdf } = await import(
-          "../lib/documents/receiptDocument"
-        );
-        const receiptLabel =
-          receipt.source.receiptNumber?.trim() ||
-          receipt.source.localReceiptId;
-
-        exportReceiptPdf({
-          meta: buildDocumentMeta({
-            identity,
-            period: { label: receiptLabel },
-            generatedAt: new Date(),
-            timezone: sales.timezone,
-            currency: receipt.source.currency,
-            locale,
-          }),
-          labels: buildReceiptDocumentLabels(t),
-          receipt: receipt.source,
-        });
-      } finally {
-        setDownloadingReceiptId(null);
+  const handleViewReceiptFromOrder = React.useCallback(
+    (receiptId: string) => {
+      const receipt = orders.receipts.find((row) => row.id === receiptId);
+      if (receipt) {
+        setSelectedOrder(null);
+        setSelectedReceipt(receipt);
       }
     },
-    [customer, data.sales, locale, receiptIdentity, t],
+    [orders.receipts],
   );
 
   const receiptDrawerLabels = React.useMemo(
@@ -186,15 +154,15 @@ const PortalOrdersPage: React.FC = () => {
     [o.viewAllOrders, o.showLess, orders.orders.length],
   );
 
-  const receiptsExpandLabels = React.useMemo(
+  const providerOrdersExpandLabels = React.useMemo(
     () => ({
-      viewAll: o.viewAllReceipts.replace(
+      viewAll: o.viewAllOnlineOrders.replace(
         "{{count}}",
-        String(orders.receipts.length),
+        String(orders.providerOrders.length),
       ),
       showLess: o.showLess,
     }),
-    [o.viewAllReceipts, o.showLess, orders.receipts.length],
+    [o.viewAllOnlineOrders, o.showLess, orders.providerOrders.length],
   );
 
   return (
@@ -237,6 +205,17 @@ const PortalOrdersPage: React.FC = () => {
 
       <OrdersFilters label={o.filtersTitle} todayLabel={o.filterToday} />
 
+      {showErrorHero ? (
+        <OrdersErrorState
+          headline={o.errorHeadline}
+          description={o.errorDescription}
+          retryLabel={o.errorRetry}
+          onRetry={handleRefresh}
+          isLight={isLight}
+          loading={data.refreshing}
+        />
+      ) : null}
+
       {showEmptyHero ? (
         <OrdersEmptyState
           headline={o.emptyHeadline}
@@ -257,42 +236,95 @@ const PortalOrdersPage: React.FC = () => {
         expanded={ordersExpanded}
         onToggleExpand={() => setOrdersExpanded((value) => !value)}
         expandLabels={ordersExpandLabels}
+        onViewOrder={handleViewOrder}
+        actionView={o.actionView}
         columns={{
           time: o.colTime,
           orderNumber: o.colOrderNumber,
           status: o.colStatus,
           payment: o.colPayment,
+          receipt: o.colReceiptLink,
           amount: o.colAmount,
           cashier: o.colCashier,
           device: o.colDevice,
+          actions: o.colActions,
         }}
       />
 
-      <ReceiptsTable
-        receipts={orders.receipts}
+      <OnlineOrdersTable
+        orders={orders.providerOrders}
         loading={data.loading}
-        title={o.receiptsTitle}
-        emptyLabel={o.receiptsEmpty}
-        actionsLabel={o.colActions}
+        title={o.onlineOrdersTitle}
+        emptyLabel={o.onlineOrdersEmpty}
+        emptyDescription={o.onlineOrdersEmptyHint}
         actionView={o.actionView}
-        actionPrint={o.actionPrint}
-        actionDownload={o.actionDownloadPdf}
         previewLimit={ORDERS_PREVIEW_LIMIT}
-        totalCount={orders.receipts.length}
-        expanded={receiptsExpanded}
-        onToggleExpand={() => setReceiptsExpanded((value) => !value)}
-        expandLabels={receiptsExpandLabels}
-        onView={handleViewReceipt}
-        onDownloadPdf={handleDownloadReceiptPdf}
-        downloadingReceiptId={downloadingReceiptId}
+        totalCount={orders.providerOrders.length}
+        expanded={providerOrdersExpanded}
+        onToggleExpand={() => setProviderOrdersExpanded((value) => !value)}
+        expandLabels={providerOrdersExpandLabels}
+        onViewOrder={handleViewOrder}
+        receiptsLinkLabel={o.viewAllReceiptsLink}
+        receiptsHref="/portal/receipts"
         columns={{
-          receipt: o.colReceipt,
           time: o.colTime,
+          orderNumber: o.colOrderNumber,
+          provider: o.colProvider,
           customer: o.colCustomer,
+          details: o.colDetails,
+          status: o.colStatus,
           payment: o.colPayment,
-          fiscal: o.colFiscal,
           amount: o.colAmount,
+          actions: o.colActions,
         }}
+      />
+      <OrderDetailDrawer
+        open={selectedOrder !== null}
+        order={selectedOrder}
+        labels={{
+          title: o.orderDetailTitle,
+          orderNumber: o.colOrderNumber,
+          receiptNumber: o.colReceipt,
+          cashier: o.colCashier,
+          businessDate: o.colBusinessDate,
+          status: o.colStatus,
+          products: o.colProduct,
+          discounts: o.colDiscounts,
+          tax: o.colTax,
+          net: o.colNet,
+          payments: o.colPayment,
+          receipt: o.colReceipt,
+          timeline: o.orderTimelineTitle,
+          timelineEmpty: o.orderTimelineEmpty,
+          receiptTimeline: o.receiptTimelineTitle,
+          receiptTimelineEmpty: o.receiptTimelineEmpty,
+          refundedAmount: o.refundedAmountLabel,
+          paymentChanged: o.paymentChangedLabel,
+          close: o.orderDetailClose,
+          dash: t.labels.dash,
+          colProduct: o.colProduct,
+          colQuantity: o.colQuantity,
+          colUnitPrice: o.colUnitPrice,
+          colLineTotal: o.colLineTotal,
+          colPayment: o.colPayment,
+          colAmount: o.colAmount,
+          viewReceipt: o.viewReceiptLink,
+          provider: o.colProvider,
+          providerOrderId: o.providerOrderIdLabel,
+          customer: o.colCustomer,
+          phone: o.colPhone,
+          deliveryAddress: o.deliveryAddressLabel,
+          customerNote: o.customerNoteLabel,
+          paymentStatus: o.colPayment,
+          platform: o.colPlatform,
+          orderSource: o.orderSourceLabel,
+          onlineOrderBadge: o.onlineOrderBadge,
+        }}
+        locale={locale}
+        timezone={data.sales?.timezone ?? "Europe/Berlin"}
+        onClose={() => setSelectedOrder(null)}
+        onViewReceipt={handleViewReceiptFromOrder}
+        formatPayment={(method) => formatPortalPaymentMethod(method, t)}
       />
       <ReceiptDetailDrawer
         open={selectedReceipt !== null}

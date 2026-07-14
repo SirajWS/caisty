@@ -8,6 +8,7 @@ import {
 import { formatLicenseStatus, formatProviderLabel } from "../caistyTerminology";
 import { pickPrimaryPortalLicense } from "../portalLicensePick";
 import { deriveFiscalVisibility } from "../useFiscalVisibility";
+import { formatPortalOrderStatus, formatPortalPaymentMethod } from "../portal/portalSalesLabels";
 import { formatMinorUnits } from "../money/formatMinorUnits";
 import { derivePosHubState } from "../posHub/derivePosHubState";
 import { formatInstallerBytes } from "../posHub/format";
@@ -26,6 +27,7 @@ import type {
   LiveDeviceCard,
   LiveReleaseCenter,
   LiveStoreStatusItem,
+  PortalDashboardRecentOrder,
   RemoteAction,
   StoreSnapshot,
   SystemHealthItem,
@@ -168,7 +170,13 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
       )
     : dash;
   const ordersValue = hasSales ? String(sales!.ordersToday) : dash;
-  const receiptsValue = hasSales ? String(sales!.receiptsToday) : dash;
+  const avgOrderValue = hasSales
+    ? formatMoney(
+        sales!.averageOrderMinor,
+        sales!.currency || data.business?.currency || "EUR",
+        input.locale,
+      )
+    : dash;
 
   return [
     {
@@ -186,9 +194,9 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
       status: hasSales ? "value" : "waiting_sync",
     },
     {
-      id: "receipts",
-      label: l.kpiReceiptsToday,
-      value: receiptsValue,
+      id: "avg_order",
+      label: l.kpiAvgOrder,
+      value: avgOrderValue,
       hint: hasSales ? undefined : syncHint,
       status: hasSales ? "value" : "waiting_sync",
     },
@@ -652,6 +660,33 @@ function deriveQuickActions(input: DeriveDashboardInput): DashboardQuickAction[]
   return actions;
 }
 
+function deriveRecentOrders(input: DeriveDashboardInput): PortalDashboardRecentOrder[] {
+  const sales = input.data.salesSummary;
+  if (!sales?.recentOrders?.length) return [];
+
+  const timezone = sales.timezone ?? "Europe/Berlin";
+  const currency = sales.currency || "EUR";
+
+  return sales.recentOrders.map((order) => ({
+    id: order.id,
+    time: order.soldAt
+      ? new Date(order.soldAt).toLocaleTimeString(input.locale, {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: timezone,
+        })
+      : input.t.labels.dash,
+    orderNumber: order.localOrderId || input.t.labels.dash,
+    status: formatPortalOrderStatus(order.normalizedStatus, input.t),
+    statusKey: order.normalizedStatus,
+    payment: order.paymentDisplay || formatPortalPaymentMethod(order.paymentMethod, input.t),
+    amount: formatMoney(order.amountCents, order.currency || currency, input.locale),
+    receiptNumber: order.receiptNumber?.trim() || input.t.labels.dash,
+    isProviderOrder: order.isProviderOrder,
+    providerName: order.providerName,
+  }));
+}
+
 function deriveRoadmap(input: DeriveDashboardInput): DashboardRoadmapModule[] {
   const h = input.t.dashboard.home;
   return [
@@ -705,5 +740,7 @@ export function deriveDashboardState(
     liveDevices: deriveLiveDevices(input),
     releaseCenter: deriveReleaseCenter(input, hub),
     systemHealth: deriveSystemHealth(input, hub),
+    recentOrders: deriveRecentOrders(input),
+    paymentSummary: data.salesSummary?.paymentSummary ?? null,
   };
 }

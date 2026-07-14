@@ -12,6 +12,7 @@ import { ReceiptsFilters } from "../components/receipts/ReceiptsFilters";
 import { ReceiptsTable } from "../components/receipts/ReceiptsTable";
 import { ReceiptsEmptyState } from "../components/receipts/ReceiptsEmptyState";
 import { ReceiptPortalDetailDrawer } from "../components/receipts/ReceiptPortalDetailDrawer";
+import { PortalPagination } from "../components/portal/PortalPagination";
 import { PaymentOverview } from "../components/orders/PaymentOverview";
 import { resolveDocumentIdentity } from "../lib/documents/documentMeta";
 import type { DocumentIdentity } from "../lib/documents/types";
@@ -35,7 +36,8 @@ const PortalReceiptsPage: React.FC = () => {
     [data, t, locale],
   );
 
-  const showEmptyHero = !data.loading && !receipts.hasReceipts;
+  const showEmptyHero =
+    !data.loading && !data.error && !receipts.hasReceipts;
   const [identity, setIdentity] = React.useState<DocumentIdentity | null>(null);
 
   React.useEffect(() => {
@@ -107,6 +109,8 @@ const PortalReceiptsPage: React.FC = () => {
       statusRefunded: r.statusRefunded,
       statusPartialRefund: r.statusPartialRefund,
       statusVoided: r.statusVoided,
+      refundedAmount: r.refundedAmount,
+      currentPaymentMethod: r.currentPaymentMethod,
     }),
     [r, t],
   );
@@ -152,18 +156,18 @@ const PortalReceiptsPage: React.FC = () => {
         search={data.query.search}
         sort={data.query.sort}
         onPeriodChange={(period) =>
-          data.setQuery((prev) => ({ ...prev, period }))
+          data.setQuery((prev) => ({ ...prev, period, page: 1 }))
         }
         onPaymentMethodChange={(paymentMethod) =>
-          data.setQuery((prev) => ({ ...prev, paymentMethod }))
+          data.setQuery((prev) => ({ ...prev, paymentMethod, page: 1 }))
         }
         onStatusChange={(status) =>
-          data.setQuery((prev) => ({ ...prev, status }))
+          data.setQuery((prev) => ({ ...prev, status, page: 1 }))
         }
-        onSearchChange={(search) =>
-          data.setQuery((prev) => ({ ...prev, search }))
+        onSearchChange={(search) => data.setQuery((prev) => ({ ...prev, search }))}
+        onSortChange={(sort) =>
+          data.setQuery((prev) => ({ ...prev, sort, page: 1 }))
         }
-        onSortChange={(sort) => data.setQuery((prev) => ({ ...prev, sort }))}
       />
 
       {showEmptyHero ? (
@@ -198,12 +202,26 @@ const PortalReceiptsPage: React.FC = () => {
         }}
       />
 
+      {data.page?.pagination ? (
+        <PortalPagination
+          pagination={data.page.pagination}
+          onPageChange={data.setPage}
+          labels={{
+            previous: r.paginationPrevious,
+            next: r.paginationNext,
+            pageOf: r.paginationPageOf,
+            showing: r.paginationShowing,
+          }}
+        />
+      ) : null}
+
       <ReceiptPortalDetailDrawer
         open={data.detailReceiptId !== null}
         detail={data.detail}
         detailLoading={data.detailLoading}
         events={receipts.events}
         printStats={receipts.printStats}
+        refundSummary={receipts.refundSummary}
         identity={identity}
         labels={drawerLabels}
         locale={locale}

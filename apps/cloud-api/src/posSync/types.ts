@@ -23,11 +23,19 @@ export type PosSyncOrderLinePayload = {
 
 export type PosSyncOrderPayload = {
   localOrderId: string;
-  status?: "open" | "closed" | "cancelled";
+  status?: string;
   totalCents: number;
   currency?: string;
   soldAt: string;
   lines?: PosSyncOrderLinePayload[];
+  platform?: string;
+  providerOrderId?: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  deliveryAddress?: string;
+  customerNote?: string;
+  paymentStatus?: string;
 };
 
 export type PosSyncReceiptPayload = {

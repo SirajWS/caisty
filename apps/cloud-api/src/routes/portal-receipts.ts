@@ -42,6 +42,9 @@ export async function registerPortalReceiptsRoutes(app: FastifyInstance) {
       status?: string;
       search?: string;
       sort?: string;
+      limit?: string;
+      offset?: string;
+      page?: string;
     };
 
     try {
@@ -53,6 +56,9 @@ export async function registerPortalReceiptsRoutes(app: FastifyInstance) {
         status: query.status,
         search: query.search,
         sort: query.sort,
+        limit: query.limit,
+        offset: query.offset,
+        page: query.page,
       });
     } catch (err: unknown) {
       request.log.error(

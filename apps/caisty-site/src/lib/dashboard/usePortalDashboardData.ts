@@ -9,9 +9,11 @@ import {
   type PortalDashboardSummary,
 } from "../portalApi";
 import type { DashboardData } from "./types";
+import { usePortalSalesPolling } from "../portal/usePortalSalesPolling";
 
 export type UsePortalDashboardDataResult = DashboardData & {
   reload: () => void;
+  refreshing: boolean;
 };
 
 const emptySalesSummary = (): PortalDashboardSummary => ({
@@ -20,9 +22,19 @@ const emptySalesSummary = (): PortalDashboardSummary => ({
   todayRevenueCents: 0,
   ordersToday: 0,
   receiptsToday: 0,
+  refundsCount: 0,
+  averageOrderMinor: 0,
   currency: "EUR",
   lastSynchronizationAt: null,
   hasSalesData: false,
+  paymentSummary: {
+    cashCents: 0,
+    cardCents: 0,
+    voucherCents: 0,
+    otherCents: 0,
+    currency: "EUR",
+  },
+  recentOrders: [],
 });
 
 const initialData = (
@@ -46,16 +58,28 @@ export function usePortalDashboardData(
     lastSyncedAt: null,
   }));
   const [tick, setTick] = React.useState(0);
+  const [refreshing, setRefreshing] = React.useState(false);
+  const hasLoadedRef = React.useRef(false);
 
   const reload = React.useCallback(() => {
     setTick((n) => n + 1);
   }, []);
 
   React.useEffect(() => {
+    hasLoadedRef.current = false;
+  }, [customer.id]);
+
+  React.useEffect(() => {
     let cancelled = false;
+    const isBackgroundRefresh = hasLoadedRef.current;
+
+    if (isBackgroundRefresh) {
+      setRefreshing(true);
+    } else {
+      setState((prev) => ({ ...prev, loading: true, error: false }));
+    }
 
     (async () => {
-      setState((prev) => ({ ...prev, loading: true, error: false }));
       let hadError = false;
 
       try {
@@ -82,6 +106,7 @@ export function usePortalDashboardData(
 
         if (cancelled) return;
 
+        hasLoadedRef.current = true;
         setState({
           licenses,
           devices,
@@ -95,12 +120,17 @@ export function usePortalDashboardData(
         });
       } catch {
         if (!cancelled) {
+          hasLoadedRef.current = true;
           setState((prev) => ({
             ...prev,
             loading: false,
             error: true,
             lastSyncedAt: new Date(),
           }));
+        }
+      } finally {
+        if (!cancelled) {
+          setRefreshing(false);
         }
       }
     })();
@@ -110,5 +140,7 @@ export function usePortalDashboardData(
     };
   }, [customer, tick]);
 
-  return { ...state, reload };
+  usePortalSalesPolling(reload);
+
+  return { ...state, reload, refreshing };
 }

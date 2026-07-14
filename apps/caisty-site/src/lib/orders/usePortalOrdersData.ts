@@ -1,38 +1,16 @@
 import React from "react";
-import {
-  fetchPortalOrders,
-  type PortalCustomer,
-  type PortalOrdersResponse,
-} from "../portalApi";
+import { fetchPortalOrders, type PortalCustomer } from "../portalApi";
 import type { OrdersData } from "./types";
+import { usePortalSalesPolling } from "../portal/usePortalSalesPolling";
 
 export type UsePortalOrdersDataResult = OrdersData & {
   reload: () => void;
   refreshing: boolean;
 };
 
-const emptySales = (): PortalOrdersResponse => ({
-  timezone: "Europe/Berlin",
-  period: "today",
-  summary: {
-    ordersCount: 0,
-    receiptsCount: 0,
-    refundsCount: 0,
-    openShift: null,
-    paymentSummary: {
-      cashCents: 0,
-      cardCents: 0,
-      voucherCents: 0,
-      otherCents: 0,
-      currency: "EUR",
-    },
-  },
-  orders: [],
-  receipts: [],
-});
-
 export function usePortalOrdersData(
   customer: PortalCustomer,
+  options?: { pollingPaused?: boolean },
 ): UsePortalOrdersDataResult {
   const [state, setState] = React.useState<OrdersData>(() => ({
     customer,
@@ -79,13 +57,14 @@ export function usePortalOrdersData(
       } catch {
         if (!cancelled) {
           hasLoadedRef.current = true;
-          setState({
+          setState((prev) => ({
+            ...prev,
             customer,
-            sales: emptySales(),
+            sales: isBackgroundRefresh ? prev.sales : null,
             loading: false,
             error: true,
-            lastSyncedAt: new Date(),
-          });
+            lastSyncedAt: prev.lastSyncedAt,
+          }));
         }
       } finally {
         if (!cancelled) {
@@ -98,6 +77,8 @@ export function usePortalOrdersData(
       cancelled = true;
     };
   }, [customer, tick]);
+
+  usePortalSalesPolling(reload, { paused: options?.pollingPaused ?? false });
 
   return { ...state, reload, refreshing };
 }

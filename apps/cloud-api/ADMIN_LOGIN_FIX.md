@@ -44,6 +44,14 @@ Damit werden u.a. die Tabellen `admin_users`, `admin_permissions`, `admin_passwo
 
 **Hinweis:** Wenn du die Meldung `relation "admin_password_resets" already exists` bekommst, sind die Tabellen bereits vorhanden. In dem Fall Migration überspringen und direkt **Schritt 4 (Seed)** ausführen.
 
+### Migration 027 (Portal Orders — vor Code-Deployment)
+
+Vor dem Deployment von Code, der Phase 7 Sprint 3.1+ enthält, muss **`027_pos_orders_provider_fields.sql`** auf der Ziel-Datenbank angewendet werden (Staging und Produktion **jeweils separat** prüfen).
+
+- Bevorzugt über die reguläre Migration-Pipeline: `pnpm db:migrate` in `apps/cloud-api`.
+- Ohne Migration 027 antwortet **`GET /portal/orders`** mit **HTTP 500** (fehlende Spalten auf `pos_orders`).
+- Temporärer Fallback, falls `drizzle-kit migrate` an älteren Migrationen scheitert: `pnpm db:apply-027` (führt nur Migration 027 aus).
+
 ---
 
 ## 4. Admin-User anlegen (Seed)

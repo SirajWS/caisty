@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { deriveOrdersState } from "./deriveOrdersState";
 import { portalEn } from "../translations/portal/en";
 import type { OrdersData } from "./types";
-import type { PortalOrdersResponse } from "../portalApi";
+import type { PortalOrderRecord, PortalOrdersResponse } from "../portalApi";
 
 const baseCustomer = {
   id: "c1",
@@ -11,6 +11,56 @@ const baseCustomer = {
   email: "alex@test.com",
   portalStatus: "active" as const,
 };
+
+function defaultOrderFields(): Omit<
+  PortalOrderRecord,
+  "id" | "localOrderId"
+> {
+  return {
+    deviceId: "dev-1",
+    soldAt: "2026-07-08T08:15:00.000Z",
+    businessDate: "2026-07-08",
+    rawStatus: "closed",
+    normalizedStatus: "completed",
+    status: "completed",
+    statusLabel: "Completed",
+    paymentMethod: "cash",
+    paymentStatus: "pending",
+    paymentDisplay: "Cash · Pending",
+    amountCents: 500,
+    currency: "EUR",
+    cashier: null,
+    deviceName: "Kasse 1",
+    receiptId: null,
+    receiptNumber: null,
+    receiptStatus: null,
+    refundedAmountCents: 0,
+    hasPaymentChange: false,
+    lines: [],
+    timeline: [],
+    orderSource: "pos",
+    isProviderOrder: false,
+    platform: null,
+    providerName: null,
+    providerOrderId: null,
+    customerName: null,
+    customerPhone: null,
+    customerEmail: null,
+    deliveryAddress: null,
+    customerNote: null,
+    detailsSummary: null,
+  };
+}
+
+function makeOrder(
+  overrides: Partial<PortalOrderRecord> &
+    Pick<PortalOrderRecord, "id" | "localOrderId">,
+): PortalOrderRecord {
+  return {
+    ...defaultOrderFields(),
+    ...overrides,
+  };
+}
 
 function makeSales(
   overrides: Partial<PortalOrdersResponse> = {},
@@ -22,6 +72,8 @@ function makeSales(
       ordersCount: 0,
       receiptsCount: 0,
       refundsCount: 0,
+      revenueCents: 0,
+      averageOrderMinor: 0,
       openShift: null,
       paymentSummary: {
         cashCents: 0,
@@ -32,7 +84,9 @@ function makeSales(
       },
     },
     orders: [],
+    providerOrders: [],
     receipts: [],
+    recentOrders: [],
     ...overrides,
   };
 }
@@ -78,6 +132,8 @@ describe("deriveOrdersState", () => {
               ordersCount: 2,
               receiptsCount: 2,
               refundsCount: 0,
+              revenueCents: 2000,
+              averageOrderMinor: 1000,
               openShift: null,
               paymentSummary: {
                 cashCents: 500,
@@ -88,28 +144,19 @@ describe("deriveOrdersState", () => {
               },
             },
             orders: [
-              {
+              makeOrder({
                 id: "o1",
                 localOrderId: "ORD-1",
-                soldAt: "2026-07-08T08:15:00.000Z",
-                status: "closed",
                 paymentMethod: "cash",
                 amountCents: 500,
-                currency: "EUR",
-                cashier: null,
-                deviceName: "Kasse 1",
-              },
-              {
+              }),
+              makeOrder({
                 id: "o2",
                 localOrderId: "ORD-2",
                 soldAt: "2026-07-08T09:30:00.000Z",
-                status: "closed",
                 paymentMethod: "card",
                 amountCents: 1500,
-                currency: "EUR",
-                cashier: null,
-                deviceName: "Kasse 1",
-              },
+              }),
             ],
             receipts: [
               {
@@ -162,6 +209,8 @@ describe("deriveOrdersState", () => {
               ordersCount: 1,
               receiptsCount: 1,
               refundsCount: 0,
+              revenueCents: 0,
+              averageOrderMinor: 0,
               openShift: null,
               paymentSummary: {
                 cashCents: 680,
@@ -224,6 +273,8 @@ describe("deriveOrdersState", () => {
               ordersCount: 2,
               receiptsCount: 2,
               refundsCount: 0,
+              revenueCents: 0,
+              averageOrderMinor: 0,
               openShift: null,
               paymentSummary: {
                 cashCents: 800,
@@ -234,17 +285,12 @@ describe("deriveOrdersState", () => {
               },
             },
             orders: [
-              {
+              makeOrder({
                 id: "o1",
                 localOrderId: "ORD-1",
-                soldAt: "2026-07-08T08:15:00.000Z",
-                status: "closed",
                 paymentMethod: "cash",
                 amountCents: 800,
-                currency: "EUR",
-                cashier: null,
-                deviceName: "Kasse 1",
-              },
+              }),
             ],
             receipts: [
               {
@@ -283,6 +329,8 @@ describe("deriveOrdersState", () => {
               ordersCount: 1,
               receiptsCount: 1,
               refundsCount: 0,
+              revenueCents: 0,
+              averageOrderMinor: 0,
               openShift: null,
               paymentSummary: {
                 cashCents: 6000,
@@ -293,17 +341,13 @@ describe("deriveOrdersState", () => {
               },
             },
             orders: [
-              {
+              makeOrder({
                 id: "o1",
                 localOrderId: "ORD-1",
-                soldAt: "2026-07-08T08:15:00.000Z",
-                status: "closed",
                 paymentMethod: "cash",
                 amountCents: 6000,
                 currency: "TND",
-                cashier: null,
-                deviceName: "Kasse 1",
-              },
+              }),
             ],
             receipts: [
               {
@@ -343,6 +387,8 @@ describe("deriveOrdersState", () => {
               ordersCount: 1,
               receiptsCount: 0,
               refundsCount: 0,
+              revenueCents: 0,
+              averageOrderMinor: 0,
               openShift: null,
               paymentSummary: {
                 cashCents: 100,
@@ -353,17 +399,12 @@ describe("deriveOrdersState", () => {
               },
             },
             orders: [
-              {
+              makeOrder({
                 id: "o1",
                 localOrderId: "ORD-1",
-                soldAt: "2026-07-08T08:15:00.000Z",
-                status: "closed",
                 paymentMethod: "cash",
                 amountCents: 100,
-                currency: "EUR",
-                cashier: null,
-                deviceName: "Kasse 1",
-              },
+              }),
             ],
           }),
         }),
@@ -375,6 +416,61 @@ describe("deriveOrdersState", () => {
     expect(empty.hasSalesData).toBe(false);
   });
 
+  it("maps provider orders separately from live POS orders", () => {
+    const state = deriveOrdersState(
+      deriveInput(
+        makeData({
+          sales: makeSales({
+            summary: {
+              ordersCount: 2,
+              receiptsCount: 0,
+              refundsCount: 0,
+              revenueCents: 3250,
+              averageOrderMinor: 1625,
+              openShift: null,
+              paymentSummary: {
+                cashCents: 3250,
+                cardCents: 0,
+                voucherCents: 0,
+                otherCents: 0,
+                currency: "TND",
+              },
+            },
+            orders: [
+              makeOrder({
+                id: "live-1",
+                localOrderId: "ORD-1",
+                amountCents: 500,
+              }),
+            ],
+            providerOrders: [
+              makeOrder({
+                id: "provider-1",
+                localOrderId: "T1784007473648",
+                isProviderOrder: true,
+                orderSource: "delivery",
+                platform: "fake_delivery",
+                providerName: "Fake Delivery",
+                customerName: "Test Customer",
+                paymentDisplay: "Cash · Pending",
+                detailsSummary: "1× Burger, 1× Fries",
+                amountCents: 2750,
+                currency: "TND",
+                normalizedStatus: "delivered",
+                status: "delivered",
+                statusLabel: "Delivered",
+              }),
+            ],
+          }),
+        }),
+      ),
+    );
+
+    expect(state.orders).toHaveLength(1);
+    expect(state.providerOrders).toHaveLength(1);
+    expect(state.providerOrders[0].provider).toBe("Fake Delivery");
+  });
+
   it("shows open shift KPI when an open shift is present", () => {
     const state = deriveOrdersState(
       deriveInput(
@@ -384,6 +480,8 @@ describe("deriveOrdersState", () => {
               ordersCount: 1,
               receiptsCount: 1,
               refundsCount: 0,
+              revenueCents: 0,
+              averageOrderMinor: 0,
               openShift: {
                 shiftId: "shift-1",
                 status: "open",
@@ -404,17 +502,12 @@ describe("deriveOrdersState", () => {
               },
             },
             orders: [
-              {
+              makeOrder({
                 id: "o1",
                 localOrderId: "ORD-1",
-                soldAt: "2026-07-08T08:15:00.000Z",
-                status: "closed",
                 paymentMethod: "cash",
                 amountCents: 100,
-                currency: "EUR",
-                cashier: null,
-                deviceName: "Kasse 1",
-              },
+              }),
             ],
           }),
         }),

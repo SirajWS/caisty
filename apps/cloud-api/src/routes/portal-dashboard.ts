@@ -1,9 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 
-import {
-  buildPortalDashboardSummaryResponse,
-  fetchPortalTodaySalesSummary,
-} from "../lib/portalPosSales.js";
+import { fetchPortalDashboardBundle } from "../lib/portalPosSales.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 
 interface PortalJwtPayload {
@@ -37,11 +34,10 @@ export async function registerPortalDashboardRoutes(app: FastifyInstance) {
     }
 
     try {
-      const summary = await fetchPortalTodaySalesSummary({
+      return await fetchPortalDashboardBundle({
         orgId: payload.orgId,
         customerId: payload.customerId,
       });
-      return buildPortalDashboardSummaryResponse(summary);
     } catch (err: unknown) {
       request.log.error(
         { err, customerId: payload.customerId },

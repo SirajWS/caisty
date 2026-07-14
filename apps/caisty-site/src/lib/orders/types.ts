@@ -18,10 +18,31 @@ export type PosOrderRow = {
   time: string;
   orderNumber: string;
   status: string;
+  statusKey: string;
   payment: string;
   amount: string;
   cashier: string;
   device: string;
+  receiptId: string | null;
+  receiptNumber: string;
+  receiptStatus: string | null;
+  refundedAmountCents: number;
+  hasPaymentChange: boolean;
+  source: PortalOrderRecord;
+};
+
+export type ProviderOrderRow = {
+  id: string;
+  time: string;
+  orderNumber: string;
+  provider: string;
+  customer: string;
+  details: string;
+  status: string;
+  statusKey: string;
+  payment: string;
+  amount: string;
+  source: PortalOrderRecord;
 };
 
 export type PosReceiptLineRow = {
@@ -71,6 +92,7 @@ export type BusinessEvent = {
 export type OrdersDerivedState = {
   summary: OrdersKpi[];
   orders: PosOrderRow[];
+  providerOrders: ProviderOrderRow[];
   receipts: PosReceiptRow[];
   payments: PaymentMethodCard[];
   hasSalesData: boolean;

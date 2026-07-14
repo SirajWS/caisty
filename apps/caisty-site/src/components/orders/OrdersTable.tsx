@@ -1,4 +1,5 @@
 import type { PosOrderRow } from "../../lib/orders/types";
+import { OrderStatusBadge } from "./OrderStatusBadge";
 
 export function OrdersTable({
   orders,
@@ -12,6 +13,8 @@ export function OrdersTable({
   expanded = false,
   onToggleExpand,
   expandLabels,
+  onViewOrder,
+  actionView,
 }: {
   orders: PosOrderRow[];
   loading: boolean;
@@ -23,6 +26,8 @@ export function OrdersTable({
     amount: string;
     cashier: string;
     device: string;
+    receipt?: string;
+    actions?: string;
   };
   emptyLabel: string;
   title: string;
@@ -32,6 +37,8 @@ export function OrdersTable({
   expanded?: boolean;
   onToggleExpand?: () => void;
   expandLabels?: { viewAll: string; showLess: string };
+  onViewOrder?: (order: PosOrderRow) => void;
+  actionView?: string;
 }) {
   const panelClass = primary
     ? "dashboard-panel dashboard-panel--wide orders-panel--primary"
@@ -43,6 +50,7 @@ export function OrdersTable({
     expanded || count <= limit ? orders : orders.slice(0, limit);
   const showExpandToggle =
     Boolean(onToggleExpand && expandLabels && previewLimit != null && count > limit);
+  const colSpan = onViewOrder ? 9 : 8;
 
   return (
     <section className={panelClass}>
@@ -55,21 +63,23 @@ export function OrdersTable({
               <th>{columns.orderNumber}</th>
               <th>{columns.status}</th>
               <th>{columns.payment}</th>
+              {columns.receipt ? <th>{columns.receipt}</th> : null}
               <th>{columns.amount}</th>
               <th>{columns.cashier}</th>
               <th>{columns.device}</th>
+              {onViewOrder ? <th>{columns.actions ?? ""}</th> : null}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="orders-table-empty">
+                <td colSpan={colSpan} className="orders-table-empty">
                   …
                 </td>
               </tr>
             ) : visibleOrders.length === 0 ? (
               <tr>
-                <td colSpan={7} className="orders-table-empty">
+                <td colSpan={colSpan} className="orders-table-empty">
                   {emptyLabel}
                 </td>
               </tr>
@@ -78,11 +88,37 @@ export function OrdersTable({
                 <tr key={row.id}>
                   <td data-label={columns.time}>{row.time}</td>
                   <td data-label={columns.orderNumber}>{row.orderNumber}</td>
-                  <td data-label={columns.status}>{row.status}</td>
-                  <td data-label={columns.payment}>{row.payment}</td>
+                  <td data-label={columns.status}>
+                    <OrderStatusBadge status={row.statusKey} label={row.status} />
+                  </td>
+                  <td data-label={columns.payment}>
+                    <span className="order-payment-badge">{row.payment}</span>
+                    {row.hasPaymentChange ? (
+                      <span className="order-payment-change-chip">↔</span>
+                    ) : null}
+                    {row.refundedAmountCents > 0 ? (
+                      <span className="order-refund-chip">↩</span>
+                    ) : null}
+                  </td>
+                  {columns.receipt ? (
+                    <td data-label={columns.receipt}>
+                      {row.receiptId ? row.receiptNumber : "—"}
+                    </td>
+                  ) : null}
                   <td data-label={columns.amount}>{row.amount}</td>
                   <td data-label={columns.cashier}>{row.cashier}</td>
                   <td data-label={columns.device}>{row.device}</td>
+                  {onViewOrder ? (
+                    <td data-label={columns.actions ?? ""}>
+                      <button
+                        type="button"
+                        className="orders-table-action-btn"
+                        onClick={() => onViewOrder(row)}
+                      >
+                        {actionView}
+                      </button>
+                    </td>
+                  ) : null}
                 </tr>
               ))
             )}

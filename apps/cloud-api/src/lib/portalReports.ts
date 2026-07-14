@@ -6,13 +6,18 @@ import {
   posOrderLines,
   posOrders,
   posReceipts,
-  posSalePayments,
 } from "../db/schema/posSync.js";
 import {
   aggregatePaymentSummary,
   PORTAL_ORDERS_TIMEZONE,
   type PaymentBucket,
 } from "./portalOrders.js";
+import {
+  averageOrderMinor,
+  fetchPaymentsForSalesPeriod,
+  fetchPortalSalesPeriodStats,
+  sqlReceiptContributesToKpis,
+} from "./portalSalesSummary.js";
 import {
   parsePortalReportsPeriod,
   revenueSeriesGranularity,
@@ -139,21 +144,8 @@ function orderScope(
   );
 }
 
-function paymentScope(
-  orgId: string,
-  customerId: string,
-  period: PortalReportsPeriod,
-) {
-  return and(
-    eq(posSalePayments.orgId, orgId),
-    customerDeviceScope(orgId, customerId),
-    sqlInPeriodBerlin(posSalePayments.paidAt, period),
-  );
-}
-
-function averageOrderMinor(revenueMinor: number, ordersCount: number): number {
-  if (ordersCount <= 0) return 0;
-  return Math.round(revenueMinor / ordersCount);
+function averageOrderMinorLocal(revenueMinor: number, ordersCount: number): number {
+  return averageOrderMinor(revenueMinor, ordersCount);
 }
 
 function formatHourLabel(hour: number): string {
@@ -271,60 +263,32 @@ export async function fetchPortalReportsSummary(input: {
   const { orgId, customerId, period } = input;
   const granularity = revenueSeriesGranularity(period);
 
-  const [orderStats] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(posOrders)
-    .innerJoin(devices, eq(posOrders.deviceId, devices.id))
-    .where(orderScope(orgId, customerId, period));
+  const [periodStats, paymentRows] = await Promise.all([
+    fetchPortalSalesPeriodStats({ orgId, customerId, period }),
+    fetchPaymentsForSalesPeriod({ orgId, customerId, period }),
+  ]);
 
-  const [receiptStats] = await db
+  const [receiptTaxStats] = await db
     .select({
-      count: sql<number>`count(*)::int`,
-      revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}), 0)::int`,
-      net: sql<number>`coalesce(sum(${posReceipts.netCents}), 0)::int`,
-      vat: sql<number>`coalesce(sum(${posReceipts.taxCents}), 0)::int`,
-      largest: sql<number>`coalesce(max(${posReceipts.grossCents}), 0)::int`,
-      fiscalCount: sql<number>`count(*) filter (where ${posReceipts.fiscalStatus} is distinct from 'pending')::int`,
+      net: sql<number>`coalesce(sum(${posReceipts.netCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
+      vat: sql<number>`coalesce(sum(${posReceipts.taxCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
+      largest: sql<number>`coalesce(max(${posReceipts.grossCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
+      fiscalCount: sql<number>`count(*) filter (where ${posReceipts.fiscalStatus} is distinct from 'pending' and ${sqlReceiptContributesToKpis()})::int`,
     })
     .from(posReceipts)
     .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
     .where(receiptScope(orgId, customerId, period));
 
-  const paymentRows = await db
-    .select({
-      method: posSalePayments.method,
-      amountCents: posSalePayments.amountCents,
-      currency: posSalePayments.currency,
-    })
-    .from(posSalePayments)
-    .innerJoin(devices, eq(posSalePayments.deviceId, devices.id))
-    .where(paymentScope(orgId, customerId, period));
+  const currency = periodStats.currency;
 
-  const [currencyRow] = await db
-    .select({ currency: posReceipts.currency })
-    .from(posReceipts)
-    .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
-    .where(receiptScope(orgId, customerId, period))
-    .orderBy(desc(posReceipts.soldAt))
-    .limit(1);
-
-  const currency = pickCurrency(
-    [
-      currencyRow ?? {},
-      ...paymentRows,
-      ...(orderStats ? [{ currency: null }] : []),
-    ],
-    "EUR",
-  );
-
-  const ordersCount = orderStats?.count ?? 0;
-  const receiptsCount = receiptStats?.count ?? 0;
-  const revenueMinor = receiptStats?.revenue ?? 0;
-  const vatMinor = receiptStats?.vat ?? 0;
-  const netRevenueMinor = receiptStats?.net ?? 0;
+  const ordersCount = periodStats.ordersCount;
+  const receiptsCount = periodStats.receiptsCount;
+  const revenueMinor = periodStats.revenueCents;
+  const vatMinor = receiptTaxStats?.vat ?? 0;
+  const netRevenueMinor = receiptTaxStats?.net ?? 0;
   const grossRevenueMinor = revenueMinor;
-  const largestReceiptMinor = receiptStats?.largest ?? 0;
-  const fiscalReceiptsCount = receiptStats?.fiscalCount ?? 0;
+  const largestReceiptMinor = receiptTaxStats?.largest ?? 0;
+  const fiscalReceiptsCount = receiptTaxStats?.fiscalCount ?? 0;
 
   const paymentSummary = aggregatePaymentSummary(paymentRows);
 
@@ -334,7 +298,7 @@ export async function fetchPortalReportsSummary(input: {
     const rows = await db
       .select({
         hour: receiptHourExpr,
-        revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}), 0)::int`,
+        revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
       })
       .from(posReceipts)
       .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
@@ -371,7 +335,7 @@ export async function fetchPortalReportsSummary(input: {
     const rows = await db
       .select({
         bucket: receiptDayExpr,
-        revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}), 0)::int`,
+        revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
       })
       .from(posReceipts)
       .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
@@ -408,7 +372,7 @@ export async function fetchPortalReportsSummary(input: {
     const rows = await db
       .select({
         bucket: receiptMonthExpr,
-        revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}), 0)::int`,
+        revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
       })
       .from(posReceipts)
       .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
@@ -520,8 +484,8 @@ export async function fetchPortalReportsSummary(input: {
     revenueMinor,
     ordersCount,
     receiptsCount,
-    refundsCount: 0,
-    averageOrderMinor: averageOrderMinor(revenueMinor, ordersCount),
+    refundsCount: periodStats.refundsCount,
+    averageOrderMinor: averageOrderMinorLocal(revenueMinor, ordersCount),
     vatMinor,
     currency,
   };

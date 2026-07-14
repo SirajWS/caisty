@@ -510,20 +510,82 @@ export type PortalOrdersSummary = {
   ordersCount: number;
   receiptsCount: number;
   refundsCount: number;
+  revenueCents: number;
+  averageOrderMinor: number;
   openShift: PortalOpenShiftRecord | null;
   paymentSummary: PortalOrdersPaymentSummary;
+};
+
+export type PortalOrderStatus =
+  | "open"
+  | "in_progress"
+  | "ready"
+  | "delivered"
+  | "completed"
+  | "cancelled"
+  | "refunded";
+
+export type PortalOrderSource =
+  | "pos"
+  | "provider"
+  | "online"
+  | "delivery"
+  | "unknown";
+
+export type PortalOrderPaymentStatus = "pending" | "paid" | "unknown";
+
+export type PortalOrderTimelineEntry = {
+  id: string;
+  kind:
+    | "created"
+    | "preparing"
+    | "ready"
+    | "paid"
+    | "completed"
+    | "cancelled"
+    | "refunded";
+  label: string;
+  occurredAt: string;
+  actor: string | null;
+  summary: string | null;
 };
 
 export type PortalOrderRecord = {
   id: string;
   localOrderId: string;
+  deviceId: string;
   soldAt: string | null;
+  businessDate: string | null;
+  rawStatus: string;
+  normalizedStatus: PortalOrderStatus;
+  statusLabel: string;
+  /** @deprecated Use normalizedStatus */
   status: string;
   paymentMethod: string | null;
+  paymentStatus: PortalOrderPaymentStatus;
+  paymentDisplay: string;
   amountCents: number;
   currency: string;
   cashier: string | null;
   deviceName: string;
+  receiptId: string | null;
+  receiptNumber: string | null;
+  receiptStatus: PortalReceiptStatus | null;
+  refundedAmountCents: number;
+  hasPaymentChange: boolean;
+  lines: PortalReceiptLineItem[];
+  timeline: PortalOrderTimelineEntry[];
+  orderSource: PortalOrderSource;
+  isProviderOrder: boolean;
+  platform: string | null;
+  providerName: string | null;
+  providerOrderId: string | null;
+  customerName: string | null;
+  customerPhone: string | null;
+  customerEmail: string | null;
+  deliveryAddress: string | null;
+  customerNote: string | null;
+  detailsSummary: string | null;
 };
 
 export type PortalReceiptLineItem = {
@@ -561,8 +623,50 @@ export interface PortalOrdersResponse {
   period: "today";
   summary: PortalOrdersSummary;
   orders: PortalOrderRecord[];
+  providerOrders: PortalOrderRecord[];
   receipts: PortalReceiptRecord[];
+  recentOrders: PortalOrderRecord[];
 }
+
+export type PortalOrderPaymentRecord = {
+  method: string;
+  amountCents: number;
+  currency: string;
+  paidAt: string | null;
+};
+
+export type PortalReceiptTimelineEntry = {
+  id: string;
+  kind: string;
+  label: string;
+  occurredAt: string;
+  actor: string | null;
+  summary: string | null;
+};
+
+export type PortalOrderDetailResponse = PortalOrderRecord & {
+  payments: PortalOrderPaymentRecord[];
+  receipt: PortalReceiptRecord | null;
+  receiptTimeline: PortalReceiptTimelineEntry[];
+  discountCents: number;
+  taxCents: number;
+  netCents: number;
+  queueNumber: string | null;
+  tableName: string | null;
+  customerName: string | null;
+  notes: string | null;
+  platform: string | null;
+  providerOrderId: string | null;
+  providerName: string | null;
+  orderSource: PortalOrderSource;
+  isProviderOrder: boolean;
+  customerPhone: string | null;
+  customerEmail: string | null;
+  deliveryAddress: string | null;
+  customerNote: string | null;
+  paymentStatus: PortalOrderPaymentStatus;
+  paymentDisplay: string;
+};
 
 export type PortalReceiptEventRecord = {
   id: string;
@@ -597,12 +701,26 @@ export type PortalReceiptsResponse = {
   period: string;
   summary: PortalReceiptsSummary;
   receipts: PortalReceiptListItem[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    page: number;
+    totalPages: number;
+  };
 };
 
 export type PortalReceiptPrintStats = {
   hasOriginalPrint: boolean;
   reprintCount: number;
   lastPrintAt: string | null;
+};
+
+export type PortalReceiptRefundSummary = {
+  originalAmountCents: number;
+  refundedAmountCents: number;
+  refundableAmountCents: number;
+  currency: string;
 };
 
 export type PortalReceiptDetailResponse = {
@@ -614,6 +732,9 @@ export type PortalReceiptDetailResponse = {
     grossCents: number;
   };
   events: PortalReceiptEventRecord[];
+  timeline: PortalReceiptTimelineEntry[];
+  refundSummary: PortalReceiptRefundSummary;
+  hasPaymentChange: boolean;
   printStats: PortalReceiptPrintStats;
 };
 
@@ -623,6 +744,9 @@ export type PortalReceiptsQuery = {
   status?: string;
   search?: string;
   sort?: string;
+  limit?: number;
+  offset?: number;
+  page?: number;
 };
 
 export interface PortalDashboardSummary {
@@ -631,9 +755,28 @@ export interface PortalDashboardSummary {
   todayRevenueCents: number;
   ordersToday: number;
   receiptsToday: number;
+  refundsCount: number;
+  averageOrderMinor: number;
   currency: string;
   lastSynchronizationAt: string | null;
   hasSalesData: boolean;
+  paymentSummary: PortalOrdersPaymentSummary;
+  recentOrders: Array<{
+    id: string;
+    localOrderId: string;
+    soldAt: string | null;
+    normalizedStatus: PortalOrderStatus;
+    statusLabel: string;
+    paymentMethod: string | null;
+    paymentDisplay: string;
+    amountCents: number;
+    currency: string;
+    receiptId: string | null;
+    receiptNumber: string | null;
+    receiptStatus: PortalReceiptStatus | null;
+    isProviderOrder: boolean;
+    providerName: string | null;
+  }>;
 }
 
 /** POS sales analytics — monetary fields are ISO 4217 minor units. */
@@ -835,6 +978,14 @@ export async function fetchPortalOrders(): Promise<PortalOrdersResponse> {
   return authGet<PortalOrdersResponse>("/portal/orders");
 }
 
+export async function fetchPortalOrderDetail(
+  orderId: string,
+): Promise<PortalOrderDetailResponse> {
+  return authGet<PortalOrderDetailResponse>(
+    `/portal/orders/${encodeURIComponent(orderId)}`,
+  );
+}
+
 export async function fetchPortalReceipts(
   query: PortalReceiptsQuery = {},
 ): Promise<PortalReceiptsResponse> {
@@ -844,6 +995,9 @@ export async function fetchPortalReceipts(
   if (query.status) params.set("status", query.status);
   if (query.search) params.set("search", query.search);
   if (query.sort) params.set("sort", query.sort);
+  if (query.limit != null) params.set("limit", String(query.limit));
+  if (query.offset != null) params.set("offset", String(query.offset));
+  if (query.page != null) params.set("page", String(query.page));
   const qs = params.toString();
   return authGet<PortalReceiptsResponse>(
     qs ? `/portal/receipts?${qs}` : "/portal/receipts",

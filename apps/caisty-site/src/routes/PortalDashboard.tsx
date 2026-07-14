@@ -11,12 +11,14 @@ import { usePortalDashboardData } from "../lib/dashboard/usePortalDashboardData"
 import {
   BusinessAlertCenter,
   DashboardQuickActions,
+  DashboardRecentOrders,
   LiveDashboardHeader,
   LiveDashboardSkeleton,
   LiveKpiStrip,
   StoreStatusWidget,
   TodayActivityTimeline,
 } from "../components/dashboard/LiveDashboardPanels";
+import { PaymentOverview } from "../components/orders/PaymentOverview";
 import { portalPageShell } from "../lib/portalUi";
 
 const PortalDashboard: React.FC = () => {
@@ -25,6 +27,7 @@ const PortalDashboard: React.FC = () => {
   const { language } = useLanguage();
   const t = getPortalTranslations(language);
   const l = t.dashboard.live;
+  const o = t.orders;
   const locale = portalLocaleTag(language);
   const isLight = theme === "light";
 
@@ -76,6 +79,74 @@ const PortalDashboard: React.FC = () => {
       />
 
       <LiveKpiStrip kpis={dashboard.kpis} loading={data.loading} isLight={isLight} />
+
+      {dashboard.paymentSummary ? (
+        <PaymentOverview
+          payments={[
+            {
+              id: "cash",
+              label: t.orders.paymentCash,
+              value: data.loading
+                ? t.labels.dash
+                : new Intl.NumberFormat(locale, {
+                    style: "currency",
+                    currency: dashboard.paymentSummary.currency || "EUR",
+                  }).format(dashboard.paymentSummary.cashCents / 100),
+              tone: dashboard.paymentSummary.cashCents > 0 ? "ok" : "unknown",
+            },
+            {
+              id: "card",
+              label: t.orders.paymentCard,
+              value: data.loading
+                ? t.labels.dash
+                : new Intl.NumberFormat(locale, {
+                    style: "currency",
+                    currency: dashboard.paymentSummary.currency || "EUR",
+                  }).format(dashboard.paymentSummary.cardCents / 100),
+              tone: dashboard.paymentSummary.cardCents > 0 ? "ok" : "unknown",
+            },
+            {
+              id: "voucher",
+              label: t.orders.paymentVoucher,
+              value: data.loading
+                ? t.labels.dash
+                : new Intl.NumberFormat(locale, {
+                    style: "currency",
+                    currency: dashboard.paymentSummary.currency || "EUR",
+                  }).format(dashboard.paymentSummary.voucherCents / 100),
+              tone: dashboard.paymentSummary.voucherCents > 0 ? "ok" : "unknown",
+            },
+            {
+              id: "other",
+              label: t.orders.paymentOther,
+              value: data.loading
+                ? t.labels.dash
+                : new Intl.NumberFormat(locale, {
+                    style: "currency",
+                    currency: dashboard.paymentSummary.currency || "EUR",
+                  }).format(dashboard.paymentSummary.otherCents / 100),
+              tone: dashboard.paymentSummary.otherCents > 0 ? "ok" : "unknown",
+            },
+          ]}
+          title={l.paymentSummaryTitle}
+          hint={dashboard.paymentSummary.cashCents + dashboard.paymentSummary.cardCents + dashboard.paymentSummary.voucherCents + dashboard.paymentSummary.otherCents === 0 ? o.waitingPosSyncShort : undefined}
+        />
+      ) : null}
+
+      <DashboardRecentOrders
+        orders={dashboard.recentOrders}
+        title={l.recentOrdersTitle}
+        emptyLabel={l.recentOrdersEmpty}
+        onlineBadgeLabel={o.onlineOrderBadge}
+        columns={{
+          time: o.colTime,
+          orderNumber: o.colOrderNumber,
+          status: o.colStatus,
+          payment: o.colPayment,
+          amount: o.colAmount,
+          receipt: o.colReceiptLink,
+        }}
+      />
 
       <div className="live-dashboard-split">
         <StoreStatusWidget items={dashboard.storeStatus} title={l.storeStatusTitle} />

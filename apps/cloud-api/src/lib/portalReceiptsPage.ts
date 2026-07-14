@@ -22,7 +22,6 @@ import {
   pickPrimaryPaymentMethod,
   PORTAL_ORDERS_TIMEZONE,
   resolveReceiptLineItems,
-  bucketPaymentMethod,
   type PaymentBucket,
 } from "./portalOrders.js";
 import {
@@ -35,6 +34,20 @@ import {
   sqlInPeriodBerlin,
   type PortalReportsPeriod,
 } from "./portalReportsPeriod.js";
+import {
+  computeRefundableAmountCents,
+  computeRefundedAmountCents,
+  receiptHasPaymentChange,
+  sanitizeEventForPortal,
+} from "./receiptEventPayload.js";
+import {
+  buildPortalReceiptTimeline,
+  type PortalReceiptTimelineEntry,
+} from "./portalReceiptTimeline.js";
+import {
+  computeTotalPages,
+  parseReceiptPagination,
+} from "./portalReceiptPagination.js";
 import { RECEIPT_EVENT_TYPES } from "./receiptEventTypes.js";
 import {
   normalizeReceiptStatus,
@@ -73,12 +86,26 @@ export type PortalReceiptsPageData = {
   period: PortalReportsPeriod;
   summary: PortalReceiptsSummary;
   receipts: PortalReceiptListItem[];
+  pagination: {
+    total: number;
+    limit: number;
+    offset: number;
+    page: number;
+    totalPages: number;
+  };
 };
 
 export type PortalReceiptPrintStats = {
   hasOriginalPrint: boolean;
   reprintCount: number;
   lastPrintAt: string | null;
+};
+
+export type PortalReceiptRefundSummary = {
+  originalAmountCents: number;
+  refundedAmountCents: number;
+  refundableAmountCents: number;
+  currency: string;
 };
 
 export type PortalReceiptDetailData = {
@@ -90,6 +117,9 @@ export type PortalReceiptDetailData = {
     grossCents: number;
   };
   events: PortalReceiptEventRecord[];
+  timeline: PortalReceiptTimelineEntry[];
+  refundSummary: PortalReceiptRefundSummary;
+  hasPaymentChange: boolean;
   printStats: PortalReceiptPrintStats;
 };
 
@@ -101,6 +131,9 @@ export type FetchPortalReceiptsInput = {
   status?: string;
   search?: string;
   sort?: string;
+  limit?: string | number;
+  offset?: string | number;
+  page?: string | number;
 };
 
 function parseReceiptSort(raw: string | undefined): PortalReceiptSort {
@@ -225,51 +258,119 @@ function derivePrintStats(events: PortalReceiptEventRecord[]): PortalReceiptPrin
   return { hasOriginalPrint, reprintCount, lastPrintAt };
 }
 
-export async function fetchPortalReceiptsPage(
-  input: FetchPortalReceiptsInput,
-): Promise<PortalReceiptsPageData> {
-  const period = parsePortalReportsPeriod(input.period);
-  const sort = parseReceiptSort(input.sort);
-  const paymentFilter = parsePaymentFilter(input.paymentMethod);
-  const statusFilter = parseStatusFilter(input.status);
-  const search = input.search?.trim() ?? "";
+function receiptPaymentBucketExists(
+  orgId: string,
+  customerId: string,
+  bucket: PaymentBucket,
+): SQL {
+  const methodMatch = (() => {
+    switch (bucket) {
+      case "cash":
+        return sql`(
+          lower(${posSalePayments.method}) = 'cash'
+          or lower(${posSalePayments.method}) like '%cash%'
+        )`;
+      case "card":
+        return sql`(
+          lower(${posSalePayments.method}) in ('card', 'credit', 'debit', 'ec', 'girocard')
+          or lower(${posSalePayments.method}) like '%card%'
+          or lower(${posSalePayments.method}) like '%credit%'
+          or lower(${posSalePayments.method}) like '%debit%'
+        )`;
+      case "voucher":
+        return sql`(
+          lower(${posSalePayments.method}) in ('voucher', 'gift')
+          or lower(${posSalePayments.method}) like '%voucher%'
+          or lower(${posSalePayments.method}) like '%gift%'
+        )`;
+      default:
+        return sql`(
+          lower(${posSalePayments.method}) not in ('cash', 'card', 'credit', 'debit', 'ec', 'girocard', 'voucher', 'gift')
+          and lower(${posSalePayments.method}) not like '%cash%'
+          and lower(${posSalePayments.method}) not like '%card%'
+          and lower(${posSalePayments.method}) not like '%credit%'
+          and lower(${posSalePayments.method}) not like '%debit%'
+          and lower(${posSalePayments.method}) not like '%voucher%'
+          and lower(${posSalePayments.method}) not like '%gift%'
+        )`;
+    }
+  })();
 
-  const searchClause: SQL | undefined = search
+  return sql`exists (
+    select 1
+    from ${posSalePayments}
+    inner join ${devices} on ${eq(posSalePayments.deviceId, devices.id)}
+    where ${eq(posSalePayments.orgId, orgId)}
+      and ${eq(devices.customerId, customerId)}
+      and (
+        ${posSalePayments.localReceiptId} = ${posReceipts.localReceiptId}
+        or (
+          ${posReceipts.localOrderId} is not null
+          and ${posSalePayments.localOrderId} = ${posReceipts.localOrderId}
+        )
+      )
+      and ${methodMatch}
+  )`;
+}
+
+function buildReceiptWhereClause(input: {
+  orgId: string;
+  customerId: string;
+  period: PortalReportsPeriod;
+  statusFilter: ReceiptStatus | "all";
+  search: string;
+  paymentFilter: PaymentBucket | "all";
+}): SQL {
+  const searchClause: SQL | undefined = input.search
     ? or(
-        ilike(posReceipts.receiptNumber, `%${search}%`),
-        ilike(posReceipts.localReceiptId, `%${search}%`),
+        ilike(posReceipts.receiptNumber, `%${input.search}%`),
+        ilike(posReceipts.localReceiptId, `%${input.search}%`),
       )
     : undefined;
 
   const statusClause: SQL | undefined =
-    statusFilter === "all" ? undefined : eq(posReceipts.status, statusFilter);
+    input.statusFilter === "all"
+      ? undefined
+      : eq(posReceipts.status, input.statusFilter);
 
-  const receiptRows = await db
-    .select({
-      id: posReceipts.id,
-      deviceId: posReceipts.deviceId,
-      localReceiptId: posReceipts.localReceiptId,
-      receiptNumber: posReceipts.receiptNumber,
-      soldAt: posReceipts.soldAt,
-      grossCents: posReceipts.grossCents,
-      currency: posReceipts.currency,
-      fiscalStatus: posReceipts.fiscalStatus,
-      status: posReceipts.status,
-      localOrderId: posReceipts.localOrderId,
-      deviceName: devices.name,
-    })
-    .from(posReceipts)
-    .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
-    .where(
-      and(
-        receiptScope(input.orgId, input.customerId, period),
-        statusClause,
-        searchClause,
-      ),
-    )
-    .orderBy(
-      sort === "oldest" ? asc(posReceipts.soldAt) : desc(posReceipts.soldAt),
-    );
+  const paymentClause: SQL | undefined =
+    input.paymentFilter === "all"
+      ? undefined
+      : receiptPaymentBucketExists(
+          input.orgId,
+          input.customerId,
+          input.paymentFilter,
+        );
+
+  return and(
+    receiptScope(input.orgId, input.customerId, input.period),
+    statusClause,
+    searchClause,
+    paymentClause,
+  )!;
+}
+
+type ReceiptRowStub = {
+  id: string;
+  deviceId: string;
+  localReceiptId: string;
+  receiptNumber: string | null;
+  soldAt: Date;
+  grossCents: number;
+  currency: string;
+  fiscalStatus: string;
+  status: string | null;
+  localOrderId: string | null;
+  deviceName: string;
+};
+
+async function mapReceiptRowsToListItems(input: {
+  orgId: string;
+  customerId: string;
+  period: PortalReportsPeriod;
+  rows: ReceiptRowStub[];
+}): Promise<PortalReceiptListItem[]> {
+  if (!input.rows.length) return [];
 
   const lineRows = await db
     .select({
@@ -289,7 +390,7 @@ export async function fetchPortalReceiptsPage(
       and(
         eq(posOrders.orgId, input.orgId),
         customerDeviceScope(input.orgId, input.customerId),
-        sqlInPeriodBerlin(posOrders.soldAt, period),
+        sqlInPeriodBerlin(posOrders.soldAt, input.period),
       ),
     )
     .orderBy(posOrderLines.lineIndex);
@@ -310,7 +411,7 @@ export async function fetchPortalReceiptsPage(
       and(
         eq(posSalePayments.orgId, input.orgId),
         customerDeviceScope(input.orgId, input.customerId),
-        sqlInPeriodBerlin(posSalePayments.paidAt, period),
+        sqlInPeriodBerlin(posSalePayments.paidAt, input.period),
       ),
     );
 
@@ -331,31 +432,16 @@ export async function fetchPortalReceiptsPage(
 
   const eventStats = await loadReceiptEventStats(
     input.orgId,
-    receiptRows.map((row) => row.id),
+    input.rows.map((row) => row.id),
   );
 
-  const currency =
-    receiptRows[0]?.currency ?? paymentRows[0]?.currency ?? "EUR";
-
-  const receipts: PortalReceiptListItem[] = [];
-  let activeCount = 0;
-  let printedCount = 0;
-  let reprintedCount = 0;
-  const includedReceiptKeys = new Set<string>();
-
-  for (const row of receiptRows) {
+  return input.rows.map((row) => {
     const paymentMethod = pickPrimaryPaymentMethod(
       paymentsByReceipt.get(row.localReceiptId) ??
         (row.localOrderId
           ? paymentsByOrder.get(row.localOrderId) ?? []
           : []),
     );
-
-    if (paymentFilter !== "all") {
-      const bucket = bucketPaymentMethod(paymentMethod ?? "");
-      if (bucket !== paymentFilter) continue;
-    }
-
     const stats = eventStats.get(row.id);
     const mapped = mapPortalReceiptRecord({
       row,
@@ -367,29 +453,88 @@ export async function fetchPortalReceiptsPage(
       ),
     });
 
-    if (receiptCountsTowardKpis(row.status)) {
-      activeCount += 1;
-    }
-
-    const printCount = stats?.printCount ?? 0;
-    const reprintCount = stats?.reprintCount ?? 0;
-    if (printCount > 0) printedCount += 1;
-    if (reprintCount > 0) reprintedCount += 1;
-
-    includedReceiptKeys.add(row.localReceiptId);
-    if (row.localOrderId) includedReceiptKeys.add(row.localOrderId);
-
-    receipts.push({
+    return {
       ...mapped,
       deviceName: row.deviceName,
-      printCount,
-      reprintCount,
+      printCount: stats?.printCount ?? 0,
+      reprintCount: stats?.reprintCount ?? 0,
       lastEventType: stats?.lastEventType ?? null,
       lastEventAt: stats?.lastEventAt
         ? toPortalReceiptIso(stats.lastEventAt)
         : null,
       cashier: stats?.lastActor?.trim() || null,
-    });
+    };
+  });
+}
+
+async function buildReceiptsSummary(input: {
+  orgId: string;
+  customerId: string;
+  period: PortalReportsPeriod;
+  whereClause: SQL;
+}): Promise<PortalReceiptsSummary> {
+  const filteredRows = await db
+    .select({
+      id: posReceipts.id,
+      status: posReceipts.status,
+      localReceiptId: posReceipts.localReceiptId,
+      localOrderId: posReceipts.localOrderId,
+      currency: posReceipts.currency,
+    })
+    .from(posReceipts)
+    .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
+    .where(input.whereClause);
+
+  const eventStats = await loadReceiptEventStats(
+    input.orgId,
+    filteredRows.map((row) => row.id),
+  );
+
+  const paymentRows = await db
+    .select({
+      localOrderId: posSalePayments.localOrderId,
+      localReceiptId: posSalePayments.localReceiptId,
+      method: posSalePayments.method,
+      amountCents: posSalePayments.amountCents,
+      currency: posSalePayments.currency,
+    })
+    .from(posSalePayments)
+    .innerJoin(devices, eq(posSalePayments.deviceId, devices.id))
+    .where(
+      and(
+        eq(posSalePayments.orgId, input.orgId),
+        customerDeviceScope(input.orgId, input.customerId),
+        sqlInPeriodBerlin(posSalePayments.paidAt, input.period),
+      ),
+    );
+
+  const includedReceiptKeys = new Set<string>();
+  for (const row of filteredRows) {
+    includedReceiptKeys.add(row.localReceiptId);
+    if (row.localOrderId) includedReceiptKeys.add(row.localOrderId);
+  }
+
+  let activeCount = 0;
+  let printedCount = 0;
+  let reprintedCount = 0;
+  let refundsCount = 0;
+
+  for (const row of filteredRows) {
+    if (receiptCountsTowardKpis(row.status)) {
+      activeCount += 1;
+    }
+
+    const stats = eventStats.get(row.id);
+    if ((stats?.printCount ?? 0) > 0) printedCount += 1;
+    if ((stats?.reprintCount ?? 0) > 0) reprintedCount += 1;
+
+    const normalizedStatus = normalizeReceiptStatus(row.status);
+    if (
+      normalizedStatus === "refunded" ||
+      normalizedStatus === "partial_refund"
+    ) {
+      refundsCount += 1;
+    }
   }
 
   const scopedPayments = paymentRows.filter(
@@ -399,23 +544,110 @@ export async function fetchPortalReceiptsPage(
       (payment.localOrderId && includedReceiptKeys.has(payment.localOrderId)),
   );
 
-  const paymentSummary = aggregatePaymentSummary(scopedPayments);
+  const currency =
+    filteredRows[0]?.currency ?? scopedPayments[0]?.currency ?? "EUR";
+
+  return {
+    receiptsCount: filteredRows.length,
+    activeCount,
+    printedCount,
+    reprintedCount,
+    refundsCount,
+    paymentSummary: {
+      ...aggregatePaymentSummary(scopedPayments),
+      currency,
+    },
+  };
+}
+
+export async function fetchPortalReceiptsPage(
+  input: FetchPortalReceiptsInput,
+): Promise<PortalReceiptsPageData> {
+  const period = parsePortalReportsPeriod(input.period);
+  const sort = parseReceiptSort(input.sort);
+  const paymentFilter = parsePaymentFilter(input.paymentMethod);
+  const statusFilter = parseStatusFilter(input.status);
+  const search = input.search?.trim() ?? "";
+  const pagination = parseReceiptPagination(input);
+
+  const whereClause = buildReceiptWhereClause({
+    orgId: input.orgId,
+    customerId: input.customerId,
+    period,
+    statusFilter,
+    search,
+    paymentFilter,
+  });
+
+  const [countRow] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(posReceipts)
+    .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
+    .where(whereClause);
+
+  const total = countRow?.total ?? 0;
+  const totalPages = computeTotalPages(total, pagination.limit);
+  const effectiveOffset =
+    totalPages > 0 && pagination.offset >= total
+      ? Math.max(totalPages - 1, 0) * pagination.limit
+      : pagination.offset;
+  const effectivePage =
+    totalPages > 0
+      ? Math.min(Math.floor(effectiveOffset / pagination.limit) + 1, totalPages)
+      : 1;
+
+  const receiptRows = total
+    ? await db
+        .select({
+          id: posReceipts.id,
+          deviceId: posReceipts.deviceId,
+          localReceiptId: posReceipts.localReceiptId,
+          receiptNumber: posReceipts.receiptNumber,
+          soldAt: posReceipts.soldAt,
+          grossCents: posReceipts.grossCents,
+          currency: posReceipts.currency,
+          fiscalStatus: posReceipts.fiscalStatus,
+          status: posReceipts.status,
+          localOrderId: posReceipts.localOrderId,
+          deviceName: devices.name,
+        })
+        .from(posReceipts)
+        .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
+        .where(whereClause)
+        .orderBy(
+          sort === "oldest" ? asc(posReceipts.soldAt) : desc(posReceipts.soldAt),
+        )
+        .limit(pagination.limit)
+        .offset(effectiveOffset)
+    : [];
+
+  const [summary, receipts] = await Promise.all([
+    buildReceiptsSummary({
+      orgId: input.orgId,
+      customerId: input.customerId,
+      period,
+      whereClause,
+    }),
+    mapReceiptRowsToListItems({
+      orgId: input.orgId,
+      customerId: input.customerId,
+      period,
+      rows: receiptRows,
+    }),
+  ]);
 
   return {
     timezone: PORTAL_ORDERS_TIMEZONE,
     period,
-    summary: {
-      receiptsCount: receipts.length,
-      activeCount,
-      printedCount,
-      reprintedCount,
-      refundsCount: 0,
-      paymentSummary: {
-        ...paymentSummary,
-        currency,
-      },
-    },
+    summary,
     receipts,
+    pagination: {
+      total,
+      limit: pagination.limit,
+      offset: effectiveOffset,
+      page: effectivePage,
+      totalPages,
+    },
   };
 }
 
@@ -528,6 +760,8 @@ export async function fetchPortalReceiptDetail(
     .orderBy(asc(posReceiptEvents.occurredAt), asc(posReceiptEvents.createdAt));
 
   const events = eventRows.map(mapPortalReceiptEventRecord);
+  const portalEvents = events.map(sanitizeEventForPortal);
+  const refundedAmountCents = computeRefundedAmountCents(events);
 
   return {
     receipt: {
@@ -539,7 +773,22 @@ export async function fetchPortalReceiptDetail(
       taxCents: row.taxCents,
       grossCents: row.grossCents,
     },
-    events,
+    events: portalEvents,
+    timeline: buildPortalReceiptTimeline({
+      soldAt: row.soldAt,
+      currency: row.currency,
+      events,
+    }),
+    refundSummary: {
+      originalAmountCents: row.grossCents,
+      refundedAmountCents,
+      refundableAmountCents: computeRefundableAmountCents(
+        row.grossCents,
+        refundedAmountCents,
+      ),
+      currency: row.currency,
+    },
+    hasPaymentChange: receiptHasPaymentChange(events),
     printStats: derivePrintStats(events),
   };
 }

@@ -34,6 +34,8 @@ import type {
   SystemHealthItem,
 } from "../../lib/dashboard/types";
 import type { PosReleaseConfig } from "../../config/posConfig";
+import { OrderStatusBadge } from "../orders/OrderStatusBadge";
+import type { PortalDashboardRecentOrder } from "../../lib/dashboard/types";
 import { openDesktopPos } from "../devices/openDesktopPos";
 import { portalSectionLabel } from "../../lib/portalUi";
 
@@ -663,6 +665,70 @@ export function SystemHealthPanel({
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+export function DashboardRecentOrders({
+  orders,
+  title,
+  emptyLabel,
+  columns,
+  onlineBadgeLabel,
+}: {
+  orders: PortalDashboardRecentOrder[];
+  title: string;
+  emptyLabel: string;
+  onlineBadgeLabel?: string;
+  columns: {
+    time: string;
+    orderNumber: string;
+    status: string;
+    payment: string;
+    amount: string;
+    receipt: string;
+  };
+}) {
+  return (
+    <section className="dashboard-panel dashboard-panel--wide">
+      <h2 className="dashboard-panel-title">{title}</h2>
+      {orders.length === 0 ? (
+        <p className="dashboard-text-muted">{emptyLabel}</p>
+      ) : (
+        <div className="orders-table-wrap">
+          <table className="portal-table orders-table dashboard-recent-orders-table">
+            <thead>
+              <tr>
+                <th>{columns.time}</th>
+                <th>{columns.orderNumber}</th>
+                <th>{columns.status}</th>
+                <th>{columns.payment}</th>
+                <th>{columns.receipt}</th>
+                <th>{columns.amount}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => (
+                <tr key={order.id}>
+                  <td>{order.time}</td>
+                  <td>
+                    {order.orderNumber}
+                    {order.isProviderOrder && onlineBadgeLabel ? (
+                      <span className="order-online-chip">{onlineBadgeLabel}</span>
+                    ) : null}
+                  </td>
+                  <td>
+                    <OrderStatusBadge status={order.statusKey} label={order.status} />
+                  </td>
+                  <td>{order.payment}</td>
+                  <td>{order.receiptNumber}</td>
+                  <td>{order.amount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }

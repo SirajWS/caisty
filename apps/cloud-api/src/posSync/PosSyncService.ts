@@ -328,6 +328,19 @@ export class PosSyncService {
     );
   }
 
+  private orderProviderFields(payload: PosSyncOrderPayload) {
+    return {
+      platform: payload.platform ?? null,
+      providerOrderId: payload.providerOrderId ?? null,
+      customerName: payload.customerName ?? null,
+      customerPhone: payload.customerPhone ?? null,
+      customerEmail: payload.customerEmail ?? null,
+      deliveryAddress: payload.deliveryAddress ?? null,
+      customerNote: payload.customerNote ?? null,
+      paymentStatus: payload.paymentStatus ?? null,
+    };
+  }
+
   private async upsertOrder(
     payload: PosSyncOrderPayload,
     auth: PosDeviceAuthContext,
@@ -355,6 +368,7 @@ export class PosSyncService {
           currency: payload.currency ?? "EUR",
           soldAt,
           syncBatchId: batchId,
+          ...this.orderProviderFields(payload),
         })
         .returning();
 
@@ -377,7 +391,25 @@ export class PosSyncService {
       return { status: "accepted" as const };
     } catch (err: unknown) {
       if (isUniqueViolation(err)) {
-        return { status: "duplicate" as const };
+        await db
+          .update(posOrders)
+          .set({
+            status: payload.status ?? "closed",
+            totalCents: payload.totalCents,
+            currency: payload.currency ?? "EUR",
+            soldAt,
+            syncBatchId: batchId,
+            updatedAt: new Date(),
+            ...this.orderProviderFields(payload),
+          })
+          .where(
+            and(
+              eq(posOrders.orgId, auth.orgId),
+              eq(posOrders.deviceId, auth.deviceId),
+              eq(posOrders.localOrderId, payload.localOrderId),
+            ),
+          );
+        return { status: "accepted" as const };
       }
       throw err;
     }

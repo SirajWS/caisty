@@ -4,13 +4,25 @@ import { buildPortalDashboardSummaryResponse } from "../portalPosSales.js";
 
 describe("buildPortalDashboardSummaryResponse", () => {
   it("marks hasSalesData when orders or receipts exist", () => {
-    const withSales = buildPortalDashboardSummaryResponse({
-      todayRevenueCents: 572800,
-      ordersToday: 10,
-      receiptsToday: 10,
-      currency: "TND",
-      lastSynchronizationAt: "2026-07-08T10:00:00.000Z",
-    });
+    const withSales = buildPortalDashboardSummaryResponse(
+      {
+        todayRevenueCents: 572800,
+        ordersToday: 10,
+        receiptsToday: 10,
+        refundsCount: 0,
+        averageOrderMinor: 57280,
+        currency: "TND",
+        lastSynchronizationAt: "2026-07-08T10:00:00.000Z",
+      },
+      [],
+      {
+        cashCents: 0,
+        cardCents: 572800,
+        voucherCents: 0,
+        otherCents: 0,
+        currency: "TND",
+      },
+    );
 
     expect(withSales.hasSalesData).toBe(true);
     expect(withSales.todayRevenueCents).toBe(572800);
@@ -21,13 +33,25 @@ describe("buildPortalDashboardSummaryResponse", () => {
   });
 
   it("returns placeholder-friendly summary when no sales exist", () => {
-    const empty = buildPortalDashboardSummaryResponse({
-      todayRevenueCents: 0,
-      ordersToday: 0,
-      receiptsToday: 0,
-      currency: "EUR",
-      lastSynchronizationAt: null,
-    });
+    const empty = buildPortalDashboardSummaryResponse(
+      {
+        todayRevenueCents: 0,
+        ordersToday: 0,
+        receiptsToday: 0,
+        refundsCount: 0,
+        averageOrderMinor: 0,
+        currency: "EUR",
+        lastSynchronizationAt: null,
+      },
+      [],
+      {
+        cashCents: 0,
+        cardCents: 0,
+        voucherCents: 0,
+        otherCents: 0,
+        currency: "EUR",
+      },
+    );
 
     expect(empty.hasSalesData).toBe(false);
     expect(empty.period).toBe("today");
