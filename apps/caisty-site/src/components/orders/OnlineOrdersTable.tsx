@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
+import type { PortalPaginationMeta } from "../../lib/portal/portalPagination";
 import type { ProviderOrderRow } from "../../lib/orders/types";
+import { PortalPagination } from "../portal/PortalPagination";
 import { OrderStatusBadge } from "./OrderStatusBadge";
 
 export function OnlineOrdersTable({
@@ -9,11 +11,9 @@ export function OnlineOrdersTable({
   emptyLabel,
   emptyDescription,
   title,
-  previewLimit,
-  totalCount,
-  expanded = false,
-  onToggleExpand,
-  expandLabels,
+  pagination,
+  onPageChange,
+  paginationLabels,
   onViewOrder,
   actionView,
   receiptsLinkLabel,
@@ -35,23 +35,29 @@ export function OnlineOrdersTable({
   emptyLabel: string;
   emptyDescription?: string;
   title: string;
-  previewLimit?: number;
-  totalCount?: number;
-  expanded?: boolean;
-  onToggleExpand?: () => void;
-  expandLabels?: { viewAll: string; showLess: string };
-  onViewOrder?: (order: ProviderOrderRow) => void;
+  pagination?: PortalPaginationMeta | null;
+  onPageChange?: (page: number) => void;
+  paginationLabels?: {
+    previous: string;
+    next: string;
+    pageOf: string;
+    showing: string;
+  };
+  onViewOrder?: (
+    order: ProviderOrderRow,
+    trigger?: HTMLButtonElement | null,
+  ) => void;
   actionView?: string;
   receiptsLinkLabel?: string;
   receiptsHref?: string;
 }) {
-  const count = totalCount ?? orders.length;
-  const limit = previewLimit ?? orders.length;
-  const visibleOrders =
-    expanded || count <= limit ? orders : orders.slice(0, limit);
-  const showExpandToggle =
-    Boolean(onToggleExpand && expandLabels && previewLimit != null && count > limit);
   const colSpan = onViewOrder ? 9 : 8;
+  const showPagination =
+    pagination &&
+    onPageChange &&
+    paginationLabels &&
+    pagination.total > 0 &&
+    pagination.totalPages > 1;
 
   return (
     <section className="dashboard-panel dashboard-panel--wide online-orders-panel">
@@ -78,7 +84,7 @@ export function OnlineOrdersTable({
                   …
                 </td>
               </tr>
-            ) : visibleOrders.length === 0 ? (
+            ) : orders.length === 0 ? (
               <tr>
                 <td colSpan={colSpan} className="orders-table-empty">
                   <span>{emptyLabel}</span>
@@ -88,7 +94,7 @@ export function OnlineOrdersTable({
                 </td>
               </tr>
             ) : (
-              visibleOrders.map((row) => (
+              orders.map((row) => (
                 <tr key={row.id}>
                   <td data-label={columns.time}>{row.time}</td>
                   <td data-label={columns.orderNumber}>{row.orderNumber}</td>
@@ -117,7 +123,9 @@ export function OnlineOrdersTable({
                       <button
                         type="button"
                         className="orders-table-action-btn"
-                        onClick={() => onViewOrder(row)}
+                        onClick={(event) =>
+                          onViewOrder(row, event.currentTarget)
+                        }
                       >
                         {actionView}
                       </button>
@@ -129,16 +137,12 @@ export function OnlineOrdersTable({
           </tbody>
         </table>
       </div>
-      {showExpandToggle ? (
-        <div className="orders-table-footer">
-          <button
-            type="button"
-            className="orders-table-expand-btn"
-            onClick={onToggleExpand}
-          >
-            {expanded ? expandLabels!.showLess : expandLabels!.viewAll}
-          </button>
-        </div>
+      {showPagination ? (
+        <PortalPagination
+          pagination={pagination}
+          onPageChange={onPageChange}
+          labels={paginationLabels}
+        />
       ) : null}
       {receiptsLinkLabel && receiptsHref ? (
         <p className="online-orders-receipts-link-wrap">

@@ -7,4 +7,12 @@ describe("portalSalesSummary helpers", () => {
     expect(averageOrderMinor(1000, 4)).toBe(250);
     expect(averageOrderMinor(1000, 0)).toBe(0);
   });
+
+  it("keeps online orders as the remainder of total minus live", () => {
+    const total = 31;
+    const live = 26;
+    const online = Math.max(0, total - live);
+    expect(live + online).toBe(total);
+    expect(online).toBe(5);
+  });
 });

@@ -6,7 +6,12 @@ import { getPortalTranslations } from "../lib/translations";
 import { getPosReleaseConfig } from "../config/posConfig";
 import { deriveOrdersState } from "../lib/orders/deriveOrdersState";
 import { usePortalOrdersData } from "../lib/orders/usePortalOrdersData";
-import { ORDERS_PREVIEW_LIMIT } from "../lib/orders/ordersPreview";
+import {
+  buildOrdersPagination,
+  clampOrdersPage,
+  ORDERS_PAGE_SIZE,
+  sliceOrdersPage,
+} from "../lib/orders/ordersPagination";
 import { OrdersSummary } from "../components/orders/OrdersSummary";
 import { OrdersTable } from "../components/orders/OrdersTable";
 import { OnlineOrdersTable } from "../components/orders/OnlineOrdersTable";
@@ -37,8 +42,8 @@ const PortalOrdersPage: React.FC = () => {
   const release = React.useMemo(() => getPosReleaseConfig(), []);
   const [exportingPdf, setExportingPdf] = React.useState(false);
   const data = usePortalOrdersData(customer, { pollingPaused: exportingPdf });
-  const [ordersExpanded, setOrdersExpanded] = React.useState(false);
-  const [providerOrdersExpanded, setProviderOrdersExpanded] = React.useState(false);
+  const [liveOrdersPage, setLiveOrdersPage] = React.useState(1);
+  const [onlineOrdersPage, setOnlineOrdersPage] = React.useState(1);
 
   const locale =
     language === "de"
@@ -54,6 +59,46 @@ const PortalOrdersPage: React.FC = () => {
     [data, t, locale],
   );
 
+  const livePagination = React.useMemo(
+    () => buildOrdersPagination(orders.orders.length, liveOrdersPage),
+    [orders.orders.length, liveOrdersPage],
+  );
+  const onlinePagination = React.useMemo(
+    () => buildOrdersPagination(orders.providerOrders.length, onlineOrdersPage),
+    [orders.providerOrders.length, onlineOrdersPage],
+  );
+
+  const paginatedLiveOrders = React.useMemo(
+    () => sliceOrdersPage(orders.orders, livePagination),
+    [orders.orders, livePagination],
+  );
+  const paginatedOnlineOrders = React.useMemo(
+    () => sliceOrdersPage(orders.providerOrders, onlinePagination),
+    [orders.providerOrders, onlinePagination],
+  );
+
+  React.useEffect(() => {
+    const nextPage = clampOrdersPage(
+      liveOrdersPage,
+      orders.orders.length,
+      ORDERS_PAGE_SIZE,
+    );
+    if (nextPage !== liveOrdersPage) {
+      setLiveOrdersPage(nextPage);
+    }
+  }, [orders.orders.length, liveOrdersPage]);
+
+  React.useEffect(() => {
+    const nextPage = clampOrdersPage(
+      onlineOrdersPage,
+      orders.providerOrders.length,
+      ORDERS_PAGE_SIZE,
+    );
+    if (nextPage !== onlineOrdersPage) {
+      setOnlineOrdersPage(nextPage);
+    }
+  }, [orders.providerOrders.length, onlineOrdersPage]);
+
   const showErrorHero = !data.loading && data.error && !data.sales;
   const showEmptyHero =
     !data.loading && !data.error && data.sales !== null && !orders.hasSalesData;
@@ -64,6 +109,7 @@ const PortalOrdersPage: React.FC = () => {
   );
   const [receiptIdentity, setReceiptIdentity] =
     React.useState<DocumentIdentity | null>(null);
+  const viewTriggerRef = React.useRef<HTMLButtonElement | null>(null);
   const periodLabel = o.filterToday;
 
   React.useEffect(() => {
@@ -75,6 +121,26 @@ const PortalOrdersPage: React.FC = () => {
       cancelled = true;
     };
   }, [customer]);
+
+  React.useEffect(() => {
+    if (!selectedOrder || data.loading) return;
+
+    const updated =
+      orders.orders.find((row) => row.id === selectedOrder.id) ??
+      orders.providerOrders.find((row) => row.id === selectedOrder.id);
+
+    if (updated) {
+      setSelectedOrder(updated as PosOrderRow);
+    } else if (data.sales) {
+      setSelectedOrder(null);
+    }
+  }, [
+    data.loading,
+    data.sales,
+    orders.orders,
+    orders.providerOrders,
+    selectedOrder?.id,
+  ]);
 
   const handleRefresh = React.useCallback(() => {
     if (exportingPdf || data.refreshing) return;
@@ -106,8 +172,17 @@ const PortalOrdersPage: React.FC = () => {
     }
   }, [customer, data.sales, locale, periodLabel, t]);
 
-  const handleViewOrder = React.useCallback((order: PosOrderRow | ProviderOrderRow) => {
-    setSelectedOrder(order as PosOrderRow);
+  const handleViewOrder = React.useCallback(
+    (order: PosOrderRow | ProviderOrderRow, trigger?: HTMLButtonElement | null) => {
+      viewTriggerRef.current = trigger ?? null;
+      setSelectedOrder(order as PosOrderRow);
+    },
+    [],
+  );
+
+  const handleCloseOrder = React.useCallback(() => {
+    setSelectedOrder(null);
+    viewTriggerRef.current?.focus();
   }, []);
 
   const handleViewReceiptFromOrder = React.useCallback(
@@ -146,23 +221,24 @@ const PortalOrdersPage: React.FC = () => {
     [o, t],
   );
 
-  const ordersExpandLabels = React.useMemo(
+  const livePaginationLabels = React.useMemo(
     () => ({
-      viewAll: o.viewAllOrders.replace("{{count}}", String(orders.orders.length)),
-      showLess: o.showLess,
+      previous: o.paginationPrevious,
+      next: o.paginationNext,
+      pageOf: o.paginationPageOf,
+      showing: o.paginationShowingLive,
     }),
-    [o.viewAllOrders, o.showLess, orders.orders.length],
+    [o],
   );
 
-  const providerOrdersExpandLabels = React.useMemo(
+  const onlinePaginationLabels = React.useMemo(
     () => ({
-      viewAll: o.viewAllOnlineOrders.replace(
-        "{{count}}",
-        String(orders.providerOrders.length),
-      ),
-      showLess: o.showLess,
+      previous: o.paginationPrevious,
+      next: o.paginationNext,
+      pageOf: o.paginationPageOf,
+      showing: o.paginationShowingOnline,
     }),
-    [o.viewAllOnlineOrders, o.showLess, orders.providerOrders.length],
+    [o],
   );
 
   return (
@@ -226,16 +302,14 @@ const PortalOrdersPage: React.FC = () => {
       ) : null}
 
       <OrdersTable
-        orders={orders.orders}
+        orders={paginatedLiveOrders}
         loading={data.loading}
         title={o.ordersFeedTitle}
         emptyLabel={o.ordersEmpty}
         primary
-        previewLimit={ORDERS_PREVIEW_LIMIT}
-        totalCount={orders.orders.length}
-        expanded={ordersExpanded}
-        onToggleExpand={() => setOrdersExpanded((value) => !value)}
-        expandLabels={ordersExpandLabels}
+        pagination={livePagination}
+        onPageChange={setLiveOrdersPage}
+        paginationLabels={livePaginationLabels}
         onViewOrder={handleViewOrder}
         actionView={o.actionView}
         columns={{
@@ -252,17 +326,15 @@ const PortalOrdersPage: React.FC = () => {
       />
 
       <OnlineOrdersTable
-        orders={orders.providerOrders}
+        orders={paginatedOnlineOrders}
         loading={data.loading}
         title={o.onlineOrdersTitle}
         emptyLabel={o.onlineOrdersEmpty}
         emptyDescription={o.onlineOrdersEmptyHint}
         actionView={o.actionView}
-        previewLimit={ORDERS_PREVIEW_LIMIT}
-        totalCount={orders.providerOrders.length}
-        expanded={providerOrdersExpanded}
-        onToggleExpand={() => setProviderOrdersExpanded((value) => !value)}
-        expandLabels={providerOrdersExpandLabels}
+        pagination={onlinePagination}
+        onPageChange={setOnlineOrdersPage}
+        paginationLabels={onlinePaginationLabels}
         onViewOrder={handleViewOrder}
         receiptsLinkLabel={o.viewAllReceiptsLink}
         receiptsHref="/portal/receipts"
@@ -281,6 +353,7 @@ const PortalOrdersPage: React.FC = () => {
       <OrderDetailDrawer
         open={selectedOrder !== null}
         order={selectedOrder}
+        detailRefreshKey={data.lastSyncedAt?.getTime() ?? null}
         labels={{
           title: o.orderDetailTitle,
           orderNumber: o.colOrderNumber,
@@ -292,6 +365,7 @@ const PortalOrdersPage: React.FC = () => {
           discounts: o.colDiscounts,
           tax: o.colTax,
           net: o.colNet,
+          gross: o.colGross,
           payments: o.colPayment,
           receipt: o.colReceipt,
           timeline: o.orderTimelineTitle,
@@ -313,6 +387,7 @@ const PortalOrdersPage: React.FC = () => {
           providerOrderId: o.providerOrderIdLabel,
           customer: o.colCustomer,
           phone: o.colPhone,
+          email: o.colEmail,
           deliveryAddress: o.deliveryAddressLabel,
           customerNote: o.customerNoteLabel,
           paymentStatus: o.colPayment,
@@ -322,7 +397,7 @@ const PortalOrdersPage: React.FC = () => {
         }}
         locale={locale}
         timezone={data.sales?.timezone ?? "Europe/Berlin"}
-        onClose={() => setSelectedOrder(null)}
+        onClose={handleCloseOrder}
         onViewReceipt={handleViewReceiptFromOrder}
         formatPayment={(method) => formatPortalPaymentMethod(method, t)}
       />

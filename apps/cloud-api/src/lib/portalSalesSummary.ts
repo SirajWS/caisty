@@ -18,6 +18,7 @@ import {
   sqlIsTodayBerlin,
   type PaymentSummaryCents,
 } from "./portalOrders.js";
+import { POS_NATIVE_PLATFORMS_LIST } from "./orderSource.js";
 import {
   sqlInPeriodBerlin,
   type PortalReportsPeriod,
@@ -47,6 +48,8 @@ export function averageOrderMinor(revenueMinor: number, ordersCount: number): nu
 
 export type PortalSalesPeriodStats = {
   ordersCount: number;
+  liveOrdersCount: number;
+  onlineOrdersCount: number;
   receiptsCount: number;
   kpiReceiptsCount: number;
   revenueCents: number;
@@ -54,6 +57,20 @@ export type PortalSalesPeriodStats = {
   currency: string;
   paymentSummary: PaymentSummaryCents;
 };
+
+/** SQL predicate matching `isLiveOrderPlatform` / `!isProviderOrder`. */
+export function sqlIsLiveOrderPlatform(
+  platformColumn: typeof posOrders.platform,
+): SQL {
+  const nativeList = sql.join(
+    POS_NATIVE_PLATFORMS_LIST.map((platform) => sql`${platform}`),
+    sql`, `,
+  );
+  return sql`(
+    coalesce(trim(lower(${platformColumn})), '') = ''
+    or trim(lower(${platformColumn})) in (${nativeList})
+  )`;
+}
 
 function receiptPeriodScope(
   orgId: string,
@@ -131,10 +148,17 @@ export async function fetchPortalSalesPeriodStats(input: {
   const { orgId, customerId, period } = input;
 
   const [orderStats] = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({
+      count: sql<number>`count(*)::int`,
+      liveCount: sql<number>`count(*) filter (where ${sqlIsLiveOrderPlatform(posOrders.platform)})::int`,
+    })
     .from(posOrders)
     .innerJoin(devices, eq(posOrders.deviceId, devices.id))
     .where(orderPeriodScope(orgId, customerId, period));
+
+  const totalOrders = orderStats?.count ?? 0;
+  const liveOrdersCount = orderStats?.liveCount ?? 0;
+  const onlineOrdersCount = Math.max(0, totalOrders - liveOrdersCount);
 
   const [receiptStats] = await db
     .select({
@@ -176,7 +200,9 @@ export async function fetchPortalSalesPeriodStats(input: {
   const paymentSummary = aggregatePaymentSummary(paymentRows);
 
   return {
-    ordersCount: orderStats?.count ?? 0,
+    ordersCount: totalOrders,
+    liveOrdersCount,
+    onlineOrdersCount,
     receiptsCount: receiptStats?.count ?? 0,
     kpiReceiptsCount: receiptStats?.kpiCount ?? 0,
     revenueCents: receiptStats?.revenue ?? 0,

@@ -16,7 +16,22 @@ describe("orderSource", () => {
     expect(isProviderOrder("")).toBe(false);
     expect(isProviderOrder("pos")).toBe(false);
     expect(isProviderOrder("dine_in")).toBe(false);
+    expect(isProviderOrder("counter")).toBe(false);
+    expect(isProviderOrder("queue")).toBe(false);
+    expect(isProviderOrder("in_store")).toBe(false);
     expect(normalizeOrderSource("pos")).toBe(ORDER_SOURCE.POS);
+  });
+
+  it("classifies online provider channels", () => {
+    for (const platform of [
+      "website",
+      "fake_delivery",
+      "lieferando",
+      "uber",
+      "wolt",
+    ]) {
+      expect(isProviderOrder(platform)).toBe(true);
+    }
   });
 
   it("classifies fake_delivery as provider order", () => {

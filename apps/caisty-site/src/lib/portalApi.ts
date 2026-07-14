@@ -507,9 +507,14 @@ export type PortalOpenShiftRecord = {
 };
 
 export type PortalOrdersSummary = {
-  ordersCount: number;
+  allOrdersCount: number;
+  liveOrdersCount: number;
+  onlineOrdersCount: number;
   receiptsCount: number;
   refundsCount: number;
+  hasOpenShift: boolean;
+  /** @deprecated Use allOrdersCount */
+  ordersCount: number;
   revenueCents: number;
   averageOrderMinor: number;
   openShift: PortalOpenShiftRecord | null;

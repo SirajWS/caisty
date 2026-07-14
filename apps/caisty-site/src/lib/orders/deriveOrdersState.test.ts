@@ -62,27 +62,43 @@ function makeOrder(
   };
 }
 
+function makeSummary(
+  overrides: Partial<PortalOrdersResponse["summary"]> = {},
+): PortalOrdersResponse["summary"] {
+  const allOrdersCount = overrides.allOrdersCount ?? overrides.ordersCount ?? 0;
+  const liveOrdersCount = overrides.liveOrdersCount ?? allOrdersCount;
+  const onlineOrdersCount =
+    overrides.onlineOrdersCount ?? Math.max(0, allOrdersCount - liveOrdersCount);
+
+  return {
+    allOrdersCount,
+    liveOrdersCount,
+    onlineOrdersCount,
+    receiptsCount: 0,
+    refundsCount: 0,
+    hasOpenShift: false,
+    ordersCount: allOrdersCount,
+    revenueCents: 0,
+    averageOrderMinor: 0,
+    openShift: null,
+    paymentSummary: {
+      cashCents: 0,
+      cardCents: 0,
+      voucherCents: 0,
+      otherCents: 0,
+      currency: "EUR",
+    },
+    ...overrides,
+  };
+}
+
 function makeSales(
   overrides: Partial<PortalOrdersResponse> = {},
 ): PortalOrdersResponse {
   return {
     timezone: "Europe/Berlin",
     period: "today",
-    summary: {
-      ordersCount: 0,
-      receiptsCount: 0,
-      refundsCount: 0,
-      revenueCents: 0,
-      averageOrderMinor: 0,
-      openShift: null,
-      paymentSummary: {
-        cashCents: 0,
-        cardCents: 0,
-        voucherCents: 0,
-        otherCents: 0,
-        currency: "EUR",
-      },
-    },
+    summary: makeSummary(overrides.summary),
     orders: [],
     providerOrders: [],
     receipts: [],
@@ -115,7 +131,7 @@ describe("deriveOrdersState", () => {
     expect(state.orders).toEqual([]);
     expect(state.receipts).toEqual([]);
     expect(state.hasSalesData).toBe(false);
-    expect(state.summary).toHaveLength(4);
+    expect(state.summary).toHaveLength(6);
     expect(state.summary.every((k) => k.value === "—")).toBe(true);
     expect(state.summary.every((k) => k.hint === "Waiting for POS sync")).toBe(
       true,
@@ -128,21 +144,12 @@ describe("deriveOrdersState", () => {
       deriveInput(
         makeData({
           sales: makeSales({
-            summary: {
-              ordersCount: 2,
+            summary: makeSummary({
+              allOrdersCount: 2,
+              liveOrdersCount: 2,
+              onlineOrdersCount: 0,
               receiptsCount: 2,
-              refundsCount: 0,
-              revenueCents: 2000,
-              averageOrderMinor: 1000,
-              openShift: null,
-              paymentSummary: {
-                cashCents: 500,
-                cardCents: 1500,
-                voucherCents: 0,
-                otherCents: 0,
-                currency: "EUR",
-              },
-            },
+            }),
             orders: [
               makeOrder({
                 id: "o1",
@@ -194,7 +201,9 @@ describe("deriveOrdersState", () => {
     expect(state.hasSalesData).toBe(true);
     expect(state.orders).toHaveLength(2);
     expect(state.receipts).toHaveLength(2);
-    expect(state.summary.find((k) => k.id === "orders")?.value).toBe("2");
+    expect(state.summary.find((k) => k.id === "all_orders")?.value).toBe("2");
+    expect(state.summary.find((k) => k.id === "live_orders")?.value).toBe("2");
+    expect(state.summary.find((k) => k.id === "online_orders")?.value).toBe("0");
     expect(state.summary.find((k) => k.id === "receipts")?.value).toBe("2");
     expect(state.orders[0].orderNumber).toBe("ORD-1");
     expect(state.receipts[0].receiptNumber).toBe("R-001");
@@ -205,13 +214,10 @@ describe("deriveOrdersState", () => {
       deriveInput(
         makeData({
           sales: makeSales({
-            summary: {
-              ordersCount: 1,
+            summary: makeSummary({
+              allOrdersCount: 1,
+              liveOrdersCount: 1,
               receiptsCount: 1,
-              refundsCount: 0,
-              revenueCents: 0,
-              averageOrderMinor: 0,
-              openShift: null,
               paymentSummary: {
                 cashCents: 680,
                 cardCents: 0,
@@ -219,7 +225,7 @@ describe("deriveOrdersState", () => {
                 otherCents: 0,
                 currency: "EUR",
               },
-            },
+            }),
             receipts: [
               {
                 id: "r1",
@@ -269,13 +275,10 @@ describe("deriveOrdersState", () => {
       deriveInput(
         makeData({
           sales: makeSales({
-            summary: {
-              ordersCount: 2,
+            summary: makeSummary({
+              allOrdersCount: 2,
+              liveOrdersCount: 2,
               receiptsCount: 2,
-              refundsCount: 0,
-              revenueCents: 0,
-              averageOrderMinor: 0,
-              openShift: null,
               paymentSummary: {
                 cashCents: 800,
                 cardCents: 1200,
@@ -283,7 +286,7 @@ describe("deriveOrdersState", () => {
                 otherCents: 100,
                 currency: "EUR",
               },
-            },
+            }),
             orders: [
               makeOrder({
                 id: "o1",
@@ -325,13 +328,10 @@ describe("deriveOrdersState", () => {
       deriveInput(
         makeData({
           sales: makeSales({
-            summary: {
-              ordersCount: 1,
+            summary: makeSummary({
+              allOrdersCount: 1,
+              liveOrdersCount: 1,
               receiptsCount: 1,
-              refundsCount: 0,
-              revenueCents: 0,
-              averageOrderMinor: 0,
-              openShift: null,
               paymentSummary: {
                 cashCents: 6000,
                 cardCents: 0,
@@ -339,7 +339,7 @@ describe("deriveOrdersState", () => {
                 otherCents: 0,
                 currency: "TND",
               },
-            },
+            }),
             orders: [
               makeOrder({
                 id: "o1",
@@ -383,13 +383,10 @@ describe("deriveOrdersState", () => {
       deriveInput(
         makeData({
           sales: makeSales({
-            summary: {
-              ordersCount: 1,
+            summary: makeSummary({
+              allOrdersCount: 1,
+              liveOrdersCount: 1,
               receiptsCount: 0,
-              refundsCount: 0,
-              revenueCents: 0,
-              averageOrderMinor: 0,
-              openShift: null,
               paymentSummary: {
                 cashCents: 100,
                 cardCents: 0,
@@ -397,7 +394,7 @@ describe("deriveOrdersState", () => {
                 otherCents: 0,
                 currency: "EUR",
               },
-            },
+            }),
             orders: [
               makeOrder({
                 id: "o1",
@@ -421,13 +418,12 @@ describe("deriveOrdersState", () => {
       deriveInput(
         makeData({
           sales: makeSales({
-            summary: {
-              ordersCount: 2,
-              receiptsCount: 0,
-              refundsCount: 0,
+            summary: makeSummary({
+              allOrdersCount: 2,
+              liveOrdersCount: 1,
+              onlineOrdersCount: 1,
               revenueCents: 3250,
               averageOrderMinor: 1625,
-              openShift: null,
               paymentSummary: {
                 cashCents: 3250,
                 cardCents: 0,
@@ -435,7 +431,7 @@ describe("deriveOrdersState", () => {
                 otherCents: 0,
                 currency: "TND",
               },
-            },
+            }),
             orders: [
               makeOrder({
                 id: "live-1",
@@ -471,17 +467,90 @@ describe("deriveOrdersState", () => {
     expect(state.providerOrders[0].provider).toBe("Fake Delivery");
   });
 
+  it("renders split KPI cards from server summary counts", () => {
+    const state = deriveOrdersState(
+      deriveInput(
+        makeData({
+          sales: makeSales({
+            summary: makeSummary({
+              allOrdersCount: 31,
+              liveOrdersCount: 26,
+              onlineOrdersCount: 5,
+              receiptsCount: 26,
+              refundsCount: 0,
+              hasOpenShift: false,
+            }),
+            orders: Array.from({ length: 26 }, (_, index) =>
+              makeOrder({
+                id: `live-${index}`,
+                localOrderId: `ORD-${index}`,
+              }),
+            ),
+            providerOrders: Array.from({ length: 5 }, (_, index) =>
+              makeOrder({
+                id: `online-${index}`,
+                localOrderId: `WEB-${index}`,
+                isProviderOrder: true,
+                platform: "website",
+                providerName: "Website",
+              }),
+            ),
+          }),
+        }),
+      ),
+    );
+
+    expect(state.summary.find((k) => k.id === "all_orders")?.value).toBe("31");
+    expect(state.summary.find((k) => k.id === "live_orders")?.value).toBe("26");
+    expect(state.summary.find((k) => k.id === "online_orders")?.value).toBe("5");
+    expect(state.summary.find((k) => k.id === "receipts")?.value).toBe("26");
+    expect(state.summary.find((k) => k.id === "refunds")?.value).toBe("0");
+    expect(state.summary.find((k) => k.id === "open_shift")?.value).toBe("No");
+    expect(
+      Number(state.summary.find((k) => k.id === "live_orders")?.value) +
+        Number(state.summary.find((k) => k.id === "online_orders")?.value),
+    ).toBe(31);
+  });
+
+  it("shows KPI values when only provider orders are synced", () => {
+    const state = deriveOrdersState(
+      deriveInput(
+        makeData({
+          sales: makeSales({
+            summary: makeSummary({
+              allOrdersCount: 2,
+              liveOrdersCount: 0,
+              onlineOrdersCount: 2,
+            }),
+            providerOrders: [
+              makeOrder({
+                id: "provider-1",
+                localOrderId: "WEB-1",
+                isProviderOrder: true,
+                platform: "website",
+                providerName: "Website",
+              }),
+            ],
+          }),
+        }),
+      ),
+    );
+
+    expect(state.hasSalesData).toBe(true);
+    expect(state.summary.find((k) => k.id === "all_orders")?.value).toBe("2");
+    expect(state.summary.find((k) => k.id === "online_orders")?.value).toBe("2");
+    expect(state.summary.every((k) => k.value !== "—")).toBe(true);
+  });
+
   it("shows open shift KPI when an open shift is present", () => {
     const state = deriveOrdersState(
       deriveInput(
         makeData({
           sales: makeSales({
-            summary: {
-              ordersCount: 1,
-              receiptsCount: 1,
-              refundsCount: 0,
-              revenueCents: 0,
-              averageOrderMinor: 0,
+            summary: makeSummary({
+              allOrdersCount: 1,
+              liveOrdersCount: 1,
+              hasOpenShift: true,
               openShift: {
                 shiftId: "shift-1",
                 status: "open",
@@ -500,7 +569,7 @@ describe("deriveOrdersState", () => {
                 otherCents: 0,
                 currency: "EUR",
               },
-            },
+            }),
             orders: [
               makeOrder({
                 id: "o1",

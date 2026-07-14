@@ -15,7 +15,8 @@ export const ORDER_SOURCE = {
 
 export type OrderSource = (typeof ORDER_SOURCE)[keyof typeof ORDER_SOURCE];
 
-const POS_NATIVE_PLATFORMS = new Set([
+/** POS-native platforms — shared with SQL aggregation in portalSalesSummary. */
+export const POS_NATIVE_PLATFORMS_LIST = [
   "pos",
   "dine_in",
   "dine-in",
@@ -23,7 +24,9 @@ const POS_NATIVE_PLATFORMS = new Set([
   "in-store",
   "counter",
   "queue",
-]);
+] as const;
+
+const POS_NATIVE_PLATFORMS = new Set<string>(POS_NATIVE_PLATFORMS_LIST);
 
 const PROVIDER_PLATFORMS = new Set([
   "fake_delivery",
@@ -77,6 +80,11 @@ export function normalizeOrderSource(
     return ORDER_SOURCE.DELIVERY;
   }
   return ORDER_SOURCE.PROVIDER;
+}
+
+/** True for POS / in-store orders (counter, queue, dine-in, etc.). */
+export function isLiveOrderPlatform(platform: string | null | undefined): boolean {
+  return !isProviderOrder(platform);
 }
 
 /** True when the order originated from an external or internal provider channel. */

@@ -105,9 +105,14 @@ export type PortalOrdersPageData = {
   timezone: string;
   period: "today";
   summary: {
-    ordersCount: number;
+    allOrdersCount: number;
+    liveOrdersCount: number;
+    onlineOrdersCount: number;
     receiptsCount: number;
     refundsCount: number;
+    hasOpenShift: boolean;
+    /** @deprecated Use allOrdersCount */
+    ordersCount: number;
     revenueCents: number;
     averageOrderMinor: number;
     openShift: Awaited<ReturnType<typeof shiftService.getOpenShiftForCustomer>>;
@@ -465,9 +470,13 @@ export async function fetchPortalOrdersPage(input: {
     timezone: PORTAL_ORDERS_TIMEZONE,
     period: "today",
     summary: {
-      ordersCount: periodStats.ordersCount,
+      allOrdersCount: periodStats.ordersCount,
+      liveOrdersCount: periodStats.liveOrdersCount,
+      onlineOrdersCount: periodStats.onlineOrdersCount,
       receiptsCount: periodStats.receiptsCount,
       refundsCount: periodStats.refundsCount,
+      hasOpenShift: openShift !== null,
+      ordersCount: periodStats.ordersCount,
       revenueCents: periodStats.revenueCents,
       averageOrderMinor: averageOrderMinor(
         periodStats.revenueCents,

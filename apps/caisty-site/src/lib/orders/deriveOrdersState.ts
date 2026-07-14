@@ -40,15 +40,27 @@ function waitingKpi(id: string, label: string, hint: string, dash: string): Orde
   return { id, label, value: dash, hint };
 }
 
+function hasSyncedSalesData(sales: NonNullable<DeriveOrdersInput["data"]["sales"]>): boolean {
+  return (
+    sales.summary.allOrdersCount > 0 ||
+    sales.summary.receiptsCount > 0 ||
+    sales.orders.length > 0 ||
+    sales.providerOrders.length > 0 ||
+    sales.receipts.length > 0
+  );
+}
+
 function deriveSummary(input: DeriveOrdersInput): OrdersKpi[] {
   const o = input.t.orders;
   const dash = input.t.labels.dash;
   const sales = input.data.sales;
 
-  if (!sales || (sales.orders.length === 0 && sales.receipts.length === 0)) {
+  if (!sales || !hasSyncedSalesData(sales)) {
     const hint = o.waitingPosSyncShort;
     return [
-      waitingKpi("orders", o.kpiOrders, hint, dash),
+      waitingKpi("all_orders", o.kpiAllOrders, hint, dash),
+      waitingKpi("live_orders", o.kpiLiveOrders, hint, dash),
+      waitingKpi("online_orders", o.kpiOnlineOrders, hint, dash),
       waitingKpi("receipts", o.kpiReceipts, hint, dash),
       waitingKpi("refunds", o.kpiRefunds, hint, dash),
       waitingKpi("open_shift", o.kpiOpenShift, hint, dash),
@@ -59,7 +71,21 @@ function deriveSummary(input: DeriveOrdersInput): OrdersKpi[] {
   const openShiftValue = formatOpenShiftKpi(summary.openShift, o);
 
   return [
-    { id: "orders", label: o.kpiOrders, value: String(summary.ordersCount) },
+    {
+      id: "all_orders",
+      label: o.kpiAllOrders,
+      value: String(summary.allOrdersCount),
+    },
+    {
+      id: "live_orders",
+      label: o.kpiLiveOrders,
+      value: String(summary.liveOrdersCount),
+    },
+    {
+      id: "online_orders",
+      label: o.kpiOnlineOrders,
+      value: String(summary.onlineOrdersCount),
+    },
     { id: "receipts", label: o.kpiReceipts, value: String(summary.receiptsCount) },
     { id: "refunds", label: o.kpiRefunds, value: String(summary.refundsCount) },
     { id: "open_shift", label: o.kpiOpenShift, ...openShiftValue },
@@ -93,7 +119,7 @@ function derivePayments(input: DeriveOrdersInput): PaymentMethodCard[] {
   const dash = input.t.labels.dash;
   const sales = input.data.sales;
 
-  if (!sales || (sales.orders.length === 0 && sales.receipts.length === 0)) {
+  if (!sales || !hasSyncedSalesData(sales)) {
     return [
       { id: "cash", label: o.paymentCash, value: dash, tone: "unknown" },
       { id: "card", label: o.paymentCard, value: dash, tone: "unknown" },
