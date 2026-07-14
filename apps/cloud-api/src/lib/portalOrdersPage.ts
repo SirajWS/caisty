@@ -114,6 +114,8 @@ export type PortalOrdersPageData = {
     /** @deprecated Use allOrdersCount */
     ordersCount: number;
     revenueCents: number;
+    posRevenueCents: number;
+    onlineRevenueCents: number;
     averageOrderMinor: number;
     openShift: Awaited<ReturnType<typeof shiftService.getOpenShiftForCustomer>>;
     paymentSummary: {
@@ -230,6 +232,7 @@ function hasPaymentChangeEvent(
 export async function fetchPortalOrdersPage(input: {
   orgId: string;
   customerId: string;
+  periodStats?: Awaited<ReturnType<typeof fetchPortalTodaySalesStats>>;
 }): Promise<PortalOrdersPageData> {
   const { orgId, customerId } = input;
   const scope = and(
@@ -239,7 +242,8 @@ export async function fetchPortalOrdersPage(input: {
   );
 
   const [periodStats, openShift] = await Promise.all([
-    fetchPortalTodaySalesStats({ orgId, customerId }),
+    input.periodStats ??
+      fetchPortalTodaySalesStats({ orgId, customerId }),
     shiftService.getOpenShiftForCustomer(orgId, customerId),
   ]);
 
@@ -478,6 +482,8 @@ export async function fetchPortalOrdersPage(input: {
       hasOpenShift: openShift !== null,
       ordersCount: periodStats.ordersCount,
       revenueCents: periodStats.revenueCents,
+      posRevenueCents: periodStats.posRevenueCents,
+      onlineRevenueCents: periodStats.onlineRevenueCents,
       averageOrderMinor: averageOrderMinor(
         periodStats.revenueCents,
         periodStats.kpiReceiptsCount,

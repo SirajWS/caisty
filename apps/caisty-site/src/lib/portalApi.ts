@@ -516,6 +516,8 @@ export type PortalOrdersSummary = {
   /** @deprecated Use allOrdersCount */
   ordersCount: number;
   revenueCents: number;
+  posRevenueCents: number;
+  onlineRevenueCents: number;
   averageOrderMinor: number;
   openShift: PortalOpenShiftRecord | null;
   paymentSummary: PortalOrdersPaymentSummary;
@@ -758,6 +760,8 @@ export interface PortalDashboardSummary {
   timezone: string;
   period: "today";
   todayRevenueCents: number;
+  posRevenueCents: number;
+  onlineRevenueCents: number;
   ordersToday: number;
   liveOrdersCount: number;
   onlineOrdersCount: number;

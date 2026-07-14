@@ -993,6 +993,34 @@ a {
   gap: 8px;
 }
 
+.dashboard-header-refresh {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.dashboard-header-refresh-hint {
+  margin: 0;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.dashboard-header-actions .portal-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+@media (max-width: 639px) {
+  .dashboard-header-refresh-hint {
+    display: none;
+  }
+}
+
 .dashboard-search {
   display: none;
   align-items: center;
@@ -1067,6 +1095,10 @@ a {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
+  .dashboard-kpi-grid--five {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
   .dashboard-search {
     display: inline-flex;
     min-width: 180px;
@@ -1081,7 +1113,7 @@ a {
   border: 1px solid var(--dashboard-border-soft);
   background: var(--dashboard-surface);
   padding: 10px 12px;
-  min-height: 0;
+  min-height: 72px;
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
@@ -1856,6 +1888,22 @@ a {
   /* Uses default dashboard-kpi-grid breakpoints: 2 / 3 / 6 columns */
 }
 
+.orders-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dashboard-kpi-grid--orders-revenue {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+  .dashboard-kpi-grid--orders-revenue {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .dashboard-kpi-grid--receipts {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -2279,6 +2327,38 @@ a {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.order-detail-head-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.receipt-detail-dismiss-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--receipt-drawer-muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.receipt-detail-dismiss-btn:hover {
+  background: var(--receipt-drawer-surface);
+  color: var(--receipt-drawer-text);
+}
+
+.receipt-detail-dismiss-btn:focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
 }
 
 .order-detail-head-badges {

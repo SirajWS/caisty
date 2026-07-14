@@ -7,6 +7,8 @@ describe("buildPortalDashboardSummaryResponse", () => {
     const withSales = buildPortalDashboardSummaryResponse(
       {
         todayRevenueCents: 572800,
+        posRevenueCents: 520000,
+        onlineRevenueCents: 52800,
         ordersToday: 10,
         liveOrdersCount: 8,
         onlineOrdersCount: 2,
@@ -28,6 +30,8 @@ describe("buildPortalDashboardSummaryResponse", () => {
 
     expect(withSales.hasSalesData).toBe(true);
     expect(withSales.todayRevenueCents).toBe(572800);
+    expect(withSales.posRevenueCents).toBe(520000);
+    expect(withSales.onlineRevenueCents).toBe(52800);
     expect(withSales.ordersToday).toBe(10);
     expect(withSales.liveOrdersCount).toBe(8);
     expect(withSales.onlineOrdersCount).toBe(2);
@@ -40,6 +44,8 @@ describe("buildPortalDashboardSummaryResponse", () => {
     const empty = buildPortalDashboardSummaryResponse(
       {
         todayRevenueCents: 0,
+        posRevenueCents: 0,
+        onlineRevenueCents: 0,
         ordersToday: 0,
         liveOrdersCount: 0,
         onlineOrdersCount: 0,

@@ -160,6 +160,7 @@ export type DashboardData = {
   business: PortalBusinessProfile | null;
   customer: PortalCustomer;
   salesSummary: PortalDashboardSummary | null;
+  salesSummaryError: boolean;
   loading: boolean;
   error: boolean;
   lastSyncedAt: Date | null;
@@ -193,4 +194,5 @@ export type DashboardDerivedState = {
   recentOrders: PortalDashboardRecentOrder[];
   paymentSummary: import("../portalApi").PortalOrdersPaymentSummary | null;
   paymentCards: import("../orders/types").PaymentMethodCard[];
+  hasSalesData: boolean;
 };

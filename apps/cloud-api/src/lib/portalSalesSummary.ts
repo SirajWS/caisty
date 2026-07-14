@@ -52,11 +52,38 @@ export type PortalSalesPeriodStats = {
   onlineOrdersCount: number;
   receiptsCount: number;
   kpiReceiptsCount: number;
+  posRevenueCents: number;
+  onlineRevenueCents: number;
+  /** Total revenue = POS + Online (minor units). */
   revenueCents: number;
   refundsCount: number;
   currency: string;
   paymentSummary: PaymentSummaryCents;
 };
+
+/** Orders excluded from online revenue totals. */
+export function sqlOrderIsCancelled(
+  statusColumn: typeof posOrders.status = posOrders.status,
+): SQL {
+  return sql`coalesce(lower(trim(${statusColumn})), '') in ('cancelled', 'canceled', 'refunded')`;
+}
+
+/** Provider / online channel (non-empty platform, not POS-native). */
+export function sqlIsProviderOrderPlatform(
+  platformColumn: typeof posOrders.platform = posOrders.platform,
+): SQL {
+  return sql`(
+    coalesce(trim(lower(${platformColumn})), '') <> ''
+    and not (${sqlIsLiveOrderPlatform(platformColumn)})
+  )`;
+}
+
+export function combineRevenueMinor(
+  posRevenueCents: number,
+  onlineRevenueCents: number,
+): number {
+  return posRevenueCents + onlineRevenueCents;
+}
 
 /** SQL predicate matching `isLiveOrderPlatform` / `!isProviderOrder`. */
 export function sqlIsLiveOrderPlatform(
@@ -97,10 +124,11 @@ function orderPeriodScope(
 }
 
 /**
- * Payments aligned to receipt sold_at when a receipt link exists;
- * otherwise falls back to payment paid_at for the period window.
+ * POS sale payments only — excludes provider/online order payments without a
+ * live POS receipt. `pos_sale_payments` rows are POS-synced; this filter keeps
+ * provider-channel settlements out of the dashboard payment summary.
  */
-export async function fetchPaymentsForSalesPeriod(input: {
+export async function fetchPosPaymentsForSalesPeriod(input: {
   orgId: string;
   customerId: string;
   period: PortalReportsPeriod;
@@ -125,19 +153,50 @@ export async function fetchPaymentsForSalesPeriod(input: {
         eq(posSalePayments.localReceiptId, posReceipts.localReceiptId),
       ),
     )
+    .leftJoin(
+      posOrders,
+      and(
+        eq(posSalePayments.orgId, posOrders.orgId),
+        eq(posSalePayments.deviceId, posOrders.deviceId),
+        eq(posSalePayments.localOrderId, posOrders.localOrderId),
+      ),
+    )
     .where(
       and(
         eq(posSalePayments.orgId, orgId),
         customerDeviceScope(orgId, customerId),
         sql`(
-          (${posReceipts.id} is not null and ${periodSql})
-          or (${posReceipts.id} is null and ${paidAtPeriodSql})
+          (
+            ${posReceipts.id} is not null
+            and ${periodSql}
+            and ${sqlReceiptContributesToKpis(posReceipts.status)}
+            and (
+              ${posOrders.id} is null
+              or ${sqlIsLiveOrderPlatform(posOrders.platform)}
+            )
+          )
+          or (
+            ${posReceipts.id} is null
+            and ${paidAtPeriodSql}
+            and (
+              ${posOrders.id} is null
+              or ${sqlIsLiveOrderPlatform(posOrders.platform)}
+            )
+          )
         )`,
-        sqlReceiptContributesToKpis(posReceipts.status),
       ),
     );
 
   return rows;
+}
+
+/** @deprecated Use fetchPosPaymentsForSalesPeriod for dashboard POS payment summary. */
+export async function fetchPaymentsForSalesPeriod(input: {
+  orgId: string;
+  customerId: string;
+  period: PortalReportsPeriod;
+}): Promise<Array<{ method: string; amountCents: number; currency: string }>> {
+  return fetchPosPaymentsForSalesPeriod(input);
 }
 
 export async function fetchPortalSalesPeriodStats(input: {
@@ -171,11 +230,85 @@ export async function fetchPortalSalesPeriodStats(input: {
     .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
     .where(receiptPeriodScope(orgId, customerId, period));
 
-  const paymentRows = await fetchPaymentsForSalesPeriod({
+  const paymentRows = await fetchPosPaymentsForSalesPeriod({
     orgId,
     customerId,
     period,
   });
+
+  const receiptOrderJoin = and(
+    eq(posReceipts.orgId, posOrders.orgId),
+    eq(posReceipts.deviceId, posOrders.deviceId),
+    eq(posReceipts.localOrderId, posOrders.localOrderId),
+  );
+
+  const [posReceiptRevenueRow] = await db
+    .select({
+      revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
+    })
+    .from(posReceipts)
+    .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
+    .leftJoin(posOrders, receiptOrderJoin)
+    .where(
+      and(
+        receiptPeriodScope(orgId, customerId, period),
+        sql`(
+          ${posOrders.id} is null
+          or ${sqlIsLiveOrderPlatform(posOrders.platform)}
+        )`,
+      ),
+    );
+
+  const [onlineReceiptRevenueRow] = await db
+    .select({
+      revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
+    })
+    .from(posReceipts)
+    .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
+    .innerJoin(posOrders, receiptOrderJoin)
+    .where(
+      and(
+        receiptPeriodScope(orgId, customerId, period),
+        sqlIsProviderOrderPlatform(posOrders.platform),
+      ),
+    );
+
+  const [onlineOrderRevenueRow] = await db
+    .select({
+      revenue: sql<number>`coalesce(sum(${posOrders.totalCents}), 0)::int`,
+    })
+    .from(posOrders)
+    .innerJoin(devices, eq(posOrders.deviceId, devices.id))
+    .where(
+      and(
+        orderPeriodScope(orgId, customerId, period),
+        sqlIsProviderOrderPlatform(posOrders.platform),
+        sql`not (${sqlOrderIsCancelled(posOrders.status)})`,
+        sql`(
+          lower(coalesce(trim(${posOrders.paymentStatus}), '')) = 'paid'
+          or exists (
+            select 1
+            from ${posSalePayments}
+            where ${posSalePayments.orgId} = ${posOrders.orgId}
+              and ${posSalePayments.deviceId} = ${posOrders.deviceId}
+              and ${posSalePayments.localOrderId} = ${posOrders.localOrderId}
+          )
+        )`,
+        sql`not exists (
+          select 1
+          from ${posReceipts}
+          where ${posReceipts.orgId} = ${posOrders.orgId}
+            and ${posReceipts.deviceId} = ${posOrders.deviceId}
+            and ${posReceipts.localOrderId} = ${posOrders.localOrderId}
+            and ${sqlReceiptContributesToKpis(posReceipts.status)}
+        )`,
+      ),
+    );
+
+  const posRevenueCents = posReceiptRevenueRow?.revenue ?? 0;
+  const onlineRevenueCents =
+    (onlineReceiptRevenueRow?.revenue ?? 0) + (onlineOrderRevenueRow?.revenue ?? 0);
+  const revenueCents = combineRevenueMinor(posRevenueCents, onlineRevenueCents);
 
   const [currencyRow] = await db
     .select({ currency: posReceipts.currency })
@@ -205,7 +338,9 @@ export async function fetchPortalSalesPeriodStats(input: {
     onlineOrdersCount,
     receiptsCount: receiptStats?.count ?? 0,
     kpiReceiptsCount: receiptStats?.kpiCount ?? 0,
-    revenueCents: receiptStats?.revenue ?? 0,
+    posRevenueCents,
+    onlineRevenueCents,
+    revenueCents,
     refundsCount: receiptStats?.refundsCount ?? 0,
     currency,
     paymentSummary: { ...paymentSummary, currency },

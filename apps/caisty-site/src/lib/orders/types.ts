@@ -90,11 +90,11 @@ export type BusinessEvent = {
 };
 
 export type OrdersDerivedState = {
-  summary: OrdersKpi[];
+  orderKpis: OrdersKpi[];
+  revenueKpis: OrdersKpi[];
   orders: PosOrderRow[];
   providerOrders: ProviderOrderRow[];
   receipts: PosReceiptRow[];
-  payments: PaymentMethodCard[];
   hasSalesData: boolean;
 };
 

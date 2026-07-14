@@ -82,6 +82,8 @@ function salesSummary(
     timezone: "Europe/Berlin",
     period: "today",
     todayRevenueCents: 0,
+    posRevenueCents: 0,
+    onlineRevenueCents: 0,
     ordersToday: 0,
     liveOrdersCount: 0,
     onlineOrdersCount: 0,
@@ -111,6 +113,7 @@ function makeData(overrides: Partial<DashboardData> = {}): DashboardData {
     business: null,
     customer: baseCustomer,
     salesSummary: null,
+    salesSummaryError: false,
     loading: false,
     error: false,
     lastSyncedAt: new Date("2026-07-05T10:00:00Z"),
@@ -142,6 +145,8 @@ describe("deriveDashboardState", () => {
         makeData({
           salesSummary: salesSummary({
             todayRevenueCents: 453000,
+            posRevenueCents: 441000,
+            onlineRevenueCents: 12000,
             ordersToday: 32,
             liveOrdersCount: 27,
             onlineOrdersCount: 5,
@@ -167,11 +172,15 @@ describe("deriveDashboardState", () => {
     const orders = state.kpis.find((k) => k.id === "orders");
 
     expect(revenue?.value).toContain("453.000");
+    expect(revenue?.hint).toContain("441.000");
+    expect(revenue?.hint).toContain("12.000");
     expect(cash?.value).toContain("441.000");
     expect(card?.value).toContain("12.000");
     expect(cash?.value).not.toContain("4,410");
     expect(card?.value).not.toContain("120.000");
     expect(orders?.value).toBe("32");
+    expect(orders?.hint).toContain("27");
+    expect(orders?.hint).toContain("5");
   });
 
   it("counts orders today as live plus online orders", () => {
@@ -195,12 +204,26 @@ describe("deriveDashboardState", () => {
     expect(orders?.value).toBe("32");
   });
 
+  it("shows five KPIs without employees placeholder", () => {
+    const state = deriveDashboardState(deriveInput(makeData()));
+    expect(state.kpis.map((k) => k.id)).toEqual([
+      "revenue",
+      "orders",
+      "avg_order",
+      "pos_status",
+      "last_sync",
+    ]);
+    expect(state.kpis.find((k) => k.id === "employees")).toBeUndefined();
+  });
+
   it("shows real revenue, orders and average order when POS data exists", () => {
     const state = deriveDashboardState(
       deriveInput(
         makeData({
           salesSummary: salesSummary({
             todayRevenueCents: 572800,
+            posRevenueCents: 572800,
+            onlineRevenueCents: 0,
             ordersToday: 10,
             receiptsToday: 10,
             averageOrderMinor: 57280,
@@ -220,7 +243,7 @@ describe("deriveDashboardState", () => {
     expect(revenue?.status).toBe("value");
     // 572800 millimes (TND) → 572.800, formatted with minor units ÷1000
     expect(revenue?.value).toContain("572.800");
-    expect(revenue?.hint).toBeUndefined();
+    expect(revenue?.hint).toContain("572.800");
     expect(orders?.value).toBe("10");
     expect(avgOrder?.value).toContain("57.280");
     expect(lastSync?.status).toBe("value");
@@ -285,6 +308,46 @@ describe("deriveDashboardState", () => {
     expect(state.activities.length).toBeGreaterThanOrEqual(2);
     expect(new Date(state.activities[0].at).getTime()).toBeGreaterThan(
       new Date(state.activities[1].at).getTime(),
+    );
+  });
+
+  it("excludes offline devices and stale invoices from activity feed", () => {
+    const state = deriveDashboardState(
+      deriveInput(
+        makeData({
+          invoices: [invoice("old", "2020-01-01T12:00:00Z", "paid")],
+          devices: [
+            {
+              id: "d-off",
+              name: "Till offline",
+              deviceId: "dev-off",
+              lastSeenAt: "2026-07-05T09:00:00Z",
+              status: "offline",
+              licenseKey: "KEY",
+            },
+            {
+              id: "d-on",
+              name: "Till online",
+              deviceId: "dev-on",
+              lastSeenAt: "2026-07-08T09:00:00Z",
+              status: "online",
+              licenseKey: "KEY",
+            },
+          ],
+          salesSummary: salesSummary({
+            lastSynchronizationAt: "2026-07-08T10:00:00.000Z",
+            hasSalesData: true,
+          }),
+        }),
+      ),
+    );
+
+    expect(state.activities.some((a) => a.id.startsWith("inv-"))).toBe(false);
+    expect(state.activities.some((a) => a.id === "dev-d-off")).toBe(false);
+    expect(state.activities.some((a) => a.id === "dev-d-on")).toBe(true);
+    expect(state.activities.some((a) => a.id === "cloud-sync")).toBe(true);
+    expect(state.activities.find((a) => a.id === "cloud-sync")?.at).toBe(
+      "2026-07-08T10:00:00.000Z",
     );
   });
 

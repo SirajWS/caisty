@@ -82,6 +82,15 @@ export function OrderDetailDrawer({
   );
   const [loading, setLoading] = React.useState(false);
 
+  const requestClose = React.useCallback(
+    (event?: React.MouseEvent<HTMLButtonElement>) => {
+      event?.stopPropagation();
+      event?.preventDefault();
+      onClose();
+    },
+    [onClose],
+  );
+
   React.useEffect(() => {
     if (!open) return;
     const prevOverflow = document.body.style.overflow;
@@ -160,7 +169,7 @@ export function OrderDetailDrawer({
         type="button"
         className="receipt-detail-backdrop"
         aria-label={labels.close}
-        onClick={onClose}
+        onClick={requestClose}
       />
       <aside
         ref={panelRef}
@@ -178,13 +187,23 @@ export function OrderDetailDrawer({
               </h2>
               <p className="receipt-detail-subtitle">{order.orderNumber}</p>
             </div>
-            <div className="order-detail-head-badges">
-              <OrderStatusBadge status={order.statusKey} label={order.status} />
-              {data.isProviderOrder ? (
-                <span className="order-detail-provider-badge">
-                  {data.providerName?.trim() || labels.onlineOrderBadge}
-                </span>
-              ) : null}
+            <div className="order-detail-head-actions">
+              <div className="order-detail-head-badges">
+                <OrderStatusBadge status={order.statusKey} label={order.status} />
+                {data.isProviderOrder ? (
+                  <span className="order-detail-provider-badge">
+                    {data.providerName?.trim() || labels.onlineOrderBadge}
+                  </span>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                className="receipt-detail-dismiss-btn"
+                aria-label={labels.close}
+                onClick={requestClose}
+              >
+                ×
+              </button>
             </div>
           </div>
         </header>
@@ -394,7 +413,7 @@ export function OrderDetailDrawer({
             ref={closeBtnRef}
             type="button"
             className="receipt-detail-close-btn"
-            onClick={onClose}
+            onClick={requestClose}
           >
             {labels.close}
           </button>

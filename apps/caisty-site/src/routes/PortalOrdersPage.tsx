@@ -3,6 +3,7 @@ import { usePortalOutlet } from "./PortalLayout";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
+import { portalLocaleTag } from "../lib/portalLocale";
 import { getPosReleaseConfig } from "../config/posConfig";
 import { deriveOrdersState } from "../lib/orders/deriveOrdersState";
 import { usePortalOrdersData } from "../lib/orders/usePortalOrdersData";
@@ -15,7 +16,6 @@ import {
 import { OrdersSummary } from "../components/orders/OrdersSummary";
 import { OrdersTable } from "../components/orders/OrdersTable";
 import { OnlineOrdersTable } from "../components/orders/OnlineOrdersTable";
-import { PaymentOverview } from "../components/orders/PaymentOverview";
 import { OrdersEmptyState } from "../components/orders/OrdersEmptyState";
 import { OrdersErrorState } from "../components/orders/OrdersErrorState";
 import { OrdersFilters } from "../components/orders/OrdersFilters";
@@ -45,14 +45,7 @@ const PortalOrdersPage: React.FC = () => {
   const [liveOrdersPage, setLiveOrdersPage] = React.useState(1);
   const [onlineOrdersPage, setOnlineOrdersPage] = React.useState(1);
 
-  const locale =
-    language === "de"
-      ? "de-DE"
-      : language === "fr"
-        ? "fr-FR"
-        : language === "ar"
-          ? "ar-EG"
-          : "en-US";
+  const locale = portalLocaleTag(language);
 
   const orders = React.useMemo(
     () => deriveOrdersState({ data, t, locale }),
@@ -104,13 +97,25 @@ const PortalOrdersPage: React.FC = () => {
     !data.loading && !data.error && data.sales !== null && !orders.hasSalesData;
   const [selectedReceipt, setSelectedReceipt] =
     React.useState<PosReceiptRow | null>(null);
-  const [selectedOrder, setSelectedOrder] = React.useState<PosOrderRow | null>(
-    null,
-  );
+  const [drawerOrderId, setDrawerOrderId] = React.useState<string | null>(null);
   const [receiptIdentity, setReceiptIdentity] =
     React.useState<DocumentIdentity | null>(null);
   const viewTriggerRef = React.useRef<HTMLButtonElement | null>(null);
   const periodLabel = o.filterToday;
+
+  const selectedOrder = React.useMemo(() => {
+    if (!drawerOrderId) return null;
+    const fromLive = orders.orders.find((row) => row.id === drawerOrderId);
+    if (fromLive) return fromLive;
+    const fromOnline = orders.providerOrders.find((row) => row.id === drawerOrderId);
+    return (fromOnline as PosOrderRow | undefined) ?? null;
+  }, [drawerOrderId, orders.orders, orders.providerOrders]);
+
+  React.useEffect(() => {
+    if (drawerOrderId && !selectedOrder && !data.loading) {
+      setDrawerOrderId(null);
+    }
+  }, [drawerOrderId, selectedOrder, data.loading]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -121,26 +126,6 @@ const PortalOrdersPage: React.FC = () => {
       cancelled = true;
     };
   }, [customer]);
-
-  React.useEffect(() => {
-    if (!selectedOrder || data.loading) return;
-
-    const updated =
-      orders.orders.find((row) => row.id === selectedOrder.id) ??
-      orders.providerOrders.find((row) => row.id === selectedOrder.id);
-
-    if (updated) {
-      setSelectedOrder(updated as PosOrderRow);
-    } else if (data.sales) {
-      setSelectedOrder(null);
-    }
-  }, [
-    data.loading,
-    data.sales,
-    orders.orders,
-    orders.providerOrders,
-    selectedOrder?.id,
-  ]);
 
   const handleRefresh = React.useCallback(() => {
     if (exportingPdf || data.refreshing) return;
@@ -175,13 +160,13 @@ const PortalOrdersPage: React.FC = () => {
   const handleViewOrder = React.useCallback(
     (order: PosOrderRow | ProviderOrderRow, trigger?: HTMLButtonElement | null) => {
       viewTriggerRef.current = trigger ?? null;
-      setSelectedOrder(order as PosOrderRow);
+      setDrawerOrderId(order.id);
     },
     [],
   );
 
   const handleCloseOrder = React.useCallback(() => {
-    setSelectedOrder(null);
+    setDrawerOrderId(null);
     viewTriggerRef.current?.focus();
   }, []);
 
@@ -189,7 +174,7 @@ const PortalOrdersPage: React.FC = () => {
     (receiptId: string) => {
       const receipt = orders.receipts.find((row) => row.id === receiptId);
       if (receipt) {
-        setSelectedOrder(null);
+        setDrawerOrderId(null);
         setSelectedReceipt(receipt);
       }
     },
@@ -271,12 +256,11 @@ const PortalOrdersPage: React.FC = () => {
         </div>
       </header>
 
-      <OrdersSummary kpis={orders.summary} loading={data.loading} isLight={isLight} />
-
-      <PaymentOverview
-        payments={orders.payments}
-        title={o.paymentSummaryTitle}
-        hint={orders.hasSalesData ? undefined : o.paymentEmptyHint}
+      <OrdersSummary
+        orderKpis={orders.orderKpis}
+        revenueKpis={orders.revenueKpis}
+        loading={data.loading}
+        isLight={isLight}
       />
 
       <OrdersFilters label={o.filtersTitle} todayLabel={o.filterToday} />
@@ -351,7 +335,7 @@ const PortalOrdersPage: React.FC = () => {
         }}
       />
       <OrderDetailDrawer
-        open={selectedOrder !== null}
+        open={drawerOrderId !== null && selectedOrder !== null}
         order={selectedOrder}
         detailRefreshKey={data.lastSyncedAt?.getTime() ?? null}
         labels={{

@@ -18,6 +18,7 @@ import {
   StoreStatusWidget,
   TodayActivityTimeline,
 } from "../components/dashboard/LiveDashboardPanels";
+import { OrdersErrorState } from "../components/orders/OrdersErrorState";
 import { PaymentOverview } from "../components/orders/PaymentOverview";
 import { portalPageShell } from "../lib/portalUi";
 
@@ -58,6 +59,8 @@ const PortalDashboard: React.FC = () => {
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
+  const showSalesError = !data.loading && data.salesSummaryError;
+
   if (data.loading && !data.lastSyncedAt) {
     return (
       <div className={portalPageShell()}>
@@ -76,30 +79,43 @@ const PortalDashboard: React.FC = () => {
         alertCount={dashboard.alerts.length}
         onAlertsClick={scrollToAlerts}
         l={l}
+        onRefresh={data.reload}
+        refreshing={data.refreshing}
+        refreshLabel={l.actionRefresh}
+        refreshLoadingLabel={l.refreshLoading}
+        autoRefreshHint={l.autoRefreshHint}
       />
 
-      <LiveKpiStrip kpis={dashboard.kpis} loading={data.loading} isLight={isLight} />
+      <LiveKpiStrip
+        kpis={dashboard.kpis}
+        loading={data.loading}
+        isLight={isLight}
+        gridClassName="dashboard-kpi-grid dashboard-kpi-grid--five"
+      />
 
-      {dashboard.paymentSummary ? (
-        <PaymentOverview
-          payments={dashboard.paymentCards}
-          title={l.paymentSummaryTitle}
-          hint={
-            dashboard.paymentSummary.cashCents +
-              dashboard.paymentSummary.cardCents +
-              dashboard.paymentSummary.voucherCents +
-              dashboard.paymentSummary.otherCents ===
-            0
-              ? o.waitingPosSyncShort
-              : undefined
-          }
+      {showSalesError ? (
+        <OrdersErrorState
+          headline={l.errorHeadline}
+          description={l.errorDescription}
+          retryLabel={l.errorRetry}
+          onRetry={data.reload}
+          isLight={isLight}
+          loading={data.refreshing}
         />
       ) : null}
+
+      <PaymentOverview
+        payments={dashboard.paymentCards}
+        title={l.paymentSummaryTitle}
+        hint={dashboard.hasSalesData ? undefined : o.paymentEmptyHint}
+      />
 
       <DashboardRecentOrders
         orders={dashboard.recentOrders}
         title={l.recentOrdersTitle}
         emptyLabel={l.recentOrdersEmpty}
+        loading={data.loading}
+        loadingLabel={l.waiting}
         onlineBadgeLabel={o.onlineOrderBadge}
         columns={{
           time: o.colTime,
@@ -112,7 +128,12 @@ const PortalDashboard: React.FC = () => {
       />
 
       <div className="live-dashboard-split">
-        <StoreStatusWidget items={dashboard.storeStatus} title={l.storeStatusTitle} />
+        <StoreStatusWidget
+          items={dashboard.storeStatus}
+          title={l.storeStatusTitle}
+          loading={data.loading}
+          loadingLabel={l.waiting}
+        />
         <DashboardQuickActions
           actions={dashboard.quickActions}
           release={release}
@@ -131,6 +152,8 @@ const PortalDashboard: React.FC = () => {
         locale={locale}
         title={l.activityTitle}
         emptyLabel={l.activityEmpty}
+        loading={data.loading}
+        loadingLabel={l.waiting}
         compact
       />
     </div>

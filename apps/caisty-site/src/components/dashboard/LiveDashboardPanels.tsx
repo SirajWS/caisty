@@ -101,8 +101,8 @@ export function LiveDashboardSkeleton() {
   return (
     <div className="live-dashboard">
       <div className="dashboard-skeleton-block h-14 rounded-xl animate-pulse" />
-      <div className="dashboard-kpi-grid">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className="dashboard-kpi-grid dashboard-kpi-grid--five">
+        {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="dashboard-kpi dashboard-kpi--skeleton animate-pulse" />
         ))}
       </div>
@@ -118,6 +118,11 @@ export function LiveDashboardHeader({
   alertCount,
   onAlertsClick,
   l,
+  onRefresh,
+  refreshing = false,
+  refreshLabel,
+  refreshLoadingLabel,
+  autoRefreshHint,
 }: {
   businessName: string;
   businessOnline: boolean;
@@ -126,6 +131,11 @@ export function LiveDashboardHeader({
   alertCount: number;
   onAlertsClick: () => void;
   l: LiveCopy;
+  onRefresh?: () => void;
+  refreshing?: boolean;
+  refreshLabel?: string;
+  refreshLoadingLabel?: string;
+  autoRefreshHint?: string;
 }) {
   const dateLabel = new Intl.DateTimeFormat(locale, {
     weekday: "long",
@@ -154,6 +164,24 @@ export function LiveDashboardHeader({
         </div>
       </div>
       <div className="dashboard-header-actions shrink-0">
+        {onRefresh && refreshLabel ? (
+          <div className="dashboard-header-refresh">
+            {autoRefreshHint ? (
+              <p className="portal-auto-refresh-hint dashboard-header-refresh-hint">
+                {autoRefreshHint}
+              </p>
+            ) : null}
+            <button
+              type="button"
+              className="portal-refresh-btn dashboard-icon-btn"
+              disabled={refreshing}
+              onClick={onRefresh}
+            >
+              <RefreshCw size={14} className={refreshing ? "animate-spin" : undefined} />
+              <span>{refreshing && refreshLoadingLabel ? refreshLoadingLabel : refreshLabel}</span>
+            </button>
+          </div>
+        ) : null}
         <div className="dashboard-search dashboard-search--disabled" title={l.searchFuture}>
           <Search size={14} />
           <span>{l.searchFuture}</span>
@@ -176,15 +204,17 @@ export function LiveKpiStrip({
   kpis,
   loading,
   isLight,
+  gridClassName = "dashboard-kpi-grid",
 }: {
   kpis: DashboardKpi[];
   loading: boolean;
   isLight: boolean;
+  gridClassName?: string;
 }) {
   if (loading) {
     return (
-      <div className="dashboard-kpi-grid">
-        {Array.from({ length: 6 }).map((_, i) => (
+      <div className={gridClassName}>
+        {Array.from({ length: kpis.length || 5 }).map((_, i) => (
           <div key={i} className="dashboard-kpi dashboard-kpi--skeleton animate-pulse" />
         ))}
       </div>
@@ -192,7 +222,7 @@ export function LiveKpiStrip({
   }
 
   return (
-    <div className="dashboard-kpi-grid">
+    <div className={gridClassName}>
       {kpis.map((kpi) => {
         const hintClass = kpi.hintAccent
           ? "dashboard-kpi-hint dashboard-kpi-hint--update"
@@ -227,22 +257,30 @@ export function LiveKpiStrip({
 export function StoreStatusWidget({
   items,
   title,
+  loading = false,
+  loadingLabel,
 }: {
   items: LiveStoreStatusItem[];
   title: string;
+  loading?: boolean;
+  loadingLabel?: string;
 }) {
   return (
     <section className="dashboard-panel">
       <h2 className="dashboard-panel-title">{title}</h2>
-      <ul className="live-store-status-list">
-        {items.map((item) => (
-          <li key={item.id} className="live-store-status-row">
-            <span className={storeStatusDotClass(item.tone)} aria-hidden />
-            <span className="live-store-status-label">{item.label}</span>
-            <span className={`live-store-status-value ${toneIconClass(item.tone)}`}>{item.value}</span>
-          </li>
-        ))}
-      </ul>
+      {loading ? (
+        <p className="dashboard-text-muted">{loadingLabel ?? "…"}</p>
+      ) : (
+        <ul className="live-store-status-list">
+          {items.map((item) => (
+            <li key={item.id} className="live-store-status-row">
+              <span className={storeStatusDotClass(item.tone)} aria-hidden />
+              <span className="live-store-status-label">{item.label}</span>
+              <span className={`live-store-status-value ${toneIconClass(item.tone)}`}>{item.value}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
@@ -307,12 +345,16 @@ export function TodayActivityTimeline({
   title,
   emptyLabel,
   compact = false,
+  loading = false,
+  loadingLabel,
 }: {
   items: DashboardActivity[];
   locale: string;
   title: string;
   emptyLabel: string;
   compact?: boolean;
+  loading?: boolean;
+  loadingLabel?: string;
 }) {
   const listClass = compact
     ? "dashboard-activity-list dashboard-activity-list--compact"
@@ -321,7 +363,9 @@ export function TodayActivityTimeline({
   return (
     <section className={`dashboard-panel${compact ? " dashboard-panel--compact" : ""}`}>
       <h2 className="dashboard-panel-title">{title}</h2>
-      {items.length === 0 ? (
+      {loading ? (
+        <p className="dashboard-text-muted">{loadingLabel ?? "…"}</p>
+      ) : items.length === 0 ? (
         <p className="dashboard-text-muted">{emptyLabel}</p>
       ) : (
         <ul className={listClass}>
@@ -675,11 +719,15 @@ export function DashboardRecentOrders({
   emptyLabel,
   columns,
   onlineBadgeLabel,
+  loading = false,
+  loadingLabel,
 }: {
   orders: PortalDashboardRecentOrder[];
   title: string;
   emptyLabel: string;
   onlineBadgeLabel?: string;
+  loading?: boolean;
+  loadingLabel?: string;
   columns: {
     time: string;
     orderNumber: string;
@@ -692,7 +740,9 @@ export function DashboardRecentOrders({
   return (
     <section className="dashboard-panel dashboard-panel--wide">
       <h2 className="dashboard-panel-title">{title}</h2>
-      {orders.length === 0 ? (
+      {loading ? (
+        <p className="dashboard-text-muted">{loadingLabel ?? "…"}</p>
+      ) : orders.length === 0 ? (
         <p className="dashboard-text-muted">{emptyLabel}</p>
       ) : (
         <div className="orders-table-wrap">

@@ -79,6 +79,8 @@ function makeSummary(
     hasOpenShift: false,
     ordersCount: allOrdersCount,
     revenueCents: 0,
+    posRevenueCents: 0,
+    onlineRevenueCents: 0,
     averageOrderMinor: 0,
     openShift: null,
     paymentSummary: {
@@ -131,12 +133,16 @@ describe("deriveOrdersState", () => {
     expect(state.orders).toEqual([]);
     expect(state.receipts).toEqual([]);
     expect(state.hasSalesData).toBe(false);
-    expect(state.summary).toHaveLength(6);
-    expect(state.summary.every((k) => k.value === "—")).toBe(true);
-    expect(state.summary.every((k) => k.hint === "Waiting for POS sync")).toBe(
+    expect(state.orderKpis).toHaveLength(6);
+    expect(state.revenueKpis).toHaveLength(3);
+    expect(state.orderKpis.every((k) => k.value === "—")).toBe(true);
+    expect(state.revenueKpis.every((k) => k.value === "—")).toBe(true);
+    expect(state.orderKpis.every((k) => k.hint === "Waiting for POS sync")).toBe(
       true,
     );
-    expect(state.payments.every((p) => p.value === "—")).toBe(true);
+    expect(state.revenueKpis.every((k) => k.hint === "Waiting for POS sync")).toBe(
+      true,
+    );
   });
 
   it("fills tables when orders and receipts are present", () => {
@@ -201,10 +207,10 @@ describe("deriveOrdersState", () => {
     expect(state.hasSalesData).toBe(true);
     expect(state.orders).toHaveLength(2);
     expect(state.receipts).toHaveLength(2);
-    expect(state.summary.find((k) => k.id === "all_orders")?.value).toBe("2");
-    expect(state.summary.find((k) => k.id === "live_orders")?.value).toBe("2");
-    expect(state.summary.find((k) => k.id === "online_orders")?.value).toBe("0");
-    expect(state.summary.find((k) => k.id === "receipts")?.value).toBe("2");
+    expect(state.orderKpis.find((k) => k.id === "all_orders")?.value).toBe("2");
+    expect(state.orderKpis.find((k) => k.id === "pos_orders")?.value).toBe("2");
+    expect(state.orderKpis.find((k) => k.id === "online_orders")?.value).toBe("0");
+    expect(state.orderKpis.find((k) => k.id === "receipts")?.value).toBe("2");
     expect(state.orders[0].orderNumber).toBe("ORD-1");
     expect(state.receipts[0].receiptNumber).toBe("R-001");
   });
@@ -270,59 +276,6 @@ describe("deriveOrdersState", () => {
     expect(state.receipts[0].items[1].total).toBe("€1.80");
   });
 
-  it("calculates payment summary buckets from API totals", () => {
-    const state = deriveOrdersState(
-      deriveInput(
-        makeData({
-          sales: makeSales({
-            summary: makeSummary({
-              allOrdersCount: 2,
-              liveOrdersCount: 2,
-              receiptsCount: 2,
-              paymentSummary: {
-                cashCents: 800,
-                cardCents: 1200,
-                voucherCents: 200,
-                otherCents: 100,
-                currency: "EUR",
-              },
-            }),
-            orders: [
-              makeOrder({
-                id: "o1",
-                localOrderId: "ORD-1",
-                paymentMethod: "cash",
-                amountCents: 800,
-              }),
-            ],
-            receipts: [
-              {
-                id: "r1",
-                localReceiptId: "RCPT-1",
-                receiptNumber: "R-001",
-                issuedAt: "2026-07-08T08:16:00.000Z",
-                customer: null,
-                paymentMethod: "cash",
-                status: "active",
-                fiscalStatus: "pending",
-                amountCents: 800,
-                currency: "EUR",
-                items: [],
-              },
-            ],
-          }),
-        }),
-      ),
-    );
-
-    expect(state.payments.find((p) => p.id === "cash")?.value).toBe("€8.00");
-    expect(state.payments.find((p) => p.id === "card")?.value).toBe("€12.00");
-    expect(state.payments.find((p) => p.id === "voucher")?.value).toBe("€2.00");
-    expect(state.payments.find((p) => p.id === "other")?.value).toBe("€1.00");
-    expect(state.payments.find((p) => p.id === "cash")?.tone).toBe("ok");
-    expect(state.payments.find((p) => p.id === "card")?.tone).toBe("ok");
-  });
-
   it("formats TND amounts as minor units (millimes, ÷1000)", () => {
     const state = deriveOrdersState(
       deriveInput(
@@ -373,9 +326,6 @@ describe("deriveOrdersState", () => {
     expect(state.orders[0].amount).toContain("6.000");
     expect(state.orders[0].amount).not.toContain("60.000");
     expect(state.receipts[0].amount).toContain("6.000");
-    expect(state.payments.find((p) => p.id === "cash")?.value).toContain(
-      "6.000",
-    );
   });
 
   it("shows Not linked only when sales arrays are empty", () => {
@@ -500,15 +450,15 @@ describe("deriveOrdersState", () => {
       ),
     );
 
-    expect(state.summary.find((k) => k.id === "all_orders")?.value).toBe("31");
-    expect(state.summary.find((k) => k.id === "live_orders")?.value).toBe("26");
-    expect(state.summary.find((k) => k.id === "online_orders")?.value).toBe("5");
-    expect(state.summary.find((k) => k.id === "receipts")?.value).toBe("26");
-    expect(state.summary.find((k) => k.id === "refunds")?.value).toBe("0");
-    expect(state.summary.find((k) => k.id === "open_shift")?.value).toBe("No");
+    expect(state.orderKpis.find((k) => k.id === "all_orders")?.value).toBe("31");
+    expect(state.orderKpis.find((k) => k.id === "pos_orders")?.value).toBe("26");
+    expect(state.orderKpis.find((k) => k.id === "online_orders")?.value).toBe("5");
+    expect(state.orderKpis.find((k) => k.id === "receipts")?.value).toBe("26");
+    expect(state.orderKpis.find((k) => k.id === "refunds")?.value).toBe("0");
+    expect(state.orderKpis.find((k) => k.id === "open_shift")?.value).toBe("No");
     expect(
-      Number(state.summary.find((k) => k.id === "live_orders")?.value) +
-        Number(state.summary.find((k) => k.id === "online_orders")?.value),
+      Number(state.orderKpis.find((k) => k.id === "pos_orders")?.value) +
+        Number(state.orderKpis.find((k) => k.id === "online_orders")?.value),
     ).toBe(31);
   });
 
@@ -537,9 +487,47 @@ describe("deriveOrdersState", () => {
     );
 
     expect(state.hasSalesData).toBe(true);
-    expect(state.summary.find((k) => k.id === "all_orders")?.value).toBe("2");
-    expect(state.summary.find((k) => k.id === "online_orders")?.value).toBe("2");
-    expect(state.summary.every((k) => k.value !== "—")).toBe(true);
+    expect(state.orderKpis.find((k) => k.id === "all_orders")?.value).toBe("2");
+    expect(state.orderKpis.find((k) => k.id === "online_orders")?.value).toBe("2");
+    expect(state.orderKpis.every((k) => k.value !== "—")).toBe(true);
+    expect(state.revenueKpis.every((k) => k.value !== "—")).toBe(true);
+  });
+
+  it("formats revenue KPIs from backend summary fields", () => {
+    const state = deriveOrdersState(
+      deriveInput(
+        makeData({
+          sales: makeSales({
+            summary: makeSummary({
+              allOrdersCount: 3,
+              liveOrdersCount: 2,
+              onlineOrdersCount: 1,
+              receiptsCount: 2,
+              revenueCents: 150000,
+              posRevenueCents: 120000,
+              onlineRevenueCents: 30000,
+              paymentSummary: {
+                cashCents: 0,
+                cardCents: 0,
+                voucherCents: 0,
+                otherCents: 0,
+                currency: "EUR",
+              },
+            }),
+          }),
+        }),
+      ),
+    );
+
+    expect(state.revenueKpis.find((k) => k.id === "pos_revenue")?.value).toBe(
+      "€1,200.00",
+    );
+    expect(state.revenueKpis.find((k) => k.id === "online_revenue")?.value).toBe(
+      "€300.00",
+    );
+    expect(state.revenueKpis.find((k) => k.id === "total_revenue")?.value).toBe(
+      "€1,500.00",
+    );
   });
 
   it("shows open shift KPI when an open shift is present", () => {
@@ -583,7 +571,7 @@ describe("deriveOrdersState", () => {
       ),
     );
 
-    const openShiftKpi = state.summary.find((kpi) => kpi.id === "open_shift");
+    const openShiftKpi = state.orderKpis.find((kpi) => kpi.id === "open_shift");
     expect(openShiftKpi?.value).toBe("Yes");
     expect(openShiftKpi?.hint).toBe("Anna · Till 1");
   });

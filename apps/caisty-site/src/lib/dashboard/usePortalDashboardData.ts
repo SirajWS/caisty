@@ -20,6 +20,8 @@ const emptySalesSummary = (): PortalDashboardSummary => ({
   timezone: "Europe/Berlin",
   period: "today",
   todayRevenueCents: 0,
+  posRevenueCents: 0,
+  onlineRevenueCents: 0,
   ordersToday: 0,
   liveOrdersCount: 0,
   onlineOrdersCount: 0,
@@ -48,6 +50,7 @@ const initialData = (
   business: null,
   customer,
   salesSummary: null,
+  salesSummaryError: false,
 });
 
 export function usePortalDashboardData(
@@ -83,6 +86,7 @@ export function usePortalDashboardData(
 
     (async () => {
       let hadError = false;
+      let salesSummaryError = false;
 
       try {
         const [licenses, devices, invoices, business, salesSummary] =
@@ -102,6 +106,7 @@ export function usePortalDashboardData(
           }),
           fetchPortalDashboardSummary().catch(() => {
             hadError = true;
+            salesSummaryError = true;
             return emptySalesSummary();
           }),
         ]);
@@ -115,6 +120,7 @@ export function usePortalDashboardData(
           invoices,
           business,
           salesSummary,
+          salesSummaryError,
           customer,
           loading: false,
           error: hadError,
@@ -127,6 +133,7 @@ export function usePortalDashboardData(
             ...prev,
             loading: false,
             error: true,
+            salesSummaryError: true,
             lastSyncedAt: new Date(),
           }));
         }
@@ -142,7 +149,7 @@ export function usePortalDashboardData(
     };
   }, [customer, tick]);
 
-  usePortalSalesPolling(reload);
+  usePortalSalesPolling(reload, { paused: state.loading || refreshing });
 
   return { ...state, reload, refreshing };
 }

@@ -8,7 +8,6 @@ import type {
   DeriveOrdersInput,
   OrdersDerivedState,
   OrdersKpi,
-  PaymentMethodCard,
   PortalOrderRecord,
   PortalReceiptRecord,
   PosOrderRow,
@@ -50,7 +49,7 @@ function hasSyncedSalesData(sales: NonNullable<DeriveOrdersInput["data"]["sales"
   );
 }
 
-function deriveSummary(input: DeriveOrdersInput): OrdersKpi[] {
+function deriveOrderKpis(input: DeriveOrdersInput): OrdersKpi[] {
   const o = input.t.orders;
   const dash = input.t.labels.dash;
   const sales = input.data.sales;
@@ -59,7 +58,7 @@ function deriveSummary(input: DeriveOrdersInput): OrdersKpi[] {
     const hint = o.waitingPosSyncShort;
     return [
       waitingKpi("all_orders", o.kpiAllOrders, hint, dash),
-      waitingKpi("live_orders", o.kpiLiveOrders, hint, dash),
+      waitingKpi("pos_orders", o.kpiPosOrders, hint, dash),
       waitingKpi("online_orders", o.kpiOnlineOrders, hint, dash),
       waitingKpi("receipts", o.kpiReceipts, hint, dash),
       waitingKpi("refunds", o.kpiRefunds, hint, dash),
@@ -77,8 +76,8 @@ function deriveSummary(input: DeriveOrdersInput): OrdersKpi[] {
       value: String(summary.allOrdersCount),
     },
     {
-      id: "live_orders",
-      label: o.kpiLiveOrders,
+      id: "pos_orders",
+      label: o.kpiPosOrders,
       value: String(summary.liveOrdersCount),
     },
     {
@@ -89,6 +88,42 @@ function deriveSummary(input: DeriveOrdersInput): OrdersKpi[] {
     { id: "receipts", label: o.kpiReceipts, value: String(summary.receiptsCount) },
     { id: "refunds", label: o.kpiRefunds, value: String(summary.refundsCount) },
     { id: "open_shift", label: o.kpiOpenShift, ...openShiftValue },
+  ];
+}
+
+function deriveRevenueKpis(input: DeriveOrdersInput): OrdersKpi[] {
+  const o = input.t.orders;
+  const dash = input.t.labels.dash;
+  const sales = input.data.sales;
+
+  if (!sales || !hasSyncedSalesData(sales)) {
+    const hint = o.waitingPosSyncShort;
+    return [
+      waitingKpi("pos_revenue", o.kpiPosRevenue, hint, dash),
+      waitingKpi("online_revenue", o.kpiOnlineRevenue, hint, dash),
+      waitingKpi("total_revenue", o.kpiTotalRevenue, hint, dash),
+    ];
+  }
+
+  const { summary } = sales;
+  const currency = summary.paymentSummary.currency || "EUR";
+
+  return [
+    {
+      id: "pos_revenue",
+      label: o.kpiPosRevenue,
+      value: formatMoney(summary.posRevenueCents, currency, input.locale),
+    },
+    {
+      id: "online_revenue",
+      label: o.kpiOnlineRevenue,
+      value: formatMoney(summary.onlineRevenueCents, currency, input.locale),
+    },
+    {
+      id: "total_revenue",
+      label: o.kpiTotalRevenue,
+      value: formatMoney(summary.revenueCents, currency, input.locale),
+    },
   ];
 }
 
@@ -112,42 +147,6 @@ function formatOpenShiftKpi(
         ? parts.join(" · ")
         : `${openShift.durationMinutes} min`,
   };
-}
-
-function derivePayments(input: DeriveOrdersInput): PaymentMethodCard[] {
-  const o = input.t.orders;
-  const dash = input.t.labels.dash;
-  const sales = input.data.sales;
-
-  if (!sales || !hasSyncedSalesData(sales)) {
-    return [
-      { id: "cash", label: o.paymentCash, value: dash, tone: "unknown" },
-      { id: "card", label: o.paymentCard, value: dash, tone: "unknown" },
-      { id: "voucher", label: o.paymentVoucher, value: dash, tone: "unknown" },
-      { id: "other", label: o.paymentOther, value: dash, tone: "unknown" },
-    ];
-  }
-
-  const { paymentSummary } = sales.summary;
-  const currency = paymentSummary.currency || "EUR";
-
-  const card = (
-    id: PaymentMethodCard["id"],
-    label: string,
-    cents: number,
-  ): PaymentMethodCard => ({
-    id,
-    label,
-    value: formatMoney(cents, currency, input.locale),
-    tone: cents > 0 ? "ok" : "unknown",
-  });
-
-  return [
-    card("cash", o.paymentCash, paymentSummary.cashCents),
-    card("card", o.paymentCard, paymentSummary.cardCents),
-    card("voucher", o.paymentVoucher, paymentSummary.voucherCents),
-    card("other", o.paymentOther, paymentSummary.otherCents),
-  ];
 }
 
 function mapProviderOrderRow(
@@ -262,11 +261,11 @@ export function deriveOrdersState(input: DeriveOrdersInput): OrdersDerivedState 
     sales?.receipts.map((receipt) => mapReceiptRow(receipt, input)) ?? [];
 
   return {
-    summary: deriveSummary(input),
+    orderKpis: deriveOrderKpis(input),
+    revenueKpis: deriveRevenueKpis(input),
     orders,
     providerOrders,
     receipts,
-    payments: derivePayments(input),
     hasSalesData: hasSalesData(orders, providerOrders, receipts),
   };
 }

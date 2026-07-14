@@ -163,20 +163,31 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
     syncStatus = "value";
   }
 
+  const currency =
+    sales?.currency || data.business?.currency || "EUR";
+
   const revenueValue = hasSales
-    ? formatMoney(
-        sales!.todayRevenueCents,
-        sales!.currency || data.business?.currency || "EUR",
-        input.locale,
-      )
+    ? formatMoney(sales!.todayRevenueCents, currency, input.locale)
     : dash;
+  const revenueHint = hasSales
+    ? input.t.dashboard.live.kpiRevenueSplitHint
+        .replace(
+          "{{pos}}",
+          formatMoney(sales!.posRevenueCents, currency, input.locale),
+        )
+        .replace(
+          "{{online}}",
+          formatMoney(sales!.onlineRevenueCents, currency, input.locale),
+        )
+    : syncHint;
   const ordersValue = hasSales ? String(sales!.ordersToday) : dash;
+  const ordersHint = hasSales
+    ? input.t.dashboard.live.kpiOrdersSplitHint
+        .replace("{{pos}}", String(sales!.liveOrdersCount))
+        .replace("{{online}}", String(sales!.onlineOrdersCount))
+    : syncHint;
   const avgOrderValue = hasSales
-    ? formatMoney(
-        sales!.averageOrderMinor,
-        sales!.currency || data.business?.currency || "EUR",
-        input.locale,
-      )
+    ? formatMoney(sales!.averageOrderMinor, currency, input.locale)
     : dash;
 
   return [
@@ -184,14 +195,14 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
       id: "revenue",
       label: l.kpiRevenueToday,
       value: revenueValue,
-      hint: hasSales ? undefined : syncHint,
+      hint: hasSales ? revenueHint : syncHint,
       status: hasSales ? "value" : "waiting_sync",
     },
     {
       id: "orders",
       label: l.kpiOrdersToday,
       value: ordersValue,
-      hint: hasSales ? undefined : syncHint,
+      hint: hasSales ? ordersHint : syncHint,
       status: hasSales ? "value" : "waiting_sync",
     },
     {
@@ -207,13 +218,6 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
       value: posValue,
       status: posStatus,
       href: "/portal/devices",
-    },
-    {
-      id: "employees",
-      label: l.kpiEmployeesOnline,
-      value: dash,
-      hint: syncHint,
-      status: "waiting_sync",
     },
     {
       id: "last_sync",
@@ -297,6 +301,7 @@ const ALERT_SEVERITY_WEIGHT: Record<BusinessAlert["severity"], number> = {
 };
 
 const DASHBOARD_ALERT_LIMIT = 4;
+const ACTIVITY_INVOICE_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
 
 function alertActionLabel(
   notificationId: string,
@@ -350,8 +355,12 @@ function deriveActivities(input: DeriveDashboardInput): DashboardActivity[] {
   const l = input.t.dashboard.live;
   const { data } = input;
   const items: DashboardActivity[] = [];
+  const invoiceCutoff = Date.now() - ACTIVITY_INVOICE_MAX_AGE_MS;
 
   for (const inv of data.invoices) {
+    const createdAt = new Date(inv.createdAt).getTime();
+    if (!Number.isFinite(createdAt) || createdAt < invoiceCutoff) continue;
+
     const status = (inv.status ?? "").toLowerCase();
     const kind = status === "paid" ? "invoice_paid" : ("invoice_open" as const);
     items.push({
@@ -380,23 +389,23 @@ function deriveActivities(input: DeriveDashboardInput): DashboardActivity[] {
   for (const dev of data.devices) {
     if (!dev.lastSeenAt) continue;
     const isOnline = (dev.status ?? "").toLowerCase() === "online";
+    if (!isOnline) continue;
     items.push({
       id: `dev-${dev.id}`,
-      kind: isOnline ? "pos_connected" : "device_connected",
-      label: isOnline
-        ? `${l.activityPosConnected} · ${dev.name || dev.deviceId}`
-        : `${l.activityDeviceConnected} · ${dev.name || dev.deviceId}`,
+      kind: "pos_connected",
+      label: `${l.activityPosConnected} · ${dev.name || dev.deviceId}`,
       at: dev.lastSeenAt,
       href: "/portal/devices",
     });
   }
 
-  if (data.lastSyncedAt) {
+  const lastSyncIso = resolveLastSynchronization(input);
+  if (lastSyncIso) {
     items.push({
       id: "cloud-sync",
       kind: "cloud_synced",
       label: l.activityCloudSynced,
-      at: data.lastSyncedAt.toISOString(),
+      at: lastSyncIso,
     });
   }
 
@@ -760,9 +769,12 @@ export function deriveDashboardState(
     countOnlineDevices(data.devices).online > 0 &&
     isStepLicensePlanDone(data.licenses, data.customer, data.invoices);
 
+  const hasSalesData = Boolean(data.salesSummary?.hasSalesData);
+
   return {
     businessName,
     businessOnline,
+    hasSalesData,
     kpis: deriveKpis(input),
     health,
     activities: deriveActivities(input),

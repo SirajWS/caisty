@@ -11,6 +11,8 @@ import { fetchPortalOrdersPage } from "./portalOrdersPage.js";
 
 export type PortalTodaySalesSummary = {
   todayRevenueCents: number;
+  posRevenueCents: number;
+  onlineRevenueCents: number;
   ordersToday: number;
   liveOrdersCount: number;
   onlineOrdersCount: number;
@@ -78,6 +80,8 @@ export async function fetchPortalTodaySalesSummary(input: {
 
   return {
     todayRevenueCents: stats.revenueCents,
+    posRevenueCents: stats.posRevenueCents,
+    onlineRevenueCents: stats.onlineRevenueCents,
     ordersToday: stats.ordersCount,
     liveOrdersCount: stats.liveOrdersCount,
     onlineOrdersCount: stats.onlineOrdersCount,
@@ -104,6 +108,8 @@ export function buildPortalDashboardSummaryResponse(
     timezone: PORTAL_ORDERS_TIMEZONE,
     period: "today" as const,
     todayRevenueCents: summary.todayRevenueCents,
+    posRevenueCents: summary.posRevenueCents,
+    onlineRevenueCents: summary.onlineRevenueCents,
     ordersToday: summary.ordersToday,
     liveOrdersCount: summary.liveOrdersCount,
     onlineOrdersCount: summary.onlineOrdersCount,
@@ -140,14 +146,36 @@ export async function fetchPortalDashboardBundle(input: {
   orgId: string;
   customerId: string;
 }) {
-  const [summary, ordersPage] = await Promise.all([
-    fetchPortalTodaySalesSummary(input),
-    fetchPortalOrdersPage(input),
+  const [stats, lastSynchronizationAt] = await Promise.all([
+    fetchPortalTodaySalesStats(input),
+    fetchLastSynchronizationAt(input),
   ]);
+
+  const summary: PortalTodaySalesSummary = {
+    todayRevenueCents: stats.revenueCents,
+    posRevenueCents: stats.posRevenueCents,
+    onlineRevenueCents: stats.onlineRevenueCents,
+    ordersToday: stats.ordersCount,
+    liveOrdersCount: stats.liveOrdersCount,
+    onlineOrdersCount: stats.onlineOrdersCount,
+    receiptsToday: stats.receiptsCount,
+    refundsCount: stats.refundsCount,
+    averageOrderMinor: averageOrderMinor(
+      stats.revenueCents,
+      stats.kpiReceiptsCount,
+    ),
+    currency: stats.currency,
+    lastSynchronizationAt,
+  };
+
+  const ordersPage = await fetchPortalOrdersPage({
+    ...input,
+    periodStats: stats,
+  });
 
   return buildPortalDashboardSummaryResponse(
     summary,
     ordersPage.recentOrders,
-    ordersPage.summary.paymentSummary,
+    stats.paymentSummary,
   );
 }

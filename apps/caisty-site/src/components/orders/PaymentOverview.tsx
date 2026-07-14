@@ -20,13 +20,13 @@ export function PaymentOverview({
   return (
     <section className="dashboard-panel orders-payment-summary">
       <h2 className="dashboard-panel-title">{title}</h2>
-      <div className="orders-payment-strip">
+      <div className="orders-payment-grid">
         {payments.map((card) => (
-          <div key={card.id} className="orders-payment-strip-item">
+          <div key={card.id} className="orders-payment-card">
             <span className="orders-payment-label">{card.label}</span>
-            <span className={`orders-payment-value tabular-nums ${toneClass(card.tone)}`}>
+            <div className={`orders-payment-value tabular-nums ${toneClass(card.tone)}`}>
               {card.value}
-            </span>
+            </div>
           </div>
         ))}
       </div>
