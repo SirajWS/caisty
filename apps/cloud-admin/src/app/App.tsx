@@ -20,6 +20,7 @@ import {
   LayoutDashboard,
   Menu,
   Receipt,
+  ScrollText,
   ShieldCheck,
   Users,
   X,
@@ -47,6 +48,8 @@ import PortalLicensesPage from "../pages/Licenses/PortalLicensesPage";
 import NotificationsPage from "../pages/Notifications/NotificationsPage";
 import AnalyticsPage from "../pages/AnalyticsPage";
 import FiscalCompliancePage from "../pages/Fiscal/FiscalCompliancePage";
+import ReceiptsListPage from "../pages/Receipts/ReceiptsListPage";
+import ReceiptDetailPage from "../pages/Receipts/ReceiptDetailPage";
 import NotificationBell from "../components/NotificationBell";
 import { CaistyLogo } from "../components/CaistyLogo.tsx";
 
@@ -69,6 +72,7 @@ type NavItem = { to: string; label: string; icon: React.ReactNode };
 const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
   { to: "/customers", label: "Customers", icon: <Users size={18} /> },
+  { to: "/receipts", label: "POS · Receipt History", icon: <ScrollText size={18} /> },
   { to: "/fiscal", label: "Fiscal / Compliance", icon: <ShieldCheck size={18} /> },
   { to: "/licenses", label: "Licenses", icon: <KeyRound size={18} /> },
   { to: "/devices", label: "Devices", icon: <HardDrive size={18} /> },
@@ -224,6 +228,8 @@ function AppRoutes() {
       <Route path="/" element={<ProtectedPage><DashboardPage /></ProtectedPage>} />
       <Route path="/customers" element={<ProtectedPage><CustomersListPage /></ProtectedPage>} />
       <Route path="/customers/:customerId" element={<ProtectedPage><CustomerDetailPage /></ProtectedPage>} />
+      <Route path="/receipts" element={<ProtectedPage><ReceiptsListPage /></ProtectedPage>} />
+      <Route path="/receipts/:id" element={<ProtectedPage><ReceiptDetailPage /></ProtectedPage>} />
       <Route path="/fiscal" element={<ProtectedPage><FiscalCompliancePage /></ProtectedPage>} />
       <Route path="/subscriptions" element={<ProtectedPage><SubscriptionsListPage /></ProtectedPage>} />
       <Route path="/invoices" element={<ProtectedPage><InvoicesListPage /></ProtectedPage>} />

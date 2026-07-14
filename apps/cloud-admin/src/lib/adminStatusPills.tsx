@@ -88,3 +88,24 @@ export function AccountStatusPill({ status }: { status: string | null | undefine
   if (s === "inactive") return <StatusPill tone="gray" label="Inactive" />;
   return <StatusPill tone="gray" label={status ?? "Unknown"} />;
 }
+
+export function PosReceiptStatusPill({
+  status,
+}: {
+  status: string | null | undefined;
+}) {
+  const s = norm(status ?? "");
+  if (s === "completed" || s === "active") {
+    return <StatusPill tone="green" label="Completed" />;
+  }
+  if (s === "refunded" || s === "partial_refund") {
+    return <StatusPill tone="amber" label={s === "partial_refund" ? "Partial refund" : "Refunded"} />;
+  }
+  if (s === "payment_changed") {
+    return <StatusPill tone="amber" label="Payment changed" />;
+  }
+  if (s === "voided") {
+    return <StatusPill tone="gray" label="Voided" />;
+  }
+  return <StatusPill tone="gray" label={status ?? "Unknown"} />;
+}

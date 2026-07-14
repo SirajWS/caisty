@@ -40,6 +40,7 @@ import { registerPosConfigRoutes } from "./routes/pos-config.js";
 import { registerPosSyncRoutes } from "./routes/pos-sync.js";
 import { registerCountryConfigRoutes } from "./routes/country-config.js";
 import { registerAdminFiscalRoutes } from "./routes/admin/fiscal.js";
+import { registerAdminReceiptsRoutes } from "./routes/admin/receipts.js";
 
 import { registerAdminNotificationsRoutes } from "./routes/admin-notifications.js";
 import { registerAdminAnalyticsRoutes } from "./routes/admin/analytics.js";
@@ -183,6 +184,7 @@ export async function buildServer() {
   await registerAdminSubscriptionsRoutes(app);
   await registerAdminDevicesRoutes(app);
   await registerAdminFiscalRoutes(app);
+  await registerAdminReceiptsRoutes(app);
 
   // ---------------------------------------------------------------------------
   // Admin-APIs (interne Cloud-Admin-Oberfläche)
