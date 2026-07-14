@@ -106,3 +106,145 @@ describe("isUuid", () => {
     expect(isUuid("not-a-uuid")).toBe(false);
   });
 });
+
+const RECEIPT_EVENT_ID = "44444444-4444-4444-8444-444444444444";
+
+describe("validateSyncBatchRequest receipt_event", () => {
+  it("accepts a valid receipt_event payload", () => {
+    const result = validateSyncBatchRequest({
+      deviceId: DEVICE_ID,
+      licenseKey: "CSTY-TEST",
+      batch: { batchId: BATCH_ID },
+      events: [
+        {
+          eventId: EVENT_ID,
+          type: "receipt_event",
+          payload: {
+            eventId: RECEIPT_EVENT_ID,
+            eventType: "created",
+            localReceiptId: "rcpt-local-1",
+            occurredAt: "2026-07-08T10:06:00.000Z",
+            schemaVersion: 1,
+            actor: "cashier-1",
+            payload: { source: "pos" },
+          },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.request.events[0]?.type).toBe("receipt_event");
+    }
+  });
+
+  it("falls back to sync eventId when payload eventId is omitted", () => {
+    const result = validateSyncBatchRequest({
+      deviceId: DEVICE_ID,
+      licenseKey: "CSTY-TEST",
+      batch: { batchId: BATCH_ID },
+      events: [
+        {
+          eventId: EVENT_ID,
+          type: "receipt_event",
+          payload: {
+            eventType: "printed",
+            localReceiptId: "rcpt-local-1",
+            occurredAt: "2026-07-08T10:06:00.000Z",
+            schemaVersion: 1,
+          },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const payload = result.request.events[0]?.payload as {
+        eventId?: string;
+      };
+      expect(payload.eventId).toBe(EVENT_ID);
+    }
+  });
+
+  it("rejects unsupported receipt event types", () => {
+    const result = validateSyncBatchRequest({
+      deviceId: DEVICE_ID,
+      licenseKey: "CSTY-TEST",
+      batch: { batchId: BATCH_ID },
+      events: [
+        {
+          eventId: EVENT_ID,
+          type: "receipt_event",
+          payload: {
+            eventId: RECEIPT_EVENT_ID,
+            eventType: "refunded",
+            localReceiptId: "rcpt-local-1",
+            occurredAt: "2026-07-08T10:06:00.000Z",
+            schemaVersion: 1,
+          },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(false);
+  });
+
+  it("rejects unsupported schema versions", () => {
+    const result = validateSyncBatchRequest({
+      deviceId: DEVICE_ID,
+      licenseKey: "CSTY-TEST",
+      batch: { batchId: BATCH_ID },
+      events: [
+        {
+          eventId: EVENT_ID,
+          type: "receipt_event",
+          payload: {
+            eventId: RECEIPT_EVENT_ID,
+            eventType: "created",
+            localReceiptId: "rcpt-local-1",
+            occurredAt: "2026-07-08T10:06:00.000Z",
+            schemaVersion: 2,
+          },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(false);
+  });
+
+  it("keeps backward compatibility for batches without receipt_event", () => {
+    const result = validateSyncBatchRequest({
+      deviceId: DEVICE_ID,
+      licenseKey: "CSTY-TEST",
+      batch: { batchId: BATCH_ID },
+      events: [
+        {
+          eventId: EVENT_ID,
+          type: "order",
+          payload: {
+            localOrderId: "order-local-1",
+            totalCents: 1250,
+            soldAt: "2026-07-08T10:00:00.000Z",
+          },
+        },
+        {
+          eventId: "33333333-3333-4333-8333-333333333333",
+          type: "receipt",
+          payload: {
+            localReceiptId: "rcpt-1",
+            netCents: 1000,
+            grossCents: 1190,
+            soldAt: "2026-07-08T10:05:00.000Z",
+          },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.request.events.every((event) => event.type !== "receipt_event")).toBe(
+        true,
+      );
+    }
+  });
+});

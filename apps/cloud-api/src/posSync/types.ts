@@ -1,4 +1,8 @@
-export type PosSyncEventType = "order" | "receipt" | "payment";
+export type PosSyncEventType =
+  | "order"
+  | "receipt"
+  | "payment"
+  | "receipt_event";
 
 export type PosSyncBatchMeta = {
   batchId: string;
@@ -47,10 +51,25 @@ export type PosSyncPaymentPayload = {
   paidAt: string;
 };
 
+export type PosSyncReceiptEventPayload = {
+  eventId: string;
+  eventType: "created" | "printed" | "reprinted";
+  localReceiptId: string;
+  occurredAt: string;
+  schemaVersion: number;
+  actor?: string;
+  payload?: Record<string, unknown>;
+  receiptNumber?: string;
+};
+
 export type PosSyncEvent = {
   eventId: string;
   type: PosSyncEventType;
-  payload: PosSyncOrderPayload | PosSyncReceiptPayload | PosSyncPaymentPayload;
+  payload:
+    | PosSyncOrderPayload
+    | PosSyncReceiptPayload
+    | PosSyncPaymentPayload
+    | PosSyncReceiptEventPayload;
 };
 
 export type PosSyncBatchRequest = {

@@ -71,8 +71,8 @@ const PortalPlanBillingPage: React.FC = () => {
       setError(null);
       setBusyBillingPortal(true);
       const portalBase = import.meta.env.DEV
-        ? "http://localhost:5173"
-        : import.meta.env.VITE_PORTAL_BASE_URL || window.location.origin;
+          ? "http://localhost:5173"
+          : import.meta.env.VITE_PORTAL_BASE_URL || window.location.origin;
       const returnUrl = `${String(portalBase).replace(/\/+$/, "")}/portal/billing`;
       const url = await createStripeBillingPortalSession(returnUrl);
       window.location.href = url;

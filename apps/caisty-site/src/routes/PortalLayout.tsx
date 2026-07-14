@@ -20,6 +20,7 @@ import {
   BarChart3,
   User,
   X,
+  ScrollText,
 } from "lucide-react";
 import {
   fetchPortalMe,
@@ -86,6 +87,7 @@ function usePortalNav(): PortalNav {
         label: t.layout.navSectionSales,
         items: [
           { to: "/portal/orders", label: t.layout.navOrders, icon: <ShoppingBag size={18} /> },
+          { to: "/portal/receipts", label: t.layout.navReceipts, icon: <ScrollText size={18} /> },
           { to: "/portal/reports", label: t.layout.navReports, icon: <BarChart3 size={18} /> },
         ],
       },

@@ -12,6 +12,8 @@ import {
   posSyncEvents,
 } from "../db/schema/posSync.js";
 import type { PosDeviceAuthContext } from "../lib/posDeviceAuth.js";
+import { receiptEventService } from "../lib/receiptEventService.js";
+import { DEFAULT_RECEIPT_STATUS } from "../lib/receiptStatus.js";
 import { parseIsoDate } from "./validateSyncBatch.js";
 import type {
   PosSyncBatchRequest,
@@ -20,6 +22,7 @@ import type {
   PosSyncFailedEvent,
   PosSyncOrderPayload,
   PosSyncPaymentPayload,
+  PosSyncReceiptEventPayload,
   PosSyncReceiptPayload,
   POS_SYNC_IDEMPOTENCY_SCOPE,
 } from "./types.js";
@@ -271,6 +274,9 @@ export class PosSyncService {
     if (event.type === "receipt") {
       return (event.payload as PosSyncReceiptPayload).localReceiptId;
     }
+    if (event.type === "receipt_event") {
+      return (event.payload as PosSyncReceiptEventPayload).localReceiptId;
+    }
     return (event.payload as PosSyncPaymentPayload).localPaymentId;
   }
 
@@ -292,6 +298,13 @@ export class PosSyncService {
     if (event.type === "receipt") {
       return this.upsertReceipt(
         event.payload as PosSyncReceiptPayload,
+        auth,
+        batchId,
+      );
+    }
+    if (event.type === "receipt_event") {
+      return this.appendReceiptEvent(
+        event.payload as PosSyncReceiptEventPayload,
         auth,
         batchId,
       );
@@ -386,6 +399,7 @@ export class PosSyncService {
         currency: payload.currency ?? "EUR",
         soldAt,
         fiscalStatus: payload.fiscalStatus ?? "pending",
+        status: DEFAULT_RECEIPT_STATUS,
         syncBatchId: batchId,
       });
       return { status: "accepted" as const };
@@ -432,6 +446,50 @@ export class PosSyncService {
       }
       throw err;
     }
+  }
+
+  private async appendReceiptEvent(
+    payload: PosSyncReceiptEventPayload,
+    auth: PosDeviceAuthContext,
+    batchId: string,
+  ) {
+    const occurredAt = parseIsoDate(payload.occurredAt, "occurredAt");
+    if (!occurredAt) {
+      return {
+        status: "failed" as const,
+        code: "invalid_payload",
+        error: "occurredAt is invalid",
+      };
+    }
+
+    const receipt = await receiptEventService.findReceiptByLocalId(
+      auth.orgId,
+      auth.deviceId,
+      payload.localReceiptId,
+    );
+
+    if (!receipt) {
+      return {
+        status: "failed" as const,
+        code: "receipt_not_found",
+        error: `Receipt ${payload.localReceiptId} was not found for this device.`,
+      };
+    }
+
+    return receiptEventService.appendEvent({
+      orgId: auth.orgId,
+      customerId: auth.customerId,
+      deviceId: auth.deviceId,
+      receiptId: receipt.id,
+      receiptNumber: payload.receiptNumber ?? receipt.receiptNumber,
+      eventId: payload.eventId,
+      eventType: payload.eventType,
+      occurredAt,
+      actor: payload.actor ?? null,
+      payload: payload.payload,
+      schemaVersion: payload.schemaVersion,
+      syncBatchId: batchId,
+    });
   }
 }
 

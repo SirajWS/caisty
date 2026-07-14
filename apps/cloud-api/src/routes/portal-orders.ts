@@ -17,6 +17,10 @@ import {
   resolveReceiptLineItems,
   sqlIsTodayBerlin,
 } from "../lib/portalOrders.js";
+import {
+  mapPortalReceiptRecord,
+  toPortalReceiptIso,
+} from "../lib/portalReceipts.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 
 interface PortalJwtPayload {
@@ -37,11 +41,6 @@ function getPortalAuth(request: FastifyRequest): PortalJwtPayload {
 
 function isTodayBerlin(column: typeof posOrders.soldAt) {
   return sqlIsTodayBerlin(column);
-}
-
-function toIso(value: Date | null | undefined): string | null {
-  if (!value) return null;
-  return value.toISOString();
 }
 
 export async function registerPortalOrdersRoutes(app: FastifyInstance) {
@@ -115,6 +114,7 @@ export async function registerPortalOrdersRoutes(app: FastifyInstance) {
           grossCents: posReceipts.grossCents,
           currency: posReceipts.currency,
           fiscalStatus: posReceipts.fiscalStatus,
+          status: posReceipts.status,
           localOrderId: posReceipts.localOrderId,
         })
         .from(posReceipts)
@@ -184,7 +184,7 @@ export async function registerPortalOrdersRoutes(app: FastifyInstance) {
         orders: orderRows.map((row) => ({
           id: row.id,
           localOrderId: row.localOrderId,
-          soldAt: toIso(row.soldAt),
+          soldAt: toPortalReceiptIso(row.soldAt),
           status: row.status,
           paymentMethod: pickPrimaryPaymentMethod(
             paymentsByOrder.get(row.localOrderId) ?? [],
@@ -194,27 +194,22 @@ export async function registerPortalOrdersRoutes(app: FastifyInstance) {
           cashier: null,
           deviceName: row.deviceName,
         })),
-        receipts: receiptRows.map((row) => ({
-          id: row.id,
-          localReceiptId: row.localReceiptId,
-          receiptNumber: row.receiptNumber,
-          issuedAt: toIso(row.soldAt),
-          customer: null,
-          paymentMethod: pickPrimaryPaymentMethod(
-            paymentsByReceipt.get(row.localReceiptId) ??
-              (row.localOrderId
-                ? paymentsByOrder.get(row.localOrderId) ?? []
-                : []),
-          ),
-          fiscalStatus: row.fiscalStatus,
-          amountCents: row.grossCents,
-          currency: row.currency,
-          items: resolveReceiptLineItems(
-            linesByOrderKey,
-            row.deviceId,
-            row.localOrderId,
-          ),
-        })),
+        receipts: receiptRows.map((row) =>
+          mapPortalReceiptRecord({
+            row,
+            paymentMethod: pickPrimaryPaymentMethod(
+              paymentsByReceipt.get(row.localReceiptId) ??
+                (row.localOrderId
+                  ? paymentsByOrder.get(row.localOrderId) ?? []
+                  : []),
+            ),
+            items: resolveReceiptLineItems(
+              linesByOrderKey,
+              row.deviceId,
+              row.localOrderId,
+            ),
+          }),
+        ),
       };
     } catch (err: unknown) {
       request.log.error({ err, customerId: payload.customerId }, "GET /portal/orders failed");

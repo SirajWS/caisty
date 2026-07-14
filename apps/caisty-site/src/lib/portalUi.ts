@@ -48,6 +48,42 @@ export function portalLicenseStatusBadge(
   }`;
 }
 
+/** Receipt business lifecycle status badge (Sprint 5.2C). */
+export function portalReceiptStatusBadge(
+  status: string,
+  isLight: boolean,
+): string {
+  const s = status.toLowerCase();
+  const base =
+    "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide";
+  if (s === "active") {
+    return `${base} ${
+      isLight
+        ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+        : "border-emerald-500/30 bg-emerald-500/15 text-emerald-400"
+    }`;
+  }
+  if (s === "refunded" || s === "partial_refund") {
+    return `${base} ${
+      isLight
+        ? "border-amber-300 bg-amber-50 text-amber-900"
+        : "border-amber-500/40 bg-amber-500/15 text-amber-200"
+    }`;
+  }
+  if (s === "voided") {
+    return `${base} ${
+      isLight
+        ? "border-rose-300 bg-rose-50 text-rose-800"
+        : "border-rose-500/40 bg-rose-500/10 text-rose-300"
+    }`;
+  }
+  return `${base} ${
+    isLight
+      ? "border-slate-200 bg-slate-100 text-slate-700"
+      : "border-white/10 bg-slate-800/80 text-slate-300"
+  }`;
+}
+
 /** Invoice row status */
 export function portalInvoiceStatusBadge(
   status: string,

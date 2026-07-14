@@ -522,6 +522,13 @@ export type PortalReceiptLineItem = {
   lineTotalCents: number;
 };
 
+/** POS receipt business lifecycle status (Sprint 5.1+). */
+export type PortalReceiptStatus =
+  | "active"
+  | "refunded"
+  | "partial_refund"
+  | "voided";
+
 export type PortalReceiptRecord = {
   id: string;
   localReceiptId: string;
@@ -529,6 +536,8 @@ export type PortalReceiptRecord = {
   issuedAt: string | null;
   customer: string | null;
   paymentMethod: string | null;
+  /** Business lifecycle status; all synced receipts are `active` until refund/void sprints. */
+  status: PortalReceiptStatus;
   fiscalStatus: string;
   amountCents: number;
   currency: string;
@@ -542,6 +551,67 @@ export interface PortalOrdersResponse {
   orders: PortalOrderRecord[];
   receipts: PortalReceiptRecord[];
 }
+
+export type PortalReceiptEventRecord = {
+  id: string;
+  receiptId: string;
+  eventType: "created" | "printed" | "reprinted" | string;
+  occurredAt: string;
+  actor: string | null;
+  payload: Record<string, unknown>;
+  schemaVersion: number;
+};
+
+export type PortalReceiptListItem = PortalReceiptRecord & {
+  deviceName: string | null;
+  printCount: number;
+  reprintCount: number;
+  lastEventType: string | null;
+  lastEventAt: string | null;
+  cashier: string | null;
+};
+
+export type PortalReceiptsSummary = {
+  receiptsCount: number;
+  activeCount: number;
+  printedCount: number;
+  reprintedCount: number;
+  refundsCount: number;
+  paymentSummary: PortalOrdersPaymentSummary;
+};
+
+export type PortalReceiptsResponse = {
+  timezone: string;
+  period: string;
+  summary: PortalReceiptsSummary;
+  receipts: PortalReceiptListItem[];
+};
+
+export type PortalReceiptPrintStats = {
+  hasOriginalPrint: boolean;
+  reprintCount: number;
+  lastPrintAt: string | null;
+};
+
+export type PortalReceiptDetailResponse = {
+  receipt: PortalReceiptRecord & {
+    deviceName: string | null;
+    localOrderId: string | null;
+    netCents: number;
+    taxCents: number;
+    grossCents: number;
+  };
+  events: PortalReceiptEventRecord[];
+  printStats: PortalReceiptPrintStats;
+};
+
+export type PortalReceiptsQuery = {
+  period?: string;
+  paymentMethod?: string;
+  status?: string;
+  search?: string;
+  sort?: string;
+};
 
 export interface PortalDashboardSummary {
   timezone: string;
@@ -751,6 +821,29 @@ export async function releasePortalDevice(
 
 export async function fetchPortalOrders(): Promise<PortalOrdersResponse> {
   return authGet<PortalOrdersResponse>("/portal/orders");
+}
+
+export async function fetchPortalReceipts(
+  query: PortalReceiptsQuery = {},
+): Promise<PortalReceiptsResponse> {
+  const params = new URLSearchParams();
+  if (query.period) params.set("period", query.period);
+  if (query.paymentMethod) params.set("paymentMethod", query.paymentMethod);
+  if (query.status) params.set("status", query.status);
+  if (query.search) params.set("search", query.search);
+  if (query.sort) params.set("sort", query.sort);
+  const qs = params.toString();
+  return authGet<PortalReceiptsResponse>(
+    qs ? `/portal/receipts?${qs}` : "/portal/receipts",
+  );
+}
+
+export async function fetchPortalReceiptDetail(
+  receiptId: string,
+): Promise<PortalReceiptDetailResponse> {
+  return authGet<PortalReceiptDetailResponse>(
+    `/portal/receipts/${encodeURIComponent(receiptId)}`,
+  );
 }
 
 export async function fetchPortalDashboardSummary(): Promise<PortalDashboardSummary> {

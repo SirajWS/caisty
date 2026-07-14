@@ -4,8 +4,13 @@ import type {
   PosSyncEventType,
   PosSyncOrderPayload,
   PosSyncPaymentPayload,
+  PosSyncReceiptEventPayload,
   PosSyncReceiptPayload,
 } from "./types.js";
+import {
+  isReceiptEventType,
+  isSupportedReceiptEventSchemaVersion,
+} from "../lib/receiptEventTypes.js";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -176,17 +181,22 @@ function validateSyncEvent(
     };
   }
 
-  if (type !== "order" && type !== "receipt" && type !== "payment") {
+  if (
+    type !== "order" &&
+    type !== "receipt" &&
+    type !== "payment" &&
+    type !== "receipt_event"
+  ) {
     return {
       ok: false,
       error: {
         code: "invalid_request",
-        message: `events[${index}].type must be order, receipt, or payment.`,
+        message: `events[${index}].type must be order, receipt, payment, or receipt_event.`,
       },
     };
   }
 
-  const payloadResult = validateEventPayload(type, eventObj.payload, index);
+  const payloadResult = validateEventPayload(type, eventObj.payload, index, eventId);
   if (!payloadResult.ok) {
     return payloadResult;
   }
@@ -205,13 +215,15 @@ function validateEventPayload(
   type: PosSyncEventType,
   payload: unknown,
   index: number,
+  syncEventId: string,
 ):
   | {
       ok: true;
       payload:
         | PosSyncOrderPayload
         | PosSyncReceiptPayload
-        | PosSyncPaymentPayload;
+        | PosSyncPaymentPayload
+        | PosSyncReceiptEventPayload;
     }
   | { ok: false; error: SyncBatchValidationError } {
   if (!payload || typeof payload !== "object") {
@@ -328,6 +340,83 @@ function validateEventPayload(
             : undefined,
         soldAt,
         fiscalStatus,
+      },
+    };
+  }
+
+  if (type === "receipt_event") {
+    const payloadEventId =
+      typeof payloadObj.eventId === "string" ? payloadObj.eventId.trim() : "";
+    const eventId =
+      payloadEventId && isUuid(payloadEventId) ? payloadEventId : syncEventId;
+
+    if (!isUuid(eventId)) {
+      return invalidPayload(index, "eventId must be a UUID.");
+    }
+
+    const eventType =
+      typeof payloadObj.eventType === "string"
+        ? payloadObj.eventType.trim()
+        : "";
+    if (!isReceiptEventType(eventType)) {
+      return invalidPayload(
+        index,
+        "eventType must be created, printed, or reprinted.",
+      );
+    }
+
+    const localReceiptId =
+      typeof payloadObj.localReceiptId === "string"
+        ? payloadObj.localReceiptId.trim()
+        : "";
+    if (!localReceiptId) {
+      return invalidPayload(index, "localReceiptId is required for receipt_event.");
+    }
+
+    const occurredAt =
+      typeof payloadObj.occurredAt === "string" ? payloadObj.occurredAt : "";
+    if (!occurredAt || !parseIsoDate(occurredAt, "occurredAt")) {
+      return invalidPayload(index, "occurredAt must be a valid ISO timestamp.");
+    }
+
+    const schemaVersion = payloadObj.schemaVersion;
+    if (
+      typeof schemaVersion !== "number" ||
+      !Number.isInteger(schemaVersion) ||
+      !isSupportedReceiptEventSchemaVersion(schemaVersion)
+    ) {
+      return invalidPayload(
+        index,
+        "schemaVersion must be a supported integer (currently 1).",
+      );
+    }
+
+    const actor =
+      typeof payloadObj.actor === "string" ? payloadObj.actor.trim() : undefined;
+
+    let eventPayload: Record<string, unknown> | undefined;
+    const rawPayload = payloadObj.payload ?? payloadObj.data;
+    if (rawPayload !== undefined) {
+      if (!rawPayload || typeof rawPayload !== "object" || Array.isArray(rawPayload)) {
+        return invalidPayload(index, "payload must be a JSON object when provided.");
+      }
+      eventPayload = rawPayload as Record<string, unknown>;
+    }
+
+    return {
+      ok: true,
+      payload: {
+        eventId,
+        eventType,
+        localReceiptId,
+        occurredAt,
+        schemaVersion,
+        actor: actor || undefined,
+        payload: eventPayload,
+        receiptNumber:
+          typeof payloadObj.receiptNumber === "string"
+            ? payloadObj.receiptNumber.trim()
+            : undefined,
       },
     };
   }

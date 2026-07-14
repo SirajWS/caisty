@@ -7,6 +7,7 @@ import {
   integer,
   uniqueIndex,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { orgs } from "./orgs.js";
 import { customers } from "./customers.js";
@@ -189,6 +190,7 @@ export const posReceipts = pgTable(
     fiscalStatus: varchar("fiscal_status", { length: 32 })
       .notNull()
       .default("pending"),
+    status: varchar("status", { length: 32 }).notNull().default("active"),
     syncBatchId: uuid("sync_batch_id").references(() => posSyncBatches.id, {
       onDelete: "set null",
     }),
@@ -209,6 +211,11 @@ export const posReceipts = pgTable(
     idxOrgCustomerSoldAt: index("idx_pos_receipts_org_customer_sold_at").on(
       t.orgId,
       t.customerId,
+      t.soldAt,
+    ),
+    idxOrgStatusSoldAt: index("idx_pos_receipts_org_status_sold_at").on(
+      t.orgId,
+      t.status,
       t.soldAt,
     ),
   }),
@@ -253,6 +260,53 @@ export const posSalePayments = pgTable(
     idxOrgPaidAt: index("idx_pos_sale_payments_org_paid_at").on(
       t.orgId,
       t.paidAt,
+    ),
+  }),
+);
+
+export const posReceiptEvents = pgTable(
+  "pos_receipt_events",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => orgs.id, { onDelete: "cascade" }),
+    customerId: uuid("customer_id").references(() => customers.id, {
+      onDelete: "set null",
+    }),
+    deviceId: uuid("device_id")
+      .notNull()
+      .references(() => devices.id, { onDelete: "cascade" }),
+    receiptId: uuid("receipt_id")
+      .notNull()
+      .references(() => posReceipts.id, { onDelete: "cascade" }),
+    receiptNumber: text("receipt_number"),
+    eventId: uuid("event_id").notNull(),
+    eventType: varchar("event_type", { length: 32 }).notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull(),
+    actor: text("actor"),
+    payload: jsonb("payload").notNull().default({}),
+    schemaVersion: integer("schema_version").notNull().default(1),
+    syncBatchId: uuid("sync_batch_id").references(() => posSyncBatches.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    uqEventId: uniqueIndex("uq_pos_receipt_events_event_id").on(t.eventId),
+    idxOrgReceipt: index("idx_pos_receipt_events_org_receipt").on(
+      t.orgId,
+      t.receiptId,
+    ),
+    idxOrgOccurredAt: index("idx_pos_receipt_events_org_occurred_at").on(
+      t.orgId,
+      t.occurredAt,
+    ),
+    idxOrgEventType: index("idx_pos_receipt_events_org_event_type").on(
+      t.orgId,
+      t.eventType,
     ),
   }),
 );
