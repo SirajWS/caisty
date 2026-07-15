@@ -20,11 +20,10 @@ import {
   type PortalOrderStatus,
 } from "./orderStatus.js";
 import {
-  formatOrderPaymentDisplay,
   formatProviderLabel,
   isProviderOrder,
   normalizeOrderSource,
-  resolveOrderPaymentStatus,
+  resolvePortalOrderPayment,
   summarizeOrderLines,
   type OrderSource,
   type ResolvedPaymentStatus,
@@ -41,9 +40,11 @@ import {
   sqlIsTodayBerlin,
 } from "./portalSalesSummary.js";
 import {
+  appendOrderPaymentRow,
   groupOrderLinesByDeviceLocalId,
   orderLinesLookupKey,
   pickPrimaryPaymentMethod,
+  type OrderPaymentRow,
   resolveReceiptLineItems,
   type PortalReceiptLineItem,
 } from "./portalOrders.js";
@@ -318,12 +319,15 @@ export async function fetchPortalOrdersPage(input: {
 
   const paymentRows = await db
     .select({
+      deviceId: posSalePayments.deviceId,
       localOrderId: posSalePayments.localOrderId,
       localReceiptId: posSalePayments.localReceiptId,
+      localPaymentId: posSalePayments.localPaymentId,
       method: posSalePayments.method,
       amountCents: posSalePayments.amountCents,
       currency: posSalePayments.currency,
       paidAt: posSalePayments.paidAt,
+      updatedAt: posSalePayments.updatedAt,
     })
     .from(posSalePayments)
     .innerJoin(devices, eq(posSalePayments.deviceId, devices.id))
@@ -335,23 +339,29 @@ export async function fetchPortalOrdersPage(input: {
       ),
     );
 
-  const paymentsByOrder = new Map<string, string[]>();
-  const paymentsByReceipt = new Map<string, string[]>();
+  const paymentsByOrder = new Map<string, OrderPaymentRow[]>();
+  const paymentsByReceipt = new Map<string, OrderPaymentRow[]>();
   const paidAtByOrder = new Map<string, string>();
   const paidAtByReceipt = new Map<string, string>();
 
   for (const payment of paymentRows) {
     const paidIso = toPortalReceiptIso(payment.paidAt);
+    const row: OrderPaymentRow = {
+      deviceId: payment.deviceId,
+      localOrderId: payment.localOrderId,
+      localReceiptId: payment.localReceiptId,
+      localPaymentId: payment.localPaymentId,
+      method: payment.method,
+      amountCents: payment.amountCents,
+      paidAt: payment.paidAt,
+      updatedAt: payment.updatedAt,
+    };
     if (payment.localOrderId) {
-      const list = paymentsByOrder.get(payment.localOrderId) ?? [];
-      list.push(payment.method);
-      paymentsByOrder.set(payment.localOrderId, list);
+      appendOrderPaymentRow(paymentsByOrder, payment.localOrderId, row);
       if (paidIso) paidAtByOrder.set(payment.localOrderId, paidIso);
     }
     if (payment.localReceiptId) {
-      const list = paymentsByReceipt.get(payment.localReceiptId) ?? [];
-      list.push(payment.method);
-      paymentsByReceipt.set(payment.localReceiptId, list);
+      appendOrderPaymentRow(paymentsByReceipt, payment.localReceiptId, row);
       if (paidIso) paidAtByReceipt.set(payment.localReceiptId, paidIso);
     }
   }
@@ -392,11 +402,14 @@ export async function fetchPortalOrdersPage(input: {
 
     const cashier = resolveCashier({ openShiftCashier, receiptEvents });
     const provider = isProviderOrder(row.platform);
-    const resolvedPaymentStatus = resolveOrderPaymentStatus({
-      paymentStatus: row.paymentStatus,
-      hasPayments: paymentMethods.length > 0,
-    });
     const paymentMethod = pickPrimaryPaymentMethod(paymentMethods);
+    const resolvedPayment = resolvePortalOrderPayment({
+      normalizedOrderStatus: normalizedStatus,
+      paymentStatus: row.paymentStatus,
+      paymentMethod,
+      hasPayments: paymentMethods.length > 0,
+      isProviderOrder: provider,
+    });
 
     return {
       id: row.id,
@@ -408,12 +421,9 @@ export async function fetchPortalOrdersPage(input: {
       normalizedStatus,
       status: normalizedStatus,
       statusLabel: portalOrderStatusLabel(normalizedStatus),
-      paymentMethod,
-      paymentStatus: resolvedPaymentStatus,
-      paymentDisplay: formatOrderPaymentDisplay({
-        paymentMethod,
-        paymentStatus: resolvedPaymentStatus,
-      }),
+      paymentMethod: resolvedPayment.paymentMethod,
+      paymentStatus: resolvedPayment.paymentStatus,
+      paymentDisplay: resolvedPayment.paymentDisplay,
       amountCents: row.totalCents,
       currency: row.currency,
       cashier,

@@ -414,6 +414,8 @@ export const portalEn = {
     paginationShowingLive: "Showing {{from}}–{{to}} of {{total}} live orders",
     paginationShowingOnline: "Showing {{from}}–{{to}} of {{total}} online orders",
     statusLabels: {
+      new: "New",
+      accepted: "Accepted",
       open: "Open",
       in_progress: "In Progress",
       ready: "Ready",

@@ -4,6 +4,10 @@ import {
   averageOrderMinor,
   combineRevenueMinor,
 } from "../portalSalesSummary.js";
+import {
+  aggregateEffectivePaymentSummary,
+  type OrderPaymentRow,
+} from "../portalOrders.js";
 
 describe("portalSalesSummary helpers", () => {
   it("computes average order in minor units", () => {
@@ -40,5 +44,30 @@ describe("revenue split rules (documented)", () => {
 
     expect(total).toBe(453000);
     expect(onlineRevenue).toBe(12000);
+  });
+
+  it("dedupes provider method-change rows in payment summary without changing revenue rules", () => {
+    const rows: OrderPaymentRow[] = [
+      {
+        deviceId: "dev-1",
+        localOrderId: "T1784070410098",
+        method: "cash",
+        amountCents: 27500,
+        paidAt: "2026-07-14T10:00:00.000Z",
+        updatedAt: "2026-07-14T10:00:00.000Z",
+      },
+      {
+        deviceId: "dev-1",
+        localOrderId: "T1784070410098",
+        method: "card",
+        amountCents: 27500,
+        paidAt: "2026-07-14T11:00:00.000Z",
+        updatedAt: "2026-07-14T11:00:00.000Z",
+      },
+    ];
+
+    const summary = aggregateEffectivePaymentSummary(rows);
+    expect(summary.cashCents).toBe(0);
+    expect(summary.cardCents).toBe(27500);
   });
 });

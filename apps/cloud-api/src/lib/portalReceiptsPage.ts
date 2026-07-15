@@ -17,11 +17,13 @@ import {
 import { mapPortalReceiptEventRecord } from "./portalReceiptEvents.js";
 import type { PortalReceiptEventRecord } from "./portalReceiptEvents.js";
 import {
-  aggregatePaymentSummary,
+  aggregateEffectivePaymentSummary,
+  appendOrderPaymentRow,
   groupOrderLinesByDeviceLocalId,
   pickPrimaryPaymentMethod,
   PORTAL_ORDERS_TIMEZONE,
   resolveReceiptLineItems,
+  type OrderPaymentRow,
   type PaymentBucket,
 } from "./portalOrders.js";
 import {
@@ -399,11 +401,15 @@ async function mapReceiptRowsToListItems(input: {
 
   const paymentRows = await db
     .select({
+      deviceId: posSalePayments.deviceId,
       localOrderId: posSalePayments.localOrderId,
       localReceiptId: posSalePayments.localReceiptId,
+      localPaymentId: posSalePayments.localPaymentId,
       method: posSalePayments.method,
       amountCents: posSalePayments.amountCents,
       currency: posSalePayments.currency,
+      paidAt: posSalePayments.paidAt,
+      updatedAt: posSalePayments.updatedAt,
     })
     .from(posSalePayments)
     .innerJoin(devices, eq(posSalePayments.deviceId, devices.id))
@@ -415,18 +421,24 @@ async function mapReceiptRowsToListItems(input: {
       ),
     );
 
-  const paymentsByOrder = new Map<string, string[]>();
-  const paymentsByReceipt = new Map<string, string[]>();
+  const paymentsByOrder = new Map<string, OrderPaymentRow[]>();
+  const paymentsByReceipt = new Map<string, OrderPaymentRow[]>();
   for (const payment of paymentRows) {
+    const row: OrderPaymentRow = {
+      deviceId: payment.deviceId,
+      localOrderId: payment.localOrderId,
+      localReceiptId: payment.localReceiptId,
+      localPaymentId: payment.localPaymentId,
+      method: payment.method,
+      amountCents: payment.amountCents,
+      paidAt: payment.paidAt,
+      updatedAt: payment.updatedAt,
+    };
     if (payment.localOrderId) {
-      const list = paymentsByOrder.get(payment.localOrderId) ?? [];
-      list.push(payment.method);
-      paymentsByOrder.set(payment.localOrderId, list);
+      appendOrderPaymentRow(paymentsByOrder, payment.localOrderId, row);
     }
     if (payment.localReceiptId) {
-      const list = paymentsByReceipt.get(payment.localReceiptId) ?? [];
-      list.push(payment.method);
-      paymentsByReceipt.set(payment.localReceiptId, list);
+      appendOrderPaymentRow(paymentsByReceipt, payment.localReceiptId, row);
     }
   }
 
@@ -554,7 +566,7 @@ async function buildReceiptsSummary(input: {
     reprintedCount,
     refundsCount,
     paymentSummary: {
-      ...aggregatePaymentSummary(scopedPayments),
+      ...aggregateEffectivePaymentSummary(scopedPayments),
       currency,
     },
   };

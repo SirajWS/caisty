@@ -575,4 +575,147 @@ describe("deriveOrdersState", () => {
     expect(openShiftKpi?.value).toBe("Yes");
     expect(openShiftKpi?.hint).toBe("Anna · Till 1");
   });
+
+  it("uses backend paymentDisplay for online and live orders", () => {
+    const state = deriveOrdersState(
+      deriveInput(
+        makeData({
+          sales: makeSales({
+            summary: makeSummary({ allOrdersCount: 2, liveOrdersCount: 1, onlineOrdersCount: 1 }),
+            orders: [
+              makeOrder({
+                id: "live-1",
+                localOrderId: "ORD-1",
+                paymentDisplay: "Cash · Paid",
+                paymentMethod: "cash",
+                paymentStatus: "paid",
+              }),
+            ],
+            providerOrders: [
+              makeOrder({
+                id: "online-1",
+                localOrderId: "WEB-1",
+                isProviderOrder: true,
+                platform: "website",
+                providerName: "Website",
+                paymentDisplay: "Card · Paid",
+                paymentMethod: "card",
+                paymentStatus: "paid",
+              }),
+            ],
+          }),
+        }),
+      ),
+    );
+
+    expect(state.orders[0].payment).toBe("Cash · Paid");
+    expect(state.providerOrders[0].payment).toBe("Card · Paid");
+  });
+
+  it("shows Cancelled payment display without Unknown prefix", () => {
+    const state = deriveOrdersState(
+      deriveInput(
+        makeData({
+          sales: makeSales({
+            summary: makeSummary({ allOrdersCount: 1, liveOrdersCount: 0, onlineOrdersCount: 1 }),
+            providerOrders: [
+              makeOrder({
+                id: "online-cancel",
+                localOrderId: "WEB-C",
+                isProviderOrder: true,
+                platform: "website",
+                providerName: "Website",
+                normalizedStatus: "cancelled",
+                status: "cancelled",
+                paymentDisplay: "Cancelled",
+                paymentStatus: "cancelled",
+              }),
+            ],
+          }),
+        }),
+      ),
+    );
+
+    expect(state.providerOrders[0].payment).toBe("Cancelled");
+    expect(state.providerOrders[0].payment).not.toContain("Unknown");
+    expect(state.providerOrders[0].status).toBe("Cancelled");
+  });
+
+  it("renders new and accepted status badges", () => {
+    const state = deriveOrdersState(
+      deriveInput(
+        makeData({
+          sales: makeSales({
+            summary: makeSummary({ allOrdersCount: 2, liveOrdersCount: 0, onlineOrdersCount: 2 }),
+            providerOrders: [
+              makeOrder({
+                id: "new-1",
+                localOrderId: "WEB-N",
+                isProviderOrder: true,
+                platform: "website",
+                providerName: "Website",
+                normalizedStatus: "new",
+                status: "new",
+              }),
+              makeOrder({
+                id: "acc-1",
+                localOrderId: "WEB-A",
+                isProviderOrder: true,
+                platform: "website",
+                providerName: "Website",
+                normalizedStatus: "accepted",
+                status: "accepted",
+              }),
+            ],
+          }),
+        }),
+      ),
+    );
+
+    expect(state.providerOrders[0].status).toBe("New");
+    expect(state.providerOrders[1].status).toBe("Accepted");
+  });
+
+  it("shows Card · Paid from API after provider payment method change", () => {
+    const state = deriveOrdersState(
+      deriveInput(
+        makeData({
+          sales: makeSales({
+            summary: makeSummary({
+              allOrdersCount: 1,
+              liveOrdersCount: 0,
+              onlineOrdersCount: 1,
+              revenueCents: 27500,
+              onlineRevenueCents: 27500,
+              paymentSummary: {
+                cashCents: 0,
+                cardCents: 27500,
+                voucherCents: 0,
+                otherCents: 0,
+                currency: "TND",
+              },
+            }),
+            providerOrders: [
+              makeOrder({
+                id: "online-card",
+                localOrderId: "T1784070410098",
+                isProviderOrder: true,
+                platform: "fake_delivery",
+                providerName: "Fake Delivery",
+                paymentDisplay: "Card · Paid",
+                paymentMethod: "card",
+                paymentStatus: "paid",
+                amountCents: 27500,
+                currency: "TND",
+              }),
+            ],
+          }),
+        }),
+      ),
+    );
+
+    expect(state.providerOrders[0].payment).toBe("Card · Paid");
+    expect(state.providerOrders[0].payment).not.toContain("Cash");
+    expect(state.revenueKpis.find((k) => k.id === "online_revenue")?.value).toContain("27.500");
+  });
 });

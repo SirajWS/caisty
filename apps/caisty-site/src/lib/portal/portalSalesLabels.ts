@@ -22,6 +22,8 @@ export function formatPortalPaymentMethod(
 }
 
 export type PortalOrderStatusKey =
+  | "new"
+  | "accepted"
   | "open"
   | "in_progress"
   | "ready"
@@ -48,6 +50,8 @@ export function orderStatusTone(
   status: string,
 ): "ok" | "progress" | "attention" | "muted" | "refund" {
   switch (status.trim().toLowerCase()) {
+    case "new":
+    case "accepted":
     case "open":
     case "in_progress":
     case "ready":

@@ -8,6 +8,7 @@ import {
   posReceipts,
 } from "../db/schema/posSync.js";
 import {
+  aggregateEffectivePaymentSummary,
   aggregatePaymentSummary,
   PORTAL_ORDERS_TIMEZONE,
   type PaymentBucket,
@@ -290,7 +291,7 @@ export async function fetchPortalReportsSummary(input: {
   const largestReceiptMinor = receiptTaxStats?.largest ?? 0;
   const fiscalReceiptsCount = receiptTaxStats?.fiscalCount ?? 0;
 
-  const paymentSummary = aggregatePaymentSummary(paymentRows);
+  const paymentSummary = aggregateEffectivePaymentSummary(paymentRows);
 
   let revenueSeries: PortalReportsRevenuePoint[] = [];
   if (granularity === "hour") {

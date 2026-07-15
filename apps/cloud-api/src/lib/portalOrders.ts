@@ -55,6 +55,93 @@ export function emptyPaymentSummary(): PaymentSummaryCents {
   };
 }
 
+export type OrderPaymentRow = {
+  method: string;
+  amountCents: number;
+  paidAt?: Date | string | null;
+  updatedAt?: Date | string | null;
+  localOrderId?: string | null;
+  localReceiptId?: string | null;
+  deviceId?: string | null;
+  localPaymentId?: string | null;
+};
+
+function parsePaymentTimestamp(value: Date | string | null | undefined): number {
+  if (!value) return 0;
+  const ts = value instanceof Date ? value.getTime() : new Date(value).getTime();
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+/** Newest payment row first (paidAt, then updatedAt). */
+export function comparePaymentRowsByRecency(
+  a: OrderPaymentRow,
+  b: OrderPaymentRow,
+): number {
+  const paidDiff = parsePaymentTimestamp(b.paidAt) - parsePaymentTimestamp(a.paidAt);
+  if (paidDiff !== 0) return paidDiff;
+  return parsePaymentTimestamp(b.updatedAt) - parsePaymentTimestamp(a.updatedAt);
+}
+
+export function pickPrimaryPaymentRow(
+  rows: OrderPaymentRow[],
+): OrderPaymentRow | null {
+  if (!rows.length) return null;
+  return [...rows].sort(comparePaymentRowsByRecency)[0] ?? null;
+}
+
+export function orderPaymentGroupKey(row: OrderPaymentRow): string | null {
+  if (!row.localOrderId?.trim()) return null;
+  const device = row.deviceId?.trim() ?? "";
+  return `${device}:${row.localOrderId.trim()}`;
+}
+
+/** Same order + same amount on multiple rows = manual method change, not split tender. */
+export function isLikelyMethodChangeGroup(rows: OrderPaymentRow[]): boolean {
+  if (rows.length <= 1) return true;
+  const amounts = new Set(rows.map((row) => row.amountCents));
+  return amounts.size === 1;
+}
+
+/** One effective payment per method-change group; all rows kept for split payments. */
+export function effectivePaymentsForSummary(
+  payments: OrderPaymentRow[],
+): Array<{ method: string; amountCents: number }> {
+  const standalone: OrderPaymentRow[] = [];
+  const byOrder = new Map<string, OrderPaymentRow[]>();
+
+  for (const row of payments) {
+    const key = orderPaymentGroupKey(row);
+    if (!key) {
+      standalone.push(row);
+      continue;
+    }
+    const list = byOrder.get(key) ?? [];
+    list.push(row);
+    byOrder.set(key, list);
+  }
+
+  const effective: OrderPaymentRow[] = [...standalone];
+  for (const group of byOrder.values()) {
+    if (isLikelyMethodChangeGroup(group)) {
+      const primary = pickPrimaryPaymentRow(group);
+      if (primary) effective.push(primary);
+    } else {
+      effective.push(...group);
+    }
+  }
+
+  return effective.map((row) => ({
+    method: row.method,
+    amountCents: row.amountCents,
+  }));
+}
+
+export function aggregateEffectivePaymentSummary(
+  payments: OrderPaymentRow[],
+): PaymentSummaryCents {
+  return aggregatePaymentSummary(effectivePaymentsForSummary(payments));
+}
+
 export function aggregatePaymentSummary(
   payments: Array<{ method: string; amountCents: number }>,
 ): PaymentSummaryCents {
@@ -68,10 +155,23 @@ export function aggregatePaymentSummary(
 }
 
 export function pickPrimaryPaymentMethod(
-  methods: string[],
+  methods: string[] | OrderPaymentRow[],
 ): string | null {
   if (!methods.length) return null;
-  return methods[0]?.trim() || null;
+  if (typeof methods[0] === "string") {
+    return (methods as string[])[0]?.trim() || null;
+  }
+  return pickPrimaryPaymentRow(methods as OrderPaymentRow[])?.method?.trim() || null;
+}
+
+export function appendOrderPaymentRow(
+  map: Map<string, OrderPaymentRow[]>,
+  key: string,
+  row: OrderPaymentRow,
+): void {
+  const list = map.get(key) ?? [];
+  list.push(row);
+  map.set(key, list);
 }
 
 export type PortalReceiptLineItem = {

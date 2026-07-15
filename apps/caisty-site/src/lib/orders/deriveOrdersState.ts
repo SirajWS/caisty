@@ -193,7 +193,7 @@ function mapOrderRow(
       input.t,
     ),
     statusKey: order.normalizedStatus ?? order.status ?? "completed",
-    payment: formatPortalPaymentMethod(order.paymentMethod, input.t),
+    payment: order.paymentDisplay || formatPortalPaymentMethod(order.paymentMethod, input.t),
     amount: formatMoney(order.amountCents, order.currency, input.locale),
     cashier: order.cashier?.trim() || dash,
     device: order.deviceName?.trim() || dash,

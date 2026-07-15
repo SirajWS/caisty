@@ -4,6 +4,7 @@
  */
 
 import type { PortalReceiptLineItem } from "./portalOrders.js";
+import { PORTAL_ORDER_STATUS, type PortalOrderStatus } from "./orderStatus.js";
 
 export const ORDER_SOURCE = {
   POS: "pos",
@@ -130,7 +131,7 @@ export function summarizeOrderLines(
   return parts.join(", ");
 }
 
-export type ResolvedPaymentStatus = "pending" | "paid" | "unknown";
+export type ResolvedPaymentStatus = "pending" | "paid" | "cancelled" | "unknown";
 
 /** Resolve payment status from synced field or payment records — never from order status. */
 export function resolveOrderPaymentStatus(input: {
@@ -139,15 +140,62 @@ export function resolveOrderPaymentStatus(input: {
 }): ResolvedPaymentStatus {
   const raw = (input.paymentStatus ?? "").trim().toLowerCase();
   if (raw === "paid") return "paid";
-  if (raw === "pending") return "pending";
   if (input.hasPayments) return "paid";
+  if (raw === "pending") return "pending";
   return "pending";
+}
+
+export function resolvePortalOrderPayment(input: {
+  normalizedOrderStatus: PortalOrderStatus;
+  paymentStatus: string | null | undefined;
+  paymentMethod: string | null | undefined;
+  hasPayments: boolean;
+  isProviderOrder?: boolean;
+}): {
+  paymentStatus: ResolvedPaymentStatus;
+  paymentMethod: string | null;
+  paymentDisplay: string;
+} {
+  if (input.normalizedOrderStatus === PORTAL_ORDER_STATUS.CANCELLED) {
+    return {
+      paymentStatus: "cancelled",
+      paymentMethod: input.paymentMethod,
+      paymentDisplay: "Cancelled",
+    };
+  }
+
+  const resolvedStatus = resolveOrderPaymentStatus({
+    paymentStatus: input.paymentStatus,
+    hasPayments: input.hasPayments,
+  });
+
+  let paymentMethod = input.paymentMethod?.trim() || null;
+  if (
+    !paymentMethod &&
+    resolvedStatus === "paid" &&
+    input.isProviderOrder
+  ) {
+    paymentMethod = "card";
+  }
+
+  return {
+    paymentStatus: resolvedStatus,
+    paymentMethod,
+    paymentDisplay: formatOrderPaymentDisplay({
+      paymentMethod,
+      paymentStatus: resolvedStatus,
+    }),
+  };
 }
 
 export function formatOrderPaymentDisplay(input: {
   paymentMethod: string | null | undefined;
   paymentStatus: ResolvedPaymentStatus;
 }): string {
+  if (input.paymentStatus === "cancelled") {
+    return "Cancelled";
+  }
+
   const method = formatPaymentMethodLabel(input.paymentMethod);
   const status =
     input.paymentStatus === "paid"

@@ -413,6 +413,8 @@ export const portalAr: PortalTranslations = {
     paginationShowingLive: "عرض {{from}}–{{to}} من {{total}} طلب مباشر",
     paginationShowingOnline: "عرض {{from}}–{{to}} من {{total}} طلب عبر الإنترنت",
     statusLabels: {
+      new: "جديد",
+      accepted: "مقبول",
       open: "مفتوح",
       in_progress: "قيد التحضير",
       ready: "جاهز",

@@ -413,6 +413,8 @@ export const portalFr: PortalTranslations = {
     paginationShowingLive: "{{from}}–{{to}} sur {{total}} commandes en direct",
     paginationShowingOnline: "{{from}}–{{to}} sur {{total}} commandes en ligne",
     statusLabels: {
+      new: "Nouvelle",
+      accepted: "Acceptée",
       open: "Ouverte",
       in_progress: "En préparation",
       ready: "Prête",

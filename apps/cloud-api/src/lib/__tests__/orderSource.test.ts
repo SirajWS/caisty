@@ -7,8 +7,10 @@ import {
   normalizeOrderSource,
   ORDER_SOURCE,
   resolveOrderPaymentStatus,
+  resolvePortalOrderPayment,
   summarizeOrderLines,
 } from "../orderSource.js";
+import { PORTAL_ORDER_STATUS } from "../orderStatus.js";
 
 describe("orderSource", () => {
   it("treats normal POS orders as non-provider", () => {
@@ -78,11 +80,25 @@ describe("orderSource", () => {
       ]),
     ).toBe("1× Burger, 1× Fries, +1 more");
   });
+});
 
-  it("does not mark paid without payment records or synced status", () => {
+describe("resolveOrderPaymentStatus", () => {
+  it("returns pending when no payment row and order pending", () => {
+    expect(
+      resolveOrderPaymentStatus({ paymentStatus: "pending", hasPayments: false }),
+    ).toBe("pending");
     expect(
       resolveOrderPaymentStatus({ paymentStatus: null, hasPayments: false }),
     ).toBe("pending");
+  });
+
+  it("treats payment rows as paid even when order payment_status is pending", () => {
+    expect(
+      resolveOrderPaymentStatus({ paymentStatus: "pending", hasPayments: true }),
+    ).toBe("paid");
+  });
+
+  it("keeps explicit paid on order row", () => {
     expect(
       resolveOrderPaymentStatus({ paymentStatus: "paid", hasPayments: false }),
     ).toBe("paid");
@@ -90,7 +106,64 @@ describe("orderSource", () => {
       resolveOrderPaymentStatus({ paymentStatus: null, hasPayments: true }),
     ).toBe("paid");
   });
+});
 
+describe("resolvePortalOrderPayment", () => {
+  it("shows Cash · Paid when cash row exists with pending order status", () => {
+    const result = resolvePortalOrderPayment({
+      normalizedOrderStatus: PORTAL_ORDER_STATUS.ACCEPTED,
+      paymentStatus: "pending",
+      paymentMethod: "cash",
+      hasPayments: true,
+    });
+    expect(result.paymentDisplay).toBe("Cash · Paid");
+    expect(result.paymentStatus).toBe("paid");
+  });
+
+  it("shows Card · Paid when card row exists with pending order status", () => {
+    const result = resolvePortalOrderPayment({
+      normalizedOrderStatus: PORTAL_ORDER_STATUS.DELIVERED,
+      paymentStatus: "pending",
+      paymentMethod: "card",
+      hasPayments: true,
+    });
+    expect(result.paymentDisplay).toBe("Card · Paid");
+  });
+
+  it("shows Pending without payment row", () => {
+    const result = resolvePortalOrderPayment({
+      normalizedOrderStatus: PORTAL_ORDER_STATUS.NEW,
+      paymentStatus: "pending",
+      paymentMethod: null,
+      hasPayments: false,
+    });
+    expect(result.paymentDisplay).toBe("Unknown · Pending");
+  });
+
+  it("shows Cancelled for cancelled orders regardless of payment row", () => {
+    const result = resolvePortalOrderPayment({
+      normalizedOrderStatus: PORTAL_ORDER_STATUS.CANCELLED,
+      paymentStatus: "pending",
+      paymentMethod: "cash",
+      hasPayments: true,
+    });
+    expect(result.paymentDisplay).toBe("Cancelled");
+    expect(result.paymentStatus).toBe("cancelled");
+  });
+
+  it("defaults provider paid orders without method to card", () => {
+    const result = resolvePortalOrderPayment({
+      normalizedOrderStatus: PORTAL_ORDER_STATUS.ACCEPTED,
+      paymentStatus: "paid",
+      paymentMethod: null,
+      hasPayments: false,
+      isProviderOrder: true,
+    });
+    expect(result.paymentDisplay).toBe("Card · Paid");
+  });
+});
+
+describe("formatOrderPaymentDisplay", () => {
   it("formats payment method and status separately", () => {
     expect(
       formatOrderPaymentDisplay({
@@ -98,6 +171,15 @@ describe("orderSource", () => {
         paymentStatus: "pending",
       }),
     ).toBe("Cash · Pending");
+  });
+
+  it("formats cancelled display", () => {
+    expect(
+      formatOrderPaymentDisplay({
+        paymentMethod: null,
+        paymentStatus: "cancelled",
+      }),
+    ).toBe("Cancelled");
   });
 });
 

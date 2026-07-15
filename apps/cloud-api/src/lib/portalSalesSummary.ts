@@ -13,9 +13,11 @@ import {
   posSalePayments,
 } from "../db/schema/posSync.js";
 import {
+  aggregateEffectivePaymentSummary,
   aggregatePaymentSummary,
   PORTAL_ORDERS_TIMEZONE,
   sqlIsTodayBerlin,
+  type OrderPaymentRow,
   type PaymentSummaryCents,
 } from "./portalOrders.js";
 import { POS_NATIVE_PLATFORMS_LIST } from "./orderSource.js";
@@ -132,16 +134,22 @@ export async function fetchPosPaymentsForSalesPeriod(input: {
   orgId: string;
   customerId: string;
   period: PortalReportsPeriod;
-}): Promise<Array<{ method: string; amountCents: number; currency: string }>> {
+}): Promise<OrderPaymentRow[]> {
   const { orgId, customerId, period } = input;
   const periodSql = sqlInPeriodBerlin(posReceipts.soldAt, period);
   const paidAtPeriodSql = sqlInPeriodBerlin(posSalePayments.paidAt, period);
 
   const rows = await db
     .select({
+      deviceId: posSalePayments.deviceId,
+      localOrderId: posSalePayments.localOrderId,
+      localReceiptId: posSalePayments.localReceiptId,
+      localPaymentId: posSalePayments.localPaymentId,
       method: posSalePayments.method,
       amountCents: posSalePayments.amountCents,
       currency: posSalePayments.currency,
+      paidAt: posSalePayments.paidAt,
+      updatedAt: posSalePayments.updatedAt,
     })
     .from(posSalePayments)
     .innerJoin(devices, eq(posSalePayments.deviceId, devices.id))
@@ -187,7 +195,16 @@ export async function fetchPosPaymentsForSalesPeriod(input: {
       ),
     );
 
-  return rows;
+  return rows.map((row) => ({
+    deviceId: row.deviceId,
+    localOrderId: row.localOrderId,
+    localReceiptId: row.localReceiptId,
+    localPaymentId: row.localPaymentId,
+    method: row.method,
+    amountCents: row.amountCents,
+    paidAt: row.paidAt,
+    updatedAt: row.updatedAt,
+  }));
 }
 
 /** @deprecated Use fetchPosPaymentsForSalesPeriod for dashboard POS payment summary. */
@@ -195,7 +212,7 @@ export async function fetchPaymentsForSalesPeriod(input: {
   orgId: string;
   customerId: string;
   period: PortalReportsPeriod;
-}): Promise<Array<{ method: string; amountCents: number; currency: string }>> {
+}): Promise<OrderPaymentRow[]> {
   return fetchPosPaymentsForSalesPeriod(input);
 }
 
@@ -330,7 +347,7 @@ export async function fetchPortalSalesPeriodStats(input: {
     currency = orderCurrencyRow?.currency?.trim().toUpperCase() ?? "EUR";
   }
 
-  const paymentSummary = aggregatePaymentSummary(paymentRows);
+  const paymentSummary = aggregateEffectivePaymentSummary(paymentRows);
 
   return {
     ordersCount: totalOrders,

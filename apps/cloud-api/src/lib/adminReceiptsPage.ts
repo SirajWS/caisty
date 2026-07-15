@@ -41,10 +41,12 @@ import {
 } from "./adminReceiptTimeline.js";
 import { mapPortalReceiptEventRecord } from "./portalReceiptEvents.js";
 import {
-  aggregatePaymentSummary,
+  aggregateEffectivePaymentSummary,
+  appendOrderPaymentRow,
   bucketPaymentMethod,
   pickPrimaryPaymentMethod,
   PORTAL_ORDERS_TIMEZONE,
+  type OrderPaymentRow,
   type PaymentBucket,
 } from "./portalOrders.js";
 import {
@@ -411,11 +413,15 @@ export async function fetchAdminReceiptsPage(
       : await db
           .select({
             orgId: posSalePayments.orgId,
+            deviceId: posSalePayments.deviceId,
             localOrderId: posSalePayments.localOrderId,
             localReceiptId: posSalePayments.localReceiptId,
+            localPaymentId: posSalePayments.localPaymentId,
             method: posSalePayments.method,
             amountCents: posSalePayments.amountCents,
             currency: posSalePayments.currency,
+            paidAt: posSalePayments.paidAt,
+            updatedAt: posSalePayments.updatedAt,
           })
           .from(posSalePayments)
           .where(
@@ -435,23 +441,26 @@ export async function fetchAdminReceiptsPage(
             ),
           );
 
-  const paymentsByOrder = new Map<string, string[]>();
-  const paymentsByReceipt = new Map<string, string[]>();
-  const scopedPaymentAmounts: Array<{
-    method: string;
-    amountCents: number;
-  }> = [];
+  const paymentsByOrder = new Map<string, OrderPaymentRow[]>();
+  const paymentsByReceipt = new Map<string, OrderPaymentRow[]>();
+  const scopedPaymentAmounts: OrderPaymentRow[] = [];
 
   for (const payment of paymentRows) {
+    const row: OrderPaymentRow = {
+      deviceId: payment.deviceId,
+      localOrderId: payment.localOrderId,
+      localReceiptId: payment.localReceiptId,
+      localPaymentId: payment.localPaymentId,
+      method: payment.method,
+      amountCents: payment.amountCents,
+      paidAt: payment.paidAt,
+      updatedAt: payment.updatedAt,
+    };
     if (payment.localOrderId) {
-      const list = paymentsByOrder.get(payment.localOrderId) ?? [];
-      list.push(payment.method);
-      paymentsByOrder.set(payment.localOrderId, list);
+      appendOrderPaymentRow(paymentsByOrder, payment.localOrderId, row);
     }
     if (payment.localReceiptId) {
-      const list = paymentsByReceipt.get(payment.localReceiptId) ?? [];
-      list.push(payment.method);
-      paymentsByReceipt.set(payment.localReceiptId, list);
+      appendOrderPaymentRow(paymentsByReceipt, payment.localReceiptId, row);
     }
   }
 
@@ -472,12 +481,23 @@ export async function fetchAdminReceiptsPage(
 
     const displayStatus = mapAdminReceiptDisplayStatus(row.status);
 
-    const matchingPayments = paymentRows.filter(
-      (payment) =>
-        payment.orgId === row.orgId &&
-        (payment.localReceiptId === row.localReceiptId ||
-          (row.localOrderId && payment.localOrderId === row.localOrderId)),
-    );
+    const matchingPayments = paymentRows
+      .filter(
+        (payment) =>
+          payment.orgId === row.orgId &&
+          (payment.localReceiptId === row.localReceiptId ||
+            (row.localOrderId && payment.localOrderId === row.localOrderId)),
+      )
+      .map((payment) => ({
+        deviceId: payment.deviceId,
+        localOrderId: payment.localOrderId,
+        localReceiptId: payment.localReceiptId,
+        localPaymentId: payment.localPaymentId,
+        method: payment.method,
+        amountCents: payment.amountCents,
+        paidAt: payment.paidAt,
+        updatedAt: payment.updatedAt,
+      }));
     scopedPaymentAmounts.push(...matchingPayments);
 
     receipts.push({
@@ -506,7 +526,7 @@ export async function fetchAdminReceiptsPage(
     summary: {
       receiptsCount: receipts.length,
       paymentSummary: {
-        ...aggregatePaymentSummary(scopedPaymentAmounts),
+        ...aggregateEffectivePaymentSummary(scopedPaymentAmounts),
         currency,
       },
     },

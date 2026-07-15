@@ -6,6 +6,8 @@
 import { normalizeReceiptStatus, type ReceiptStatus } from "./receiptStatus.js";
 
 export const PORTAL_ORDER_STATUS = {
+  NEW: "new",
+  ACCEPTED: "accepted",
   OPEN: "open",
   IN_PROGRESS: "in_progress",
   READY: "ready",
@@ -30,6 +32,10 @@ export function mapRawOrderStatusToPortal(raw: string | null | undefined): Porta
   if (!s) return PORTAL_ORDER_STATUS.COMPLETED;
 
   switch (s) {
+    case "new":
+      return PORTAL_ORDER_STATUS.NEW;
+    case "accepted":
+      return PORTAL_ORDER_STATUS.ACCEPTED;
     case "open":
       return PORTAL_ORDER_STATUS.OPEN;
     case "in_progress":
@@ -47,6 +53,7 @@ export function mapRawOrderStatusToPortal(raw: string | null | undefined): Porta
       return PORTAL_ORDER_STATUS.COMPLETED;
     case "cancelled":
     case "canceled":
+    case "rejected":
       return PORTAL_ORDER_STATUS.CANCELLED;
     case "refunded":
       return PORTAL_ORDER_STATUS.REFUNDED;
@@ -82,6 +89,10 @@ export function normalizePortalOrderStatus(input: {
 
 export function portalOrderStatusLabel(status: PortalOrderStatus): string {
   switch (status) {
+    case PORTAL_ORDER_STATUS.NEW:
+      return "New";
+    case PORTAL_ORDER_STATUS.ACCEPTED:
+      return "Accepted";
     case PORTAL_ORDER_STATUS.OPEN:
       return "Open";
     case PORTAL_ORDER_STATUS.IN_PROGRESS:

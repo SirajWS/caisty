@@ -524,6 +524,8 @@ export type PortalOrdersSummary = {
 };
 
 export type PortalOrderStatus =
+  | "new"
+  | "accepted"
   | "open"
   | "in_progress"
   | "ready"
@@ -539,7 +541,7 @@ export type PortalOrderSource =
   | "delivery"
   | "unknown";
 
-export type PortalOrderPaymentStatus = "pending" | "paid" | "unknown";
+export type PortalOrderPaymentStatus = "pending" | "paid" | "cancelled" | "unknown";
 
 export type PortalOrderTimelineEntry = {
   id: string;

@@ -11,6 +11,11 @@ describe("orderStatus", () => {
     expect(mapRawOrderStatusToPortal("closed")).toBe(PORTAL_ORDER_STATUS.COMPLETED);
   });
 
+  it("maps new and accepted explicitly", () => {
+    expect(mapRawOrderStatusToPortal("new")).toBe(PORTAL_ORDER_STATUS.NEW);
+    expect(mapRawOrderStatusToPortal("accepted")).toBe(PORTAL_ORDER_STATUS.ACCEPTED);
+  });
+
   it("maps preparing variants to in_progress", () => {
     expect(mapRawOrderStatusToPortal("preparing")).toBe(
       PORTAL_ORDER_STATUS.IN_PROGRESS,
@@ -29,6 +34,15 @@ describe("orderStatus", () => {
   it("maps delivered to its own portal status", () => {
     expect(mapRawOrderStatusToPortal("delivered")).toBe(
       PORTAL_ORDER_STATUS.DELIVERED,
+    );
+  });
+
+  it("maps canceled and rejected to cancelled", () => {
+    expect(mapRawOrderStatusToPortal("canceled")).toBe(
+      PORTAL_ORDER_STATUS.CANCELLED,
+    );
+    expect(mapRawOrderStatusToPortal("rejected")).toBe(
+      PORTAL_ORDER_STATUS.CANCELLED,
     );
   });
 
