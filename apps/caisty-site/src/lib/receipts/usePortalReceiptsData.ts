@@ -48,6 +48,7 @@ const emptyPage = (): PortalReceiptsResponse => ({
     printedCount: 0,
     reprintedCount: 0,
     refundsCount: 0,
+    posRevenueCents: 0,
     paymentSummary: {
       cashCents: 0,
       cardCents: 0,

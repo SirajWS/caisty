@@ -36,6 +36,7 @@ import {
   sqlInPeriodBerlin,
   type PortalReportsPeriod,
 } from "./portalReportsPeriod.js";
+import { fetchPosRevenueCentsForPeriod } from "./portalSalesSummary.js";
 import {
   computeRefundableAmountCents,
   computeRefundedAmountCents,
@@ -74,6 +75,7 @@ export type PortalReceiptsSummary = {
   printedCount: number;
   reprintedCount: number;
   refundsCount: number;
+  posRevenueCents: number;
   paymentSummary: {
     cashCents: number;
     cardCents: number;
@@ -559,12 +561,19 @@ async function buildReceiptsSummary(input: {
   const currency =
     filteredRows[0]?.currency ?? scopedPayments[0]?.currency ?? "EUR";
 
+  const posRevenueCents = await fetchPosRevenueCentsForPeriod({
+    orgId: input.orgId,
+    customerId: input.customerId,
+    period: input.period,
+  });
+
   return {
     receiptsCount: filteredRows.length,
     activeCount,
     printedCount,
     reprintedCount,
     refundsCount,
+    posRevenueCents,
     paymentSummary: {
       ...aggregateEffectivePaymentSummary(scopedPayments),
       currency,

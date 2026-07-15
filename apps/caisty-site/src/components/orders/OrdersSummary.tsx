@@ -16,6 +16,9 @@ function KpiGrid({
         <div key={kpi.id} className="dashboard-kpi">
           <span className={portalSectionLabel(isLight)}>{kpi.label}</span>
           <span className="dashboard-kpi-value tabular-nums">{kpi.value}</span>
+          {kpi.subtitle ? (
+            <span className="dashboard-kpi-subtitle">{kpi.subtitle}</span>
+          ) : null}
           {kpi.hint ? <span className="dashboard-kpi-hint">{kpi.hint}</span> : null}
         </div>
       ))}

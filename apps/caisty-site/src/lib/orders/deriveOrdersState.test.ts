@@ -90,6 +90,13 @@ function makeSummary(
       otherCents: 0,
       currency: "EUR",
     },
+    onlinePaymentSummary: {
+      cashPaidCents: 0,
+      cardPaidCents: 0,
+      onlinePaidCents: 0,
+      pendingCents: 0,
+      currency: "EUR",
+    },
     ...overrides,
   };
 }
@@ -717,5 +724,57 @@ describe("deriveOrdersState", () => {
     expect(state.providerOrders[0].payment).toBe("Card · Paid");
     expect(state.providerOrders[0].payment).not.toContain("Cash");
     expect(state.revenueKpis.find((k) => k.id === "online_revenue")?.value).toContain("27.500");
+  });
+
+  it("derives POS and online payment summary cards from API summary", () => {
+    const state = deriveOrdersState(
+      deriveInput(
+        makeData({
+          sales: makeSales({
+            summary: makeSummary({
+              allOrdersCount: 2,
+              liveOrdersCount: 1,
+              onlineOrdersCount: 1,
+              paymentSummary: {
+                cashCents: 6000,
+                cardCents: 4000,
+                voucherCents: 0,
+                otherCents: 0,
+                currency: "EUR",
+              },
+              onlinePaymentSummary: {
+                cashPaidCents: 0,
+                cardPaidCents: 27500,
+                onlinePaidCents: 12000,
+                pendingCents: 5000,
+                currency: "EUR",
+              },
+              onlineRevenueCents: 39500,
+              revenueCents: 39500,
+            }),
+            orders: [makeOrder({ id: "o1", localOrderId: "POS-1" })],
+            providerOrders: [
+              makeOrder({
+                id: "o2",
+                localOrderId: "ON-1",
+                isProviderOrder: true,
+                platform: "fake_delivery",
+              }),
+            ],
+          }),
+        }),
+      ),
+    );
+
+    expect(state.posPaymentCards.find((c) => c.id === "cash")?.value).toContain("60");
+    expect(state.posPaymentCards.find((c) => c.id === "card")?.value).toContain("40");
+    expect(state.onlinePaymentCards.find((c) => c.id === "card_paid")?.value).toContain("275");
+    expect(state.onlinePaymentCards.find((c) => c.id === "online_paid")?.value).toContain("120");
+    expect(state.onlinePaymentCards.find((c) => c.id === "pending")?.value).toContain("50");
+    expect(state.onlinePaymentCards.find((c) => c.id === "paid_total")?.emphasis).toBe(true);
+    expect(state.onlinePaymentCards.find((c) => c.id === "paid_total")?.value).toContain("395");
+    expect(state.revenueKpis.find((k) => k.id === "online_revenue")?.subtitle).toBeUndefined();
+    expect(state.onlineRevenueHeader.value).toContain("395");
+    expect(state.onlineRevenueHeader.subtitle).toBe(portalEn.orders.kpiOnlineRevenueInfo);
   });
 });

@@ -102,6 +102,9 @@ export function buildPortalDashboardSummaryResponse(
   paymentSummary: Awaited<
     ReturnType<typeof fetchPortalTodaySalesStats>
   >["paymentSummary"],
+  onlinePaymentSummary: Awaited<
+    ReturnType<typeof fetchPortalTodaySalesStats>
+  >["onlinePaymentSummary"],
 ) {
   const hasSalesData = summary.ordersToday > 0 || summary.receiptsToday > 0;
   return {
@@ -122,6 +125,10 @@ export function buildPortalDashboardSummaryResponse(
     paymentSummary: {
       ...paymentSummary,
       currency: summary.currency,
+    },
+    onlinePaymentSummary: {
+      ...onlinePaymentSummary,
+      currency: onlinePaymentSummary.currency || summary.currency,
     },
     recentOrders: recentOrders.map((order) => ({
       id: order.id,
@@ -177,5 +184,6 @@ export async function fetchPortalDashboardBundle(input: {
     summary,
     ordersPage.recentOrders,
     stats.paymentSummary,
+    stats.onlinePaymentSummary,
   );
 }

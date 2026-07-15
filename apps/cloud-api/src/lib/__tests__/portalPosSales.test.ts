@@ -26,12 +26,20 @@ describe("buildPortalDashboardSummaryResponse", () => {
         otherCents: 0,
         currency: "TND",
       },
+      {
+        cashPaidCents: 0,
+        cardPaidCents: 52800,
+        onlinePaidCents: 0,
+        pendingCents: 0,
+        currency: "TND",
+      },
     );
 
     expect(withSales.hasSalesData).toBe(true);
     expect(withSales.todayRevenueCents).toBe(572800);
     expect(withSales.posRevenueCents).toBe(520000);
     expect(withSales.onlineRevenueCents).toBe(52800);
+    expect(withSales.onlinePaymentSummary.cardPaidCents).toBe(52800);
     expect(withSales.ordersToday).toBe(10);
     expect(withSales.liveOrdersCount).toBe(8);
     expect(withSales.onlineOrdersCount).toBe(2);
@@ -61,6 +69,13 @@ describe("buildPortalDashboardSummaryResponse", () => {
         cardCents: 0,
         voucherCents: 0,
         otherCents: 0,
+        currency: "EUR",
+      },
+      {
+        cashPaidCents: 0,
+        cardPaidCents: 0,
+        onlinePaidCents: 0,
+        pendingCents: 0,
         currency: "EUR",
       },
     );

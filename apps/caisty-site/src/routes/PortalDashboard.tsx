@@ -19,7 +19,7 @@ import {
   TodayActivityTimeline,
 } from "../components/dashboard/LiveDashboardPanels";
 import { OrdersErrorState } from "../components/orders/OrdersErrorState";
-import { PaymentOverview } from "../components/orders/PaymentOverview";
+import { PaymentSummaryPair } from "../components/orders/PaymentSummaryPair";
 import { portalPageShell } from "../lib/portalUi";
 
 const PortalDashboard: React.FC = () => {
@@ -104,10 +104,19 @@ const PortalDashboard: React.FC = () => {
         />
       ) : null}
 
-      <PaymentOverview
-        payments={dashboard.paymentCards}
-        title={l.paymentSummaryTitle}
-        hint={dashboard.hasSalesData ? undefined : o.paymentEmptyHint}
+      <PaymentSummaryPair
+        pos={{
+          payments: dashboard.paymentCards,
+          title: l.paymentSummaryTitle,
+          hint: dashboard.hasSalesData ? undefined : o.paymentEmptyHint,
+        }}
+        online={{
+          payments: dashboard.onlinePaymentCards,
+          title: o.onlinePaymentSummaryTitle,
+          hint: dashboard.hasSalesData ? undefined : o.paymentEmptyHint,
+          infoHint: dashboard.hasSalesData ? o.onlinePaymentSummaryInfo : undefined,
+          revenueHeader: dashboard.onlineRevenueHeader,
+        }}
       />
 
       <DashboardRecentOrders

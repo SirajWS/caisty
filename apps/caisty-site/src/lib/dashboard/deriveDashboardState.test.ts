@@ -100,6 +100,13 @@ function salesSummary(
       otherCents: 0,
       currency: "EUR",
     },
+    onlinePaymentSummary: {
+      cashPaidCents: 0,
+      cardPaidCents: 0,
+      onlinePaidCents: 0,
+      pendingCents: 0,
+      currency: "EUR",
+    },
     recentOrders: [],
     ...overrides,
   };
@@ -380,6 +387,38 @@ describe("deriveDashboardState", () => {
     const lastSync = state.kpis.find((k) => k.id === "last_sync");
     expect(lastSync?.status).toBe("value");
     expect(lastSync?.value).toContain("2026");
+  });
+
+  it("derives separate POS and online payment summary cards", () => {
+    const state = deriveDashboardState(
+      deriveInput(
+        makeData({
+          salesSummary: salesSummary({
+            hasSalesData: true,
+            paymentSummary: {
+              cashCents: 10000,
+              cardCents: 20000,
+              voucherCents: 0,
+              otherCents: 0,
+              currency: "EUR",
+            },
+            onlinePaymentSummary: {
+              cashPaidCents: 3000,
+              cardPaidCents: 7000,
+              onlinePaidCents: 15000,
+              pendingCents: 2500,
+              currency: "EUR",
+            },
+          }),
+        }),
+      ),
+    );
+
+    expect(state.paymentCards).toHaveLength(4);
+    expect(state.onlinePaymentCards).toHaveLength(5);
+    expect(state.paymentCards.find((c) => c.id === "cash")?.value).toContain("100");
+    expect(state.onlinePaymentCards.find((c) => c.id === "online_paid")?.value).toContain("150");
+    expect(state.onlineRevenueHeader.subtitle).toBe(portalEn.orders.kpiOnlineRevenueInfo);
   });
 });
 

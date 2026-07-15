@@ -14,6 +14,7 @@ import {
   sliceOrdersPage,
 } from "../lib/orders/ordersPagination";
 import { OrdersSummary } from "../components/orders/OrdersSummary";
+import { PaymentSummaryPair } from "../components/orders/PaymentSummaryPair";
 import { OrdersTable } from "../components/orders/OrdersTable";
 import { OnlineOrdersTable } from "../components/orders/OnlineOrdersTable";
 import { OrdersEmptyState } from "../components/orders/OrdersEmptyState";
@@ -262,6 +263,23 @@ const PortalOrdersPage: React.FC = () => {
         loading={data.loading}
         isLight={isLight}
       />
+
+      {!showErrorHero ? (
+        <PaymentSummaryPair
+          pos={{
+            payments: orders.posPaymentCards,
+            title: o.paymentSummaryTitle,
+            hint: orders.hasSalesData ? undefined : o.paymentEmptyHint,
+          }}
+          online={{
+            payments: orders.onlinePaymentCards,
+            title: o.onlinePaymentSummaryTitle,
+            hint: orders.hasSalesData ? undefined : o.paymentEmptyHint,
+            infoHint: orders.hasSalesData ? o.onlinePaymentSummaryInfo : undefined,
+            revenueHeader: orders.onlineRevenueHeader,
+          }}
+        />
+      ) : null}
 
       <OrdersFilters label={o.filtersTitle} todayLabel={o.filterToday} />
 

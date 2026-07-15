@@ -126,6 +126,13 @@ export type PortalOrdersPageData = {
       otherCents: number;
       currency: string;
     };
+    onlinePaymentSummary: {
+      cashPaidCents: number;
+      cardPaidCents: number;
+      onlinePaidCents: number;
+      pendingCents: number;
+      currency: string;
+    };
   };
   orders: PortalOrderRecord[];
   providerOrders: PortalOrderRecord[];
@@ -500,6 +507,7 @@ export async function fetchPortalOrdersPage(input: {
       ),
       openShift,
       paymentSummary: periodStats.paymentSummary,
+      onlinePaymentSummary: periodStats.onlinePaymentSummary,
     },
     orders: liveOrders,
     providerOrders,

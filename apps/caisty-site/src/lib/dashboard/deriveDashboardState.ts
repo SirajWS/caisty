@@ -10,6 +10,11 @@ import { pickPrimaryPortalLicense } from "../portalLicensePick";
 import { deriveFiscalVisibility } from "../useFiscalVisibility";
 import { formatPortalOrderStatus, formatPortalPaymentMethod } from "../portal/portalSalesLabels";
 import { formatMinorUnits } from "../money/formatMinorUnits";
+import {
+  deriveOnlinePaymentCards as buildOnlinePaymentCards,
+  deriveOnlineRevenueHeader,
+  derivePosPaymentCards,
+} from "../portal/derivePaymentSummaryCards";
 import { derivePosHubState } from "../posHub/derivePosHubState";
 import { formatInstallerBytes } from "../posHub/format";
 import { pickHighestSemver } from "../posHub/posVersion";
@@ -702,35 +707,58 @@ function derivePaymentCards(input: DeriveDashboardInput): PaymentMethodCard[] {
   const dash = input.t.labels.dash;
   const sales = input.data.salesSummary;
 
-  if (!sales?.hasSalesData || !sales.paymentSummary) {
-    return [
-      { id: "cash", label: o.paymentCash, value: dash, tone: "unknown" },
-      { id: "card", label: o.paymentCard, value: dash, tone: "unknown" },
-      { id: "voucher", label: o.paymentVoucher, value: dash, tone: "unknown" },
-      { id: "other", label: o.paymentOther, value: dash, tone: "unknown" },
-    ];
-  }
-
-  const { paymentSummary } = sales;
-  const currency = paymentSummary.currency || sales.currency || "EUR";
-
-  const card = (
-    id: PaymentMethodCard["id"],
-    label: string,
-    cents: number,
-  ): PaymentMethodCard => ({
-    id,
-    label,
-    value: formatMoney(cents, currency, input.locale),
-    tone: cents > 0 ? "ok" : "unknown",
+  return derivePosPaymentCards({
+    summary: sales?.paymentSummary,
+    labels: {
+      paymentCash: o.paymentCash,
+      paymentCard: o.paymentCard,
+      paymentVoucher: o.paymentVoucher,
+      paymentOther: o.paymentOther,
+    },
+    locale: input.locale,
+    dash,
+    hasData: Boolean(sales?.hasSalesData),
   });
+}
 
-  return [
-    card("cash", o.paymentCash, paymentSummary.cashCents),
-    card("card", o.paymentCard, paymentSummary.cardCents),
-    card("voucher", o.paymentVoucher, paymentSummary.voucherCents),
-    card("other", o.paymentOther, paymentSummary.otherCents),
-  ];
+function deriveOnlineRevenueHeaderState(input: DeriveDashboardInput) {
+  const o = input.t.orders;
+  const dash = input.t.labels.dash;
+  const sales = input.data.salesSummary;
+  const currency =
+    sales?.paymentSummary.currency || sales?.currency || input.data.business?.currency || "EUR";
+
+  return deriveOnlineRevenueHeader({
+    onlineRevenueCents: sales?.onlineRevenueCents ?? 0,
+    currency,
+    labels: {
+      kpiOnlineRevenue: o.kpiOnlineRevenue,
+      kpiOnlineRevenueInfo: o.kpiOnlineRevenueInfo,
+    },
+    locale: input.locale,
+    dash,
+    hasData: Boolean(sales?.hasSalesData),
+  });
+}
+
+function deriveOnlinePaymentCards(input: DeriveDashboardInput): PaymentMethodCard[] {
+  const o = input.t.orders;
+  const dash = input.t.labels.dash;
+  const sales = input.data.salesSummary;
+
+  return buildOnlinePaymentCards({
+    summary: sales?.onlinePaymentSummary,
+    labels: {
+      onlineCashPaid: o.onlineCashPaid,
+      onlineCardPaid: o.onlineCardPaid,
+      onlinePaidOnline: o.onlinePaidOnline,
+      onlinePending: o.onlinePending,
+      onlinePaidTotal: o.onlinePaidTotal,
+    },
+    locale: input.locale,
+    dash,
+    hasData: Boolean(sales?.hasSalesData),
+  });
 }
 
 function deriveRoadmap(input: DeriveDashboardInput): DashboardRoadmapModule[] {
@@ -791,6 +819,9 @@ export function deriveDashboardState(
     systemHealth: deriveSystemHealth(input, hub),
     recentOrders: deriveRecentOrders(input),
     paymentSummary: data.salesSummary?.paymentSummary ?? null,
+    onlinePaymentSummary: data.salesSummary?.onlinePaymentSummary ?? null,
     paymentCards: derivePaymentCards(input),
+    onlinePaymentCards: deriveOnlinePaymentCards(input),
+    onlineRevenueHeader: deriveOnlineRevenueHeaderState(input),
   };
 }

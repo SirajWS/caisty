@@ -6,11 +6,20 @@ import type {
   PortalReceiptRecord,
 } from "../portalApi";
 
+export type PaymentMethodCard = {
+  id: string;
+  label: string;
+  value: string;
+  tone: PosHubTone;
+  emphasis?: boolean;
+};
+
 export type OrdersKpi = {
   id: string;
   label: string;
   value: string;
   hint?: string;
+  subtitle?: string;
 };
 
 export type PosOrderRow = {
@@ -65,13 +74,6 @@ export type PosReceiptRow = {
   source: PortalReceiptRecord;
 };
 
-export type PaymentMethodCard = {
-  id: string;
-  label: string;
-  value: string;
-  tone: PosHubTone;
-};
-
 export type BusinessEvent = {
   id: string;
   kind:
@@ -92,6 +94,9 @@ export type BusinessEvent = {
 export type OrdersDerivedState = {
   orderKpis: OrdersKpi[];
   revenueKpis: OrdersKpi[];
+  posPaymentCards: PaymentMethodCard[];
+  onlinePaymentCards: PaymentMethodCard[];
+  onlineRevenueHeader: import("../portal/derivePaymentSummaryCards").PaymentSummaryRevenueHeader;
   orders: PosOrderRow[];
   providerOrders: ProviderOrderRow[];
   receipts: PosReceiptRow[];

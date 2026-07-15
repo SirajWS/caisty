@@ -494,6 +494,14 @@ export type PortalOrdersPaymentSummary = {
   currency: string;
 };
 
+export type PortalOnlinePaymentSummary = {
+  cashPaidCents: number;
+  cardPaidCents: number;
+  onlinePaidCents: number;
+  pendingCents: number;
+  currency: string;
+};
+
 export type PortalOpenShiftRecord = {
   shiftId: string;
   status: "open" | "closed";
@@ -521,6 +529,7 @@ export type PortalOrdersSummary = {
   averageOrderMinor: number;
   openShift: PortalOpenShiftRecord | null;
   paymentSummary: PortalOrdersPaymentSummary;
+  onlinePaymentSummary: PortalOnlinePaymentSummary;
 };
 
 export type PortalOrderStatus =
@@ -702,6 +711,7 @@ export type PortalReceiptsSummary = {
   printedCount: number;
   reprintedCount: number;
   refundsCount: number;
+  posRevenueCents: number;
   paymentSummary: PortalOrdersPaymentSummary;
 };
 
@@ -774,6 +784,7 @@ export interface PortalDashboardSummary {
   lastSynchronizationAt: string | null;
   hasSalesData: boolean;
   paymentSummary: PortalOrdersPaymentSummary;
+  onlinePaymentSummary: PortalOnlinePaymentSummary;
   recentOrders: Array<{
     id: string;
     localOrderId: string;

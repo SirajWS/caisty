@@ -174,6 +174,142 @@ export function appendOrderPaymentRow(
   map.set(key, list);
 }
 
+export type OnlinePaymentSummaryCents = {
+  cashPaidCents: number;
+  cardPaidCents: number;
+  onlinePaidCents: number;
+  pendingCents: number;
+};
+
+export type OnlinePaymentBucket =
+  | "cash_paid"
+  | "card_paid"
+  | "online_paid"
+  | "pending";
+
+export function emptyOnlinePaymentSummary(): OnlinePaymentSummaryCents {
+  return {
+    cashPaidCents: 0,
+    cardPaidCents: 0,
+    onlinePaidCents: 0,
+    pendingCents: 0,
+  };
+}
+
+/** POS manual cash/card vs provider-online prepaid (platform_card, etc.). */
+export function classifyOnlinePaymentBucket(
+  method: string | null | undefined,
+): Exclude<OnlinePaymentBucket, "pending"> {
+  const m = (method ?? "").trim().toLowerCase();
+  if (!m) return "online_paid";
+  if (
+    m === "online" ||
+    m.includes("online") ||
+    m.includes("platform") ||
+    m.includes("prepaid")
+  ) {
+    return "online_paid";
+  }
+  if (m === "cash" || m.includes("cash")) return "cash_paid";
+  if (
+    m === "card" ||
+    m.includes("card") ||
+    m === "credit" ||
+    m === "debit" ||
+    m === "ec" ||
+    m === "girocard"
+  ) {
+    return "card_paid";
+  }
+  return "online_paid";
+}
+
+export function resolveOnlineOrderPaymentBucket(input: {
+  paymentStatus: string | null | undefined;
+  hasPayments: boolean;
+  paymentRows: OrderPaymentRow[];
+}): OnlinePaymentBucket | null {
+  const raw = (input.paymentStatus ?? "").trim().toLowerCase();
+  const paid = raw === "paid" || input.hasPayments;
+  if (!paid) return "pending";
+
+  const primary = pickPrimaryPaymentRow(input.paymentRows);
+  if (primary?.method?.trim()) {
+    return classifyOnlinePaymentBucket(primary.method);
+  }
+  return "online_paid";
+}
+
+export function addOnlinePaymentBucketAmount(
+  summary: OnlinePaymentSummaryCents,
+  bucket: OnlinePaymentBucket,
+  amountCents: number,
+): void {
+  if (amountCents <= 0) return;
+  switch (bucket) {
+    case "cash_paid":
+      summary.cashPaidCents += amountCents;
+      break;
+    case "card_paid":
+      summary.cardPaidCents += amountCents;
+      break;
+    case "online_paid":
+      summary.onlinePaidCents += amountCents;
+      break;
+    case "pending":
+      summary.pendingCents += amountCents;
+      break;
+  }
+}
+
+export type OnlineOrderSummaryInput = {
+  totalCents: number;
+  orderStatus: string;
+  paymentStatus: string | null;
+  paymentRows: OrderPaymentRow[];
+  hasKpiReceipt: boolean;
+  excluded: boolean;
+};
+
+export type ProviderReceiptSummaryInput = {
+  grossCents: number;
+  orderStatus: string;
+  paymentStatus: string | null;
+  paymentRows: OrderPaymentRow[];
+  excluded: boolean;
+};
+
+export function aggregateOnlinePaymentSummary(input: {
+  orders: OnlineOrderSummaryInput[];
+  providerReceipts: ProviderReceiptSummaryInput[];
+}): OnlinePaymentSummaryCents {
+  const summary = emptyOnlinePaymentSummary();
+
+  for (const order of input.orders) {
+    if (order.excluded || order.hasKpiReceipt) continue;
+    const bucket = resolveOnlineOrderPaymentBucket({
+      paymentStatus: order.paymentStatus,
+      hasPayments: order.paymentRows.length > 0,
+      paymentRows: order.paymentRows,
+    });
+    if (!bucket) continue;
+    addOnlinePaymentBucketAmount(summary, bucket, order.totalCents);
+  }
+
+  for (const receipt of input.providerReceipts) {
+    if (receipt.excluded) continue;
+    const bucket = resolveOnlineOrderPaymentBucket({
+      paymentStatus: receipt.paymentStatus ?? "paid",
+      hasPayments: receipt.paymentRows.length > 0,
+      paymentRows: receipt.paymentRows,
+    });
+    if (!bucket || bucket === "pending") continue;
+    addOnlinePaymentBucketAmount(summary, bucket, receipt.grossCents);
+  }
+
+  return summary;
+}
+
 export type PortalReceiptLineItem = {
   productName: string | null;
   sku: string | null;

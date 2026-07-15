@@ -38,6 +38,13 @@ const emptySalesSummary = (): PortalDashboardSummary => ({
     otherCents: 0,
     currency: "EUR",
   },
+  onlinePaymentSummary: {
+    cashPaidCents: 0,
+    cardPaidCents: 0,
+    onlinePaidCents: 0,
+    pendingCents: 0,
+    currency: "EUR",
+  },
   recentOrders: [],
 });
 

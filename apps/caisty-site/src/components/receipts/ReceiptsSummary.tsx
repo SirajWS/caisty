@@ -13,7 +13,7 @@ export function ReceiptsSummary({
   if (loading) {
     return (
       <div className="dashboard-kpi-grid dashboard-kpi-grid--receipts">
-        {Array.from({ length: 5 }).map((_, i) => (
+        {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="dashboard-kpi dashboard-kpi--skeleton animate-pulse" />
         ))}
       </div>

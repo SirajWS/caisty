@@ -113,6 +113,7 @@ function deriveSummary(input: DeriveReceiptsInput): ReceiptsKpi[] {
   if (!page || page.summary.receiptsCount === 0) {
     const hint = r.waitingPosSyncShort;
     return [
+      waitingKpi("pos_revenue", r.kpiPosRevenue, hint, dash),
       waitingKpi("receipts_today", r.kpiReceiptsToday, hint, dash),
       waitingKpi("active", r.kpiActiveReceipts, hint, dash),
       waitingKpi("printed", r.kpiPrinted, hint, dash),
@@ -122,7 +123,13 @@ function deriveSummary(input: DeriveReceiptsInput): ReceiptsKpi[] {
   }
 
   const { summary } = page;
+  const currency = summary.paymentSummary.currency || "EUR";
   return [
+    {
+      id: "pos_revenue",
+      label: r.kpiPosRevenue,
+      value: formatMoney(summary.posRevenueCents, currency, input.locale),
+    },
     {
       id: "receipts_today",
       label: r.kpiReceiptsToday,

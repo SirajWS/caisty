@@ -1,5 +1,10 @@
 import { formatMinorUnits } from "../money/formatMinorUnits";
 import {
+  deriveOnlinePaymentCards as buildOnlinePaymentCards,
+  deriveOnlineRevenueHeader,
+  derivePosPaymentCards as buildPosPaymentCards,
+} from "../portal/derivePaymentSummaryCards";
+import {
   formatPortalOrderStatus,
   formatPortalPaymentMethod,
 } from "../portal/portalSalesLabels";
@@ -12,6 +17,7 @@ import type {
   PortalReceiptRecord,
   PosOrderRow,
   ProviderOrderRow,
+  PaymentMethodCard,
 } from "./types";
 
 function formatMoney(minor: number, currency: string, locale: string): string {
@@ -47,6 +53,67 @@ function hasSyncedSalesData(sales: NonNullable<DeriveOrdersInput["data"]["sales"
     sales.providerOrders.length > 0 ||
     sales.receipts.length > 0
   );
+}
+
+function derivePosPaymentCards(input: DeriveOrdersInput): PaymentMethodCard[] {
+  const o = input.t.orders;
+  const dash = input.t.labels.dash;
+  const sales = input.data.sales;
+
+  return buildPosPaymentCards({
+    summary: sales?.summary.paymentSummary,
+    labels: {
+      paymentCash: o.paymentCash,
+      paymentCard: o.paymentCard,
+      paymentVoucher: o.paymentVoucher,
+      paymentOther: o.paymentOther,
+    },
+    locale: input.locale,
+    dash,
+    hasData: Boolean(sales && hasSyncedSalesData(sales)),
+  });
+}
+
+function deriveOnlineRevenueHeaderState(input: DeriveOrdersInput) {
+  const o = input.t.orders;
+  const dash = input.t.labels.dash;
+  const sales = input.data.sales;
+  const currency =
+    sales?.summary.paymentSummary.currency ||
+    sales?.summary.onlinePaymentSummary?.currency ||
+    "EUR";
+
+  return deriveOnlineRevenueHeader({
+    onlineRevenueCents: sales?.summary.onlineRevenueCents ?? 0,
+    currency,
+    labels: {
+      kpiOnlineRevenue: o.kpiOnlineRevenue,
+      kpiOnlineRevenueInfo: o.kpiOnlineRevenueInfo,
+    },
+    locale: input.locale,
+    dash,
+    hasData: Boolean(sales && hasSyncedSalesData(sales)),
+  });
+}
+
+function deriveOnlinePaymentCards(input: DeriveOrdersInput): PaymentMethodCard[] {
+  const o = input.t.orders;
+  const dash = input.t.labels.dash;
+  const sales = input.data.sales;
+
+  return buildOnlinePaymentCards({
+    summary: sales?.summary.onlinePaymentSummary,
+    labels: {
+      onlineCashPaid: o.onlineCashPaid,
+      onlineCardPaid: o.onlineCardPaid,
+      onlinePaidOnline: o.onlinePaidOnline,
+      onlinePending: o.onlinePending,
+      onlinePaidTotal: o.onlinePaidTotal,
+    },
+    locale: input.locale,
+    dash,
+    hasData: Boolean(sales && hasSyncedSalesData(sales)),
+  });
 }
 
 function deriveOrderKpis(input: DeriveOrdersInput): OrdersKpi[] {
@@ -263,6 +330,9 @@ export function deriveOrdersState(input: DeriveOrdersInput): OrdersDerivedState 
   return {
     orderKpis: deriveOrderKpis(input),
     revenueKpis: deriveRevenueKpis(input),
+    posPaymentCards: derivePosPaymentCards(input),
+    onlinePaymentCards: deriveOnlinePaymentCards(input),
+    onlineRevenueHeader: deriveOnlineRevenueHeaderState(input),
     orders,
     providerOrders,
     receipts,

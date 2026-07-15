@@ -39,12 +39,13 @@ describe("deriveReceiptsState", () => {
             printedCount: 1,
             reprintedCount: 0,
             refundsCount: 0,
+            posRevenueCents: 164000,
             paymentSummary: {
-              cashCents: 5000,
+              cashCents: 164000,
               cardCents: 0,
               voucherCents: 0,
               otherCents: 0,
-              currency: "EUR",
+              currency: "TND",
             },
           },
           receipts: [baseReceipt],
@@ -71,7 +72,8 @@ describe("deriveReceiptsState", () => {
     expect(state.receipts[0]?.status).toBe("Active");
     expect(state.receipts[0]?.printCount).toBe("1");
     expect(state.receipts[0]?.lastEvent).toBe("Printed");
-    expect(state.summary[0]?.value).toBe("1");
+    expect(state.summary.find((k) => k.id === "receipts_today")?.value).toBe("1");
+    expect(state.summary.find((k) => k.id === "pos_revenue")?.value).toContain("164.000");
   });
 
   it("maps receipt events chronologically in detail state", () => {
@@ -87,6 +89,7 @@ describe("deriveReceiptsState", () => {
             printedCount: 1,
             reprintedCount: 1,
             refundsCount: 0,
+            posRevenueCents: 164000,
             paymentSummary: {
               cashCents: 5000,
               cardCents: 0,
@@ -176,5 +179,6 @@ describe("deriveReceiptsState", () => {
     expect(state.events.map((e) => e.label)).toEqual(["Created", "Printed"]);
     expect(state.printStats.originalPrint).toBe("Yes");
     expect(state.printStats.reprintCount).toBe("0");
+    expect(state.summary).toHaveLength(6);
   });
 });
