@@ -875,9 +875,15 @@ export interface PortalReportsSummary {
   period: PortalReportsPeriod;
   hasSalesData: boolean;
   overview: PortalReportsOverview;
+  /** Same period splits as Dashboard/Orders (from portal sales period stats). */
+  posRevenueCents: number;
+  onlineRevenueCents: number;
+  liveOrdersCount: number;
+  onlineOrdersCount: number;
   revenueSeries: PortalReportsRevenuePoint[];
   salesByHour: PortalReportsHourlyPoint[];
   paymentMethods: PortalReportsPaymentMethods;
+  onlinePaymentSummary: PortalOnlinePaymentSummary;
   topProducts: PortalReportsTopProduct[];
   topEmployees: [];
   taxes: PortalReportsTaxes;

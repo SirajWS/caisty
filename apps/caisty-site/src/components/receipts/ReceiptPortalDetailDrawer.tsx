@@ -1,30 +1,70 @@
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { formatDocumentDateTime } from "../../lib/documents/formatters";
 import { formatMinorUnits } from "../../lib/money/formatMinorUnits";
 import type { DocumentIdentity } from "../../lib/documents/types";
 import type { PortalReceiptDetailResponse } from "../../lib/portalApi";
-import { portalReceiptStatusBadge } from "../../lib/portalUi";
-import { ReceiptEventsTimeline } from "./ReceiptEventsTimeline";
+import { OrderPaymentBadge } from "../orders/OrderPaymentBadge";
+import { OrderTimeline, type CaistyActivityEvent } from "../orders/OrderTimeline";
 import type { ReceiptEventRow } from "../../lib/receipts/types";
 
 function isFiscalPending(status: string): boolean {
   return status.trim().toLowerCase() === "pending";
 }
 
+function fiscalBadgeClass(status: string): string {
+  const s = status.trim().toLowerCase();
+  if (s === "pending") return "caisty-badge caisty-badge--warning";
+  if (s === "signed" || s === "ok" || s === "completed") {
+    return "caisty-badge caisty-badge--success";
+  }
+  if (s === "failed" || s === "error") return "caisty-badge caisty-badge--danger";
+  return "caisty-badge caisty-badge--neutral";
+}
+
+function DrawerFact({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="caisty-drawer-fact">
+      <dt className="caisty-drawer-fact-label">{label}</dt>
+      <dd className="caisty-drawer-fact-value">{children}</dd>
+    </div>
+  );
+}
+
+function DrawerSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="caisty-drawer-section">
+      <h3 className="caisty-drawer-section-title">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
 export function ReceiptPortalDetailDrawer({
   open,
   detail,
   detailLoading,
-  events,
+  events: _events,
   printStats,
   refundSummary,
   identity,
   labels,
   locale,
   timezone,
-  isLight,
   onClose,
+  onPrint,
 }: {
   open: boolean;
   detail: PortalReceiptDetailResponse | null;
@@ -72,9 +112,16 @@ export function ReceiptPortalDetailDrawer({
     lastPrintTime: string;
     historyTitle: string;
     historyEmpty: string;
-    colEventTime: string;
-    colEvent: string;
-    colActor: string;
+    sectionOverview: string;
+    sectionPos: string;
+    sectionPayment: string;
+    sectionFiscal: string;
+    sectionActivity: string;
+    sectionProducts: string;
+    sectionTotals: string;
+    printReceipt: string;
+    paymentPending: string;
+    paymentPaid: string;
     close: string;
     dash: string;
     statusActive: string;
@@ -88,9 +135,9 @@ export function ReceiptPortalDetailDrawer({
   timezone: string;
   isLight: boolean;
   onClose: () => void;
+  onPrint?: () => void;
 }) {
   const titleId = useId();
-  const panelRef = useRef<HTMLElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const receipt = detail?.receipt ?? null;
 
@@ -146,6 +193,24 @@ export function ReceiptPortalDetailDrawer({
     ? isFiscalPending(receipt.fiscalStatus)
     : false;
 
+  const paymentMethod = receipt?.paymentMethod?.trim() || labels.dash;
+  const paymentStatus =
+    receipt?.status === "voided" || receipt?.status === "refunded"
+      ? "cancelled"
+      : "paid";
+
+  const activityEvents: CaistyActivityEvent[] = (detail?.timeline ?? []).map(
+    (event) => ({
+      id: event.id,
+      kind: event.kind,
+      label: event.label,
+      occurredAt: event.occurredAt,
+      actor: event.actor,
+      summary: event.summary,
+      source: "receipt" as const,
+    }),
+  );
+
   return createPortal(
     <div className="receipt-detail-root">
       <button
@@ -155,157 +220,256 @@ export function ReceiptPortalDetailDrawer({
         onClick={onClose}
       />
       <aside
-        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="receipt-detail-panel receipt-detail-panel--wide"
+        className="receipt-detail-panel receipt-detail-panel--wide caisty-drawer"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="receipt-detail-head">
-          <h2 id={titleId} className="receipt-detail-title">
-            {labels.title}
-          </h2>
-          <p className="receipt-detail-subtitle">{receiptNumber}</p>
+        <header className="caisty-drawer-hero">
+          <div className="caisty-drawer-hero-top">
+            <div className="caisty-drawer-hero-identity">
+              <p className="caisty-drawer-kicker">{labels.title}</p>
+              <h2 id={titleId} className="caisty-drawer-order-id">
+                {receiptNumber}
+              </h2>
+            </div>
+            <button
+              ref={closeBtnRef}
+              type="button"
+              className="caisty-drawer-dismiss"
+              aria-label={labels.close}
+              onClick={onClose}
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="caisty-drawer-hero-amount tabular-nums">
+            {receipt ? formatMoney(receipt.grossCents) : labels.dash}
+          </div>
+
+          <div className="caisty-drawer-hero-badges">
+            <span
+              className={
+                receipt?.status === "active"
+                  ? "caisty-badge caisty-badge--success"
+                  : receipt?.status === "refunded" ||
+                      receipt?.status === "partial_refund"
+                    ? "caisty-badge caisty-badge--danger"
+                    : "caisty-badge caisty-badge--neutral"
+              }
+            >
+              {statusLabel}
+            </span>
+            <OrderPaymentBadge
+              status={paymentStatus}
+              methodLabel={paymentMethod}
+              pendingLabel={labels.paymentPending}
+              paidLabel={labels.paymentPaid}
+            />
+            {receipt ? (
+              <span className={fiscalBadgeClass(receipt.fiscalStatus)}>
+                {receipt.fiscalStatus}
+              </span>
+            ) : null}
+          </div>
+
+          <p className="caisty-drawer-hero-meta">
+            <span>{issuedAtLabel}</span>
+          </p>
         </header>
 
-        {detailLoading || !receipt ? (
-          <p className="dashboard-text-muted receipt-detail-loading">…</p>
-        ) : (
-          <>
-            <dl className="receipt-detail-grid">
-              <div className="receipt-detail-row">
-                <dt>{labels.receipt}</dt>
-                <dd>{receiptNumber}</dd>
-              </div>
-              <div className="receipt-detail-row">
-                <dt>{labels.date}</dt>
-                <dd>{issuedAtLabel}</dd>
-              </div>
-              <div className="receipt-detail-row">
-                <dt>{labels.status}</dt>
-                <dd>
-                  <span className={portalReceiptStatusBadge(receipt.status, isLight)}>
-                    {statusLabel}
-                  </span>
-                </dd>
-              </div>
-              <div className="receipt-detail-row">
-                <dt>{labels.business}</dt>
-                <dd>{identity?.businessName || labels.dash}</dd>
-              </div>
-              <div className="receipt-detail-row">
-                <dt>{labels.store}</dt>
-                <dd>{identity?.storeName || labels.dash}</dd>
-              </div>
-              <div className="receipt-detail-row">
-                <dt>{labels.payment}</dt>
-                <dd>{receipt.paymentMethod || labels.dash}</dd>
-              </div>
-              {refundSummary && refundSummary.refundedAmountCents > 0 ? (
-                <div className="receipt-detail-row">
-                  <dt>{labels.refundedAmount}</dt>
-                  <dd>{formatMoney(refundSummary.refundedAmountCents)}</dd>
+        <div className="caisty-drawer-body">
+          {detailLoading || !receipt ? (
+            <div
+              className="caisty-drawer-skeleton-stack caisty-drawer-skeleton-stack--body"
+              aria-hidden="true"
+            >
+              <div className="caisty-drawer-skeleton-block" />
+              <div className="caisty-drawer-skeleton-line" />
+              <div className="caisty-drawer-skeleton-line caisty-drawer-skeleton-line--short" />
+            </div>
+          ) : (
+            <>
+              {showFiscalPending ? (
+                <div className="caisty-drawer-alerts">
+                  <p className="caisty-drawer-notice caisty-drawer-notice--attention">
+                    {labels.fiscalPending}
+                  </p>
                 </div>
               ) : null}
-              <div className="receipt-detail-row">
-                <dt>{labels.fiscal}</dt>
-                <dd>{receipt.fiscalStatus}</dd>
-              </div>
-              <div className="receipt-detail-row">
-                <dt>{labels.amount}</dt>
-                <dd>{formatMoney(receipt.grossCents)}</dd>
-              </div>
-              <div className="receipt-detail-row">
-                <dt>{labels.device}</dt>
-                <dd>{receipt.deviceName || labels.dash}</dd>
-              </div>
-            </dl>
 
-            {showFiscalPending ? (
-              <p className="receipt-detail-notice">{labels.fiscalPending}</p>
-            ) : null}
+              {refundSummary && refundSummary.refundedAmountCents > 0 ? (
+                <div className="caisty-drawer-alerts">
+                  <p className="caisty-drawer-notice caisty-drawer-notice--danger">
+                    {labels.refundedAmount}:{" "}
+                    {formatMoney(refundSummary.refundedAmountCents)}
+                  </p>
+                </div>
+              ) : null}
 
-            <section className="receipt-detail-items">
-              <h3 className="receipt-detail-items-title">{labels.itemsTitle}</h3>
-              {receipt.items.length > 0 ? (
-                <div className="receipt-detail-items-scroll">
-                  <table className="receipt-detail-items-table">
-                    <thead>
-                      <tr>
-                        <th scope="col">{labels.colProduct}</th>
-                        <th scope="col">{labels.colQuantity}</th>
-                        <th scope="col">{labels.colUnitPrice}</th>
-                        <th scope="col">{labels.colLineTotal}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {receipt.items.map((line, index) => (
-                        <tr key={`${line.sku}-${index}`}>
-                          <td>{line.productName || line.sku || labels.dash}</td>
-                          <td>{line.quantity}</td>
-                          <td>{formatMoney(line.unitPriceCents)}</td>
-                          <td>{formatMoney(line.lineTotalCents)}</td>
+              <DrawerSection title={labels.sectionOverview}>
+                <dl className="caisty-drawer-facts">
+                  <DrawerFact label={labels.receipt}>{receiptNumber}</DrawerFact>
+                  <DrawerFact label={labels.status}>{statusLabel}</DrawerFact>
+                  <DrawerFact label={labels.payment}>{paymentMethod}</DrawerFact>
+                  <DrawerFact label={labels.grossTotal}>
+                    <span className="tabular-nums">
+                      {formatMoney(receipt.grossCents)}
+                    </span>
+                  </DrawerFact>
+                  <DrawerFact label={labels.date}>{issuedAtLabel}</DrawerFact>
+                </dl>
+              </DrawerSection>
+
+              <DrawerSection title={labels.sectionPos}>
+                <dl className="caisty-drawer-facts">
+                  <DrawerFact label={labels.business}>
+                    {identity?.businessName || labels.dash}
+                  </DrawerFact>
+                  <DrawerFact label={labels.store}>
+                    {identity?.storeName || labels.dash}
+                  </DrawerFact>
+                  <DrawerFact label={labels.device}>
+                    {receipt.deviceName || labels.dash}
+                  </DrawerFact>
+                  {receipt.localOrderId ? (
+                    <DrawerFact label={labels.receipt}>
+                      {receipt.localOrderId}
+                    </DrawerFact>
+                  ) : null}
+                </dl>
+              </DrawerSection>
+
+              <DrawerSection title={labels.sectionProducts}>
+                {receipt.items.length > 0 ? (
+                  <div className="caisty-drawer-items-scroll">
+                    <table className="caisty-drawer-items-table">
+                      <thead>
+                        <tr>
+                          <th scope="col">{labels.colProduct}</th>
+                          <th scope="col">{labels.colQuantity}</th>
+                          <th scope="col">{labels.colUnitPrice}</th>
+                          <th scope="col">{labels.colLineTotal}</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="receipt-detail-items-empty">{labels.itemsEmpty}</p>
-              )}
-            </section>
+                      </thead>
+                      <tbody>
+                        {receipt.items.map((line, index) => (
+                          <tr key={`${line.sku ?? "line"}-${index}`}>
+                            <td>
+                              {line.productName || line.sku || labels.dash}
+                            </td>
+                            <td>{line.quantity}</td>
+                            <td className="tabular-nums">
+                              {formatMoney(line.unitPriceCents)}
+                            </td>
+                            <td className="tabular-nums">
+                              {formatMoney(line.lineTotalCents)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="caisty-drawer-empty">{labels.itemsEmpty}</p>
+                )}
+              </DrawerSection>
 
-            <section className="receipt-detail-section">
-              <h3 className="receipt-detail-section-title">{labels.totalsTitle}</h3>
-              <dl className="receipt-detail-totals">
-                <div className="receipt-detail-row">
-                  <dt>{labels.netTotal}</dt>
-                  <dd>{formatMoney(receipt.netCents)}</dd>
-                </div>
-                <div className="receipt-detail-row">
-                  <dt>{labels.taxTotal}</dt>
-                  <dd>{formatMoney(receipt.taxCents)}</dd>
-                </div>
-                <div className="receipt-detail-row">
-                  <dt>{labels.grossTotal}</dt>
-                  <dd>{formatMoney(receipt.grossCents)}</dd>
-                </div>
-              </dl>
-            </section>
+              <DrawerSection title={labels.sectionTotals}>
+                <dl className="caisty-drawer-totals">
+                  <div className="caisty-drawer-total-row">
+                    <dt>{labels.netTotal}</dt>
+                    <dd className="tabular-nums">
+                      {formatMoney(receipt.netCents)}
+                    </dd>
+                  </div>
+                  <div className="caisty-drawer-total-row">
+                    <dt>{labels.taxTotal}</dt>
+                    <dd className="tabular-nums">
+                      {formatMoney(receipt.taxCents)}
+                    </dd>
+                  </div>
+                  <div className="caisty-drawer-total-row caisty-drawer-total-row--gross">
+                    <dt>{labels.grossTotal}</dt>
+                    <dd className="tabular-nums">
+                      {formatMoney(receipt.grossCents)}
+                    </dd>
+                  </div>
+                </dl>
+              </DrawerSection>
 
-            <section className="receipt-detail-section">
-              <h3 className="receipt-detail-section-title">{labels.printStatsTitle}</h3>
-              <dl className="receipt-detail-totals">
-                <div className="receipt-detail-row">
-                  <dt>{labels.originalPrint}</dt>
-                  <dd>{printStats.originalPrint}</dd>
-                </div>
-                <div className="receipt-detail-row">
-                  <dt>{labels.reprintCount}</dt>
-                  <dd>{printStats.reprintCount}</dd>
-                </div>
-                <div className="receipt-detail-row">
-                  <dt>{labels.lastPrintTime}</dt>
-                  <dd>{printStats.lastPrintTime}</dd>
-                </div>
-              </dl>
-            </section>
+              <DrawerSection title={labels.sectionPayment}>
+                <dl className="caisty-drawer-facts">
+                  <DrawerFact label={labels.currentPaymentMethod}>
+                    {paymentMethod}
+                  </DrawerFact>
+                  <DrawerFact label={labels.amount}>
+                    <span className="tabular-nums">
+                      {formatMoney(receipt.grossCents)}
+                    </span>
+                  </DrawerFact>
+                  <DrawerFact label={labels.status}>{statusLabel}</DrawerFact>
+                </dl>
+              </DrawerSection>
 
-            <ReceiptEventsTimeline
-              events={events}
-              title={labels.historyTitle}
-              emptyLabel={labels.historyEmpty}
-              loading={detailLoading}
-            />
-          </>
-        )}
+              <DrawerSection title={labels.sectionFiscal}>
+                <dl className="caisty-drawer-facts">
+                  <DrawerFact label={labels.fiscal}>
+                    <span className={fiscalBadgeClass(receipt.fiscalStatus)}>
+                      {receipt.fiscalStatus}
+                    </span>
+                  </DrawerFact>
+                </dl>
+              </DrawerSection>
 
-        <footer className="receipt-detail-footer">
+              <DrawerSection title={labels.printStatsTitle}>
+                <dl className="caisty-drawer-facts">
+                  <DrawerFact label={labels.originalPrint}>
+                    {printStats.originalPrint}
+                  </DrawerFact>
+                  <DrawerFact label={labels.reprintCount}>
+                    {printStats.reprintCount}
+                  </DrawerFact>
+                  <DrawerFact label={labels.lastPrintTime}>
+                    {printStats.lastPrintTime}
+                  </DrawerFact>
+                </dl>
+              </DrawerSection>
+
+              <OrderTimeline
+                events={activityEvents}
+                locale={locale}
+                timezone={timezone}
+                title={labels.sectionActivity}
+                emptyLabel={labels.historyEmpty}
+                loading={detailLoading}
+                sourceLabels={{
+                  order: labels.receipt,
+                  receipt: labels.receipt,
+                }}
+              />
+            </>
+          )}
+        </div>
+
+        <footer className="caisty-drawer-footer">
+          <div className="caisty-drawer-footer-actions">
+            {onPrint ? (
+              <button
+                type="button"
+                className="caisty-drawer-footer-secondary"
+                onClick={onPrint}
+                disabled={!receipt || detailLoading}
+              >
+                {labels.printReceipt}
+              </button>
+            ) : null}
+          </div>
           <button
-            ref={closeBtnRef}
             type="button"
-            className="receipt-detail-close-btn"
+            className="caisty-drawer-footer-primary"
             onClick={onClose}
           >
             {labels.close}

@@ -1,3 +1,4 @@
+import { Users } from "lucide-react";
 import type { TopEmployeeRow } from "../../lib/reports/types";
 
 export function TopEmployees({
@@ -22,6 +23,23 @@ export function TopEmployees({
 }) {
   const isEmpty = !loading && employees.length === 0;
 
+  if (isEmpty) {
+    return (
+      <section className="dashboard-panel dashboard-panel--wide reports-employees-empty">
+        <h2 className="dashboard-panel-title">{title}</h2>
+        <div className="reports-employees-empty-body">
+          <div className="reports-employees-empty-icon" aria-hidden>
+            <Users size={28} strokeWidth={1.5} />
+          </div>
+          <p className="reports-employees-empty-primary">{emptyLabel}</p>
+          {emptyHint ? (
+            <p className="reports-employees-empty-secondary">{emptyHint}</p>
+          ) : null}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="dashboard-panel dashboard-panel--wide">
       <h2 className="dashboard-panel-title">{title}</h2>
@@ -42,22 +60,13 @@ export function TopEmployees({
                   …
                 </td>
               </tr>
-            ) : isEmpty ? (
-              <tr>
-                <td colSpan={4} className="reports-table-empty">
-                  <span className="reports-table-empty-primary">{emptyLabel}</span>
-                  {emptyHint ? (
-                    <span className="reports-table-empty-secondary">{emptyHint}</span>
-                  ) : null}
-                </td>
-              </tr>
             ) : (
               employees.map((row) => (
                 <tr key={row.id}>
                   <td>{row.name}</td>
-                  <td>{row.orders}</td>
-                  <td>{row.revenue}</td>
-                  <td>{row.avgOrder}</td>
+                  <td className="tabular-nums">{row.orders}</td>
+                  <td className="tabular-nums">{row.revenue}</td>
+                  <td className="tabular-nums">{row.avgOrder}</td>
                 </tr>
               ))
             )}

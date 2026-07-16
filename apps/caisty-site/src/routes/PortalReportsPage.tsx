@@ -13,6 +13,7 @@ import {
   type ReportsPeriodId,
 } from "../lib/reports/reportsPeriod";
 import { ReportsOverview } from "../components/reports/ReportsOverview";
+import { ReportsBreakdowns } from "../components/reports/ReportsBreakdowns";
 import { ReportsFilters } from "../components/reports/ReportsFilters";
 import { ReportsEmptyState } from "../components/reports/ReportsEmptyState";
 import { RevenueChart } from "../components/reports/RevenueChart";
@@ -22,10 +23,16 @@ import { TopProducts } from "../components/reports/TopProducts";
 import { TopEmployees } from "../components/reports/TopEmployees";
 import { TaxesOverview } from "../components/reports/TaxesOverview";
 import { BusinessTrends } from "../components/reports/BusinessTrends";
+import { OrdersErrorState } from "../components/orders/OrdersErrorState";
 import { PortalExportPdfButton } from "../components/portal/PortalExportPdfButton";
 import { buildReportsDocumentLabels } from "../lib/documents/documentLabels";
 import { buildDocumentMeta, resolveDocumentIdentity } from "../lib/documents/documentMeta";
-import { portalPageShell, portalPageSubtitle, portalPageTitle } from "../lib/portalUi";
+import {
+  portalPageShell,
+  portalPageSubtitle,
+  portalPageTitle,
+  portalSecondaryCta,
+} from "../lib/portalUi";
 
 const PortalReportsPage: React.FC = () => {
   const { customer } = usePortalOutlet();
@@ -33,6 +40,7 @@ const PortalReportsPage: React.FC = () => {
   const { language } = useLanguage();
   const t = getPortalTranslations(language);
   const r = t.reports;
+  const o = t.orders;
   const dash = t.labels.dash;
   const isLight = theme === "light";
 
@@ -48,7 +56,8 @@ const PortalReportsPage: React.FC = () => {
 
   const periodLabel = getReportsPeriodLabel(period, r);
   const hasSalesData = Boolean(data.reportsSummary?.hasSalesData);
-  const showEmptyHero = !data.loading && !hasSalesData;
+  const showErrorHero = !data.loading && data.error && !hasSalesData;
+  const showEmptyHero = !data.loading && !data.error && !hasSalesData;
   const mutedPlaceholders = showEmptyHero;
   const syncHint = r.paymentEmptyHint;
   const fiscalHint = r.fiscalEmptyHint;
@@ -86,24 +95,52 @@ const PortalReportsPage: React.FC = () => {
           <h1 className={portalPageTitle(isLight)}>{r.title}</h1>
           <p className={portalPageSubtitle(isLight)}>{r.subtitle}</p>
         </div>
-        <PortalExportPdfButton
-          label={r.exportPdf}
-          loadingLabel={t.pdfDocuments.exporting}
-          disabled={data.loading || !hasSalesData}
-          loading={exportingPdf}
-          onClick={handleExportPdf}
-          isLight={isLight}
-        />
+        <div className="portal-page-header-actions">
+          <button
+            type="button"
+            className={`portal-refresh-btn ${portalSecondaryCta(isLight)}`}
+            disabled={data.loading || exportingPdf}
+            onClick={() => data.reload()}
+          >
+            {data.loading ? r.refreshLoading : r.actionRefresh}
+          </button>
+          <PortalExportPdfButton
+            label={r.exportPdf}
+            loadingLabel={t.pdfDocuments.exporting}
+            disabled={data.loading || !hasSalesData}
+            loading={exportingPdf}
+            onClick={handleExportPdf}
+            isLight={isLight}
+          />
+        </div>
       </header>
 
       <ReportsFilters r={r} period={period} onPeriodChange={setPeriod} />
+
+      {showErrorHero ? (
+        <OrdersErrorState
+          headline={r.errorHeadline}
+          description={r.errorDescription}
+          retryLabel={r.errorRetry}
+          onRetry={() => data.reload()}
+          isLight={isLight}
+          loading={data.loading}
+        />
+      ) : null}
 
       <ReportsOverview
         kpis={reports.overview}
         loading={data.loading}
         isLight={isLight}
         periodLabel={periodLabel}
-        hideHints={showEmptyHero}
+        hideHints={showEmptyHero || showErrorHero}
+      />
+
+      <ReportsBreakdowns
+        revenueBreakdown={reports.revenueBreakdown}
+        orderBreakdown={reports.orderBreakdown}
+        loading={data.loading}
+        isLight={isLight}
       />
 
       {showEmptyHero ? (
@@ -121,19 +158,28 @@ const PortalReportsPage: React.FC = () => {
         mutedPlaceholder={mutedPlaceholders}
       />
 
-      <div className="live-dashboard-split">
+      <PaymentMethods
+        pos={{
+          payments: reports.posPaymentCards,
+          title: o.paymentSummaryTitle,
+          hint: hasSalesData ? undefined : o.paymentEmptyHint,
+        }}
+        online={{
+          payments: reports.onlinePaymentCards,
+          title: o.onlinePaymentSummaryTitle,
+          hint: hasSalesData ? undefined : o.paymentEmptyHint,
+          infoHint: hasSalesData ? o.onlinePaymentSummaryInfo : undefined,
+          revenueHeader: reports.onlineRevenueHeader,
+        }}
+      />
+
+      {reports.showHourlySales ? (
         <HourlySalesChart
           data={reports.hourlySales}
           title={r.hourlySalesTitle}
           mutedPlaceholder={mutedPlaceholders}
         />
-        <PaymentMethods
-          methods={reports.paymentMethods}
-          title={r.paymentMethodsTitle}
-          hint={hasSalesData ? undefined : syncHint}
-          dash={dash}
-        />
-      </div>
+      ) : null}
 
       <TopProducts
         products={reports.topProducts}
@@ -142,10 +188,11 @@ const PortalReportsPage: React.FC = () => {
         emptyLabel={r.topProductsEmpty}
         emptyHint={hasSalesData ? r.tableEmptyHint : undefined}
         columns={{
+          rank: r.colRank,
           product: r.colProduct,
           quantity: r.colQuantity,
           revenue: r.colRevenue,
-          category: r.colCategory,
+          share: r.colShare,
         }}
       />
 
@@ -154,7 +201,7 @@ const PortalReportsPage: React.FC = () => {
         loading={data.loading}
         title={r.topEmployeesTitle}
         emptyLabel={r.topEmployeesEmpty}
-        emptyHint={hasSalesData ? r.tableEmptyHint : undefined}
+        emptyHint={r.topEmployeesEmptyHint}
         columns={{
           employee: r.colEmployee,
           orders: r.colOrders,
@@ -168,6 +215,7 @@ const PortalReportsPage: React.FC = () => {
           taxes={reports.taxes}
           title={r.taxesTitle}
           hint={hasSalesData ? undefined : fiscalHint}
+          footnote={hasSalesData ? r.taxesPosOnlyNote : undefined}
           dash={dash}
         />
         <BusinessTrends

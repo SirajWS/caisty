@@ -9,10 +9,7 @@ export function HourlySalesChart({
   title: string;
   mutedPlaceholder?: boolean;
 }) {
-  const maxValue = Math.max(
-    ...data.bars.map((bar) => bar.value ?? 0),
-    1,
-  );
+  const maxValue = Math.max(...data.bars.map((bar) => bar.value ?? 0), 1);
   const hasData = data.bars.some((bar) => (bar.value ?? 0) > 0);
 
   return (
@@ -24,7 +21,11 @@ export function HourlySalesChart({
             const value = bar.value ?? 0;
             const heightPct = value > 0 ? Math.max((value / maxValue) * 100, 8) : 0;
             return (
-              <div key={bar.hour} className="reports-hourly-bar-col">
+              <div
+                key={bar.hour}
+                className="reports-hourly-bar-col"
+                title={bar.tooltip}
+              >
                 <div className="reports-hourly-bar-track">
                   <div
                     className={`reports-hourly-bar-fill ${value <= 0 ? "reports-hourly-bar-fill--empty" : ""}`}

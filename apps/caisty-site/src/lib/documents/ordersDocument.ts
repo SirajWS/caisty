@@ -1,11 +1,6 @@
 import { CaistyPdfDocument } from "./baseDocument";
-import {
-  formatDocumentMoney,
-  formatDocumentTime,
-  formatPaymentMethodLabel,
-  formatStatusLabel,
-  sanitizeFilenamePart,
-} from "./formatters";
+import { buildOrdersPdfModel } from "./buildOrdersPdfModel";
+import { sanitizeFilenamePart } from "./formatters";
 import type { OrdersDocumentInput } from "./types";
 
 export function buildOrdersPdfFilename(generatedAt: Date, periodLabel: string): string {
@@ -13,19 +8,11 @@ export function buildOrdersPdfFilename(generatedAt: Date, periodLabel: string): 
   return `caisty-orders-${sanitizeFilenamePart(periodLabel)}-${stamp}.pdf`;
 }
 
+export { buildOrdersPdfModel } from "./buildOrdersPdfModel";
+
 export function exportOrdersPdf(input: OrdersDocumentInput): void {
-  const { meta, labels, sales } = input;
-  const { summary, orders, receipts } = sales;
-  const currency = summary.paymentSummary.currency || meta.currency;
-  const { locale, timezone } = meta;
-  const dash = labels.dash;
-  const paymentLabels = {
-    cash: labels.paymentCash,
-    card: labels.paymentCard,
-    voucher: labels.paymentVoucher,
-    other: labels.paymentOther,
-    dash,
-  };
+  const model = buildOrdersPdfModel(input);
+  const { meta, labels } = input;
 
   const pdf = new CaistyPdfDocument();
   pdf.setFooterLabels({
@@ -36,102 +23,40 @@ export function exportOrdersPdf(input: OrdersDocumentInput): void {
   pdf.drawBrandHeader(labels.brandCloud, labels.docTitle);
   pdf.drawMetaBlock(meta, labels, { includeDate: true });
 
-  pdf.drawSectionTitle(labels.summary);
-  pdf.drawKeyValueRows([
-    [labels.kpiOrders, String(summary.ordersCount)],
-    [labels.kpiReceipts, String(summary.receiptsCount)],
-    [labels.kpiRefunds, String(summary.refundsCount)],
-  ]);
+  pdf.drawSectionTitle(labels.ordersSummary);
+  pdf.drawKeyValueRows(model.orderSummary);
 
-  pdf.drawSectionTitle(labels.paymentSummary);
-  pdf.drawKeyValueRows([
-    [
-      labels.paymentCash,
-      formatDocumentMoney(summary.paymentSummary.cashCents, currency, locale),
-    ],
-    [
-      labels.paymentCard,
-      formatDocumentMoney(summary.paymentSummary.cardCents, currency, locale),
-    ],
-    [
-      labels.paymentVoucher,
-      formatDocumentMoney(summary.paymentSummary.voucherCents, currency, locale),
-    ],
-    [
-      labels.paymentOther,
-      formatDocumentMoney(summary.paymentSummary.otherCents, currency, locale),
-    ],
-  ]);
+  pdf.drawSectionTitle(labels.revenueSummary);
+  pdf.drawKeyValueRows(model.revenueSummary);
 
-  const totalRevenueMinor =
-    summary.paymentSummary.cashCents +
-    summary.paymentSummary.cardCents +
-    summary.paymentSummary.voucherCents +
-    summary.paymentSummary.otherCents;
+  pdf.drawSectionTitle(labels.posPaymentSummaryTitle);
+  pdf.drawKeyValueRows(model.posPaymentSummary);
 
-  pdf.drawSectionTitle(labels.totals);
-  pdf.drawKeyValueRows([
-    [
-      labels.paymentCash,
-      formatDocumentMoney(summary.paymentSummary.cashCents, currency, locale),
-    ],
-    [
-      labels.paymentCard,
-      formatDocumentMoney(summary.paymentSummary.cardCents, currency, locale),
-    ],
-    [
-      labels.paymentVoucher,
-      formatDocumentMoney(summary.paymentSummary.voucherCents, currency, locale),
-    ],
-    [
-      labels.paymentOther,
-      formatDocumentMoney(summary.paymentSummary.otherCents, currency, locale),
-    ],
-    [labels.colRevenue, formatDocumentMoney(totalRevenueMinor, currency, locale)],
-  ]);
+  pdf.drawSectionTitle(labels.onlinePaymentSummaryTitle);
+  pdf.drawKeyValueRows(model.onlinePaymentSummary);
+  if (model.onlineRevenueHint) {
+    pdf.drawMutedNote(model.onlineRevenueHint);
+  }
 
-  pdf.drawSectionTitle(labels.allOrders);
+  pdf.drawSectionTitle(model.posOrders.title);
   pdf.drawTable({
-    head: [
-      labels.colTime,
-      labels.colOrderNumber,
-      labels.colStatus,
-      labels.colPayment,
-      labels.colAmount,
-      labels.colCashier,
-      labels.colDevice,
-    ],
-    body: orders.map((order) => [
-      formatDocumentTime(order.soldAt, locale, timezone, dash),
-      order.localOrderId || dash,
-      formatStatusLabel(order.status, dash),
-      formatPaymentMethodLabel(order.paymentMethod, paymentLabels),
-      formatDocumentMoney(order.amountCents, order.currency || currency, locale),
-      order.cashier?.trim() || dash,
-      order.deviceName?.trim() || dash,
-    ]),
-    emptyMessage: labels.ordersEmpty,
+    head: model.posOrders.head,
+    body: model.posOrders.body,
+    emptyMessage: model.posOrders.emptyMessage,
   });
 
-  pdf.drawSectionTitle(labels.allReceipts);
+  pdf.drawSectionTitle(model.onlineOrders.title);
   pdf.drawTable({
-    head: [
-      labels.colReceipt,
-      labels.colTime,
-      labels.colCustomer,
-      labels.colPayment,
-      labels.colFiscal,
-      labels.colAmount,
-    ],
-    body: receipts.map((receipt) => [
-      receipt.receiptNumber?.trim() || receipt.localReceiptId || dash,
-      formatDocumentTime(receipt.issuedAt, locale, timezone, dash),
-      receipt.customer?.trim() || dash,
-      formatPaymentMethodLabel(receipt.paymentMethod, paymentLabels),
-      formatStatusLabel(receipt.fiscalStatus, dash),
-      formatDocumentMoney(receipt.amountCents, receipt.currency || currency, locale),
-    ]),
-    emptyMessage: labels.receiptsEmpty,
+    head: model.onlineOrders.head,
+    body: model.onlineOrders.body,
+    emptyMessage: model.onlineOrders.emptyMessage,
+  });
+
+  pdf.drawSectionTitle(model.receipts.title);
+  pdf.drawTable({
+    head: model.receipts.head,
+    body: model.receipts.body,
+    emptyMessage: model.receipts.emptyMessage,
   });
 
   pdf.save(buildOrdersPdfFilename(meta.generatedAt, meta.label));

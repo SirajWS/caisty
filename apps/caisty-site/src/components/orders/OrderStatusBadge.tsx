@@ -1,5 +1,9 @@
 import type { PortalOrderStatusKey } from "../../lib/portal/portalSalesLabels";
 
+/**
+ * Order lifecycle badge — part of the Caisty detail drawer badge system.
+ * Uses `.caisty-badge` so status and payment share one visual language.
+ */
 export function OrderStatusBadge({
   status,
   label,
@@ -10,19 +14,21 @@ export function OrderStatusBadge({
   const normalized = status.trim().toLowerCase().replace(/\s+/g, "_");
   const toneClass = (() => {
     switch (normalized) {
+      case "new":
+      case "accepted":
       case "open":
       case "in_progress":
       case "ready":
-        return "order-status-badge order-status-badge--progress";
+        return "caisty-badge caisty-badge--progress";
       case "delivered":
       case "completed":
-        return "order-status-badge order-status-badge--completed";
+        return "caisty-badge caisty-badge--success";
       case "cancelled":
-        return "order-status-badge order-status-badge--cancelled";
+        return "caisty-badge caisty-badge--neutral";
       case "refunded":
-        return "order-status-badge order-status-badge--refunded";
+        return "caisty-badge caisty-badge--danger";
       default:
-        return "order-status-badge order-status-badge--muted";
+        return "caisty-badge caisty-badge--neutral";
     }
   })();
 

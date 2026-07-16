@@ -15,7 +15,9 @@ export function OnlineOrdersTable({
   onPageChange,
   paginationLabels,
   onViewOrder,
+  onPrintOrder,
   actionView,
+  actionPrint,
   receiptsLinkLabel,
   receiptsHref,
 }: {
@@ -47,11 +49,13 @@ export function OnlineOrdersTable({
     order: ProviderOrderRow,
     trigger?: HTMLButtonElement | null,
   ) => void;
+  onPrintOrder?: (order: ProviderOrderRow) => void;
   actionView?: string;
+  actionPrint?: string;
   receiptsLinkLabel?: string;
   receiptsHref?: string;
 }) {
-  const colSpan = onViewOrder ? 9 : 8;
+  const colSpan = onViewOrder || onPrintOrder ? 9 : 8;
   const showPagination =
     pagination &&
     onPageChange &&
@@ -74,7 +78,9 @@ export function OnlineOrdersTable({
               <th>{columns.status}</th>
               <th>{columns.payment}</th>
               <th>{columns.amount}</th>
-              {onViewOrder ? <th>{columns.actions ?? ""}</th> : null}
+              {onViewOrder || onPrintOrder ? (
+                <th>{columns.actions ?? ""}</th>
+              ) : null}
             </tr>
           </thead>
           <tbody>
@@ -89,7 +95,9 @@ export function OnlineOrdersTable({
                 <td colSpan={colSpan} className="orders-table-empty">
                   <span>{emptyLabel}</span>
                   {emptyDescription ? (
-                    <span className="online-orders-empty-hint">{emptyDescription}</span>
+                    <span className="online-orders-empty-hint">
+                      {emptyDescription}
+                    </span>
                   ) : null}
                 </td>
               </tr>
@@ -118,17 +126,30 @@ export function OnlineOrdersTable({
                     <span className="order-payment-badge">{row.payment}</span>
                   </td>
                   <td data-label={columns.amount}>{row.amount}</td>
-                  {onViewOrder ? (
+                  {onViewOrder || onPrintOrder ? (
                     <td data-label={columns.actions ?? ""}>
-                      <button
-                        type="button"
-                        className="orders-table-action-btn"
-                        onClick={(event) =>
-                          onViewOrder(row, event.currentTarget)
-                        }
-                      >
-                        {actionView}
-                      </button>
+                      <div className="orders-table-actions">
+                        {onViewOrder ? (
+                          <button
+                            type="button"
+                            className="orders-table-action-btn"
+                            onClick={(event) =>
+                              onViewOrder(row, event.currentTarget)
+                            }
+                          >
+                            {actionView}
+                          </button>
+                        ) : null}
+                        {onPrintOrder ? (
+                          <button
+                            type="button"
+                            className="orders-table-action-btn orders-table-action-btn--secondary"
+                            onClick={() => onPrintOrder(row)}
+                          >
+                            {actionPrint}
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   ) : null}
                 </tr>

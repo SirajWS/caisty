@@ -14,7 +14,9 @@ export function OrdersTable({
   onPageChange,
   paginationLabels,
   onViewOrder,
+  onPrintOrder,
   actionView,
+  actionPrint,
 }: {
   orders: PosOrderRow[];
   loading: boolean;
@@ -41,13 +43,15 @@ export function OrdersTable({
     showing: string;
   };
   onViewOrder?: (order: PosOrderRow, trigger?: HTMLButtonElement | null) => void;
+  onPrintOrder?: (order: PosOrderRow) => void;
   actionView?: string;
+  actionPrint?: string;
 }) {
   const panelClass = primary
     ? "dashboard-panel dashboard-panel--wide orders-panel--primary"
     : "dashboard-panel dashboard-panel--wide";
 
-  const colSpan = onViewOrder ? 9 : 8;
+  const colSpan = onViewOrder || onPrintOrder ? 9 : 8;
   const showPagination =
     pagination &&
     onPageChange &&
@@ -70,7 +74,9 @@ export function OrdersTable({
               <th>{columns.amount}</th>
               <th>{columns.cashier}</th>
               <th>{columns.device}</th>
-              {onViewOrder ? <th>{columns.actions ?? ""}</th> : null}
+                  {onViewOrder || onPrintOrder ? (
+                    <th>{columns.actions ?? ""}</th>
+                  ) : null}
             </tr>
           </thead>
           <tbody>
@@ -111,17 +117,30 @@ export function OrdersTable({
                   <td data-label={columns.amount}>{row.amount}</td>
                   <td data-label={columns.cashier}>{row.cashier}</td>
                   <td data-label={columns.device}>{row.device}</td>
-                  {onViewOrder ? (
+                  {onViewOrder || onPrintOrder ? (
                     <td data-label={columns.actions ?? ""}>
-                      <button
-                        type="button"
-                        className="orders-table-action-btn"
-                        onClick={(event) =>
-                          onViewOrder(row, event.currentTarget)
-                        }
-                      >
-                        {actionView}
-                      </button>
+                      <div className="orders-table-actions">
+                        {onViewOrder ? (
+                          <button
+                            type="button"
+                            className="orders-table-action-btn"
+                            onClick={(event) =>
+                              onViewOrder(row, event.currentTarget)
+                            }
+                          >
+                            {actionView}
+                          </button>
+                        ) : null}
+                        {onPrintOrder ? (
+                          <button
+                            type="button"
+                            className="orders-table-action-btn orders-table-action-btn--secondary"
+                            onClick={() => onPrintOrder(row)}
+                          >
+                            {actionPrint}
+                          </button>
+                        ) : null}
+                      </div>
                     </td>
                   ) : null}
                 </tr>

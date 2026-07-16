@@ -166,6 +166,40 @@ const PortalOrdersPage: React.FC = () => {
     [],
   );
 
+  const handlePrintOrder = React.useCallback(
+    async (order: PosOrderRow | ProviderOrderRow) => {
+      try {
+        const identity = await resolveDocumentIdentity(customer);
+        const { fetchPortalOrderDetail } = await import("../lib/portalApi");
+        const { exportOrderDetailPdf } = await import(
+          "../lib/documents/orderDetailDocument"
+        );
+        const { buildOrderDetailDocumentLabels } = await import(
+          "../lib/documents/documentLabels"
+        );
+        const detail = await fetchPortalOrderDetail(order.id);
+        exportOrderDetailPdf({
+          meta: buildDocumentMeta({
+            identity,
+            period: { label: periodLabel },
+            generatedAt: new Date(),
+            timezone: data.sales?.timezone ?? "Europe/Berlin",
+            currency:
+              detail.currency ||
+              data.sales?.summary.paymentSummary.currency ||
+              "EUR",
+            locale,
+          }),
+          labels: buildOrderDetailDocumentLabels(t),
+          order: detail,
+        });
+      } catch {
+        // Keep UI quiet; user can retry. Avoid breaking drawer/table on print failure.
+      }
+    },
+    [customer, data.sales, locale, periodLabel, t],
+  );
+
   const handleCloseOrder = React.useCallback(() => {
     setDrawerOrderId(null);
     viewTriggerRef.current?.focus();
@@ -313,7 +347,9 @@ const PortalOrdersPage: React.FC = () => {
         onPageChange={setLiveOrdersPage}
         paginationLabels={livePaginationLabels}
         onViewOrder={handleViewOrder}
+        onPrintOrder={handlePrintOrder}
         actionView={o.actionView}
+        actionPrint={o.actionPrint}
         columns={{
           time: o.colTime,
           orderNumber: o.colOrderNumber,
@@ -334,10 +370,12 @@ const PortalOrdersPage: React.FC = () => {
         emptyLabel={o.onlineOrdersEmpty}
         emptyDescription={o.onlineOrdersEmptyHint}
         actionView={o.actionView}
+        actionPrint={o.actionPrint}
         pagination={onlinePagination}
         onPageChange={setOnlineOrdersPage}
         paginationLabels={onlinePaginationLabels}
         onViewOrder={handleViewOrder}
+        onPrintOrder={handlePrintOrder}
         receiptsLinkLabel={o.viewAllReceiptsLink}
         receiptsHref="/portal/receipts"
         columns={{
@@ -361,6 +399,7 @@ const PortalOrdersPage: React.FC = () => {
           orderNumber: o.colOrderNumber,
           receiptNumber: o.colReceipt,
           cashier: o.colCashier,
+          device: o.colDevice,
           businessDate: o.colBusinessDate,
           status: o.colStatus,
           products: o.colProduct,
@@ -374,6 +413,13 @@ const PortalOrdersPage: React.FC = () => {
           timelineEmpty: o.orderTimelineEmpty,
           receiptTimeline: o.receiptTimelineTitle,
           receiptTimelineEmpty: o.receiptTimelineEmpty,
+          activityEmpty: o.activityEmpty,
+          sectionOverview: o.sectionOverview,
+          sectionCustomer: o.sectionCustomer,
+          sectionPos: o.sectionPos,
+          sectionProducts: o.sectionProducts,
+          sectionTotals: o.sectionTotals,
+          sectionActivity: o.sectionActivity,
           refundedAmount: o.refundedAmountLabel,
           paymentChanged: o.paymentChangedLabel,
           close: o.orderDetailClose,
@@ -392,15 +438,23 @@ const PortalOrdersPage: React.FC = () => {
           email: o.colEmail,
           deliveryAddress: o.deliveryAddressLabel,
           customerNote: o.customerNoteLabel,
-          paymentStatus: o.colPayment,
+          paymentPending: o.paymentPending,
+          paymentPaid: o.paymentPaid,
           platform: o.colPlatform,
           orderSource: o.orderSourceLabel,
           onlineOrderBadge: o.onlineOrderBadge,
+          productsEmpty: o.productsEmpty,
+          sourceOrder: o.sourceOrder,
+          sourceReceipt: o.sourceReceipt,
+          printOrder: o.printOrder,
         }}
         locale={locale}
         timezone={data.sales?.timezone ?? "Europe/Berlin"}
         onClose={handleCloseOrder}
         onViewReceipt={handleViewReceiptFromOrder}
+        onPrintOrder={() => {
+          if (selectedOrder) void handlePrintOrder(selectedOrder);
+        }}
         formatPayment={(method) => formatPortalPaymentMethod(method, t)}
       />
       <ReceiptDetailDrawer

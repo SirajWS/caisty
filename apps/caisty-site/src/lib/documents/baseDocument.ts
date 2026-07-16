@@ -125,6 +125,84 @@ export class CaistyPdfDocument {
     this.drawKeyValuePanel(rows);
   }
 
+  drawMutedNote(text: string): void {
+    const { colors, font } = CAISTY_DOCUMENT_BRAND;
+    this.ensureSpace(8);
+    this.setText(colors.textMuted, font.metaSize, "normal");
+    const lines = this.doc.splitTextToSize(text, this.contentWidth);
+    this.doc.text(lines, this.marginLeft, this.cursorY);
+    this.cursorY += Math.max(lines.length, 1) * 4 + 4;
+  }
+
+  addPage(): void {
+    this.doc.addPage();
+    this.cursorY = CAISTY_DOCUMENT_BRAND.page.marginTop;
+  }
+
+  /** Compact bar chart for executive reports (values in minor currency units). */
+  drawBarChart(
+    points: Array<{ label: string; value: number; displayValue?: string }>,
+  ): void {
+    const { colors, font } = CAISTY_DOCUMENT_BRAND;
+    if (!points.length) return;
+
+    const chartHeight = 42;
+    const labelHeight = 10;
+    const maxBars = 24;
+    const bars = points.length > maxBars ? points.slice(0, maxBars) : points;
+    this.ensureSpace(chartHeight + labelHeight + 8);
+
+    const maxValue = Math.max(...bars.map((point) => point.value), 1);
+    const gap = bars.length > 16 ? 0.6 : 1.2;
+    const barWidth = Math.max(
+      (this.contentWidth - gap * (bars.length - 1)) / bars.length,
+      1.5,
+    );
+
+    let x = this.marginLeft;
+    const baseY = this.cursorY + chartHeight;
+
+    this.strokeRect(
+      this.marginLeft,
+      this.cursorY,
+      this.contentWidth,
+      chartHeight,
+      colors.border,
+    );
+
+    for (const point of bars) {
+      const height =
+        point.value > 0
+          ? Math.max((point.value / maxValue) * (chartHeight - 4), 1.5)
+          : 0;
+      if (height > 0) {
+        this.fillRect(
+          x,
+          baseY - height,
+          barWidth,
+          height,
+          colors.orange,
+        );
+      }
+      x += barWidth + gap;
+    }
+
+    this.cursorY = baseY + 4;
+
+    // Sparse x labels to avoid clutter
+    const step = bars.length <= 8 ? 1 : Math.ceil(bars.length / 8);
+    this.setText(colors.textMuted, font.footerSize, "normal");
+    for (let i = 0; i < bars.length; i += step) {
+      const labelX =
+        this.marginLeft + i * (barWidth + gap) + barWidth / 2;
+      this.doc.text(bars[i]!.label, labelX, this.cursorY + 3, {
+        align: "center",
+        maxWidth: barWidth + gap * 2,
+      });
+    }
+    this.cursorY += labelHeight;
+  }
+
   drawTable(section: TableSection): void {
     const { colors, font } = CAISTY_DOCUMENT_BRAND;
 
@@ -146,6 +224,7 @@ export class CaistyPdfDocument {
       head: [section.head],
       body: section.body,
       theme: "plain",
+      showHead: "everyPage",
       styles: {
         font: font.family,
         fontSize: font.bodySize,

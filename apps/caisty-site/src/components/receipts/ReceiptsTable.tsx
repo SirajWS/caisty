@@ -8,9 +8,11 @@ export function ReceiptsTable({
   columns,
   actionsLabel,
   actionView,
+  actionPrint,
   emptyLabel,
   title,
   onView,
+  onPrint,
 }: {
   receipts: ReceiptTableRow[];
   loading: boolean;
@@ -29,9 +31,11 @@ export function ReceiptsTable({
   };
   actionsLabel: string;
   actionView: string;
+  actionPrint?: string;
   emptyLabel: string;
   title: string;
   onView?: (receipt: ReceiptTableRow) => void;
+  onPrint?: (receipt: ReceiptTableRow) => void;
 }) {
   return (
     <section className="dashboard-panel dashboard-panel--wide">
@@ -76,7 +80,9 @@ export function ReceiptsTable({
                   <td data-label={columns.payment}>{row.payment}</td>
                   <td data-label={columns.amount}>{row.amount}</td>
                   <td data-label={columns.status}>
-                    <span className={portalReceiptStatusBadge(row.statusRaw, isLight)}>
+                    <span
+                      className={portalReceiptStatusBadge(row.statusRaw, isLight)}
+                    >
                       {row.status}
                     </span>
                   </td>
@@ -84,13 +90,24 @@ export function ReceiptsTable({
                   <td data-label={columns.printCount}>{row.printCount}</td>
                   <td data-label={columns.lastEvent}>{row.lastEvent}</td>
                   <td data-label={actionsLabel}>
-                    <button
-                      type="button"
-                      className="orders-action-btn orders-action-btn--link"
-                      onClick={() => onView?.(row)}
-                    >
-                      {actionView}
-                    </button>
+                    <div className="orders-table-actions">
+                      <button
+                        type="button"
+                        className="orders-table-action-btn"
+                        onClick={() => onView?.(row)}
+                      >
+                        {actionView}
+                      </button>
+                      {onPrint && actionPrint ? (
+                        <button
+                          type="button"
+                          className="orders-table-action-btn orders-table-action-btn--secondary"
+                          onClick={() => onPrint(row)}
+                        >
+                          {actionPrint}
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))

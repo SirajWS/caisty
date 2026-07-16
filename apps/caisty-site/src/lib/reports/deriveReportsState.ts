@@ -1,17 +1,23 @@
 import { formatMinorUnits } from "../money/formatMinorUnits";
+import {
+  deriveOnlinePaymentCards,
+  deriveOnlineRevenueHeader,
+  derivePosPaymentCards,
+} from "../portal/derivePaymentSummaryCards";
 import type {
   DeriveReportsInput,
   HourlyBar,
-  PaymentMethodStat,
   ReportExportAction,
   ReportsDerivedState,
   ReportsKpi,
+  RevenueSeriesGranularity,
   RevenueTimeRange,
   TaxCard,
   TopProductRow,
   TrendCard,
 } from "./types";
 import { normalizeSalesByHour } from "./salesByHour";
+import type { ReportsPeriodId } from "./reportsPeriod";
 
 // POS Sales amounts are ISO 4217 minor units (Cent for EUR, Millime for TND).
 function formatMoney(minor: number, currency: string, locale: string): string {
@@ -22,9 +28,7 @@ function waitingKpi(id: string, label: string, hint: string, dash: string): Repo
   return { id, label, value: dash, hint };
 }
 
-function mapPeriodToChartRange(
-  period: DeriveReportsInput["data"]["period"],
-): RevenueTimeRange {
+function mapPeriodToChartRange(period: ReportsPeriodId): RevenueTimeRange {
   switch (period) {
     case "today":
     case "yesterday":
@@ -41,6 +45,20 @@ function mapPeriodToChartRange(
       return "12m";
     case "all":
       return "all";
+  }
+}
+
+function mapPeriodToGranularity(period: ReportsPeriodId): RevenueSeriesGranularity {
+  switch (period) {
+    case "today":
+    case "yesterday":
+      return "hour";
+    case "12m":
+    case "year":
+    case "all":
+      return "month";
+    default:
+      return "day";
   }
 }
 
@@ -65,7 +83,7 @@ function formatPaymentTrendLabel(
   return t.reports.paymentOther;
 }
 
-function paymentTone(amountMinor: number): PaymentMethodStat["tone"] {
+function paymentTone(amountMinor: number): TaxCard["tone"] {
   return amountMinor > 0 ? "ok" : "unknown";
 }
 
@@ -123,8 +141,149 @@ function deriveOverview(input: DeriveReportsInput): ReportsKpi[] {
   ];
 }
 
+function deriveRevenueBreakdown(input: DeriveReportsInput): ReportsKpi[] {
+  const o = input.t.orders;
+  const dash = input.t.labels.dash;
+  const hint = o.waitingPosSyncShort;
+  const summary = input.data.reportsSummary;
+
+  if (!summary?.hasSalesData) {
+    return [
+      waitingKpi("pos_revenue", o.kpiPosRevenue, hint, dash),
+      waitingKpi("online_revenue", o.kpiOnlineRevenue, hint, dash),
+      waitingKpi("total_revenue", o.kpiTotalRevenue, hint, dash),
+    ];
+  }
+
+  const currency =
+    summary.paymentMethods.currency || summary.overview.currency || "EUR";
+
+  return [
+    {
+      id: "pos_revenue",
+      label: o.kpiPosRevenue,
+      value: formatMoney(summary.posRevenueCents, currency, input.locale),
+    },
+    {
+      id: "online_revenue",
+      label: o.kpiOnlineRevenue,
+      value: formatMoney(summary.onlineRevenueCents, currency, input.locale),
+    },
+    {
+      id: "total_revenue",
+      label: o.kpiTotalRevenue,
+      value: formatMoney(summary.overview.revenueMinor, currency, input.locale),
+    },
+  ];
+}
+
+function deriveOrderBreakdown(input: DeriveReportsInput): ReportsKpi[] {
+  const o = input.t.orders;
+  const dash = input.t.labels.dash;
+  const hint = o.waitingPosSyncShort;
+  const summary = input.data.reportsSummary;
+
+  if (!summary?.hasSalesData) {
+    return [
+      waitingKpi("all_orders", o.kpiAllOrders, hint, dash),
+      waitingKpi("pos_orders", o.kpiPosOrders, hint, dash),
+      waitingKpi("online_orders", o.kpiOnlineOrders, hint, dash),
+    ];
+  }
+
+  return [
+    {
+      id: "all_orders",
+      label: o.kpiAllOrders,
+      value: String(summary.overview.ordersCount),
+    },
+    {
+      id: "pos_orders",
+      label: o.kpiPosOrders,
+      value: String(summary.liveOrdersCount),
+    },
+    {
+      id: "online_orders",
+      label: o.kpiOnlineOrders,
+      value: String(summary.onlineOrdersCount),
+    },
+  ];
+}
+
+function derivePosPayments(input: DeriveReportsInput) {
+  const o = input.t.orders;
+  const summary = input.data.reportsSummary;
+  const hasData = Boolean(summary?.hasSalesData);
+  const methods = summary?.paymentMethods;
+
+  return derivePosPaymentCards({
+    summary: methods
+      ? {
+          cashCents: methods.cashMinor,
+          cardCents: methods.cardMinor,
+          voucherCents: methods.voucherMinor,
+          otherCents: methods.otherMinor,
+          currency: methods.currency || summary?.overview.currency || "EUR",
+        }
+      : null,
+    labels: {
+      paymentCash: o.paymentCash,
+      paymentCard: o.paymentCard,
+      paymentVoucher: o.paymentVoucher,
+      paymentOther: o.paymentOther,
+    },
+    locale: input.locale,
+    dash: input.t.labels.dash,
+    hasData,
+  });
+}
+
+function deriveOnlinePayments(input: DeriveReportsInput) {
+  const o = input.t.orders;
+  const summary = input.data.reportsSummary;
+  const hasData = Boolean(summary?.hasSalesData);
+
+  return deriveOnlinePaymentCards({
+    summary: summary?.onlinePaymentSummary,
+    labels: {
+      onlineCashPaid: o.onlineCashPaid,
+      onlineCardPaid: o.onlineCardPaid,
+      onlinePaidOnline: o.onlinePaidOnline,
+      onlinePending: o.onlinePending,
+      onlinePaidTotal: o.onlinePaidTotal,
+    },
+    locale: input.locale,
+    dash: input.t.labels.dash,
+    hasData,
+  });
+}
+
+function deriveOnlineRevenueHeaderState(input: DeriveReportsInput) {
+  const o = input.t.orders;
+  const summary = input.data.reportsSummary;
+  const hasData = Boolean(summary?.hasSalesData);
+  const currency =
+    summary?.onlinePaymentSummary.currency ||
+    summary?.overview.currency ||
+    "EUR";
+
+  return deriveOnlineRevenueHeader({
+    onlineRevenueCents: summary?.onlineRevenueCents ?? 0,
+    currency,
+    labels: {
+      kpiOnlineRevenue: o.kpiOnlineRevenue,
+      kpiOnlineRevenueInfo: o.kpiOnlineRevenueInfo,
+    },
+    locale: input.locale,
+    dash: input.t.labels.dash,
+    hasData,
+  });
+}
+
 function deriveHourlyBars(input: DeriveReportsInput): HourlyBar[] {
   const summary = input.data.reportsSummary;
+  const r = input.t.reports;
+
   if (!summary?.hasSalesData) {
     return normalizeSalesByHour([]).map((point) => ({
       hour: String(point.hour).padStart(2, "0"),
@@ -132,55 +291,22 @@ function deriveHourlyBars(input: DeriveReportsInput): HourlyBar[] {
     }));
   }
 
-  return normalizeSalesByHour(summary.salesByHour).map((point) => ({
-    hour: String(point.hour).padStart(2, "0"),
-    value: point.revenueMinor > 0 ? point.revenueMinor : null,
-  }));
-}
+  const currency = summary.overview.currency || "EUR";
 
-function derivePaymentMethods(input: DeriveReportsInput): PaymentMethodStat[] {
-  const r = input.t.reports;
-  const waiting = r.waitingPosSync;
-  const summary = input.data.reportsSummary;
-
-  if (!summary?.hasSalesData) {
-    return [
-      { id: "cash", label: r.paymentCash, value: waiting, tone: "unknown" },
-      { id: "card", label: r.paymentCard, value: waiting, tone: "unknown" },
-      { id: "voucher", label: r.paymentVoucher, value: waiting, tone: "unknown" },
-      { id: "other", label: r.paymentOther, value: waiting, tone: "unknown" },
-    ];
-  }
-
-  const { paymentMethods } = summary;
-  const currency = paymentMethods.currency || summary.overview.currency || "EUR";
-
-  return [
-    {
-      id: "cash",
-      label: r.paymentCash,
-      value: formatMoney(paymentMethods.cashMinor, currency, input.locale),
-      tone: paymentTone(paymentMethods.cashMinor),
-    },
-    {
-      id: "card",
-      label: r.paymentCard,
-      value: formatMoney(paymentMethods.cardMinor, currency, input.locale),
-      tone: paymentTone(paymentMethods.cardMinor),
-    },
-    {
-      id: "voucher",
-      label: r.paymentVoucher,
-      value: formatMoney(paymentMethods.voucherMinor, currency, input.locale),
-      tone: paymentTone(paymentMethods.voucherMinor),
-    },
-    {
-      id: "other",
-      label: r.paymentOther,
-      value: formatMoney(paymentMethods.otherMinor, currency, input.locale),
-      tone: paymentTone(paymentMethods.otherMinor),
-    },
-  ];
+  return normalizeSalesByHour(summary.salesByHour).map((point) => {
+    const hour = String(point.hour).padStart(2, "0");
+    const revenue =
+      point.revenueMinor > 0
+        ? formatMoney(point.revenueMinor, currency, input.locale)
+        : null;
+    return {
+      hour,
+      value: point.revenueMinor > 0 ? point.revenueMinor : null,
+      tooltip: revenue
+        ? `${hour}:00 · ${revenue} · ${r.colOrders}: ${point.ordersCount}`
+        : undefined,
+    };
+  });
 }
 
 function deriveTopProducts(input: DeriveReportsInput): TopProductRow[] {
@@ -188,15 +314,26 @@ function deriveTopProducts(input: DeriveReportsInput): TopProductRow[] {
   if (!summary?.hasSalesData) return [];
 
   const currency = summary.overview.currency || "EUR";
-  const dash = input.t.labels.dash;
+  const totalRevenue = summary.topProducts.reduce(
+    (sum, product) => sum + product.revenueMinor,
+    0,
+  );
 
-  return summary.topProducts.map((product, index) => ({
-    id: `product-${index}`,
-    name: product.productName,
-    quantity: String(product.quantity),
-    revenue: formatMoney(product.revenueMinor, currency, input.locale),
-    category: product.category?.trim() || dash,
-  }));
+  return summary.topProducts.map((product, index) => {
+    const share =
+      totalRevenue > 0
+        ? `${Math.round((product.revenueMinor / totalRevenue) * 100)}%`
+        : input.t.labels.dash;
+
+    return {
+      id: `product-${index}`,
+      rank: index + 1,
+      name: product.productName,
+      quantity: String(product.quantity),
+      revenue: formatMoney(product.revenueMinor, currency, input.locale),
+      share,
+    };
+  });
 }
 
 function deriveTaxes(input: DeriveReportsInput): TaxCard[] {
@@ -209,7 +346,12 @@ function deriveTaxes(input: DeriveReportsInput): TaxCard[] {
       { id: "net", label: r.taxNetRevenue, value: waiting, tone: "unknown" },
       { id: "vat", label: r.taxVat, value: waiting, tone: "unknown" },
       { id: "gross", label: r.taxGrossRevenue, value: waiting, tone: "unknown" },
-      { id: "fiscal_receipts", label: r.taxFiscalReceipts, value: waiting, tone: "unknown" },
+      {
+        id: "fiscal_receipts",
+        label: r.taxFiscalReceipts,
+        value: waiting,
+        tone: "unknown",
+      },
     ];
   }
 
@@ -246,56 +388,70 @@ function deriveTaxes(input: DeriveReportsInput): TaxCard[] {
 
 function deriveTrends(input: DeriveReportsInput): TrendCard[] {
   const r = input.t.reports;
-  const dash = input.t.labels.dash;
   const summary = input.data.reportsSummary;
+  const granularity = mapPeriodToGranularity(input.data.period);
 
   if (!summary?.hasSalesData) {
-    return [
-      { id: "best_day", label: r.trendBestDay, value: dash },
-      { id: "best_hour", label: r.trendBestHour, value: dash },
-      { id: "largest_receipt", label: r.trendLargestReceipt, value: dash },
-      { id: "top_payment", label: r.trendTopPayment, value: dash },
-      { id: "top_product", label: r.trendTopProduct, value: dash },
-    ];
+    return [];
   }
 
   const { businessTrends } = summary;
   const currency = businessTrends.currency || summary.overview.currency || "EUR";
+  const trends: TrendCard[] = [];
 
-  return [
-    {
+  // bestSalesDay is the peak revenueSeries bucket — only show when the label
+  // matches the period grain (day / month). Hour buckets would mislabel as "day".
+  if (granularity === "day" && businessTrends.bestSalesDay?.trim()) {
+    trends.push({
       id: "best_day",
       label: r.trendBestDay,
-      value: businessTrends.bestSalesDay || dash,
-    },
-    {
+      value: businessTrends.bestSalesDay.trim(),
+    });
+  } else if (granularity === "month" && businessTrends.bestSalesDay?.trim()) {
+    trends.push({
+      id: "best_month",
+      label: r.trendBestMonth,
+      value: businessTrends.bestSalesDay.trim(),
+    });
+  }
+
+  if (businessTrends.bestSalesHour?.trim()) {
+    trends.push({
       id: "best_hour",
       label: r.trendBestHour,
-      value: businessTrends.bestSalesHour || dash,
-    },
-    {
+      value: businessTrends.bestSalesHour.trim(),
+    });
+  }
+
+  if (businessTrends.largestReceiptMinor > 0) {
+    trends.push({
       id: "largest_receipt",
       label: r.trendLargestReceipt,
-      value:
-        businessTrends.largestReceiptMinor > 0
-          ? formatMoney(
-              businessTrends.largestReceiptMinor,
-              currency,
-              input.locale,
-            )
-          : dash,
-    },
-    {
+      value: formatMoney(
+        businessTrends.largestReceiptMinor,
+        currency,
+        input.locale,
+      ),
+    });
+  }
+
+  if (businessTrends.mostUsedPayment?.trim()) {
+    trends.push({
       id: "top_payment",
       label: r.trendTopPayment,
       value: formatPaymentTrendLabel(businessTrends.mostUsedPayment, input.t),
-    },
-    {
+    });
+  }
+
+  if (businessTrends.mostSoldProduct?.trim()) {
+    trends.push({
       id: "top_product",
       label: r.trendTopProduct,
-      value: businessTrends.mostSoldProduct || dash,
-    },
-  ];
+      value: businessTrends.mostSoldProduct.trim(),
+    });
+  }
+
+  return trends;
 }
 
 function deriveExports(input: DeriveReportsInput): ReportExportAction[] {
@@ -314,24 +470,50 @@ function hasPosSync(input: DeriveReportsInput): boolean {
   return input.data.devices.some((d) => Boolean(d.lastSeenAt?.trim()));
 }
 
+function granularityLabel(
+  granularity: RevenueSeriesGranularity,
+  r: DeriveReportsInput["t"]["reports"],
+): string {
+  if (granularity === "hour") return r.revenueGranularityHourly;
+  if (granularity === "month") return r.revenueGranularityMonthly;
+  return r.revenueGranularityDaily;
+}
+
 export function deriveReportsState(input: DeriveReportsInput): ReportsDerivedState {
   const r = input.t.reports;
   const summary = input.data.reportsSummary;
   const hasSalesData = Boolean(summary?.hasSalesData);
+  const granularity = mapPeriodToGranularity(input.data.period);
+  const currency = summary?.overview.currency || "EUR";
 
   return {
     overview: deriveOverview(input),
+    revenueBreakdown: deriveRevenueBreakdown(input),
+    orderBreakdown: deriveOrderBreakdown(input),
     revenueChart: {
       range: mapPeriodToChartRange(input.data.period),
       hasData: hasSalesData && (summary?.revenueSeries.length ?? 0) > 0,
       placeholderMessage: r.chartPlaceholder,
       series: summary?.revenueSeries ?? [],
+      totalValue: hasSalesData
+        ? formatMoney(summary!.overview.revenueMinor, currency, input.locale)
+        : input.t.labels.dash,
+      currency,
+      locale: input.locale,
+      granularity,
+      granularityLabel: granularityLabel(granularity, r),
+      ordersLabel: r.colOrders,
+      ariaLabel: r.revenueChartTitle,
     },
     hourlySales: {
       bars: deriveHourlyBars(input),
       placeholderMessage: r.waitingPosSync,
     },
-    paymentMethods: derivePaymentMethods(input),
+    // Today/yesterday revenue series is already hourly — avoid duplicate chart.
+    showHourlySales: granularity !== "hour",
+    posPaymentCards: derivePosPayments(input),
+    onlinePaymentCards: deriveOnlinePayments(input),
+    onlineRevenueHeader: deriveOnlineRevenueHeaderState(input),
     topProducts: deriveTopProducts(input),
     topEmployees: [],
     taxes: deriveTaxes(input),

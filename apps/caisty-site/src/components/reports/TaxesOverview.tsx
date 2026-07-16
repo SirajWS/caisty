@@ -12,11 +12,13 @@ export function TaxesOverview({
   taxes,
   title,
   hint,
+  footnote,
   dash,
 }: {
   taxes: TaxCard[];
   title: string;
   hint?: string;
+  footnote?: string;
   dash: string;
 }) {
   return (
@@ -33,6 +35,9 @@ export function TaxesOverview({
         ))}
       </div>
       {hint ? <p className="reports-section-hint">{hint}</p> : null}
+      {!hint && footnote ? (
+        <p className="reports-section-hint">{footnote}</p>
+      ) : null}
     </section>
   );
 }

@@ -14,10 +14,11 @@ export function TopProducts({
   emptyLabel: string;
   emptyHint?: string;
   columns: {
+    rank: string;
     product: string;
     quantity: string;
     revenue: string;
-    category: string;
+    share: string;
   };
 }) {
   const isEmpty = !loading && products.length === 0;
@@ -29,22 +30,23 @@ export function TopProducts({
         <table className="portal-table reports-table">
           <thead>
             <tr>
+              <th className="reports-col-rank">{columns.rank}</th>
               <th>{columns.product}</th>
               <th>{columns.quantity}</th>
               <th>{columns.revenue}</th>
-              <th>{columns.category}</th>
+              <th>{columns.share}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} className="reports-table-empty">
+                <td colSpan={5} className="reports-table-empty">
                   …
                 </td>
               </tr>
             ) : isEmpty ? (
               <tr>
-                <td colSpan={4} className="reports-table-empty">
+                <td colSpan={5} className="reports-table-empty">
                   <span className="reports-table-empty-primary">{emptyLabel}</span>
                   {emptyHint ? (
                     <span className="reports-table-empty-secondary">{emptyHint}</span>
@@ -54,10 +56,11 @@ export function TopProducts({
             ) : (
               products.map((row) => (
                 <tr key={row.id}>
+                  <td className="reports-col-rank tabular-nums">{row.rank}</td>
                   <td>{row.name}</td>
-                  <td>{row.quantity}</td>
-                  <td>{row.revenue}</td>
-                  <td>{row.category}</td>
+                  <td className="tabular-nums">{row.quantity}</td>
+                  <td className="tabular-nums">{row.revenue}</td>
+                  <td className="tabular-nums">{row.share}</td>
                 </tr>
               ))
             )}

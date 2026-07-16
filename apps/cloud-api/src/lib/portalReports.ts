@@ -11,6 +11,7 @@ import {
   aggregateEffectivePaymentSummary,
   aggregatePaymentSummary,
   PORTAL_ORDERS_TIMEZONE,
+  type OnlinePaymentSummaryCents,
   type PaymentBucket,
 } from "./portalOrders.js";
 import {
@@ -89,9 +90,15 @@ export type PortalReportsSummaryData = {
   period: PortalReportsPeriod;
   hasSalesData: boolean;
   overview: PortalReportsOverview;
+  /** Same split as Dashboard/Orders — from fetchPortalSalesPeriodStats. */
+  posRevenueCents: number;
+  onlineRevenueCents: number;
+  liveOrdersCount: number;
+  onlineOrdersCount: number;
   revenueSeries: PortalReportsRevenuePoint[];
   salesByHour: PortalReportsHourlyPoint[];
   paymentMethods: PortalReportsPaymentMethods;
+  onlinePaymentSummary: OnlinePaymentSummaryCents & { currency: string };
   topProducts: PortalReportsTopProduct[];
   topEmployees: [];
   taxes: PortalReportsTaxes;
@@ -229,9 +236,14 @@ export function fillSalesByHour24(
 export function buildPortalReportsResponse(input: {
   period: PortalReportsPeriod;
   overview: PortalReportsOverview;
+  posRevenueCents: number;
+  onlineRevenueCents: number;
+  liveOrdersCount: number;
+  onlineOrdersCount: number;
   revenueSeries: PortalReportsRevenuePoint[];
   salesByHour: PortalReportsHourlyPoint[];
   paymentMethods: PortalReportsPaymentMethods;
+  onlinePaymentSummary: OnlinePaymentSummaryCents & { currency: string };
   topProducts: PortalReportsTopProduct[];
   taxes: PortalReportsTaxes;
   businessTrends: PortalReportsBusinessTrends;
@@ -239,16 +251,23 @@ export function buildPortalReportsResponse(input: {
   const hasSalesData =
     input.overview.ordersCount > 0 ||
     input.overview.receiptsCount > 0 ||
-    input.overview.revenueMinor > 0;
+    input.overview.revenueMinor > 0 ||
+    input.posRevenueCents > 0 ||
+    input.onlineRevenueCents > 0;
 
   return {
     timezone: PORTAL_ORDERS_TIMEZONE,
     period: input.period,
     hasSalesData,
     overview: input.overview,
+    posRevenueCents: input.posRevenueCents,
+    onlineRevenueCents: input.onlineRevenueCents,
+    liveOrdersCount: input.liveOrdersCount,
+    onlineOrdersCount: input.onlineOrdersCount,
     revenueSeries: input.revenueSeries,
     salesByHour: input.salesByHour,
     paymentMethods: input.paymentMethods,
+    onlinePaymentSummary: input.onlinePaymentSummary,
     topProducts: input.topProducts,
     topEmployees: [],
     taxes: input.taxes,
@@ -522,9 +541,18 @@ export async function fetchPortalReportsSummary(input: {
   return buildPortalReportsResponse({
     period,
     overview,
+    posRevenueCents: periodStats.posRevenueCents,
+    onlineRevenueCents: periodStats.onlineRevenueCents,
+    liveOrdersCount: periodStats.liveOrdersCount,
+    onlineOrdersCount: periodStats.onlineOrdersCount,
     revenueSeries,
     salesByHour,
     paymentMethods,
+    onlinePaymentSummary: {
+      ...periodStats.onlinePaymentSummary,
+      currency:
+        periodStats.onlinePaymentSummary.currency || currency,
+    },
     topProducts,
     taxes,
     businessTrends,

@@ -7,6 +7,8 @@ import { getPosReleaseConfig } from "../config/posConfig";
 import { portalLocaleTag } from "../lib/portalLocale";
 import { deriveReceiptsState } from "../lib/receipts/deriveReceiptsState";
 import { usePortalReceiptsData } from "../lib/receipts/usePortalReceiptsData";
+import { fetchAllPortalReceiptsForExport } from "../lib/receipts/fetchAllPortalReceiptsForExport";
+import { mapReceiptsPeriodToApi } from "../lib/receipts/receiptsPeriod";
 import { ReceiptsSummary } from "../components/receipts/ReceiptsSummary";
 import { ReceiptsFilters } from "../components/receipts/ReceiptsFilters";
 import { ReceiptsTable } from "../components/receipts/ReceiptsTable";
@@ -14,10 +16,18 @@ import { ReceiptsEmptyState } from "../components/receipts/ReceiptsEmptyState";
 import { ReceiptPortalDetailDrawer } from "../components/receipts/ReceiptPortalDetailDrawer";
 import { PortalPagination } from "../components/portal/PortalPagination";
 import { PaymentOverview } from "../components/orders/PaymentOverview";
+import { PortalExportPdfButton } from "../components/portal/PortalExportPdfButton";
 import { resolveDocumentIdentity } from "../lib/documents/documentMeta";
+import { buildDocumentMeta } from "../lib/documents/documentMeta";
 import type { DocumentIdentity } from "../lib/documents/types";
 import type { ReceiptTableRow } from "../lib/receipts/types";
-import { portalPageShell, portalPageSubtitle, portalPageTitle, portalSecondaryCta } from "../lib/portalUi";
+import {
+  portalPageShell,
+  portalPageSubtitle,
+  portalPageTitle,
+  portalSecondaryCta,
+} from "../lib/portalUi";
+import { getReceiptsPeriodFilters } from "../lib/receipts/receiptsPeriod";
 
 const PortalReceiptsPage: React.FC = () => {
   const { customer } = usePortalOutlet();
@@ -30,6 +40,7 @@ const PortalReceiptsPage: React.FC = () => {
   const release = React.useMemo(() => getPosReleaseConfig(), []);
   const locale = portalLocaleTag(language);
   const data = usePortalReceiptsData(customer);
+  const [exportingPdf, setExportingPdf] = React.useState(false);
 
   const receipts = React.useMemo(
     () => deriveReceiptsState({ data, t, locale }),
@@ -57,10 +68,18 @@ const PortalReceiptsPage: React.FC = () => {
     return () => window.clearInterval(intervalId);
   }, [data.reload]);
 
+  const periodFilters = React.useMemo(
+    () => getReceiptsPeriodFilters(t.reports),
+    [t.reports],
+  );
+  const periodLabel =
+    periodFilters.find((f) => f.id === data.query.period)?.label ??
+    r.filtersTitle;
+
   const handleRefresh = React.useCallback(() => {
-    if (data.refreshing) return;
+    if (data.refreshing || exportingPdf) return;
     data.reload();
-  }, [data]);
+  }, [data, exportingPdf]);
 
   const handleViewReceipt = React.useCallback(
     (row: ReceiptTableRow) => {
@@ -68,6 +87,86 @@ const PortalReceiptsPage: React.FC = () => {
     },
     [data],
   );
+
+  const handlePrintReceipt = React.useCallback(
+    async (receiptId: string) => {
+      try {
+        const resolvedIdentity =
+          identity ?? (await resolveDocumentIdentity(customer));
+        const { fetchPortalReceiptDetail } = await import("../lib/portalApi");
+        const { exportReceiptDetailPdf } = await import(
+          "../lib/documents/receiptDocument"
+        );
+        const { buildReceiptDetailDocumentLabels } = await import(
+          "../lib/documents/documentLabels"
+        );
+        const detail = await fetchPortalReceiptDetail(receiptId);
+        exportReceiptDetailPdf({
+          meta: buildDocumentMeta({
+            identity: resolvedIdentity,
+            period: { label: periodLabel },
+            generatedAt: new Date(),
+            timezone: data.page?.timezone ?? "Europe/Berlin",
+            currency:
+              detail.receipt.currency ||
+              data.page?.summary.paymentSummary.currency ||
+              "EUR",
+            locale,
+          }),
+          labels: buildReceiptDetailDocumentLabels(t),
+          detail,
+        });
+      } catch {
+        // Silent fail — user can retry
+      }
+    },
+    [customer, data.page, identity, locale, periodLabel, t],
+  );
+
+  const handlePrintRow = React.useCallback(
+    (row: ReceiptTableRow) => {
+      void handlePrintReceipt(row.id);
+    },
+    [handlePrintReceipt],
+  );
+
+  const handleExportPdf = React.useCallback(async () => {
+    setExportingPdf(true);
+    try {
+      const resolvedIdentity =
+        identity ?? (await resolveDocumentIdentity(customer));
+      const page = await fetchAllPortalReceiptsForExport({
+        period: mapReceiptsPeriodToApi(data.query.period),
+        paymentMethod:
+          data.query.paymentMethod === "all"
+            ? undefined
+            : data.query.paymentMethod,
+        status: data.query.status === "all" ? undefined : data.query.status,
+        search: data.query.search.trim() || undefined,
+        sort: data.query.sort,
+      });
+      const { exportReceiptsListPdf } = await import(
+        "../lib/documents/receiptsListDocument"
+      );
+      const { buildReceiptsListDocumentLabels } = await import(
+        "../lib/documents/documentLabels"
+      );
+      exportReceiptsListPdf({
+        meta: buildDocumentMeta({
+          identity: resolvedIdentity,
+          period: { label: periodLabel },
+          generatedAt: new Date(),
+          timezone: page.timezone,
+          currency: page.summary.paymentSummary.currency || "EUR",
+          locale,
+        }),
+        labels: buildReceiptsListDocumentLabels(t),
+        page,
+      });
+    } finally {
+      setExportingPdf(false);
+    }
+  }, [customer, data.query, identity, locale, periodLabel, t]);
 
   const drawerLabels = React.useMemo(
     () => ({
@@ -100,9 +199,16 @@ const PortalReceiptsPage: React.FC = () => {
       lastPrintTime: r.lastPrintTime,
       historyTitle: r.historyTitle,
       historyEmpty: r.historyEmpty,
-      colEventTime: r.colEventTime,
-      colEvent: r.colEvent,
-      colActor: r.colActor,
+      sectionOverview: r.sectionOverview,
+      sectionPos: r.sectionPos,
+      sectionPayment: r.sectionPayment,
+      sectionFiscal: r.sectionFiscal,
+      sectionActivity: r.sectionActivity,
+      sectionProducts: r.sectionProducts,
+      sectionTotals: r.sectionTotals,
+      printReceipt: r.printReceipt,
+      paymentPending: t.orders.paymentPending,
+      paymentPaid: t.orders.paymentPaid,
       close: r.detailClose,
       dash: t.labels.dash,
       statusActive: r.statusActive,
@@ -124,14 +230,24 @@ const PortalReceiptsPage: React.FC = () => {
         </div>
         <div className="portal-page-header-actions">
           <p className="portal-auto-refresh-hint">{r.autoRefreshHint}</p>
-          <button
-            type="button"
-            className={`portal-refresh-btn ${portalSecondaryCta(isLight)}`}
-            disabled={data.loading || data.refreshing}
-            onClick={handleRefresh}
-          >
-            {data.refreshing ? r.refreshLoading : r.actionRefresh}
-          </button>
+          <div className="portal-page-header-buttons">
+            <button
+              type="button"
+              className={`portal-refresh-btn ${portalSecondaryCta(isLight)}`}
+              disabled={data.loading || data.refreshing || exportingPdf}
+              onClick={handleRefresh}
+            >
+              {data.refreshing ? r.refreshLoading : r.actionRefresh}
+            </button>
+            <PortalExportPdfButton
+              label={r.actionExportPdf}
+              loadingLabel={t.pdfDocuments.exporting}
+              disabled={data.loading || !receipts.hasReceipts}
+              loading={exportingPdf}
+              onClick={handleExportPdf}
+              isLight={isLight}
+            />
+          </div>
         </div>
       </header>
 
@@ -187,7 +303,9 @@ const PortalReceiptsPage: React.FC = () => {
         emptyLabel={r.tableEmpty}
         actionsLabel={r.colActions}
         actionView={r.actionView}
+        actionPrint={r.actionPrint}
         onView={handleViewReceipt}
+        onPrint={handlePrintRow}
         columns={{
           receiptNumber: r.colReceiptNumber,
           date: r.colDate,
@@ -228,6 +346,11 @@ const PortalReceiptsPage: React.FC = () => {
         timezone={data.page?.timezone ?? "Europe/Berlin"}
         isLight={isLight}
         onClose={data.closeDetail}
+        onPrint={() => {
+          if (data.detailReceiptId) {
+            void handlePrintReceipt(data.detailReceiptId);
+          }
+        }}
       />
     </div>
   );

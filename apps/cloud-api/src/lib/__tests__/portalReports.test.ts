@@ -70,6 +70,10 @@ describe("buildPortalReportsResponse", () => {
   const basePayload = {
     period: "today" as const,
     overview: baseOverview,
+    posRevenueCents: 6000,
+    onlineRevenueCents: 0,
+    liveOrdersCount: 1,
+    onlineOrdersCount: 0,
     revenueSeries: [
       {
         label: "10:00",
@@ -84,6 +88,13 @@ describe("buildPortalReportsResponse", () => {
       cardMinor: 0,
       voucherMinor: 0,
       otherMinor: 0,
+      currency: "TND",
+    },
+    onlinePaymentSummary: {
+      cashPaidCents: 0,
+      cardPaidCents: 0,
+      onlinePaidCents: 0,
+      pendingCents: 0,
       currency: "TND",
     },
     topProducts: [
@@ -115,7 +126,12 @@ describe("buildPortalReportsResponse", () => {
     const response = buildPortalReportsResponse(basePayload);
     expect(response.hasSalesData).toBe(true);
     expect(response.overview.revenueMinor).toBe(6000);
+    expect(response.posRevenueCents).toBe(6000);
+    expect(response.onlineRevenueCents).toBe(0);
+    expect(response.liveOrdersCount).toBe(1);
+    expect(response.onlineOrdersCount).toBe(0);
     expect(response.paymentMethods.cashMinor).toBe(6000);
+    expect(response.onlinePaymentSummary.onlinePaidCents).toBe(0);
     expect(response.topProducts[0]?.productName).toBe("Coffee");
     expect(response.timezone).toBe("Europe/Berlin");
   });
@@ -131,6 +147,10 @@ describe("buildPortalReportsResponse", () => {
         averageOrderMinor: 0,
         vatMinor: 0,
       },
+      posRevenueCents: 0,
+      onlineRevenueCents: 0,
+      liveOrdersCount: 0,
+      onlineOrdersCount: 0,
       revenueSeries: [],
       salesByHour: [],
       topProducts: [],
@@ -139,6 +159,13 @@ describe("buildPortalReportsResponse", () => {
         cardMinor: 0,
         voucherMinor: 0,
         otherMinor: 0,
+        currency: "EUR",
+      },
+      onlinePaymentSummary: {
+        cashPaidCents: 0,
+        cardPaidCents: 0,
+        onlinePaidCents: 0,
+        pendingCents: 0,
         currency: "EUR",
       },
       businessTrends: {

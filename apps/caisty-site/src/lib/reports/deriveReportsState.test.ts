@@ -28,6 +28,10 @@ function makeReportsSummary(
       vatMinor: 500,
       currency: "TND",
     },
+    posRevenueCents: 6000,
+    onlineRevenueCents: 0,
+    liveOrdersCount: 1,
+    onlineOrdersCount: 0,
     revenueSeries: [
       {
         label: "10:00",
@@ -44,6 +48,13 @@ function makeReportsSummary(
       cardMinor: 0,
       voucherMinor: 0,
       otherMinor: 0,
+      currency: "TND",
+    },
+    onlinePaymentSummary: {
+      cashPaidCents: 0,
+      cardPaidCents: 0,
+      onlinePaidCents: 0,
+      pendingCents: 0,
       currency: "TND",
     },
     topProducts: [
@@ -156,7 +167,62 @@ describe("deriveReportsState", () => {
     expect(state.overview.find((k) => k.id === "orders")?.value).toBe("1");
     expect(state.topProducts).toHaveLength(1);
     expect(state.topProducts[0]?.name).toBe("Coffee");
-    expect(state.paymentMethods.find((p) => p.id === "cash")?.tone).toBe("ok");
+    expect(state.topProducts[0]?.rank).toBe(1);
+    expect(state.topProducts[0]?.share).toBe("100%");
+    expect(state.posPaymentCards.find((p) => p.id === "cash")?.tone).toBe("ok");
+    expect(state.onlinePaymentCards.map((p) => p.id)).toEqual([
+      "cash_paid",
+      "card_paid",
+      "online_paid",
+      "pending",
+      "paid_total",
+    ]);
+    expect(state.revenueBreakdown.map((k) => k.id)).toEqual([
+      "pos_revenue",
+      "online_revenue",
+      "total_revenue",
+    ]);
+    expect(state.orderBreakdown.map((k) => k.id)).toEqual([
+      "all_orders",
+      "pos_orders",
+      "online_orders",
+    ]);
+    expect(state.showHourlySales).toBe(false);
+    expect(state.trends.some((t) => t.id === "best_day")).toBe(false);
+    expect(state.trends.some((t) => t.id === "best_hour")).toBe(true);
+  });
+
+  it("shows daily best-day trend and hourly sales for week periods", () => {
+    const state = deriveReportsState({
+      data: makeData({
+        period: "week",
+        reportsSummary: makeReportsSummary({
+          period: "this_week",
+          businessTrends: {
+            bestSalesDay: "Mon",
+            bestSalesHour: "10:00",
+            largestReceiptMinor: 6000,
+            mostUsedPayment: "cash",
+            mostSoldProduct: "Coffee",
+            currency: "TND",
+          },
+        }),
+      }),
+      t: portalEn,
+      locale: "en-GB",
+    });
+
+    expect(state.showHourlySales).toBe(true);
+    expect(state.trends.find((t) => t.id === "best_day")?.value).toBe("Mon");
+  });
+
+  it("omits trends when there is no sales data", () => {
+    const state = deriveReportsState({
+      data: makeData(),
+      t: portalEn,
+      locale: "en-GB",
+    });
+    expect(state.trends).toEqual([]);
   });
 
   it("renders 24 hourly bars when sales data exists", () => {
@@ -187,7 +253,7 @@ describe("deriveReportsState", () => {
     });
 
     const revenue = state.overview.find((k) => k.id === "revenue")?.value ?? "";
-    const cash = state.paymentMethods.find((p) => p.id === "cash")?.value ?? "";
+    const cash = state.posPaymentCards.find((p) => p.id === "cash")?.value ?? "";
     const productRevenue = state.topProducts[0]?.revenue ?? "";
     const largestReceipt =
       state.trends.find((t) => t.id === "largest_receipt")?.value ?? "";

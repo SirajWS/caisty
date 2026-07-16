@@ -1,12 +1,23 @@
 import { CaistyPdfDocument } from "./baseDocument";
 import {
+  buildReceiptDetailPdfModel,
+  type ReceiptDetailDocumentLabels,
+} from "./buildReceiptDetailPdfModel";
+import {
   formatDocumentDateTime,
   formatDocumentMoney,
   formatPaymentMethodLabel,
   formatStatusLabel,
   sanitizeFilenamePart,
 } from "./formatters";
-import type { ReceiptDocumentInput } from "./types";
+import type { DocumentMeta, ReceiptDocumentInput } from "./types";
+import type { PortalReceiptDetailResponse } from "../portalApi";
+
+export type ReceiptDetailDocumentInput = {
+  meta: DocumentMeta;
+  labels: ReceiptDetailDocumentLabels;
+  detail: PortalReceiptDetailResponse;
+};
 
 export function buildReceiptPdfFilename(
   receiptLabel: string,
@@ -16,10 +27,61 @@ export function buildReceiptPdfFilename(
   return `caisty-receipt-${sanitizeFilenamePart(receiptLabel)}-${stamp}.pdf`;
 }
 
-function isFiscalPending(status: string): boolean {
-  return status.trim().toLowerCase() === "pending";
+/** Primary single-receipt export — uses full detail payload. */
+export function exportReceiptDetailPdf(
+  input: ReceiptDetailDocumentInput,
+): void {
+  const model = buildReceiptDetailPdfModel(input);
+  const { meta, labels } = input;
+
+  const pdf = new CaistyPdfDocument();
+  pdf.setFooterLabels({
+    generatedBy: labels.generatedBy,
+    website: labels.website,
+  });
+
+  pdf.drawBrandHeader(labels.brandCloud, labels.docTitle);
+  pdf.drawMetaBlock(meta, labels, { includeDate: true });
+
+  pdf.drawSectionTitle(labels.receiptDetails);
+  pdf.drawKeyValueRows(model.summary);
+
+  pdf.drawSectionTitle(labels.itemsTitle);
+  pdf.drawTable({
+    head: model.products.head,
+    body: model.products.body,
+    emptyMessage: model.products.empty,
+  });
+
+  pdf.drawSectionTitle(labels.totalsTitle);
+  pdf.drawKeyValueRows(model.totals);
+
+  pdf.drawSectionTitle(labels.sectionPayment);
+  pdf.drawKeyValueRows(model.payment);
+
+  pdf.drawSectionTitle(labels.sectionFiscal);
+  pdf.drawKeyValueRows(model.fiscal);
+  if (model.showFiscalPending) {
+    pdf.drawMutedNote(labels.fiscalPendingNote);
+  }
+
+  pdf.drawSectionTitle(labels.sectionPrintStats);
+  pdf.drawKeyValueRows(model.printStats);
+
+  pdf.drawSectionTitle(labels.sectionActivity);
+  if (model.activity.length > 0) {
+    pdf.drawKeyValueRows(model.activity);
+  } else {
+    pdf.drawMutedNote(labels.activityEmpty);
+  }
+
+  pdf.save(buildReceiptPdfFilename(model.receiptLabel, meta.generatedAt));
 }
 
+/**
+ * Lightweight single-receipt export from list record (items only).
+ * Prefer exportReceiptDetailPdf when detail API data is available.
+ */
 export function exportReceiptPdf(input: ReceiptDocumentInput): void {
   const { meta, labels, receipt } = input;
   const currency = receipt.currency || meta.currency;
@@ -51,11 +113,7 @@ export function exportReceiptPdf(input: ReceiptDocumentInput): void {
     [
       labels.colTime,
       receipt.issuedAt
-        ? formatDocumentDateTime(
-            new Date(receipt.issuedAt),
-            locale,
-            timezone,
-          )
+        ? formatDocumentDateTime(new Date(receipt.issuedAt), locale, timezone)
         : dash,
     ],
     [labels.colCustomer, receipt.customer?.trim() || dash],
@@ -63,10 +121,7 @@ export function exportReceiptPdf(input: ReceiptDocumentInput): void {
       labels.colPayment,
       formatPaymentMethodLabel(receipt.paymentMethod, paymentLabels),
     ],
-    [
-      labels.colFiscal,
-      formatStatusLabel(receipt.fiscalStatus, dash),
-    ],
+    [labels.colFiscal, formatStatusLabel(receipt.fiscalStatus, dash)],
     [
       labels.colAmount,
       formatDocumentMoney(receipt.amountCents, currency, locale),
@@ -74,9 +129,8 @@ export function exportReceiptPdf(input: ReceiptDocumentInput): void {
     [labels.colDevice, dash],
   ]);
 
-  if (isFiscalPending(receipt.fiscalStatus)) {
-    pdf.drawSectionTitle(labels.colFiscal);
-    pdf.drawKeyValueRows([[labels.colFiscal, labels.fiscalPendingNote]]);
+  if (receipt.fiscalStatus.trim().toLowerCase() === "pending") {
+    pdf.drawMutedNote(labels.fiscalPendingNote);
   }
 
   pdf.drawSectionTitle(labels.itemsTitle);
@@ -100,3 +154,6 @@ export function exportReceiptPdf(input: ReceiptDocumentInput): void {
 
   pdf.save(buildReceiptPdfFilename(receiptLabel, meta.generatedAt));
 }
+
+export { buildReceiptDetailPdfModel };
+export type { ReceiptDetailDocumentLabels };

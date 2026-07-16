@@ -1,4 +1,6 @@
 import type { PosHubTone } from "../posHub/types";
+import type { PaymentMethodCard } from "../orders/types";
+import type { PaymentSummaryRevenueHeader } from "../portal/derivePaymentSummaryCards";
 import type { PortalCustomer, PortalDevice, PortalReportsSummary } from "../portalApi";
 import type { ReportsPeriodId } from "./reportsPeriod";
 
@@ -10,6 +12,8 @@ export type ReportsKpi = {
 };
 
 export type RevenueTimeRange = "today" | "7d" | "30d" | "12m" | "all";
+
+export type RevenueSeriesGranularity = "hour" | "day" | "month";
 
 export type RevenueSeriesPoint = {
   label: string;
@@ -23,11 +27,19 @@ export type RevenueChartState = {
   hasData: boolean;
   placeholderMessage: string;
   series: RevenueSeriesPoint[];
+  totalValue: string;
+  currency: string;
+  locale: string;
+  granularity: RevenueSeriesGranularity;
+  granularityLabel: string;
+  ordersLabel: string;
+  ariaLabel: string;
 };
 
 export type HourlyBar = {
   hour: string;
   value: number | null;
+  tooltip?: string;
 };
 
 export type HourlySalesState = {
@@ -35,6 +47,7 @@ export type HourlySalesState = {
   placeholderMessage: string;
 };
 
+/** @deprecated Prefer PaymentMethodCard from shared payment helpers. */
 export type PaymentMethodStat = {
   id: string;
   label: string;
@@ -44,10 +57,11 @@ export type PaymentMethodStat = {
 
 export type TopProductRow = {
   id: string;
+  rank: number;
   name: string;
   quantity: string;
   revenue: string;
-  category: string;
+  share: string;
 };
 
 export type TopEmployeeRow = {
@@ -81,9 +95,14 @@ export type ReportExportAction = {
 /** Serializable snapshot — ready for WebSocket merge later. */
 export type ReportsDerivedState = {
   overview: ReportsKpi[];
+  revenueBreakdown: ReportsKpi[];
+  orderBreakdown: ReportsKpi[];
   revenueChart: RevenueChartState;
   hourlySales: HourlySalesState;
-  paymentMethods: PaymentMethodStat[];
+  showHourlySales: boolean;
+  posPaymentCards: PaymentMethodCard[];
+  onlinePaymentCards: PaymentMethodCard[];
+  onlineRevenueHeader: PaymentSummaryRevenueHeader;
   topProducts: TopProductRow[];
   topEmployees: TopEmployeeRow[];
   taxes: TaxCard[];

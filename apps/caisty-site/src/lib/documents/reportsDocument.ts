@@ -1,31 +1,7 @@
 import { CaistyPdfDocument } from "./baseDocument";
-import {
-  formatDocumentMoney,
-  formatHourLabel,
-  formatPaymentMethodLabel,
-  sanitizeFilenamePart,
-} from "./formatters";
-import { normalizeSalesByHour } from "../reports/salesByHour";
+import { buildReportsPdfModel } from "./buildReportsPdfModel";
+import { sanitizeFilenamePart } from "./formatters";
 import type { ReportsDocumentInput } from "./types";
-
-type TopEmployeeRow = {
-  employeeName: string;
-  ordersCount: number;
-  revenueMinor: number;
-  averageOrderMinor: number;
-};
-
-function hasHourlyData(
-  points: ReportsDocumentInput["summary"]["salesByHour"],
-): boolean {
-  return points.some((point) => point.revenueMinor > 0 || point.ordersCount > 0);
-}
-
-function hasRevenueSeriesData(
-  points: ReportsDocumentInput["summary"]["revenueSeries"],
-): boolean {
-  return points.some((point) => point.revenueMinor > 0 || point.ordersCount > 0);
-}
 
 export function buildReportsPdfFilename(
   periodLabel: string,
@@ -36,19 +12,8 @@ export function buildReportsPdfFilename(
 }
 
 export function exportReportsPdf(input: ReportsDocumentInput): void {
-  const { meta, labels, summary } = input;
-  const { overview, paymentMethods, topProducts, taxes, businessTrends } =
-    summary;
-  const currency = overview.currency || meta.currency;
-  const { locale } = meta;
-  const dash = labels.dash;
-  const paymentLabels = {
-    cash: labels.paymentCash,
-    card: labels.paymentCard,
-    voucher: labels.paymentVoucher,
-    other: labels.paymentOther,
-    dash,
-  };
+  const { meta, labels } = input;
+  const model = buildReportsPdfModel(input);
 
   const pdf = new CaistyPdfDocument();
   pdf.setFooterLabels({
@@ -56,132 +21,58 @@ export function exportReportsPdf(input: ReportsDocumentInput): void {
     website: labels.website,
   });
 
+  // —— Page 1: Executive overview ——
   pdf.drawBrandHeader(labels.brandCloud, labels.docTitle);
   pdf.drawMetaBlock(meta, labels);
 
   pdf.drawSectionTitle(labels.executiveSummary);
-  pdf.drawKeyValueRows([
-    [labels.kpiRevenue, formatDocumentMoney(overview.revenueMinor, currency, locale)],
-    [labels.kpiOrders, String(overview.ordersCount)],
-    [labels.kpiReceipts, String(overview.receiptsCount)],
-    [labels.kpiRefunds, String(overview.refundsCount)],
-    [
-      labels.kpiAverageOrder,
-      formatDocumentMoney(overview.averageOrderMinor, currency, locale),
-    ],
-    [labels.kpiVat, formatDocumentMoney(overview.vatMinor, currency, locale)],
-  ]);
+  pdf.drawKeyValueRows(model.executiveSummary);
 
-  pdf.drawSectionTitle(labels.paymentMethods);
-  pdf.drawKeyValueRows([
-    [
-      labels.paymentCash,
-      formatDocumentMoney(paymentMethods.cashMinor, currency, locale),
-    ],
-    [
-      labels.paymentCard,
-      formatDocumentMoney(paymentMethods.cardMinor, currency, locale),
-    ],
-    [
-      labels.paymentVoucher,
-      formatDocumentMoney(paymentMethods.voucherMinor, currency, locale),
-    ],
-    [
-      labels.paymentOther,
-      formatDocumentMoney(paymentMethods.otherMinor, currency, locale),
-    ],
-  ]);
+  pdf.drawSectionTitle(labels.revenueBreakdownTitle);
+  pdf.drawKeyValueRows(model.revenueBreakdown);
+
+  pdf.drawSectionTitle(labels.ordersBreakdownTitle);
+  pdf.drawKeyValueRows(model.ordersBreakdown);
+
+  pdf.drawSectionTitle(labels.paymentPosTitle);
+  pdf.drawKeyValueRows(model.posPaymentSummary);
+
+  pdf.drawSectionTitle(labels.paymentOnlineTitle);
+  if (model.onlineRevenueHeader) {
+    pdf.drawKeyValueRows([model.onlineRevenueHeader]);
+    pdf.drawMutedNote(model.onlinePaymentInfo);
+  }
+  pdf.drawKeyValueRows(model.onlinePaymentSummary);
+
+  if (model.businessTrends.length > 0) {
+    pdf.drawSectionTitle(labels.businessTrends);
+    pdf.drawKeyValueRows(model.businessTrends);
+  }
+
+  // —— Page 2: Charts & detail ——
+  pdf.addPage();
+  pdf.drawSectionTitle(labels.revenueSection);
+  if (model.revenueBars.length > 0) {
+    pdf.drawBarChart(model.revenueBars);
+  } else {
+    pdf.drawMutedNote(labels.noData);
+  }
+
+  if (model.showSalesByHour) {
+    pdf.drawSectionTitle(labels.salesByHour);
+    pdf.drawBarChart(model.salesByHourBars);
+  }
 
   pdf.drawSectionTitle(labels.topProducts);
   pdf.drawTable({
-    head: [
-      labels.colProduct,
-      labels.colQuantity,
-      labels.colRevenue,
-      labels.colCategory,
-    ],
-    body: topProducts.map((product) => [
-      product.productName,
-      String(product.quantity),
-      formatDocumentMoney(product.revenueMinor, currency, locale),
-      product.category?.trim() || dash,
-    ]),
-    emptyMessage: labels.noData,
-  });
-
-  pdf.drawSectionTitle(labels.topEmployees);
-  const employeeRows = summary.topEmployees as unknown as TopEmployeeRow[];
-  pdf.drawTable({
-    head: [
-      labels.colEmployee,
-      labels.colOrders,
-      labels.colRevenue,
-      labels.colAvgOrder,
-    ],
-    body: employeeRows.map((employee) => [
-      employee.employeeName,
-      String(employee.ordersCount),
-      formatDocumentMoney(employee.revenueMinor, currency, locale),
-      formatDocumentMoney(employee.averageOrderMinor, currency, locale),
-    ]),
-    emptyMessage: labels.topEmployeesEmpty,
+    head: model.topProducts.head,
+    body: model.topProducts.body,
+    emptyMessage: model.topProducts.emptyMessage,
   });
 
   pdf.drawSectionTitle(labels.taxes);
-  pdf.drawKeyValueRows([
-    [
-      labels.taxNetRevenue,
-      formatDocumentMoney(taxes.netRevenueMinor, currency, locale),
-    ],
-    [labels.taxVat, formatDocumentMoney(taxes.vatMinor, currency, locale)],
-    [
-      labels.taxGrossRevenue,
-      formatDocumentMoney(taxes.grossRevenueMinor, currency, locale),
-    ],
-    [labels.taxFiscalReceipts, String(taxes.fiscalReceiptsCount)],
-  ]);
-
-  pdf.drawSectionTitle(labels.businessTrends);
-  pdf.drawKeyValueRows([
-    [labels.trendBestDay, businessTrends.bestSalesDay?.trim() || dash],
-    [labels.trendBestHour, businessTrends.bestSalesHour?.trim() || dash],
-    [
-      labels.trendLargestReceipt,
-      businessTrends.largestReceiptMinor > 0
-        ? formatDocumentMoney(businessTrends.largestReceiptMinor, currency, locale)
-        : dash,
-    ],
-    [
-      labels.trendTopPayment,
-      formatPaymentMethodLabel(businessTrends.mostUsedPayment, paymentLabels),
-    ],
-    [labels.trendTopProduct, businessTrends.mostSoldProduct?.trim() || dash],
-  ]);
-
-  if (hasHourlyData(summary.salesByHour)) {
-    const salesByHour = normalizeSalesByHour(summary.salesByHour);
-    pdf.drawSectionTitle(labels.salesByHour);
-    pdf.drawTable({
-      head: [labels.hour, labels.colRevenue, labels.colOrders],
-      body: salesByHour.map((point) => [
-        formatHourLabel(point.hour),
-        formatDocumentMoney(point.revenueMinor, currency, locale),
-        String(point.ordersCount),
-      ]),
-    });
-  }
-
-  if (hasRevenueSeriesData(summary.revenueSeries)) {
-    pdf.drawSectionTitle(labels.revenueSection);
-    pdf.drawTable({
-      head: [labels.segment, labels.colRevenue, labels.colOrders],
-      body: summary.revenueSeries.map((point) => [
-        point.label,
-        formatDocumentMoney(point.revenueMinor, currency, locale),
-        String(point.ordersCount),
-      ]),
-    });
-  }
+  pdf.drawKeyValueRows(model.taxes);
+  pdf.drawMutedNote(model.taxesScopeNote);
 
   pdf.save(buildReportsPdfFilename(meta.label, meta.generatedAt));
 }
