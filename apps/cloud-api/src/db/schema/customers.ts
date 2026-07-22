@@ -7,7 +7,7 @@ import {
   jsonb,
   text,
 } from "drizzle-orm/pg-core";
-import { orgs } from "./orgs.js";
+import { orgs } from "./orgs";
 
 export const customers = pgTable("customers", {
   id: uuid("id").primaryKey().defaultRandom(),

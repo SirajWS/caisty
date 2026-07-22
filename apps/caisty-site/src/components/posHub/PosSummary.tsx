@@ -60,6 +60,14 @@ export function PosSummary({
               {loading ? dash : summary.devicesShortLabel}
             </Link>
           </div>
+          <div className="pos-summary-item">
+            <span className="pos-summary-label">{p.summaryWebApp}</span>
+            <span
+              className={`pos-summary-value ${loading ? "" : release.web.enabled ? statusToneClass("ok") : ""}`}
+            >
+              {loading ? dash : release.web.enabled ? p.statusAvailable : p.statusComingSoon}
+            </span>
+          </div>
         </div>
 
         <div className="pos-summary-right">

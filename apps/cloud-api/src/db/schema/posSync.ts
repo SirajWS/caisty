@@ -8,9 +8,9 @@ import {
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
-import { orgs } from "./orgs.js";
-import { customers } from "./customers.js";
-import { devices } from "./devices.js";
+import { orgs } from "./orgs";
+import { customers } from "./customers";
+import { devices } from "./devices";
 
 export const posSyncBatches = pgTable(
   "pos_sync_batches",

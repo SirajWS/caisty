@@ -48,4 +48,3 @@ volumes:
 
 networks:
   caisty-internal:
-    internal: true

@@ -1,5 +1,5 @@
 import { pgTable, uuid, text, timestamp } from "drizzle-orm/pg-core";
-import { customers } from "./customers.js";
+import { customers } from "./customers";
 
 export const emailVerifications = pgTable("portal_email_verifications", {
   id: uuid("id").primaryKey().defaultRandom(),

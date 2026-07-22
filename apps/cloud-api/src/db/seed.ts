@@ -33,6 +33,7 @@ async function main() {
   // 2) Demo-User (Admins) mit Passwort-Hash
   const ownerPasswordHash = await hashPassword("owner123");
   const adminPasswordHash = await hashPassword("admin123");
+  const customerPasswordHash = await hashPassword("customer123");
 
   const [ownerUser, adminUser] = await db
     .insert(users)
@@ -55,6 +56,7 @@ async function main() {
   console.log("Created users:", ownerUser.email, adminUser.email);
 
   // 3) Demo-Customers
+  const now = new Date();
   const [customer1, customer2, customer3] = await db
     .insert(customers)
     .values([
@@ -63,6 +65,8 @@ async function main() {
         name: "Alice GmbH",
         email: "alice@example.com",
         status: "active",
+        passwordHash: customerPasswordHash,
+        emailVerifiedAt: now,
       },
       {
         orgId: demoOrg.id,
@@ -87,7 +91,6 @@ async function main() {
   );
 
   // 4) Subscriptions
-  const now = new Date();
   const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
   const [sub1, sub2] = await db
