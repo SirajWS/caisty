@@ -73,7 +73,7 @@ const PortalPosPage: React.FC = () => {
 
       <PosHubNotifications items={hub.notifications} />
 
-      <PosMainActions release={release} p={p} isLight={isLight} />
+      <PosMainActions release={release} p={p} />
 
       <PosVersionUpdates hub={hub} release={release} p={p} locale={locale} />
 

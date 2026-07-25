@@ -420,6 +420,256 @@ describe("deriveDashboardState", () => {
     expect(state.onlinePaymentCards.find((c) => c.id === "online_paid")?.value).toContain("150");
     expect(state.onlineRevenueHeader.subtitle).toBe(portalEn.orders.kpiOnlineRevenueInfo);
   });
+
+  it("renders revenue split hints from complete sales summary", () => {
+    const state = deriveDashboardState(
+      deriveInput(
+        makeData({
+          salesSummary: salesSummary({
+            todayRevenueCents: 15000,
+            posRevenueCents: 10000,
+            onlineRevenueCents: 5000,
+            ordersToday: 8,
+            liveOrdersCount: 5,
+            onlineOrdersCount: 3,
+            averageOrderMinor: 1875,
+            currency: "EUR",
+            hasSalesData: true,
+            paymentSummary: {
+              cashCents: 8000,
+              cardCents: 7000,
+              voucherCents: 0,
+              otherCents: 0,
+              currency: "EUR",
+            },
+          }),
+        }),
+      ),
+    );
+
+    const revenue = state.kpis.find((k) => k.id === "revenue");
+    const orders = state.kpis.find((k) => k.id === "orders");
+    expect(revenue?.value).toContain("150");
+    expect(revenue?.hint).toMatch(/POS/);
+    expect(revenue?.hint).toContain("100");
+    expect(revenue?.hint).toContain("50");
+    expect(orders?.value).toBe("8");
+    expect(orders?.hint).toContain("5");
+    expect(orders?.hint).toContain("3");
+    expect(state.paymentCards.find((c) => c.id === "cash")?.value).toContain("80");
+  });
+
+  it("does not crash when revenue split translation keys are missing", () => {
+    const t = {
+      ...portalEn,
+      dashboard: {
+        ...portalEn.dashboard,
+        live: {
+          ...portalEn.dashboard.live,
+          kpiRevenueSplitHint: undefined as unknown as string,
+          kpiOrdersSplitHint: undefined as unknown as string,
+        },
+      },
+    };
+
+    const state = deriveDashboardState({
+      ...deriveInput(
+        makeData({
+          salesSummary: salesSummary({
+            todayRevenueCents: 900,
+            posRevenueCents: 600,
+            onlineRevenueCents: 300,
+            ordersToday: 3,
+            liveOrdersCount: 2,
+            onlineOrdersCount: 1,
+            hasSalesData: true,
+          }),
+        }),
+      ),
+      t,
+    });
+
+    const revenue = state.kpis.find((k) => k.id === "revenue");
+    const orders = state.kpis.find((k) => k.id === "orders");
+    expect(revenue?.status).toBe("value");
+    expect(revenue?.hint).toContain("6.00");
+    expect(revenue?.hint).toContain("3.00");
+    expect(orders?.hint).toContain("2");
+    expect(orders?.hint).toContain("1");
+  });
+
+  it("treats null and undefined sales number fields as zero without inventing totals", () => {
+    const partial = salesSummary({
+      hasSalesData: true,
+      currency: "EUR",
+      todayRevenueCents: 1200,
+    }) as PortalDashboardSummary & Record<string, unknown>;
+    partial.posRevenueCents = null;
+    partial.onlineRevenueCents = undefined;
+    partial.liveOrdersCount = null;
+    partial.onlineOrdersCount = undefined;
+    partial.ordersToday = 4;
+    partial.averageOrderMinor = null;
+
+    const state = deriveDashboardState(
+      deriveInput(makeData({ salesSummary: partial as PortalDashboardSummary })),
+    );
+
+    const revenue = state.kpis.find((k) => k.id === "revenue");
+    const orders = state.kpis.find((k) => k.id === "orders");
+    const avg = state.kpis.find((k) => k.id === "avg_order");
+
+    expect(revenue?.value).toContain("12.00");
+    expect(revenue?.hint).toContain("0.00");
+    expect(orders?.value).toBe("4");
+    expect(orders?.hint).toContain("0");
+    expect(avg?.value).toContain("0.00");
+  });
+
+  it("keeps waiting placeholders when salesSummary fields are absent", () => {
+    const state = deriveDashboardState(
+      deriveInput(
+        makeData({
+          salesSummary: {
+            ...salesSummary(),
+            hasSalesData: false,
+          },
+        }),
+      ),
+    );
+
+    expect(state.kpis.find((k) => k.id === "revenue")?.value).toBe("—");
+    expect(state.kpis.find((k) => k.id === "orders")?.value).toBe("—");
+    expect(state.kpis.find((k) => k.id === "avg_order")?.value).toBe("—");
+    expect(state.paymentCards.every((c) => c.value === "—")).toBe(true);
+  });
+
+  it("maps recent orders with completed/delivered/cancelled and tolerates incomplete rows", () => {
+    const state = deriveDashboardState(
+      deriveInput(
+        makeData({
+          salesSummary: salesSummary({
+            hasSalesData: true,
+            recentOrders: [
+              {
+                id: "o1",
+                localOrderId: "1001",
+                soldAt: "2026-07-24T10:00:00.000Z",
+                normalizedStatus: "completed",
+                statusLabel: "Completed",
+                paymentMethod: "cash",
+                paymentDisplay: "Cash",
+                amountCents: 1500,
+                currency: "EUR",
+                receiptId: null,
+                receiptNumber: null,
+                receiptStatus: null,
+                isProviderOrder: false,
+                providerName: null,
+              },
+              {
+                id: "o2",
+                localOrderId: "1002",
+                soldAt: "2026-07-24T11:00:00.000Z",
+                normalizedStatus: "delivered",
+                statusLabel: "Delivered",
+                paymentMethod: "card",
+                paymentDisplay: "Card",
+                amountCents: 2200,
+                currency: "EUR",
+                receiptId: null,
+                receiptNumber: "R-2",
+                receiptStatus: null,
+                isProviderOrder: true,
+                providerName: "Lieferando",
+              },
+              {
+                id: "o3",
+                localOrderId: "1003",
+                soldAt: null,
+                normalizedStatus: "cancelled" as const,
+                statusLabel: "Cancelled",
+                paymentMethod: null,
+                paymentDisplay: "",
+                amountCents: 0,
+                currency: "EUR",
+                receiptId: null,
+                receiptNumber: null,
+                receiptStatus: null,
+                isProviderOrder: false,
+                providerName: null,
+              },
+              {
+                id: "o4",
+                localOrderId: "1004",
+                soldAt: "2026-07-24T12:00:00.000Z",
+                // incomplete / bad status payload
+                normalizedStatus: undefined as unknown as "completed",
+                statusLabel: "",
+                paymentMethod: null,
+                paymentDisplay: "",
+                amountCents: undefined as unknown as number,
+                currency: "EUR",
+                receiptId: null,
+                receiptNumber: null,
+                receiptStatus: null,
+                isProviderOrder: false,
+                providerName: null,
+              },
+            ],
+          }),
+        }),
+      ),
+    );
+
+    expect(state.recentOrders).toHaveLength(4);
+    expect(state.recentOrders[0]?.status).toBe("Completed");
+    expect(state.recentOrders[1]?.status).toBe("Delivered");
+    expect(state.recentOrders[2]?.status).toBe("Cancelled");
+    expect(state.recentOrders[3]?.status).toBe("—");
+    expect(state.recentOrders[3]?.amount).toContain("0");
+  });
+
+  it("survives missing statusLabels on translations while rendering recent orders", () => {
+    const t = {
+      ...portalEn,
+      orders: {
+        ...portalEn.orders,
+        statusLabels: undefined as unknown as typeof portalEn.orders.statusLabels,
+      },
+    };
+
+    const state = deriveDashboardState({
+      ...deriveInput(
+        makeData({
+          salesSummary: salesSummary({
+            hasSalesData: true,
+            recentOrders: [
+              {
+                id: "o1",
+                localOrderId: "9",
+                soldAt: "2026-07-24T10:00:00.000Z",
+                normalizedStatus: "completed",
+                statusLabel: "Completed",
+                paymentMethod: "cash",
+                paymentDisplay: "Cash",
+                amountCents: 500,
+                currency: "EUR",
+                receiptId: null,
+                receiptNumber: null,
+                receiptStatus: null,
+                isProviderOrder: false,
+                providerName: null,
+              },
+            ],
+          }),
+        }),
+      ),
+      t,
+    });
+
+    expect(state.recentOrders[0]?.status).toBe("Completed");
+  });
 });
 
 describe("countOnlineDevices", () => {

@@ -132,6 +132,32 @@ function formatMoney(minor: number, currency: string, locale: string): string {
   return formatMinorUnits(minor, currency, locale);
 }
 
+/** Safe template substitution — never calls `.replace` on null/undefined/non-strings. */
+function applyTemplate(
+  template: string | null | undefined,
+  replacements: Record<string, string>,
+  fallback = "",
+): string {
+  if (typeof template !== "string" || template.length === 0) {
+    return fallback;
+  }
+  let out = template;
+  for (const [token, value] of Object.entries(replacements)) {
+    out = out.split(`{{${token}}}`).join(value);
+  }
+  return out;
+}
+
+/** Coerce API / partial summary numbers without inventing business totals. */
+function asMinorOrCount(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const n = Number(value);
+    if (Number.isFinite(n)) return n;
+  }
+  return 0;
+}
+
 function resolveLastSynchronization(input: DeriveDashboardInput): string | null {
   const fromSummary = input.data.salesSummary?.lastSynchronizationAt ?? null;
   if (fromSummary) return fromSummary;
@@ -143,7 +169,10 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
   const dash = input.t.labels.dash;
   const { data } = input;
   const { online, total } = countOnlineDevices(data.devices);
-  const syncHint = l.waitingPosSyncShort;
+  const syncHint =
+    typeof l.waitingPosSyncShort === "string" && l.waitingPosSyncShort
+      ? l.waitingPosSyncShort
+      : dash;
   const sales = data.salesSummary;
   const hasSales = Boolean(sales?.hasSalesData);
 
@@ -152,8 +181,10 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
   if (total > 0) {
     posValue =
       online > 0
-        ? l.posOnline.replace("{{count}}", String(online))
-        : l.posOffline;
+        ? applyTemplate(l.posOnline, { count: String(online) }, String(online))
+        : typeof l.posOffline === "string" && l.posOffline
+          ? l.posOffline
+          : dash;
     posStatus = "value";
   }
 
@@ -169,30 +200,48 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
   }
 
   const currency =
-    sales?.currency || data.business?.currency || "EUR";
+    (typeof sales?.currency === "string" && sales.currency.trim()) ||
+    data.business?.currency ||
+    "EUR";
+
+  const todayRevenueCents = asMinorOrCount(sales?.todayRevenueCents);
+  const posRevenueCents = asMinorOrCount(sales?.posRevenueCents);
+  const onlineRevenueCents = asMinorOrCount(sales?.onlineRevenueCents);
+  const ordersToday = asMinorOrCount(sales?.ordersToday);
+  const liveOrdersCount = asMinorOrCount(sales?.liveOrdersCount);
+  const onlineOrdersCount = asMinorOrCount(sales?.onlineOrdersCount);
+  const averageOrderMinor = asMinorOrCount(sales?.averageOrderMinor);
+
+  const posRevenueLabel = formatMoney(posRevenueCents, currency, input.locale);
+  const onlineRevenueLabel = formatMoney(
+    onlineRevenueCents,
+    currency,
+    input.locale,
+  );
 
   const revenueValue = hasSales
-    ? formatMoney(sales!.todayRevenueCents, currency, input.locale)
+    ? formatMoney(todayRevenueCents, currency, input.locale)
     : dash;
   const revenueHint = hasSales
-    ? input.t.dashboard.live.kpiRevenueSplitHint
-        .replace(
-          "{{pos}}",
-          formatMoney(sales!.posRevenueCents, currency, input.locale),
-        )
-        .replace(
-          "{{online}}",
-          formatMoney(sales!.onlineRevenueCents, currency, input.locale),
-        )
+    ? applyTemplate(
+        l.kpiRevenueSplitHint,
+        { pos: posRevenueLabel, online: onlineRevenueLabel },
+        `${posRevenueLabel} · ${onlineRevenueLabel}`,
+      )
     : syncHint;
-  const ordersValue = hasSales ? String(sales!.ordersToday) : dash;
+  const ordersValue = hasSales ? String(ordersToday) : dash;
   const ordersHint = hasSales
-    ? input.t.dashboard.live.kpiOrdersSplitHint
-        .replace("{{pos}}", String(sales!.liveOrdersCount))
-        .replace("{{online}}", String(sales!.onlineOrdersCount))
+    ? applyTemplate(
+        l.kpiOrdersSplitHint,
+        {
+          pos: String(liveOrdersCount),
+          online: String(onlineOrdersCount),
+        },
+        `${liveOrdersCount} · ${onlineOrdersCount}`,
+      )
     : syncHint;
   const avgOrderValue = hasSales
-    ? formatMoney(sales!.averageOrderMinor, currency, input.locale)
+    ? formatMoney(averageOrderMinor, currency, input.locale)
     : dash;
 
   return [
@@ -245,8 +294,10 @@ function deriveStoreStatus(input: DeriveDashboardInput): LiveStoreStatusItem[] {
   if (total > 0) {
     posValue =
       online > 0
-        ? l.posOnline.replace("{{count}}", String(online))
-        : l.posOffline;
+        ? applyTemplate(l.posOnline, { count: String(online) }, String(online))
+        : typeof l.posOffline === "string" && l.posOffline
+          ? l.posOffline
+          : l.waitingPosSyncShort;
     posTone = online > 0 ? "ok" : "attention";
   }
 
@@ -677,29 +728,52 @@ function deriveQuickActions(input: DeriveDashboardInput): DashboardQuickAction[]
 
 function deriveRecentOrders(input: DeriveDashboardInput): PortalDashboardRecentOrder[] {
   const sales = input.data.salesSummary;
-  if (!sales?.recentOrders?.length) return [];
+  const recent = Array.isArray(sales?.recentOrders) ? sales.recentOrders : [];
+  if (!recent.length) return [];
 
-  const timezone = sales.timezone ?? "Europe/Berlin";
-  const currency = sales.currency || "EUR";
+  const timezone = sales?.timezone ?? "Europe/Berlin";
+  const currency = sales?.currency || "EUR";
+  const dash = input.t.labels?.dash ?? "—";
 
-  return sales.recentOrders.map((order) => ({
-    id: order.id,
-    time: order.soldAt
-      ? new Date(order.soldAt).toLocaleTimeString(input.locale, {
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZone: timezone,
-        })
-      : input.t.labels.dash,
-    orderNumber: order.localOrderId || input.t.labels.dash,
-    status: formatPortalOrderStatus(order.normalizedStatus, input.t),
-    statusKey: order.normalizedStatus,
-    payment: order.paymentDisplay || formatPortalPaymentMethod(order.paymentMethod, input.t),
-    amount: formatMoney(order.amountCents, order.currency || currency, input.locale),
-    receiptNumber: order.receiptNumber?.trim() || input.t.labels.dash,
-    isProviderOrder: order.isProviderOrder,
-    providerName: order.providerName,
-  }));
+  return recent
+    .filter((order): order is NonNullable<typeof order> => Boolean(order && typeof order === "object"))
+    .map((order) => {
+      const statusRaw =
+        typeof order.normalizedStatus === "string"
+          ? order.normalizedStatus
+          : typeof (order as { status?: unknown }).status === "string"
+            ? (order as { status: string }).status
+            : null;
+      const amountCents =
+        typeof order.amountCents === "number" && Number.isFinite(order.amountCents)
+          ? order.amountCents
+          : 0;
+
+      return {
+        id: typeof order.id === "string" && order.id ? order.id : `recent-${order.localOrderId || "unknown"}`,
+        time: order.soldAt
+          ? new Date(order.soldAt).toLocaleTimeString(input.locale, {
+              hour: "2-digit",
+              minute: "2-digit",
+              timeZone: timezone,
+            })
+          : dash,
+        orderNumber: order.localOrderId || dash,
+        status: formatPortalOrderStatus(statusRaw, input.t),
+        statusKey: statusRaw || "unknown",
+        payment:
+          order.paymentDisplay ||
+          formatPortalPaymentMethod(order.paymentMethod, input.t),
+        amount: formatMoney(
+          amountCents,
+          order.currency || currency,
+          input.locale,
+        ),
+        receiptNumber: order.receiptNumber?.trim() || dash,
+        isProviderOrder: Boolean(order.isProviderOrder),
+        providerName: order.providerName ?? null,
+      };
+    });
 }
 
 function derivePaymentCards(input: DeriveDashboardInput): PaymentMethodCard[] {
