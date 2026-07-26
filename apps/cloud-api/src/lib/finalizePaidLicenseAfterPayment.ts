@@ -5,6 +5,7 @@ import { licenses } from "../db/schema/licenses.js";
 import { licenseEvents } from "../db/schema/licenseEvents.js";
 import { subscriptions } from "../db/schema/subscriptions.js";
 import { generateLicenseKey } from "./licenseKey.js";
+import { maxLicenseValidUntil } from "./licenseGrantGuard.js";
 
 export type PaidLicensePaymentSource =
   | "portal_payment"
@@ -24,6 +25,8 @@ export async function ensurePaidLicenseAfterSuccessfulPayment(params: {
   source: PaidLicensePaymentSource;
   sessionId?: string;
   orderId?: string;
+  /** When set, existing subscription-backed license is extended (renewals). */
+  periodEnd?: Date;
 }): Promise<string | undefined> {
   const {
     orgId,
@@ -33,6 +36,7 @@ export async function ensurePaidLicenseAfterSuccessfulPayment(params: {
     source,
     sessionId,
     orderId,
+    periodEnd,
   } = params;
 
   const cid = String(customerId).trim();
@@ -81,6 +85,16 @@ export async function ensurePaidLicenseAfterSuccessfulPayment(params: {
     .limit(1);
 
   if (licenseForThisSub) {
+    if (periodEnd) {
+      const newUntil = maxLicenseValidUntil(
+        licenseForThisSub.validUntil as Date | null,
+        periodEnd,
+      );
+      await db
+        .update(licenses as any)
+        .set({ validUntil: newUntil, updatedAt: new Date() } as any)
+        .where(eq(licenses.id, licenseForThisSub.id));
+    }
     return licenseForThisSub.id;
   }
 
