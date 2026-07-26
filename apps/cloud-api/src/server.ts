@@ -46,6 +46,7 @@ import { registerAdminNotificationsRoutes } from "./routes/admin-notifications.j
 import { registerAdminAnalyticsRoutes } from "./routes/admin/analytics.js";
 import { registerAdminSubscriptionsRoutes } from "./routes/admin/subscriptions.js";
 import { registerAdminDevicesRoutes } from "./routes/admin/devices.js";
+import { registerAdminBillingReconcileRoutes } from "./routes/admin/billingReconcile.js";
 import { registerAdminAuthRoutes } from "./routes/admin-auth.js";
 import { registerAdminSettingsRoutes } from "./routes/admin-settings.js";
 
@@ -62,6 +63,32 @@ export async function buildServer() {
   const app = Fastify({
     logger: true,
   });
+
+  // Preserve exact raw JSON bytes for Stripe webhook HMAC (supports charset=utf-8).
+  // Replaces Fastify's default application/json parser once.
+  app.removeContentTypeParser("application/json");
+  app.addContentTypeParser(
+    /^application\/json(;.*)?$/i,
+    { parseAs: "buffer" },
+    (req, body, done) => {
+      try {
+        const raw = Buffer.isBuffer(body)
+          ? body.toString("utf8")
+          : String(body ?? "");
+        (req as { rawBody?: string }).rawBody = raw;
+        const trimmed = raw.trim();
+        if (!trimmed) {
+          done(null, {});
+          return;
+        }
+        done(null, JSON.parse(raw));
+      } catch (err) {
+        const error = err as Error & { statusCode?: number };
+        error.statusCode = 400;
+        done(error, undefined);
+      }
+    },
+  );
 
   // ---------------------------------------------------------------------------
   // CORS
@@ -183,6 +210,7 @@ export async function buildServer() {
   await registerAdminAnalyticsRoutes(app);
   await registerAdminSubscriptionsRoutes(app);
   await registerAdminDevicesRoutes(app);
+  await registerAdminBillingReconcileRoutes(app);
   await registerAdminFiscalRoutes(app);
   await registerAdminReceiptsRoutes(app);
 
