@@ -12,6 +12,7 @@ import {
 } from "../../../config/stripePrices.js";
 import { parseCheckoutPlanId } from "../../../lib/billingPeriod.js";
 import { ENV } from "../../../config/env.js";
+import { verifyStripeWebhookSignature } from "../../../lib/stripeWebhookSignature.js";
 
 export class StripeProvider implements PaymentProvider {
   name = "stripe" as const;
@@ -120,26 +121,41 @@ export class StripeProvider implements PaymentProvider {
     rawBody: string,
     headers: Record<string, string | string[] | undefined>
   ): Promise<WebhookHandleResult> {
-    // TODO: Stripe Signature-Verifikation (später)
-    // Für jetzt: Webhook Secret prüfen, aber keine vollständige Verifikation
-    const signature = headers["stripe-signature"];
     const webhookSecret = this.env === "live"
       ? ENV.STRIPE_WEBHOOK_SECRET_LIVE
       : ENV.STRIPE_WEBHOOK_SECRET_TEST;
+    const isDev = ENV.NODE_ENV === "development";
 
-    // In Development: Warnung, aber nicht blockieren
-    if (!webhookSecret && process.env.NODE_ENV !== "development") {
-      return {
-        ok: false,
-        status: "failed",
-        message: "Stripe webhook secret not configured",
-      };
+    if (!webhookSecret) {
+      if (!isDev) {
+        return {
+          ok: false,
+          status: "failed",
+          message: "Stripe webhook secret not configured",
+        };
+      }
+      console.warn(
+        "[stripe webhook] STRIPE_WEBHOOK_SECRET_* missing — skipping signature verify (development only)",
+      );
+    } else {
+      const verified = verifyStripeWebhookSignature({
+        rawBody,
+        signatureHeader: headers["stripe-signature"],
+        secret: webhookSecret,
+      });
+      if (!verified.ok) {
+        return {
+          ok: false,
+          status: "failed",
+          message: `Stripe signature verification failed: ${verified.reason}`,
+        };
+      }
     }
 
     let eventData: any;
     try {
       eventData = JSON.parse(rawBody);
-    } catch (err) {
+    } catch {
       return {
         ok: false,
         status: "failed",
@@ -158,7 +174,6 @@ export class StripeProvider implements PaymentProvider {
       };
     }
 
-    // Verarbeite das Event mit WebhookProcessor
     try {
       const { WebhookProcessor } = await import("../../WebhookProcessor.js");
       const processor = new WebhookProcessor();

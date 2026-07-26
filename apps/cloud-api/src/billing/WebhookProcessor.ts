@@ -4,8 +4,7 @@ import { invoices } from "../db/schema/invoices.js";
 import { subscriptions } from "../db/schema/subscriptions.js";
 import { payments } from "../db/schema/payments.js";
 import { licenses } from "../db/schema/licenses.js";
-import { and, desc, eq, gte, ne, sql } from "drizzle-orm";
-import type { InferSelectModel } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { notificationService } from "./NotificationService.js";
 import { ensurePaidLicenseAfterSuccessfulPayment } from "../lib/finalizePaidLicenseAfterPayment.js";
 import {
@@ -14,8 +13,8 @@ import {
 } from "../lib/persistStripeSubscriptionFromSession.js";
 import { ensureStripePaidInvoiceFromCheckoutSession } from "../lib/ensureStripePaidInvoice.js";
 import { ENV } from "../config/env.js";
-import { syncPaidInvoiceFromStripeCheckoutSession, syncPaidInvoiceFromStripeInvoice } from "../lib/syncPaidInvoiceFromStripe.js";
-import { parseBillingPeriodFromPlanId } from "../lib/billingPeriod.js";
+import { syncPaidInvoiceFromStripeCheckoutSession } from "../lib/syncPaidInvoiceFromStripe.js";
+import { processStripePaidInvoice } from "../lib/processStripePaidInvoice.js";
 
 export interface ProcessedWebhookResult {
   success: boolean;
@@ -333,6 +332,7 @@ export class WebhookProcessor {
         return this.handleStripeCheckoutCompleted(data);
 
       case "invoice.paid":
+      case "invoice.payment_succeeded":
         return this.handleStripeInvoicePaid(data);
 
       case "invoice.payment_failed":
@@ -494,383 +494,22 @@ export class WebhookProcessor {
     };
   }
 
-  private generateWebhookInvoiceNumber(): string {
-    const now = new Date();
-    const year = now.getFullYear();
-    const rand = Math.floor(Math.random() * 1_000_000)
-      .toString()
-      .padStart(6, "0");
-    return `INV-${year}-${rand}`;
-  }
-
   /**
-   * Erste Zahlung nach Checkout: Session-Zahlung existiert schon → keine zweite Payment-Zeile für dieselbe Invoice.
-   */
-  private async hasRecentStripeCheckoutPaymentForSubscription(
-    internalSubscriptionId: string,
-    amountCents: number
-  ): Promise<boolean> {
-    const since = new Date(Date.now() - 48 * 60 * 60 * 1000);
-    const [row] = await db
-      .select({ id: payments.id })
-      .from(payments)
-      .where(
-        and(
-          eq(payments.subscriptionId as any, internalSubscriptionId as any),
-          eq(payments.provider as any, "stripe"),
-          eq(payments.status as any, "succeeded"),
-          sql`${payments.providerPaymentId} like 'cs_%'`,
-          eq(payments.amountCents as any, amountCents),
-          gte(payments.createdAt as any, since),
-        ),
-      )
-      .orderBy(desc(payments.createdAt as any))
-      .limit(1);
-    return Boolean(row);
-  }
-
-  /**
-   * Verarbeitet bezahlte Stripe Invoice (Renewal + erste Zahlung mit Metadata).
-   * Idempotent bzgl. Stripe-Invoice-ID (Retries erzeugen keine Duplikate).
+   * Verarbeitet bezahlte Stripe Invoice (Renewal + erste Zahlung).
+   * Delegiert an zentralen idempotenten Handler — unresolved Match = failure (nicht silent ok).
    */
   private async handleStripeInvoicePaid(invoice: any): Promise<ProcessedWebhookResult> {
-    const stripeInvoiceId = String(invoice.id || "");
-    const stripeSubRef = invoice.subscription;
-    const stripeSubId =
-      typeof stripeSubRef === "string"
-        ? stripeSubRef
-        : stripeSubRef?.id
-          ? String(stripeSubRef.id)
-          : "";
-
-    const pEnvGuess = invoice.livemode ? "live" : "test";
-    const periodStartSec = invoice.period_start as number | undefined;
-    const periodEndSec = invoice.period_end as number | undefined;
-    const periodStart =
-      typeof periodStartSec === "number"
-        ? new Date(periodStartSec * 1000)
-        : null;
-    const periodEnd =
-      typeof periodEndSec === "number" ? new Date(periodEndSec * 1000) : null;
-
-    let sub: InferSelectModel<typeof subscriptions> | undefined;
-
-    if (stripeSubId) {
-      const [row] = await db
-        .select()
-        .from(subscriptions)
-        .where(
-          and(
-            eq(subscriptions.provider as any, "stripe"),
-            eq(subscriptions.providerSubscriptionId as any, stripeSubId),
-          ),
-        )
-        .limit(1);
-      sub = row;
-    }
-
-    const metaInvoiceId = invoice.metadata?.invoiceId as string | undefined;
-    if (!sub && metaInvoiceId) {
-      const [invByMeta] = await db
-        .select()
-        .from(invoices)
-        .where(eq(invoices.id, metaInvoiceId))
-        .limit(1);
-      if (invByMeta?.subscriptionId) {
-        const [row] = await db
-          .select()
-          .from(subscriptions)
-          .where(eq(subscriptions.id, invByMeta.subscriptionId))
-          .limit(1);
-        sub = row;
-      }
-    }
-
-    // Legacy: nur interne Rechnung per Stripe-Invoice-ID (ohne bekannte Subscription)
-    if (!sub) {
-      const [invByProv] = await db
-        .select()
-        .from(invoices)
-        .where(eq(invoices.providerInvoiceId as any, stripeInvoiceId))
-        .limit(1);
-
-      if (invByProv) {
-        if (invByProv.status !== "paid") {
-          await db
-            .update(invoices as any)
-            .set({
-              status: "paid",
-              paidAt: new Date(),
-              dueAt: null,
-            } as any)
-            .where(eq(invoices.id, invByProv.id));
-        }
-        return {
-          success: true,
-          message: `Invoice ${invByProv.id} marked as paid (no internal subscription match)`,
-          updatedInvoiceId: invByProv.id,
-        };
-      }
-
-      if (metaInvoiceId) {
-        const [inv] = await db
-          .select()
-          .from(invoices)
-          .where(eq(invoices.id, metaInvoiceId))
-          .limit(1);
-        if (!inv) {
-          return {
-            success: false,
-            message: `Invoice ${metaInvoiceId} not found`,
-          };
-        }
-        if (inv.status === "paid") {
-          return {
-            success: true,
-            message: `Invoice ${metaInvoiceId} already paid`,
-            updatedInvoiceId: metaInvoiceId,
-          };
-        }
-        await db
-          .update(invoices as any)
-          .set({
-            status: "paid",
-            paidAt: new Date(),
-            dueAt: null,
-            providerInvoiceId: stripeInvoiceId,
-          } as any)
-          .where(eq(invoices.id, metaInvoiceId));
-        return {
-          success: true,
-          message: `Invoice ${metaInvoiceId} marked as paid`,
-          updatedInvoiceId: metaInvoiceId,
-        };
-      }
-
-      return {
-        success: true,
-        message: `invoice.paid ignored (unknown subscription / no matching invoice)`,
-      };
-    }
-
-    const providerEnv = (sub.providerEnv as string) || pEnvGuess;
-
-    await db
-      .update(subscriptions as any)
-      .set({
-        status: "active",
-        currentPeriodStart: periodStart ?? sub.currentPeriodStart,
-        currentPeriodEnd: periodEnd ?? sub.currentPeriodEnd,
-      } as any)
-      .where(eq(subscriptions.id, sub.id));
-
-    const cid = String(sub.customerId);
-    const sid = String(sub.id);
-
-    const [paidLicense] = await db
-      .select()
-      .from(licenses)
-      .where(
-        and(
-          eq(licenses.customerId as any, cid),
-          eq(licenses.subscriptionId as any, sid),
-          ne(licenses.plan as any, "trial"),
-          sql`lower(${licenses.plan}) in ('starter','pro')`,
-          sql`lower(coalesce(${licenses.status}, '')) = 'active'`,
-        ),
-      )
-      .limit(1);
-
-    if (paidLicense && periodEnd) {
-      const cur = paidLicense.validUntil
-        ? new Date(paidLicense.validUntil as Date).getTime()
-        : 0;
-      const next = periodEnd.getTime();
-      const newUntil = new Date(Math.max(cur, next));
-      await db
-        .update(licenses as any)
-        .set({ validUntil: newUntil, updatedAt: new Date() } as any)
-        .where(eq(licenses.id, paidLicense.id));
-    }
-
-    const [existingPay] = await db
-      .select({ id: payments.id })
-      .from(payments)
-      .where(
-        and(
-          eq(payments.provider as any, "stripe"),
-          eq(payments.providerEnv as any, providerEnv),
-          eq(payments.providerPaymentId as any, stripeInvoiceId),
-        ),
-      )
-      .limit(1);
-
-    const billingReason = String(invoice.billing_reason || "");
-    const skipPaymentInsert =
-      Boolean(existingPay) ||
-      (billingReason === "subscription_create" &&
-        (Boolean(metaInvoiceId) ||
-          (await this.hasRecentStripeCheckoutPaymentForSubscription(
-            sid,
-            Number(invoice.amount_paid ?? 0),
-          ))));
-
-    let createdPaymentId: string | undefined;
-    if (!skipPaymentInsert) {
-      const [payment] = await db
-        .insert(payments)
-        .values({
-          orgId: sub.orgId,
-          customerId: sub.customerId,
-          subscriptionId: sub.id,
-          provider: "stripe",
-          providerEnv,
-          providerPaymentId: stripeInvoiceId,
-          providerStatus: String(invoice.status || "paid"),
-          amountCents: Number(invoice.amount_paid ?? 0),
-          currency: String(invoice.currency || "eur").toUpperCase(),
-          status: "succeeded",
-          amountGrossCents: Number(invoice.amount_paid ?? 0),
-        } as any)
-        .returning();
-      createdPaymentId = payment?.id;
-    }
-
-    let invForLicense: string | undefined;
-    let updatedInvoiceId: string | undefined;
-
-    if (metaInvoiceId) {
-      const [metaInv] = await db
-        .select()
-        .from(invoices)
-        .where(eq(invoices.id, metaInvoiceId))
-        .limit(1);
-      if (metaInv) {
-        const billingPeriod =
-          (sub.billingPeriod as "monthly" | "yearly" | null) ??
-          parseBillingPeriodFromPlanId(
-            (invoice.metadata as Record<string, string> | undefined)?.planId,
-          );
-        await syncPaidInvoiceFromStripeInvoice({
-          invoiceId: metaInv.id,
-          subscriptionId: sub.id,
-          stripeInvoice: invoice as Record<string, unknown>,
-          billingPeriod,
-          markPaid: metaInv.status !== "paid",
-        });
-        await db
-          .update(invoices as any)
-          .set({
-            providerInvoiceId: stripeInvoiceId,
-            provider: "stripe",
-            providerEnv: (metaInv.providerEnv as string) || providerEnv,
-          } as any)
-          .where(eq(invoices.id, metaInv.id));
-        invForLicense = metaInv.id;
-        updatedInvoiceId = metaInv.id;
-      }
-    }
-
-    if (!invForLicense) {
-      const [byProv] = await db
-        .select()
-        .from(invoices)
-        .where(
-          and(
-            eq(invoices.provider as any, "stripe"),
-            eq(invoices.providerEnv as any, providerEnv),
-            eq(invoices.providerInvoiceId as any, stripeInvoiceId),
-          ),
-        )
-        .limit(1);
-
-      if (byProv) {
-        if (byProv.status !== "paid") {
-          await db
-            .update(invoices as any)
-            .set({
-              status: "paid",
-              paidAt: new Date(),
-              dueAt: null,
-            } as any)
-            .where(eq(invoices.id, byProv.id));
-        }
-        invForLicense = byProv.id;
-        updatedInvoiceId = byProv.id;
-      } else {
-        const planName = sub.plan === "starter" ? "Starter" : "Pro";
-        const invNumber = this.generateWebhookInvoiceNumber();
-        const currency = String(invoice.currency || "eur").toUpperCase();
-        const billingPeriod =
-          (sub.billingPeriod as "monthly" | "yearly" | null) ??
-          parseBillingPeriodFromPlanId(
-            (invoice.metadata as Record<string, string> | undefined)?.planId,
-          );
-
-        try {
-          const { invoiceAmountFieldsFromBreakdown, amountsFromStripeInvoice } =
-            await import("../lib/stripeCheckoutAmounts.js");
-          const amounts = amountsFromStripeInvoice(invoice as Record<string, unknown>);
-          const [newInv] = await db
-            .insert(invoices)
-            .values({
-              orgId: sub.orgId,
-              customerId: sub.customerId,
-              subscriptionId: sub.id,
-              number: invNumber,
-              currency,
-              status: "paid",
-              paidAt: new Date(),
-              dueAt: null,
-              provider: "stripe",
-              providerEnv,
-              providerInvoiceId: stripeInvoiceId,
-              planName,
-              billingPeriod,
-              paymentMethod: "card",
-              ...invoiceAmountFieldsFromBreakdown(amounts),
-            } as any)
-            .returning();
-          invForLicense = newInv?.id;
-          updatedInvoiceId = newInv?.id;
-        } catch {
-          const [again] = await db
-            .select()
-            .from(invoices)
-            .where(
-              and(
-                eq(invoices.provider as any, "stripe"),
-                eq(invoices.providerEnv as any, providerEnv),
-                eq(invoices.providerInvoiceId as any, stripeInvoiceId),
-              ),
-            )
-            .limit(1);
-          if (again) {
-            invForLicense = again.id;
-            updatedInvoiceId = again.id;
-          }
-        }
-      }
-    }
-
-    let createdLicenseId: string | undefined;
-    if (invForLicense && (sub.plan === "starter" || sub.plan === "pro")) {
-      createdLicenseId = await ensurePaidLicenseAfterSuccessfulPayment({
-        orgId: String(sub.orgId),
-        customerId: cid,
-        subscriptionId: sid,
-        invoiceId: invForLicense,
-        source: "stripe_webhook",
-      });
-    }
-
+    const result = await processStripePaidInvoice({
+      invoice: invoice as Record<string, unknown>,
+      source: "webhook",
+    });
     return {
-      success: true,
-      message: `invoice.paid processed for subscription ${sub.id}`,
-      updatedSubscriptionId: sub.id,
-      updatedInvoiceId,
-      createdPaymentId,
-      createdLicenseId,
+      success: result.success,
+      message: result.message,
+      updatedInvoiceId: result.updatedInvoiceId,
+      updatedSubscriptionId: result.updatedSubscriptionId,
+      createdPaymentId: result.createdPaymentId,
+      createdLicenseId: result.createdLicenseId ?? result.extendedLicenseId,
     };
   }
 

@@ -12,6 +12,13 @@ function verifyPaypalSignature(_req: FastifyRequest, _body: any): boolean {
   return true; // dev only
 }
 
+function rawBodyFromRequest(request: FastifyRequest): string {
+  const raw = (request as any).rawBody;
+  if (typeof raw === "string" && raw.length > 0) return raw;
+  // Fallback (breaks Stripe signature verify — only for non-Stripe paths)
+  return JSON.stringify(request.body ?? {});
+}
+
 export async function registerWebhooksRoutes(app: FastifyInstance) {
   // ✅ Liste – benutzt deine Admin-UI
   app.get("/webhooks", async (request, reply) => {
@@ -27,10 +34,8 @@ export async function registerWebhooksRoutes(app: FastifyInstance) {
 
   // 🟣 PayPal-Webhook-Eingang (öffentlich)
   app.post("/webhooks/paypal", async (request, reply) => {
-    // Fastify parses JSON automatically, but we need raw body for signature verification
-    // For now, we'll use the parsed body and reconstruct the string
     const body = request.body as any;
-    const bodyString = JSON.stringify(body);
+    const bodyString = rawBodyFromRequest(request);
 
     if (!verifyPaypalSignature(request, body)) {
       request.log.warn("PayPal signature verification failed (stub)");
@@ -38,7 +43,6 @@ export async function registerWebhooksRoutes(app: FastifyInstance) {
       return reply.send({ ok: false, error: "invalid_signature" });
     }
 
-    // 1) Org bestimmen – aktuell nehmen wir einfach die erste Org (Single-Tenant)
     const [org] = await db.select().from(orgs).limit(1);
     if (!org) {
       request.log.error("No org found while handling PayPal webhook");
@@ -49,14 +53,12 @@ export async function registerWebhooksRoutes(app: FastifyInstance) {
     const eventType = body.event_type ?? "unknown";
     const eventId = body.id || body.event_id;
 
-    // 2) Provider-Handler aufrufen
     const provider = billingService["providers"]["paypal"];
     const webhookResult = await provider.handleWebhook(
       bodyString,
       request.headers as Record<string, string | string[] | undefined>
     );
 
-    // 3) Webhook idempotent speichern (event_id unique)
     let webhookRow;
     try {
       [webhookRow] = await db
@@ -67,14 +69,20 @@ export async function registerWebhooksRoutes(app: FastifyInstance) {
           providerEnv: provider.env,
           eventId: eventId || null,
           eventType,
-          status: webhookResult.status === "processed" ? "ok" : webhookResult.status === "failed" ? "failed" : "pending",
+          status:
+            webhookResult.status === "processed"
+              ? "ok"
+              : webhookResult.status === "failed"
+                ? "failed"
+                : "pending",
           payload: body,
-          errorMessage: webhookResult.status === "failed" ? webhookResult.message : null,
-          processedAt: webhookResult.status === "processed" ? new Date() : null,
+          errorMessage:
+            webhookResult.status === "failed" ? webhookResult.message : null,
+          processedAt:
+            webhookResult.status === "processed" ? new Date() : null,
         })
         .returning();
     } catch (err: any) {
-      // Unique constraint violation = event already processed
       if (err.code === "23505") {
         request.log.info({ eventId }, "PayPal webhook event already processed, ignoring");
         reply.code(200);
@@ -83,7 +91,6 @@ export async function registerWebhooksRoutes(app: FastifyInstance) {
       throw err;
     }
 
-    // 4) Wenn processing fehlgeschlagen, loggen
     if (webhookResult.status === "failed" && webhookRow) {
       await db
         .update(webhooks)
@@ -100,12 +107,9 @@ export async function registerWebhooksRoutes(app: FastifyInstance) {
 
   // 🔵 Stripe-Webhook-Eingang (öffentlich)
   app.post("/webhooks/stripe", async (request, reply) => {
-    // Stripe benötigt raw body für Signature-Verifikation
-    // Fastify parsed JSON automatisch, aber wir brauchen den raw body
     const body = request.body as any;
-    const bodyString = JSON.stringify(body);
+    const bodyString = rawBodyFromRequest(request);
 
-    // 1) Org bestimmen
     const [org] = await db.select().from(orgs).limit(1);
     if (!org) {
       request.log.error("No org found while handling Stripe webhook");
@@ -113,8 +117,8 @@ export async function registerWebhooksRoutes(app: FastifyInstance) {
       return reply.send({ ok: false });
     }
 
-    const eventType = body.type || "unknown";
-    const eventId = body.id;
+    const eventType = body?.type || "unknown";
+    const eventId = body?.id;
 
     if (!eventId) {
       request.log.warn("Stripe webhook missing event ID");
@@ -122,52 +126,115 @@ export async function registerWebhooksRoutes(app: FastifyInstance) {
       return reply.send({ ok: false, error: "missing_event_id" });
     }
 
-    // 2) Provider-Handler aufrufen
     const provider = billingService["providers"]["stripe"];
-    const webhookResult = await provider.handleWebhook(
-      bodyString,
-      request.headers as Record<string, string | string[] | undefined>
-    );
 
-    // 3) Webhook idempotent speichern (event_id unique)
-    let webhookRow;
+    // 1) Persist as pending first — business failure must not look like success
+    let webhookRow: { id: string; status: string } | undefined;
     try {
-      [webhookRow] = await db
+      const [inserted] = await db
         .insert(webhooks)
         .values({
           orgId: org.id,
           provider: "stripe",
           providerEnv: provider.env,
-          eventId: eventId || null,
+          eventId,
           eventType,
-          status: webhookResult.status === "processed" ? "ok" : webhookResult.status === "failed" ? "failed" : "pending",
-          payload: body,
-          errorMessage: webhookResult.status === "failed" ? webhookResult.message : null,
-          processedAt: webhookResult.status === "processed" ? new Date() : null,
+          status: "pending",
+          payload: body ?? {},
+          errorMessage: null,
+          processedAt: null,
         })
         .returning();
+      webhookRow = inserted;
     } catch (err: any) {
-      // Unique constraint violation = event already processed
       if (err.code === "23505") {
-        request.log.info({ eventId }, "Stripe webhook event already processed, ignoring");
-        reply.code(200);
-        return { ok: true, message: "Event already processed" };
+        const [existing] = await db
+          .select()
+          .from(webhooks)
+          .where(
+            and(
+              eq(webhooks.provider as any, "stripe"),
+              eq(webhooks.providerEnv as any, provider.env),
+              eq(webhooks.eventId as any, eventId),
+            ),
+          )
+          .limit(1);
+
+        if (existing?.status === "ok") {
+          request.log.info({ eventId }, "Stripe webhook already processed ok");
+          reply.code(200);
+          return { ok: true, message: "Event already processed" };
+        }
+
+        // failed/pending → allow retry of business processing
+        webhookRow = existing;
+        if (existing) {
+          await db
+            .update(webhooks)
+            .set({
+              status: "pending",
+              errorMessage: null,
+              payload: body ?? existing.payload,
+            })
+            .where(eq(webhooks.id, existing.id));
+        }
+      } else {
+        throw err;
       }
-      throw err;
     }
 
-    // 4) Wenn processing fehlgeschlagen, loggen
-    if (webhookResult.status === "failed" && webhookRow) {
-      await db
-        .update(webhooks)
-        .set({
-          status: "failed",
-          errorMessage: webhookResult.message || "Unknown error",
-        })
-        .where(eq(webhooks.id, webhookRow.id));
+    // 2) Provider-Handler (signature + business logic)
+    const webhookResult = await provider.handleWebhook(
+      bodyString,
+      request.headers as Record<string, string | string[] | undefined>
+    );
+
+    // 3) Finalize status from business result only
+    if (webhookRow?.id) {
+      if (webhookResult.status === "processed") {
+        await db
+          .update(webhooks)
+          .set({
+            status: "ok",
+            errorMessage: null,
+            processedAt: new Date(),
+          })
+          .where(eq(webhooks.id, webhookRow.id));
+      } else {
+        await db
+          .update(webhooks)
+          .set({
+            status: "failed",
+            errorMessage: webhookResult.message || "Unknown error",
+            processedAt: null,
+          })
+          .where(eq(webhooks.id, webhookRow.id));
+      }
     }
 
+    // Signature failures should be 400 so Stripe retries / alerts
+    if (
+      webhookResult.status === "failed" &&
+      String(webhookResult.message || "").includes("signature")
+    ) {
+      reply.code(400);
+      return { ok: false, status: "failed", message: webhookResult.message };
+    }
+
+    // Business failure: HTTP 200 (avoid infinite Stripe retry loops for permanent
+    // errors) but ok:false so callers never treat failed business as success.
     reply.code(200);
-    return { ok: true, status: webhookResult.status };
+    if (webhookResult.status !== "processed") {
+      return {
+        ok: false,
+        status: webhookResult.status,
+        message: webhookResult.message,
+      };
+    }
+    return {
+      ok: true,
+      status: webhookResult.status,
+      message: webhookResult.message,
+    };
   });
 }
