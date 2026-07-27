@@ -21,7 +21,8 @@ import {
   type OrderPaymentRow,
   type PaymentSummaryCents,
 } from "./portalOrders.js";
-import { POS_NATIVE_PLATFORMS_LIST } from "./orderSource.js";
+import { POS_NATIVE_PLATFORMS_LIST, isProviderOrder } from "./orderSource.js";
+import { dedupeProviderOrders } from "./dedupeProviderOrders.js";
 import {
   normalizePortalOrderStatus,
   PORTAL_ORDER_STATUS,
@@ -30,6 +31,20 @@ import {
   sqlInPeriodBerlin,
   type PortalReportsPeriod,
 } from "./portalReportsPeriod.js";
+
+function receiptStatusContributesToKpis(status: string | null | undefined): boolean {
+  const normalized = (status ?? "active").trim().toLowerCase();
+  return (
+    normalized !== "refunded" &&
+    normalized !== "partial_refund" &&
+    normalized !== "voided"
+  );
+}
+
+function receiptStatusIsRefunded(status: string | null | undefined): boolean {
+  const normalized = (status ?? "active").trim().toLowerCase();
+  return normalized === "refunded" || normalized === "partial_refund";
+}
 
 export function customerDeviceScope(orgId: string, customerId: string) {
   return and(eq(devices.orgId, orgId), eq(devices.customerId, customerId));
@@ -277,12 +292,17 @@ export async function fetchOnlinePaymentSummaryForPeriod(input: {
 
   const orderRows = await db
     .select({
+      id: posOrders.id,
       deviceId: posOrders.deviceId,
       localOrderId: posOrders.localOrderId,
       totalCents: posOrders.totalCents,
       currency: posOrders.currency,
       paymentStatus: posOrders.paymentStatus,
       status: posOrders.status,
+      platform: posOrders.platform,
+      providerOrderId: posOrders.providerOrderId,
+      updatedAt: posOrders.updatedAt,
+      soldAt: posOrders.soldAt,
     })
     .from(posOrders)
     .innerJoin(devices, eq(posOrders.deviceId, devices.id))
@@ -292,6 +312,13 @@ export async function fetchOnlinePaymentSummaryForPeriod(input: {
         sqlIsProviderOrderPlatform(posOrders.platform),
       ),
     );
+
+  const dedupedOrderRows = dedupeProviderOrders(orderRows);
+  const winnerKeys = new Set(
+    dedupedOrderRows.map((order) =>
+      orderLinesLookupKey(order.deviceId, order.localOrderId),
+    ),
+  );
 
   const paymentRows = await db
     .select({
@@ -326,9 +353,11 @@ export async function fetchOnlinePaymentSummaryForPeriod(input: {
   const paymentsByOrder = new Map<string, OrderPaymentRow[]>();
   for (const row of paymentRows) {
     if (!row.localOrderId) continue;
+    const key = orderLinesLookupKey(row.deviceId, row.localOrderId);
+    if (!winnerKeys.has(key)) continue;
     appendOrderPaymentRow(
       paymentsByOrder,
-      orderLinesLookupKey(row.deviceId, row.localOrderId),
+      key,
       {
         deviceId: row.deviceId,
         localOrderId: row.localOrderId,
@@ -369,18 +398,22 @@ export async function fetchOnlinePaymentSummaryForPeriod(input: {
       ),
     );
 
+  const winnerKpiReceiptRows = kpiReceiptRows.filter((row) =>
+    winnerKeys.has(orderLinesLookupKey(row.deviceId, row.localOrderId)),
+  );
+
   const ordersWithKpiReceipt = new Set<string>();
-  for (const row of kpiReceiptRows) {
+  for (const row of winnerKpiReceiptRows) {
     ordersWithKpiReceipt.add(orderLinesLookupKey(row.deviceId, row.localOrderId));
   }
 
   let currency =
-    orderRows[0]?.currency?.trim().toUpperCase() ??
-    kpiReceiptRows[0]?.currency?.trim().toUpperCase() ??
+    dedupedOrderRows[0]?.currency?.trim().toUpperCase() ??
+    winnerKpiReceiptRows[0]?.currency?.trim().toUpperCase() ??
     "EUR";
 
   const summary = aggregateOnlinePaymentSummary({
-    orders: orderRows.map((order) => {
+    orders: dedupedOrderRows.map((order) => {
       const key = orderLinesLookupKey(order.deviceId, order.localOrderId);
       return {
         totalCents: order.totalCents,
@@ -394,7 +427,7 @@ export async function fetchOnlinePaymentSummaryForPeriod(input: {
         ),
       };
     }),
-    providerReceipts: kpiReceiptRows.map((receipt) => {
+    providerReceipts: winnerKpiReceiptRows.map((receipt) => {
       const key = orderLinesLookupKey(receipt.deviceId, receipt.localOrderId);
       return {
         grossCents: receipt.grossCents,
@@ -421,27 +454,83 @@ export async function fetchPortalSalesPeriodStats(input: {
 
   const [orderStats] = await db
     .select({
-      count: sql<number>`count(*)::int`,
       liveCount: sql<number>`count(*) filter (where ${sqlIsLiveOrderPlatform(posOrders.platform)})::int`,
     })
     .from(posOrders)
     .innerJoin(devices, eq(posOrders.deviceId, devices.id))
     .where(orderPeriodScope(orgId, customerId, period));
 
-  const totalOrders = orderStats?.count ?? 0;
   const liveOrdersCount = orderStats?.liveCount ?? 0;
-  const onlineOrdersCount = Math.max(0, totalOrders - liveOrdersCount);
 
-  const [receiptStats] = await db
+  const providerOrderRows = await db
     .select({
-      count: sql<number>`count(*)::int`,
-      kpiCount: sql<number>`count(*) filter (where ${sqlReceiptContributesToKpis()})::int`,
-      revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
-      refundsCount: sql<number>`count(*) filter (where ${sqlReceiptIsRefunded()})::int`,
+      id: posOrders.id,
+      deviceId: posOrders.deviceId,
+      localOrderId: posOrders.localOrderId,
+      platform: posOrders.platform,
+      providerOrderId: posOrders.providerOrderId,
+      status: posOrders.status,
+      updatedAt: posOrders.updatedAt,
+      soldAt: posOrders.soldAt,
+      totalCents: posOrders.totalCents,
+      paymentStatus: posOrders.paymentStatus,
+    })
+    .from(posOrders)
+    .innerJoin(devices, eq(posOrders.deviceId, devices.id))
+    .where(
+      and(
+        orderPeriodScope(orgId, customerId, period),
+        sqlIsProviderOrderPlatform(posOrders.platform),
+      ),
+    );
+
+  const providerWinners = dedupeProviderOrders(providerOrderRows);
+  const onlineOrdersCount = providerWinners.length;
+  const totalOrders = liveOrdersCount + onlineOrdersCount;
+  const winnerOrderKeys = new Set(
+    providerWinners.map((order) =>
+      orderLinesLookupKey(order.deviceId, order.localOrderId),
+    ),
+  );
+
+  const receiptOrderJoinForCounts = and(
+    eq(posReceipts.orgId, posOrders.orgId),
+    eq(posReceipts.deviceId, posOrders.deviceId),
+    eq(posReceipts.localOrderId, posOrders.localOrderId),
+  );
+
+  // Count receipts safely: live/orphan always; provider only when linked to a winner key.
+  const receiptCountRows = await db
+    .select({
+      deviceId: posReceipts.deviceId,
+      localOrderId: posReceipts.localOrderId,
+      status: posReceipts.status,
+      platform: posOrders.platform,
+      orderId: posOrders.id,
     })
     .from(posReceipts)
     .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
+    .leftJoin(posOrders, receiptOrderJoinForCounts)
     .where(receiptPeriodScope(orgId, customerId, period));
+
+  let receiptsCount = 0;
+  let kpiReceiptsCount = 0;
+  let refundsCount = 0;
+  for (const row of receiptCountRows) {
+    if (row.orderId && isProviderOrder(row.platform)) {
+      if (!row.localOrderId) continue;
+      if (
+        !winnerOrderKeys.has(
+          orderLinesLookupKey(row.deviceId, row.localOrderId),
+        )
+      ) {
+        continue;
+      }
+    }
+    receiptsCount += 1;
+    if (receiptStatusContributesToKpis(row.status)) kpiReceiptsCount += 1;
+    if (receiptStatusIsRefunded(row.status)) refundsCount += 1;
+  }
 
   const paymentRows = await fetchPosPaymentsForSalesPeriod({
     orgId,
@@ -472,9 +561,11 @@ export async function fetchPortalSalesPeriodStats(input: {
       ),
     );
 
-  const [onlineReceiptRevenueRow] = await db
+  const providerKpiReceiptRows = await db
     .select({
-      revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
+      deviceId: posOrders.deviceId,
+      localOrderId: posOrders.localOrderId,
+      grossCents: posReceipts.grossCents,
     })
     .from(posReceipts)
     .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
@@ -482,45 +573,45 @@ export async function fetchPortalSalesPeriodStats(input: {
     .where(
       and(
         receiptPeriodScope(orgId, customerId, period),
+        sqlReceiptContributesToKpis(posReceipts.status),
         sqlIsProviderOrderPlatform(posOrders.platform),
       ),
     );
 
-  const [onlineOrderRevenueRow] = await db
-    .select({
-      revenue: sql<number>`coalesce(sum(${posOrders.totalCents}), 0)::int`,
-    })
-    .from(posOrders)
-    .innerJoin(devices, eq(posOrders.deviceId, devices.id))
-    .where(
-      and(
-        orderPeriodScope(orgId, customerId, period),
-        sqlIsProviderOrderPlatform(posOrders.platform),
-        sql`not (${sqlOrderIsCancelled(posOrders.status)})`,
-        sql`(
-          lower(coalesce(trim(${posOrders.paymentStatus}), '')) = 'paid'
-          or exists (
-            select 1
-            from ${posSalePayments}
-            where ${posSalePayments.orgId} = ${posOrders.orgId}
-              and ${posSalePayments.deviceId} = ${posOrders.deviceId}
-              and ${posSalePayments.localOrderId} = ${posOrders.localOrderId}
-          )
-        )`,
-        sql`not exists (
-          select 1
-          from ${posReceipts}
-          where ${posReceipts.orgId} = ${posOrders.orgId}
-            and ${posReceipts.deviceId} = ${posOrders.deviceId}
-            and ${posReceipts.localOrderId} = ${posOrders.localOrderId}
-            and ${sqlReceiptContributesToKpis(posReceipts.status)}
-        )`,
-      ),
+  const receiptRevenueByWinnerKey = new Map<string, number>();
+  for (const row of providerKpiReceiptRows) {
+    const key = orderLinesLookupKey(row.deviceId, row.localOrderId);
+    if (!winnerOrderKeys.has(key)) continue;
+    receiptRevenueByWinnerKey.set(
+      key,
+      (receiptRevenueByWinnerKey.get(key) ?? 0) + row.grossCents,
     );
+  }
+
+  // Online paid fallback uses winner.paymentStatus only.
+  // Do NOT intersect POS-only paymentRows with provider winner keys — that set
+  // was always empty (fetchPosPaymentsForSalesPeriod excludes provider channels).
+
+  let onlineReceiptRevenueCents = 0;
+  let onlineOrderRevenueCents = 0;
+  for (const winner of providerWinners) {
+    const key = orderLinesLookupKey(winner.deviceId, winner.localOrderId);
+    const receiptRevenue = receiptRevenueByWinnerKey.get(key) ?? 0;
+    const status = (winner.status ?? "").trim().toLowerCase();
+    const cancelled =
+      status === "cancelled" || status === "canceled" || status === "refunded";
+    if (receiptRevenue > 0) {
+      onlineReceiptRevenueCents += receiptRevenue;
+      continue;
+    }
+    const paymentStatus = (winner.paymentStatus ?? "").trim().toLowerCase();
+    if (!cancelled && paymentStatus === "paid") {
+      onlineOrderRevenueCents += winner.totalCents;
+    }
+  }
 
   const posRevenueCents = posReceiptRevenueRow?.revenue ?? 0;
-  const onlineRevenueCents =
-    (onlineReceiptRevenueRow?.revenue ?? 0) + (onlineOrderRevenueRow?.revenue ?? 0);
+  const onlineRevenueCents = onlineReceiptRevenueCents + onlineOrderRevenueCents;
   const revenueCents = combineRevenueMinor(posRevenueCents, onlineRevenueCents);
 
   const [currencyRow] = await db
@@ -554,12 +645,12 @@ export async function fetchPortalSalesPeriodStats(input: {
     ordersCount: totalOrders,
     liveOrdersCount,
     onlineOrdersCount,
-    receiptsCount: receiptStats?.count ?? 0,
-    kpiReceiptsCount: receiptStats?.kpiCount ?? 0,
+    receiptsCount,
+    kpiReceiptsCount,
     posRevenueCents,
     onlineRevenueCents,
     revenueCents,
-    refundsCount: receiptStats?.refundsCount ?? 0,
+    refundsCount,
     currency,
     paymentSummary: { ...paymentSummary, currency },
     onlinePaymentSummary: {

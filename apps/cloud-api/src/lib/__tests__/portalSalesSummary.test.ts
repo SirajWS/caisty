@@ -4,6 +4,7 @@ import {
   averageOrderMinor,
   combineRevenueMinor,
 } from "../portalSalesSummary.js";
+import { dedupeProviderOrders } from "../dedupeProviderOrders.js";
 import {
   aggregateEffectivePaymentSummary,
   type OrderPaymentRow,
@@ -16,12 +17,58 @@ describe("portalSalesSummary helpers", () => {
     expect(averageOrderMinor(453000, 27)).toBe(16778);
   });
 
-  it("keeps online orders as the remainder of total minus live", () => {
-    const total = 31;
+  it("keeps live and online counts additive after provider dedup", () => {
     const live = 26;
-    const online = Math.max(0, total - live);
-    expect(live + online).toBe(total);
-    expect(online).toBe(5);
+    const onlineWinners = 4; // e.g. 5 raw provider rows → 4 unique provider keys
+    const total = live + onlineWinners;
+    expect(total).toBe(30);
+    expect(onlineWinners).toBeLessThan(5);
+  });
+
+  it("counts dashboard revenue from provider winners only", () => {
+    const posRevenueCents = 441000;
+    // Two cloud rows same providerOrderId (web+desktop), each 12000 — count once
+    const onlineWinnerRevenueCents = 12000;
+    expect(combineRevenueMinor(posRevenueCents, onlineWinnerRevenueCents)).toBe(
+      453000,
+    );
+  });
+
+  it("regression T1785113113966: online orders 1 and revenue 27500 from winners", () => {
+    const winners = dedupeProviderOrders([
+      {
+        id: "a",
+        platform: "fake_delivery",
+        providerOrderId: null,
+        localOrderId: "T1785113113966",
+        status: "created",
+        updatedAt: "2026-07-27T00:45:15.000Z",
+        soldAt: "2026-07-27T00:45:13.000Z",
+      },
+      {
+        id: "b",
+        platform: "fake_delivery",
+        providerOrderId: null,
+        localOrderId: "T1785113113966",
+        status: "delivered",
+        updatedAt: "2026-07-27T00:45:27.000Z",
+        soldAt: "2026-07-27T00:45:13.000Z",
+      },
+    ]);
+    const onlineOrdersCount = winners.length;
+    const onlineRevenueCents = winners.length * 27500;
+    expect(onlineOrdersCount).toBe(1);
+    expect(onlineRevenueCents).toBe(27500);
+    expect(winners[0]?.status).toBe("delivered");
+  });
+
+  it("documents paidWinnerKeys removal: POS payments never mark provider winners", () => {
+    const posPaymentKeys = new Set(["pos-dev:POS-1"]);
+    const providerWinnerKeys = new Set(["web-dev:T1785113113966"]);
+    const paidWinnerKeys = new Set(
+      [...posPaymentKeys].filter((k) => providerWinnerKeys.has(k)),
+    );
+    expect(paidWinnerKeys.size).toBe(0);
   });
 
   it("combines POS and online revenue without double counting in the total", () => {

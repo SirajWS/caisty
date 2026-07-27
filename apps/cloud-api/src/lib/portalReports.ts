@@ -1,4 +1,4 @@
-import { and, desc, eq, sql, type AnyColumn } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "../db/client.js";
 import { devices } from "../db/schema/devices.js";
@@ -10,21 +10,27 @@ import {
 import {
   aggregateEffectivePaymentSummary,
   aggregatePaymentSummary,
+  orderLinesLookupKey,
   PORTAL_ORDERS_TIMEZONE,
   type OnlinePaymentSummaryCents,
   type PaymentBucket,
 } from "./portalOrders.js";
+import { isProviderOrder } from "./orderSource.js";
+import {
+  dedupeProviderOrders,
+  type ProviderOrderDedupFields,
+} from "./dedupeProviderOrders.js";
 import {
   averageOrderMinor,
   fetchPaymentsForSalesPeriod,
   fetchPortalSalesPeriodStats,
-  sqlReceiptContributesToKpis,
 } from "./portalSalesSummary.js";
 import {
   parsePortalReportsPeriod,
   revenueSeriesGranularity,
   sqlInPeriodBerlin,
   type PortalReportsPeriod,
+  type RevenueSeriesGranularity,
 } from "./portalReportsPeriod.js";
 
 export type { PortalReportsPeriod };
@@ -105,25 +111,6 @@ export type PortalReportsSummaryData = {
   businessTrends: PortalReportsBusinessTrends;
 };
 
-/**
- * Berlin TZ as SQL literal for GROUP BY / ORDER BY expressions.
- * Drizzle binds `${tz}` separately per clause ($1, $2, …); PostgreSQL 16 then
- * rejects SELECT vs GROUP BY as non-matching ("sold_at must appear in GROUP BY").
- */
-const berlinTzSql = sql.raw(`'${PORTAL_ORDERS_TIMEZONE}'`);
-
-function soldAtBerlinHour(column: AnyColumn) {
-  return sql`extract(hour from ${column} AT TIME ZONE ${berlinTzSql})::int`;
-}
-
-function soldAtBerlinDate(column: AnyColumn) {
-  return sql`(${column} AT TIME ZONE ${berlinTzSql})::date`;
-}
-
-function soldAtBerlinMonth(column: AnyColumn) {
-  return sql`date_trunc('month', ${column} AT TIME ZONE ${berlinTzSql})::date`;
-}
-
 function customerDeviceScope(orgId: string, customerId: string) {
   return and(eq(devices.orgId, orgId), eq(devices.customerId, customerId));
 }
@@ -162,7 +149,7 @@ function formatHourLabel(hour: number): string {
 
 function formatBucketLabel(
   bucketStart: string,
-  granularity: ReturnType<typeof revenueSeriesGranularity>,
+  granularity: RevenueSeriesGranularity,
 ): string {
   const date = new Date(bucketStart);
   if (Number.isNaN(date.getTime())) return bucketStart;
@@ -173,16 +160,6 @@ function formatBucketLabel(
     return date.toISOString().slice(0, 7);
   }
   return date.toISOString().slice(0, 10);
-}
-
-function pickCurrency(
-  rows: Array<{ currency?: string | null }>,
-  fallback = "EUR",
-): string {
-  for (const row of rows) {
-    if (row.currency?.trim()) return row.currency.trim().toUpperCase();
-  }
-  return fallback;
 }
 
 function paymentBucketLabel(bucket: PaymentBucket): string {
@@ -214,6 +191,296 @@ function pickMostUsedPayment(summary: ReturnType<typeof aggregatePaymentSummary>
     }
   }
   return best ? paymentBucketLabel(best) : null;
+}
+
+export type ReportOrderAggregateRow = ProviderOrderDedupFields & {
+  deviceId: string;
+  localOrderId: string;
+};
+
+export type ReportReceiptAggregateRow = {
+  deviceId: string;
+  localOrderId: string | null;
+  orderId: string | null;
+  platform: string | null;
+  soldAt: Date | string;
+  grossCents: number;
+  netCents: number;
+  taxCents: number;
+  status: string | null;
+  fiscalStatus: string | null;
+};
+
+export type ReportOrderLineAggregateRow = {
+  orderId: string;
+  productName: string | null;
+  quantity: number;
+  lineTotalCents: number;
+};
+
+/** Live POS rows + provider winners (central dedupeProviderOrders). */
+export function selectReportOrderWinners<T extends ReportOrderAggregateRow>(
+  rows: readonly T[],
+): T[] {
+  const live = rows.filter((row) => !isProviderOrder(row.platform));
+  const provider = rows.filter((row) => isProviderOrder(row.platform));
+  return [...live, ...dedupeProviderOrders(provider)];
+}
+
+export function reportWinnerOrderIds(
+  winners: readonly ReportOrderAggregateRow[],
+): Set<string> {
+  return new Set(winners.map((row) => row.id));
+}
+
+export function reportWinnerOrderKeys(
+  winners: readonly ReportOrderAggregateRow[],
+): Set<string> {
+  return new Set(
+    winners.map((row) => orderLinesLookupKey(row.deviceId, row.localOrderId)),
+  );
+}
+
+/** Orphan/live receipts always count; provider receipts only for winner device+order. */
+export function receiptIncludedInReportAggregates(
+  receipt: Pick<
+    ReportReceiptAggregateRow,
+    "orderId" | "platform" | "deviceId" | "localOrderId"
+  >,
+  winnerKeys: Set<string>,
+): boolean {
+  if (!receipt.orderId) return true;
+  if (!isProviderOrder(receipt.platform)) return true;
+  if (!receipt.localOrderId) return false;
+  return winnerKeys.has(
+    orderLinesLookupKey(receipt.deviceId, receipt.localOrderId),
+  );
+}
+
+export function receiptContributesToKpis(status: string | null | undefined): boolean {
+  const normalized = (status ?? "active").trim().toLowerCase();
+  return (
+    normalized !== "refunded" &&
+    normalized !== "partial_refund" &&
+    normalized !== "voided"
+  );
+}
+
+export function getBerlinDateParts(value: Date | string): {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+} {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return { year: 1970, month: 1, day: 1, hour: 0 };
+  }
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: PORTAL_ORDERS_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const read = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((part) => part.type === type)?.value ?? "0";
+  let hour = Number(read("hour"));
+  if (hour === 24) hour = 0;
+  return {
+    year: Number(read("year")),
+    month: Number(read("month")),
+    day: Number(read("day")),
+    hour,
+  };
+}
+
+export function berlinHourBucket(value: Date | string): number {
+  return getBerlinDateParts(value).hour;
+}
+
+export function berlinDayBucketKey(value: Date | string): string {
+  const parts = getBerlinDateParts(value);
+  return `${String(parts.year).padStart(4, "0")}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
+}
+
+export function berlinMonthBucketKey(value: Date | string): string {
+  const parts = getBerlinDateParts(value);
+  return `${String(parts.year).padStart(4, "0")}-${String(parts.month).padStart(2, "0")}-01`;
+}
+
+function incrementCount(map: Map<string | number, number>, key: string | number) {
+  map.set(key, (map.get(key) ?? 0) + 1);
+}
+
+function addAmount(map: Map<string | number, number>, key: string | number, amount: number) {
+  map.set(key, (map.get(key) ?? 0) + amount);
+}
+
+export function countOrdersByBerlinHour(
+  winners: readonly { soldAt: Date | string | null | undefined }[],
+): Map<number, number> {
+  const counts = new Map<number, number>();
+  for (const row of winners) {
+    if (row.soldAt == null) continue;
+    incrementCount(counts, berlinHourBucket(row.soldAt));
+  }
+  return counts;
+}
+
+export function countOrdersByBerlinDay(
+  winners: readonly { soldAt: Date | string | null | undefined }[],
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const row of winners) {
+    if (row.soldAt == null) continue;
+    incrementCount(counts, berlinDayBucketKey(row.soldAt));
+  }
+  return counts;
+}
+
+export function countOrdersByBerlinMonth(
+  winners: readonly { soldAt: Date | string | null | undefined }[],
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const row of winners) {
+    if (row.soldAt == null) continue;
+    incrementCount(counts, berlinMonthBucketKey(row.soldAt));
+  }
+  return counts;
+}
+
+export function sumReceiptRevenueByBerlinHour(
+  receipts: readonly ReportReceiptAggregateRow[],
+  options: { kpiOnly: boolean },
+): Map<number, number> {
+  const totals = new Map<number, number>();
+  for (const row of receipts) {
+    if (options.kpiOnly && !receiptContributesToKpis(row.status)) continue;
+    addAmount(totals, berlinHourBucket(row.soldAt), row.grossCents);
+  }
+  return totals;
+}
+
+export function sumReceiptRevenueByBerlinDay(
+  receipts: readonly ReportReceiptAggregateRow[],
+  options: { kpiOnly: boolean },
+): Map<string, number> {
+  const totals = new Map<string, number>();
+  for (const row of receipts) {
+    if (options.kpiOnly && !receiptContributesToKpis(row.status)) continue;
+    addAmount(totals, berlinDayBucketKey(row.soldAt), row.grossCents);
+  }
+  return totals;
+}
+
+export function sumReceiptRevenueByBerlinMonth(
+  receipts: readonly ReportReceiptAggregateRow[],
+  options: { kpiOnly: boolean },
+): Map<string, number> {
+  const totals = new Map<string, number>();
+  for (const row of receipts) {
+    if (options.kpiOnly && !receiptContributesToKpis(row.status)) continue;
+    addAmount(totals, berlinMonthBucketKey(row.soldAt), row.grossCents);
+  }
+  return totals;
+}
+
+export function aggregateReportTaxStats(
+  receipts: readonly ReportReceiptAggregateRow[],
+): {
+  net: number;
+  vat: number;
+  largest: number;
+  fiscalCount: number;
+} {
+  let net = 0;
+  let vat = 0;
+  let largest = 0;
+  let fiscalCount = 0;
+  for (const row of receipts) {
+    if (!receiptContributesToKpis(row.status)) continue;
+    net += row.netCents;
+    vat += row.taxCents;
+    if (row.grossCents > largest) largest = row.grossCents;
+    const fiscal = (row.fiscalStatus ?? "").trim().toLowerCase();
+    if (fiscal && fiscal !== "pending") fiscalCount += 1;
+  }
+  return { net, vat, largest, fiscalCount };
+}
+
+export function aggregateTopProductsFromWinnerLines(
+  lines: readonly ReportOrderLineAggregateRow[],
+  winnerOrderIds: Set<string>,
+  limit = 10,
+): PortalReportsTopProduct[] {
+  const byName = new Map<string, { quantity: number; revenueMinor: number }>();
+  for (const line of lines) {
+    if (!winnerOrderIds.has(line.orderId)) continue;
+    const name = line.productName?.trim() || "—";
+    const current = byName.get(name) ?? { quantity: 0, revenueMinor: 0 };
+    current.quantity += line.quantity;
+    current.revenueMinor += line.lineTotalCents;
+    byName.set(name, current);
+  }
+  return [...byName.entries()]
+    .map(([productName, stats]) => ({
+      productName,
+      quantity: stats.quantity,
+      revenueMinor: stats.revenueMinor,
+      category: null,
+    }))
+    .sort((a, b) => b.revenueMinor - a.revenueMinor || a.productName.localeCompare(b.productName))
+    .slice(0, limit);
+}
+
+export function buildRevenueSeriesFromBuckets(input: {
+  granularity: RevenueSeriesGranularity;
+  revenueByHour: Map<number, number>;
+  ordersByHour: Map<number, number>;
+  revenueByDay: Map<string, number>;
+  ordersByDay: Map<string, number>;
+  revenueByMonth: Map<string, number>;
+  ordersByMonth: Map<string, number>;
+}): PortalReportsRevenuePoint[] {
+  const { granularity } = input;
+  if (granularity === "hour") {
+    const hours = [...new Set([...input.revenueByHour.keys(), ...input.ordersByHour.keys()])].sort(
+      (a, b) => a - b,
+    );
+    return hours.map((hour) => {
+      const bucketStart = new Date(Date.UTC(1970, 0, 1, hour, 0, 0)).toISOString();
+      return {
+        label: formatHourLabel(hour),
+        bucketStart,
+        revenueMinor: input.revenueByHour.get(hour) ?? 0,
+        ordersCount: input.ordersByHour.get(hour) ?? 0,
+      };
+    });
+  }
+  if (granularity === "day") {
+    const days = [...new Set([...input.revenueByDay.keys(), ...input.ordersByDay.keys()])].sort();
+    return days.map((day) => {
+      const bucketStart = new Date(`${day}T00:00:00.000Z`).toISOString();
+      return {
+        label: formatBucketLabel(bucketStart, granularity),
+        bucketStart,
+        revenueMinor: input.revenueByDay.get(day) ?? 0,
+        ordersCount: input.ordersByDay.get(day) ?? 0,
+      };
+    });
+  }
+  const months = [...new Set([...input.revenueByMonth.keys(), ...input.ordersByMonth.keys()])].sort();
+  return months.map((month) => {
+    const bucketStart = new Date(`${month}T00:00:00.000Z`).toISOString();
+    return {
+      label: formatBucketLabel(bucketStart, granularity),
+      bucketStart,
+      revenueMinor: input.revenueByMonth.get(month) ?? 0,
+      ordersCount: input.ordersByMonth.get(month) ?? 0,
+    };
+  });
 }
 
 export function fillSalesByHour24(
@@ -283,206 +550,123 @@ export async function fetchPortalReportsSummary(input: {
   const { orgId, customerId, period } = input;
   const granularity = revenueSeriesGranularity(period);
 
-  const [periodStats, paymentRows] = await Promise.all([
-    fetchPortalSalesPeriodStats({ orgId, customerId, period }),
-    fetchPaymentsForSalesPeriod({ orgId, customerId, period }),
-  ]);
+  const [periodStats, paymentRows, orderRows, receiptRows, topProductLineRows] =
+    await Promise.all([
+      fetchPortalSalesPeriodStats({ orgId, customerId, period }),
+      fetchPaymentsForSalesPeriod({ orgId, customerId, period }),
+      db
+        .select({
+          id: posOrders.id,
+          deviceId: posOrders.deviceId,
+          localOrderId: posOrders.localOrderId,
+          platform: posOrders.platform,
+          providerOrderId: posOrders.providerOrderId,
+          status: posOrders.status,
+          updatedAt: posOrders.updatedAt,
+          soldAt: posOrders.soldAt,
+        })
+        .from(posOrders)
+        .innerJoin(devices, eq(posOrders.deviceId, devices.id))
+        .where(orderScope(orgId, customerId, period)),
+      db
+        .select({
+          deviceId: posReceipts.deviceId,
+          localOrderId: posReceipts.localOrderId,
+          orderId: posOrders.id,
+          platform: posOrders.platform,
+          soldAt: posReceipts.soldAt,
+          grossCents: posReceipts.grossCents,
+          netCents: posReceipts.netCents,
+          taxCents: posReceipts.taxCents,
+          status: posReceipts.status,
+          fiscalStatus: posReceipts.fiscalStatus,
+        })
+        .from(posReceipts)
+        .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
+        .leftJoin(
+          posOrders,
+          and(
+            eq(posReceipts.orgId, posOrders.orgId),
+            eq(posReceipts.deviceId, posOrders.deviceId),
+            eq(posReceipts.localOrderId, posOrders.localOrderId),
+          ),
+        )
+        .where(receiptScope(orgId, customerId, period)),
+      db
+        .select({
+          orderId: posOrders.id,
+          productName: posOrderLines.productName,
+          quantity: posOrderLines.quantity,
+          lineTotalCents: posOrderLines.lineTotalCents,
+        })
+        .from(posOrderLines)
+        .innerJoin(posOrders, eq(posOrderLines.orderId, posOrders.id))
+        .innerJoin(devices, eq(posOrders.deviceId, devices.id))
+        .where(orderScope(orgId, customerId, period)),
+    ]);
 
-  const [receiptTaxStats] = await db
-    .select({
-      net: sql<number>`coalesce(sum(${posReceipts.netCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
-      vat: sql<number>`coalesce(sum(${posReceipts.taxCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
-      largest: sql<number>`coalesce(max(${posReceipts.grossCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
-      fiscalCount: sql<number>`count(*) filter (where ${posReceipts.fiscalStatus} is distinct from 'pending' and ${sqlReceiptContributesToKpis()})::int`,
-    })
-    .from(posReceipts)
-    .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
-    .where(receiptScope(orgId, customerId, period));
+  const winners = selectReportOrderWinners(orderRows);
+  const winnerOrderIds = reportWinnerOrderIds(winners);
+  const winnerKeys = reportWinnerOrderKeys(winners);
 
+  const includedReceipts = receiptRows.filter((row) =>
+    receiptIncludedInReportAggregates(row, winnerKeys),
+  );
+
+  const taxStats = aggregateReportTaxStats(includedReceipts);
   const currency = periodStats.currency;
 
   const ordersCount = periodStats.ordersCount;
   const receiptsCount = periodStats.receiptsCount;
   const revenueMinor = periodStats.revenueCents;
-  const vatMinor = receiptTaxStats?.vat ?? 0;
-  const netRevenueMinor = receiptTaxStats?.net ?? 0;
+  const vatMinor = taxStats.vat;
+  const netRevenueMinor = taxStats.net;
   const grossRevenueMinor = revenueMinor;
-  const largestReceiptMinor = receiptTaxStats?.largest ?? 0;
-  const fiscalReceiptsCount = receiptTaxStats?.fiscalCount ?? 0;
+  const largestReceiptMinor = taxStats.largest;
+  const fiscalReceiptsCount = taxStats.fiscalCount;
 
   const paymentSummary = aggregateEffectivePaymentSummary(paymentRows);
 
-  let revenueSeries: PortalReportsRevenuePoint[] = [];
-  if (granularity === "hour") {
-    const receiptHourExpr = soldAtBerlinHour(posReceipts.soldAt);
-    const rows = await db
-      .select({
-        hour: receiptHourExpr,
-        revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
-      })
-      .from(posReceipts)
-      .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
-      .where(receiptScope(orgId, customerId, period))
-      .groupBy(receiptHourExpr)
-      .orderBy(receiptHourExpr);
+  const ordersByHour = countOrdersByBerlinHour(winners);
+  const ordersByDay = countOrdersByBerlinDay(winners);
+  const ordersByMonth = countOrdersByBerlinMonth(winners);
 
-    const orderHourExpr = soldAtBerlinHour(posOrders.soldAt);
-    const orderHourRows = await db
-      .select({
-        hour: orderHourExpr,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(posOrders)
-      .innerJoin(devices, eq(posOrders.deviceId, devices.id))
-      .where(orderScope(orgId, customerId, period))
-      .groupBy(orderHourExpr);
+  const kpiRevenueByHour = sumReceiptRevenueByBerlinHour(includedReceipts, {
+    kpiOnly: true,
+  });
+  const kpiRevenueByDay = sumReceiptRevenueByBerlinDay(includedReceipts, {
+    kpiOnly: true,
+  });
+  const kpiRevenueByMonth = sumReceiptRevenueByBerlinMonth(includedReceipts, {
+    kpiOnly: true,
+  });
+  // salesByHour historically summed all receipt gross (not KPI-filtered).
+  const allRevenueByHour = sumReceiptRevenueByBerlinHour(includedReceipts, {
+    kpiOnly: false,
+  });
 
-    const ordersByHour = new Map(
-      orderHourRows.map((row) => [row.hour, row.count]),
-    );
-
-    revenueSeries = rows.map((row) => {
-      const bucketStart = new Date(Date.UTC(1970, 0, 1, row.hour, 0, 0)).toISOString();
-      return {
-        label: formatHourLabel(row.hour),
-        bucketStart,
-        revenueMinor: row.revenue,
-        ordersCount: ordersByHour.get(row.hour) ?? 0,
-      };
-    });
-  } else if (granularity === "day") {
-    const receiptDayExpr = soldAtBerlinDate(posReceipts.soldAt);
-    const rows = await db
-      .select({
-        bucket: receiptDayExpr,
-        revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
-      })
-      .from(posReceipts)
-      .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
-      .where(receiptScope(orgId, customerId, period))
-      .groupBy(receiptDayExpr)
-      .orderBy(receiptDayExpr);
-
-    const orderDayExpr = soldAtBerlinDate(posOrders.soldAt);
-    const orderDayRows = await db
-      .select({
-        bucket: orderDayExpr,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(posOrders)
-      .innerJoin(devices, eq(posOrders.deviceId, devices.id))
-      .where(orderScope(orgId, customerId, period))
-      .groupBy(orderDayExpr);
-
-    const ordersByDay = new Map(
-      orderDayRows.map((row) => [String(row.bucket), row.count]),
-    );
-
-    revenueSeries = rows.map((row) => {
-      const bucketStart = new Date(`${row.bucket}T00:00:00.000Z`).toISOString();
-      return {
-        label: formatBucketLabel(bucketStart, granularity),
-        bucketStart,
-        revenueMinor: row.revenue,
-        ordersCount: ordersByDay.get(String(row.bucket)) ?? 0,
-      };
-    });
-  } else {
-    const receiptMonthExpr = soldAtBerlinMonth(posReceipts.soldAt);
-    const rows = await db
-      .select({
-        bucket: receiptMonthExpr,
-        revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
-      })
-      .from(posReceipts)
-      .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
-      .where(receiptScope(orgId, customerId, period))
-      .groupBy(receiptMonthExpr)
-      .orderBy(receiptMonthExpr);
-
-    const orderMonthExpr = soldAtBerlinMonth(posOrders.soldAt);
-    const orderMonthRows = await db
-      .select({
-        bucket: orderMonthExpr,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(posOrders)
-      .innerJoin(devices, eq(posOrders.deviceId, devices.id))
-      .where(orderScope(orgId, customerId, period))
-      .groupBy(orderMonthExpr);
-
-    const ordersByMonth = new Map(
-      orderMonthRows.map((row) => [String(row.bucket), row.count]),
-    );
-
-    revenueSeries = rows.map((row) => {
-      const bucketStart = new Date(`${row.bucket}T00:00:00.000Z`).toISOString();
-      return {
-        label: formatBucketLabel(bucketStart, granularity),
-        bucketStart,
-        revenueMinor: row.revenue,
-        ordersCount: ordersByMonth.get(String(row.bucket)) ?? 0,
-      };
-    });
-  }
-
-  const receiptHourlyExpr = soldAtBerlinHour(posReceipts.soldAt);
-  const hourlyReceiptRows = await db
-    .select({
-      hour: receiptHourlyExpr,
-      revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}), 0)::int`,
-    })
-    .from(posReceipts)
-    .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
-    .where(receiptScope(orgId, customerId, period))
-    .groupBy(receiptHourlyExpr);
-
-  const orderHourlyExpr = soldAtBerlinHour(posOrders.soldAt);
-  const hourlyOrderRows = await db
-    .select({
-      hour: orderHourlyExpr,
-      count: sql<number>`count(*)::int`,
-    })
-    .from(posOrders)
-    .innerJoin(devices, eq(posOrders.deviceId, devices.id))
-    .where(orderScope(orgId, customerId, period))
-    .groupBy(orderHourlyExpr);
-
-  const revenueByHour = new Map(
-    hourlyReceiptRows.map((row) => [row.hour, row.revenue]),
-  );
-  const ordersByHour = new Map(
-    hourlyOrderRows.map((row) => [row.hour, row.count]),
-  );
+  const revenueSeries = buildRevenueSeriesFromBuckets({
+    granularity,
+    revenueByHour: kpiRevenueByHour,
+    ordersByHour,
+    revenueByDay: kpiRevenueByDay,
+    ordersByDay,
+    revenueByMonth: kpiRevenueByMonth,
+    ordersByMonth,
+  });
 
   const salesByHour = fillSalesByHour24(
     Array.from({ length: 24 }, (_, hour) => ({
       hour,
-      revenueMinor: revenueByHour.get(hour) ?? 0,
+      revenueMinor: allRevenueByHour.get(hour) ?? 0,
       ordersCount: ordersByHour.get(hour) ?? 0,
     })),
   );
 
-  const topProductRows = await db
-    .select({
-      productName: posOrderLines.productName,
-      quantity: sql<number>`coalesce(sum(${posOrderLines.quantity}), 0)::int`,
-      revenue: sql<number>`coalesce(sum(${posOrderLines.lineTotalCents}), 0)::int`,
-    })
-    .from(posOrderLines)
-    .innerJoin(posOrders, eq(posOrderLines.orderId, posOrders.id))
-    .innerJoin(devices, eq(posOrders.deviceId, devices.id))
-    .where(orderScope(orgId, customerId, period))
-    .groupBy(posOrderLines.productName)
-    .orderBy(sql`coalesce(sum(${posOrderLines.lineTotalCents}), 0) desc`)
-    .limit(10);
-
-  const topProducts: PortalReportsTopProduct[] = topProductRows.map((row) => ({
-    productName: row.productName?.trim() || "—",
-    quantity: row.quantity,
-    revenueMinor: row.revenue,
-    category: null,
-  }));
+  const topProducts = aggregateTopProductsFromWinnerLines(
+    topProductLineRows,
+    winnerOrderIds,
+  );
 
   const bestSeriesPoint = revenueSeries.reduce<PortalReportsRevenuePoint | null>(
     (best, point) => {
@@ -550,8 +734,7 @@ export async function fetchPortalReportsSummary(input: {
     paymentMethods,
     onlinePaymentSummary: {
       ...periodStats.onlinePaymentSummary,
-      currency:
-        periodStats.onlinePaymentSummary.currency || currency,
+      currency: periodStats.onlinePaymentSummary.currency || currency,
     },
     topProducts,
     taxes,

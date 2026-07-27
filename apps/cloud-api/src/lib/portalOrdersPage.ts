@@ -28,6 +28,7 @@ import {
   type OrderSource,
   type ResolvedPaymentStatus,
 } from "./orderSource.js";
+import { dedupeProviderOrders } from "./dedupeProviderOrders.js";
 import {
   buildPortalOrderTimeline,
   type PortalOrderTimelineEntry,
@@ -261,6 +262,7 @@ export async function fetchPortalOrdersPage(input: {
       deviceId: posOrders.deviceId,
       localOrderId: posOrders.localOrderId,
       soldAt: posOrders.soldAt,
+      updatedAt: posOrders.updatedAt,
       status: posOrders.status,
       totalCents: posOrders.totalCents,
       currency: posOrders.currency,
@@ -278,6 +280,17 @@ export async function fetchPortalOrdersPage(input: {
     .innerJoin(devices, eq(posOrders.deviceId, devices.id))
     .where(scope)
     .orderBy(desc(posOrders.soldAt));
+
+  const liveOrderRows = orderRows.filter((row) => !isProviderOrder(row.platform));
+  const providerOrderRows = orderRows.filter((row) => isProviderOrder(row.platform));
+  const dedupedOrderRows = [
+    ...liveOrderRows,
+    ...dedupeProviderOrders(providerOrderRows),
+  ].sort((a, b) => {
+    const aMs = a.soldAt?.getTime() ?? 0;
+    const bMs = b.soldAt?.getTime() ?? 0;
+    return bMs - aMs;
+  });
 
   const lineRows = await db
     .select({
@@ -383,7 +396,7 @@ export async function fetchPortalOrdersPage(input: {
   const eventsByReceiptId = await loadReceiptEventsByReceiptId(receiptIds);
   const openShiftCashier = openShift?.cashier ?? null;
 
-  const allOrders: PortalOrderRecord[] = orderRows.map((row) => {
+  const allOrders: PortalOrderRecord[] = dedupedOrderRows.map((row) => {
     const receipt = receiptByOrderKey.get(
       orderReceiptKey(row.deviceId, row.localOrderId),
     );
