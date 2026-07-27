@@ -15,7 +15,7 @@ import { subscriptions } from "../db/schema/subscriptions.js";
 import {
   isManualOrNonSubscriptionLicense,
   isSubscriptionBackedPaidLicense,
-  maxLicenseValidUntil,
+  resolveSubscriptionPaidLicenseAction,
 } from "./licenseGrantGuard.js";
 import {
   processStripePaidInvoice,
@@ -233,9 +233,23 @@ export async function reconcileStripePaidInvoice(params: {
     else plannedChanges.push("invoice already exists — ensure paid status");
 
     plannedChanges.push("update subscription period/status from Stripe invoice");
-    plannedChanges.push(
-      "extend subscription-backed paid license validUntil (manual licenses untouched)",
+
+    const licenseAction = resolveSubscriptionPaidLicenseAction(
+      allLicenses,
+      subInfo.localId || "",
     );
+    if (licenseAction.action === "extend") {
+      plannedChanges.push(
+        `extend subscription-backed paid license ${licenseAction.targetLicenseId ?? ""}`.trim(),
+      );
+    } else if (licenseAction.action === "create" && subInfo.localId) {
+      plannedChanges.push("create subscription-backed paid license");
+    } else if (licenseAction.action === "skip") {
+      plannedChanges.push(
+        "skip license create — another subscription-backed paid license already active",
+      );
+    }
+    plannedChanges.push("manual licenses untouched");
 
     for (const m of manualLicenses) {
       plannedChanges.push(`leave manual license ${m.id} unchanged`);

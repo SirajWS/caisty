@@ -1,4 +1,4 @@
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq, isNotNull, ne, sql } from "drizzle-orm";
 import { addMonths } from "date-fns";
 import { db } from "../db/client.js";
 import { licenses } from "../db/schema/licenses.js";
@@ -54,7 +54,8 @@ export async function ensurePaidLicenseAfterSuccessfulPayment(params: {
 
   const plan = sub.plan as "starter" | "pro";
 
-  // Same tier, new subscription (e.g. monthly→yearly): end prior paid licenses on other subscriptions.
+  // Same tier, new subscription (e.g. monthly→yearly): end prior subscription-backed
+  // paid licenses on other subscriptions. Manual grants (subscriptionId null) stay untouched.
   await db
     .update(licenses as any)
     .set({
@@ -67,6 +68,7 @@ export async function ensurePaidLicenseAfterSuccessfulPayment(params: {
         eq(licenses.customerId as any, cid),
         eq(licenses.plan as any, plan),
         sql`lower(coalesce(${licenses.status}, '')) = 'active'`,
+        isNotNull(licenses.subscriptionId as any),
         ne(licenses.subscriptionId as any, sid),
       ),
     );
@@ -99,6 +101,7 @@ export async function ensurePaidLicenseAfterSuccessfulPayment(params: {
   }
 
   if (plan === "pro") {
+    // Revoke subscription-backed Starter only — never touch manual apology grants.
     await db
       .update(licenses as any)
       .set({ status: "revoked" } as any)
@@ -107,6 +110,7 @@ export async function ensurePaidLicenseAfterSuccessfulPayment(params: {
           eq(licenses.customerId as any, cid),
           sql`lower(${licenses.plan}) = 'starter'`,
           sql`lower(coalesce(${licenses.status}, '')) = 'active'`,
+          isNotNull(licenses.subscriptionId as any),
         ),
       );
 
@@ -123,7 +127,8 @@ export async function ensurePaidLicenseAfterSuccessfulPayment(params: {
       );
   }
 
-  const [existingPaidAny] = await db
+  // Manual licenses (subscriptionId null) must NOT block creating the subscription-backed paid license.
+  const [existingSubscriptionBackedPaid] = await db
     .select()
     .from(licenses)
     .where(
@@ -131,17 +136,22 @@ export async function ensurePaidLicenseAfterSuccessfulPayment(params: {
         eq(licenses.customerId as any, cid),
         ne(licenses.plan as any, "trial"),
         sql`lower(coalesce(${licenses.status}, '')) = 'active'`,
+        isNotNull(licenses.subscriptionId as any),
       ),
     )
     .limit(1);
 
-  if (existingPaidAny) {
+  if (existingSubscriptionBackedPaid) {
     return undefined;
   }
 
   const now = new Date();
   const licenseKey = generateLicenseKey("CSTY");
-  const validUntil = sub.currentPeriodEnd ?? addMonths(now, 1);
+  const validUntil =
+    periodEnd ??
+    (sub.currentPeriodEnd
+      ? new Date(sub.currentPeriodEnd as Date)
+      : addMonths(now, 1));
 
   const [createdLicense] = await db
     .insert(licenses)

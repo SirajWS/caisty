@@ -7,6 +7,7 @@ import {
   isManualOrNonSubscriptionLicense,
   isSubscriptionBackedPaidLicense,
   maxLicenseValidUntil,
+  resolveSubscriptionPaidLicenseAction,
 } from "../licenseGrantGuard.js";
 
 describe("verifyStripeWebhookSignature", () => {
@@ -97,6 +98,99 @@ describe("licenseGrantGuard", () => {
         status: "active",
       }),
     ).toBe(false);
+  });
+});
+
+describe("resolveSubscriptionPaidLicenseAction", () => {
+  const subscriptionId = "6e29bfb7-7951-4802-b4d0-63af7d9618c5";
+
+  it("creates when only manual apology license exists (no subscription-backed)", () => {
+    const licenses = [
+      {
+        id: "trial-1",
+        subscriptionId: null,
+        plan: "trial",
+        status: "active",
+      },
+      {
+        id: "apology",
+        subscriptionId: null,
+        plan: "starter",
+        status: "active",
+      },
+    ];
+    const result = resolveSubscriptionPaidLicenseAction(licenses, subscriptionId);
+    expect(result.action).toBe("create");
+    expect(
+      licenses.filter(isManualOrNonSubscriptionLicense).map((l) => l.id),
+    ).toEqual(["trial-1", "apology"]);
+  });
+
+  it("extends existing subscription-backed license instead of duplicating", () => {
+    const licenses = [
+      {
+        id: "apology",
+        subscriptionId: null,
+        plan: "starter",
+        status: "active",
+      },
+      {
+        id: "paid-sub",
+        subscriptionId,
+        plan: "starter",
+        status: "active",
+      },
+    ];
+    const result = resolveSubscriptionPaidLicenseAction(licenses, subscriptionId);
+    expect(result.action).toBe("extend");
+    expect(result.targetLicenseId).toBe("paid-sub");
+  });
+
+  it("second reconcile stays idempotent (still extend, never create duplicate)", () => {
+    const licenses = [
+      {
+        id: "paid-sub",
+        subscriptionId,
+        plan: "starter",
+        status: "active",
+      },
+    ];
+    const first = resolveSubscriptionPaidLicenseAction(licenses, subscriptionId);
+    const second = resolveSubscriptionPaidLicenseAction(licenses, subscriptionId);
+    expect(first.action).toBe("extend");
+    expect(second.action).toBe("extend");
+    expect(first.targetLicenseId).toBe(second.targetLicenseId);
+  });
+
+  it("leaves trial and manual licenses out of extend/create targets", () => {
+    const licenses = [
+      { id: "trial", subscriptionId: null, plan: "trial", status: "active" },
+      { id: "manual", subscriptionId: null, plan: "starter", status: "active" },
+    ];
+    const result = resolveSubscriptionPaidLicenseAction(licenses, subscriptionId);
+    expect(result.action).toBe("create");
+    expect(isSubscriptionBackedPaidLicense(licenses[0]!)).toBe(false);
+    expect(isManualOrNonSubscriptionLicense(licenses[1]!)).toBe(true);
+  });
+
+  it("skips create when another subscription-backed paid license is active", () => {
+    const licenses = [
+      {
+        id: "other-sub-paid",
+        subscriptionId: "other-sub",
+        plan: "pro",
+        status: "active",
+      },
+      {
+        id: "manual",
+        subscriptionId: null,
+        plan: "starter",
+        status: "active",
+      },
+    ];
+    expect(resolveSubscriptionPaidLicenseAction(licenses, subscriptionId).action).toBe(
+      "skip",
+    );
   });
 });
 

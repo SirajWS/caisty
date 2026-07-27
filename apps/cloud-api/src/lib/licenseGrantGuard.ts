@@ -37,3 +37,46 @@ export function maxLicenseValidUntil(
   const nextMs = periodEnd.getTime();
   return new Date(Math.max(Number.isFinite(curMs) ? curMs : 0, nextMs));
 }
+
+export type SubscriptionPaidLicenseAction = "extend" | "create" | "skip";
+
+/**
+ * Decide renewal/reconcile license action.
+ * Manual licenses (subscriptionId null) never block create and are never "extended".
+ */
+export function resolveSubscriptionPaidLicenseAction(
+  licenses: Array<{
+    id?: string;
+    subscriptionId?: string | null;
+    plan?: string | null;
+    status?: string | null;
+  }>,
+  subscriptionId: string,
+): {
+  action: SubscriptionPaidLicenseAction;
+  targetLicenseId?: string;
+} {
+  const sid = String(subscriptionId).trim();
+  const forThisSub = licenses.find(
+    (lic) =>
+      isSubscriptionBackedPaidLicense(lic) &&
+      String(lic.subscriptionId).trim() === sid,
+  );
+  if (forThisSub) {
+    return {
+      action: "extend",
+      targetLicenseId: forThisSub.id ? String(forThisSub.id) : undefined,
+    };
+  }
+
+  const blockingOtherSubBacked = licenses.some(
+    (lic) =>
+      isSubscriptionBackedPaidLicense(lic) &&
+      String(lic.subscriptionId).trim() !== sid,
+  );
+  if (blockingOtherSubBacked) {
+    return { action: "skip" };
+  }
+
+  return { action: "create" };
+}
