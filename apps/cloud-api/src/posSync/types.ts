@@ -135,3 +135,129 @@ export type PosSyncErrorResponse = {
 };
 
 export const POS_SYNC_IDEMPOTENCY_SCOPE = "pos.sync.batch";
+
+export type PosPullEntityType =
+  | "orders"
+  | "receipts"
+  | "payments"
+  | "receiptEvents"
+  | "shifts";
+
+export type PosPullCursors = Record<PosPullEntityType, string | null>;
+
+export type PosPullRequest = {
+  schemaVersion: 1;
+  deviceId: string;
+  licenseKey: string;
+  cursors: PosPullCursors;
+  limit: number;
+};
+
+export type PosPullOrderLineSnapshot = {
+  id: string;
+  lineIndex: number;
+  productName: string | null;
+  sku: string | null;
+  quantity: number;
+  unitPriceCents: number;
+  lineTotalCents: number;
+  taxRateBps: number | null;
+  createdAt: string;
+};
+
+export type PosPullOrderSnapshot = {
+  id: string;
+  localOrderId: string;
+  providerOrderId: string | null;
+  platform: string | null;
+  sourceDeviceId: string;
+  status: string;
+  paymentStatus: string | null;
+  paymentMethod: string | null;
+  totalCents: number;
+  currency: string;
+  soldAt: string;
+  createdAt: string;
+  updatedAt: string;
+  lines: PosPullOrderLineSnapshot[];
+};
+
+export type PosPullReceiptSnapshot = {
+  id: string;
+  localReceiptId: string;
+  localOrderId: string | null;
+  localPaymentId: string | null;
+  sourceDeviceId: string;
+  receiptNumber: string | null;
+  netCents: number;
+  taxCents: number;
+  grossCents: number;
+  currency: string;
+  fiscalStatus: string;
+  status: string;
+  soldAt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PosPullPaymentSnapshot = {
+  id: string;
+  localPaymentId: string;
+  localOrderId: string | null;
+  localReceiptId: string | null;
+  sourceDeviceId: string;
+  method: string;
+  amountCents: number;
+  currency: string;
+  paidAt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PosPullReceiptEventSnapshot = {
+  id: string;
+  eventId: string;
+  receiptId: string;
+  localReceiptId: string | null;
+  sourceDeviceId: string;
+  eventType: string;
+  occurredAt: string;
+  createdAt: string;
+  metadata: Record<string, unknown>;
+};
+
+export type PosPullShiftSnapshot = {
+  id: string;
+  localShiftId: string;
+  sourceDeviceId: string;
+  cashier: string | null;
+  status: string;
+  openingFloatMinor: number;
+  closingFloatMinor: number | null;
+  previousClosingFloatMinor: number | null;
+  currency: string;
+  businessDate: string;
+  openedAt: string;
+  closedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PosPullResponse = {
+  ok: true;
+  schemaVersion: 1;
+  serverTime: string;
+  scope: {
+    orgId: string;
+    deviceId: string;
+  };
+  changes: {
+    orders: PosPullOrderSnapshot[];
+    receipts: PosPullReceiptSnapshot[];
+    payments: PosPullPaymentSnapshot[];
+    receiptEvents: PosPullReceiptEventSnapshot[];
+    shifts: PosPullShiftSnapshot[];
+  };
+  nextCursors: PosPullCursors;
+  hasMore: Record<PosPullEntityType, boolean>;
+};

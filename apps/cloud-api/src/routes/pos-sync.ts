@@ -1,7 +1,10 @@
 import type { FastifyInstance } from "fastify";
 
 import { authenticatePosDevice } from "../lib/posDeviceAuth.js";
+import { InvalidPullCursorError } from "../posSync/pullErrors.js";
+import { posPullService } from "../posSync/PosPullService.js";
 import { posSyncService } from "../posSync/PosSyncService.js";
+import { validatePullRequest } from "../posSync/validatePullRequest.js";
 import { validateSyncBatchRequest } from "../posSync/validateSyncBatch.js";
 
 export async function registerPosSyncRoutes(app: FastifyInstance) {
@@ -64,6 +67,58 @@ export async function registerPosSyncRoutes(app: FastifyInstance) {
       }
 
       request.log.error({ err }, "POST /pos/sync/batch failed");
+      reply.code(500);
+      return { ok: false, error: "server_error" };
+    }
+  });
+
+  /**
+   * POST /pos/sync/pull
+   * Pull business-scoped sync snapshots with per-entity cursors.
+   * Auth: deviceId + licenseKey in body.
+   */
+  app.post("/pos/sync/pull", async (request, reply) => {
+    const validated = validatePullRequest(request.body);
+    if (!validated.ok) {
+      reply.code(400);
+      return {
+        ok: false,
+        error: validated.error.code,
+        message: validated.error.message,
+      };
+    }
+
+    const { request: body } = validated;
+
+    const auth = await authenticatePosDevice({
+      deviceId: body.deviceId,
+      licenseKey: body.licenseKey,
+    });
+
+    if (!auth.ok) {
+      reply.code(auth.statusCode);
+      return { ok: false, error: auth.error };
+    }
+
+    if (auth.context.deviceId !== body.deviceId) {
+      reply.code(403);
+      return { ok: false, error: "device_not_bound" };
+    }
+
+    try {
+      const result = await posPullService.pullChanges(body, auth.context);
+      reply.code(200);
+      return result;
+    } catch (err: unknown) {
+      if (err instanceof InvalidPullCursorError) {
+        reply.code(400);
+        return {
+          ok: false,
+          error: err.code,
+          message: err.message,
+        };
+      }
+      request.log.error({ err }, "POST /pos/sync/pull failed");
       reply.code(500);
       return { ok: false, error: "server_error" };
     }

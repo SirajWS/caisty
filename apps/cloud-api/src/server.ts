@@ -119,6 +119,7 @@ export async function buildServer() {
       (url === "/devices/heartbeat" && method === "POST") ||
       (url === "/pos/config" && method === "GET") ||
       (url === "/pos/sync/batch" && method === "POST") ||
+      (url === "/pos/sync/pull" && method === "POST") ||
       url.startsWith("/country-config") ||
       (url.startsWith("/invoices/") && url.endsWith("/html")) || // Invoice HTML-Export (mit Auth im Handler)
       (env.NODE_ENV === "development" && url.startsWith("/test-email")) || // Test-Endpoint nur in Development
