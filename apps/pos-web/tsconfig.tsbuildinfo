@@ -1,0 +1,1 @@
+{"root":["./src/main.tsx","./src/posweb.test.ts","./src/vite-env.d.ts","./src/config/cloud.ts","./src/hooks/usesyncdata.ts","./src/hooks/usesyncworker.ts","./src/pages/syncdashboard.tsx","./src/platform/storage.ts","./src/sync/localrepository.ts","./src/sync/syncengine.test.ts","./src/sync/syncengine.ts"],"version":"5.9.3"}

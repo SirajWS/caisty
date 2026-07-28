@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
+    "test": "turbo run test",
     "lint": "turbo run lint"
   },
   "devDependencies": {
