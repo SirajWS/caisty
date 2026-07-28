@@ -1,4 +1,9 @@
-import type { LocalSyncRepository, OutboxEvent } from "@caisty/pos-sync-core";
+import type { LocalSyncRepository } from "@caisty/pos-sync-core";
+import {
+  createSyncOutbox,
+  LS_SYNC_OUTBOX,
+  type SyncOutboxApi,
+} from "@caisty/pos-sync-core";
 
 import { storage } from "../platform/storage.js";
 
@@ -6,7 +11,6 @@ const ORDERS_KEY = "dinaro.orders";
 const SALES_KEY = "dinaro.sales";
 const SHIFTS_KEY = "dinaro.shifts";
 const RECEIPT_EVENTS_KEY = "dinaro.receiptEvents";
-const OUTBOX_KEY = "caisty.sync.outbox";
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -21,7 +25,9 @@ function writeJson(key: string, value: unknown) {
   storage.setItem(key, JSON.stringify(value));
 }
 
-export function createLocalSyncRepository(): LocalSyncRepository {
+export function createLocalSyncRepository(
+  outbox: SyncOutboxApi = createSyncOutbox(storage),
+): LocalSyncRepository {
   return {
     loadOrders() {
       return readJson<Array<Record<string, unknown>>>(ORDERS_KEY, []);
@@ -67,18 +73,24 @@ export function createLocalSyncRepository(): LocalSyncRepository {
       return true;
     },
     readOutbox() {
-      return readJson<OutboxEvent[]>(OUTBOX_KEY, []);
+      return outbox.readOutbox();
     },
   };
 }
 
-export function readLocalCounts() {
-  const repo = createLocalSyncRepository();
+export function readLocalCounts(outboxApi?: SyncOutboxApi) {
+  const outboxStore = outboxApi ?? createSyncOutbox(storage);
+  const repo = createLocalSyncRepository(outboxStore);
+  const snapshot = outboxStore.getOutboxSyncSnapshot();
   return {
     orders: repo.loadOrders().length,
     receipts: repo.getSales().length,
     payments: repo.getSales().filter((s) => s.payment).length,
     shifts: repo.listShifts().length,
     receiptEvents: readJson<Array<unknown>>(RECEIPT_EVENTS_KEY, []).length,
+    outboxPending: snapshot.pending + snapshot.failed,
+    outboxEligible: snapshot.eligible,
   };
 }
+
+export { LS_SYNC_OUTBOX };

@@ -141,11 +141,83 @@ export type PosPullRequest = {
   limit: number;
 };
 
+export const SYNC_OUTBOX_EVENT_TYPES = [
+  "order",
+  "receipt",
+  "payment",
+  "receipt_event",
+  "shift",
+] as const;
+
+export type SyncOutboxEventType = (typeof SYNC_OUTBOX_EVENT_TYPES)[number];
+
+export type SyncOutboxStatus = "pending" | "syncing" | "synced" | "failed";
+
 export type OutboxEvent = {
+  syncEventId: string;
+  type: SyncOutboxEventType | string;
   localId: string;
-  type: string;
-  status: "pending" | "syncing" | "done" | "failed";
+  status: SyncOutboxStatus;
+  occurredAt: string;
+  payload: Record<string, unknown>;
+  attempts: number;
+  lastError: string | null;
+  syncedAt: string | null;
   createdAt: number;
+};
+
+export const BATCH_EVENT_LIMIT = 30;
+export const MAX_SYNC_ATTEMPTS = 12;
+export const MAX_PUSH_BATCHES_PER_RUN = 20;
+export const DEFAULT_PUSH_TIMEOUT_MS = 8000;
+
+export type PosSyncBatchMeta = {
+  batchId: string;
+  sequence?: number;
+  sentAt?: string;
+};
+
+export type PosSyncBatchEvent = {
+  eventId: string;
+  type: string;
+  payload: Record<string, unknown>;
+};
+
+export type PosSyncBatchRequest = {
+  deviceId: string;
+  licenseKey: string;
+  batch: PosSyncBatchMeta;
+  events: PosSyncBatchEvent[];
+  telemetry?: {
+    appVersion?: string;
+    offlineQueueCount?: number;
+  };
+  idempotencyKey?: string;
+};
+
+export type PosSyncFailedEvent = {
+  eventId: string;
+  error: string;
+  code: string;
+};
+
+export type PosSyncBatchResponse = {
+  ok: true;
+  batchId?: string;
+  posBatchId?: string;
+  status: "completed" | "duplicate_batch";
+  accepted: string[];
+  duplicate: string[];
+  failed: PosSyncFailedEvent[];
+  counts?: {
+    accepted: number;
+    duplicate: number;
+    failed: number;
+  };
+};
+
+export type PushApiClient = {
+  postBatch(request: PosSyncBatchRequest): Promise<unknown>;
 };
 
 export type KeyValueStorage = {

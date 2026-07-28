@@ -48,9 +48,15 @@ describe("pendingOutboxGuard", () => {
   it("skips pull overwrite when pending outbox exists", () => {
     const outbox = [
       {
+        syncEventId: "11111111-1111-4111-8111-111111111111",
         localId: "order-1",
         type: "order",
         status: "pending" as const,
+        occurredAt: "2026-07-08T10:00:00.000Z",
+        payload: {},
+        attempts: 0,
+        lastError: null,
+        syncedAt: null,
         createdAt: Date.now(),
       },
     ];

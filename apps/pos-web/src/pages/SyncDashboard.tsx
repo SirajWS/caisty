@@ -10,7 +10,7 @@ export function SyncDashboard() {
   return (
     <main style={{ fontFamily: "system-ui", padding: 24, maxWidth: 720 }}>
       <h1>Caisty POS Web</h1>
-      <p>Business-scoped cloud pull via shared sync core.</p>
+      <p>Push → Pull → Merge via shared sync core.</p>
 
       <section style={{ marginTop: 16 }}>
         <strong>Device</strong>
@@ -25,22 +25,27 @@ export function SyncDashboard() {
         <div>Payments (receipt-linked): {counts.payments}</div>
         <div>Shifts: {counts.shifts}</div>
         <div>Receipt events: {counts.receiptEvents}</div>
+        <div>
+          Outbox pending: {counts.outboxPending} (eligible:{" "}
+          {counts.outboxEligible})
+        </div>
       </section>
 
       <button
         type="button"
         onClick={() => void syncNow()}
-        disabled={syncing}
+        disabled={syncing || !online}
         style={{ marginTop: 16 }}
       >
         {syncing ? "Syncing…" : "Sync now"}
       </button>
 
       <p style={{ marginTop: 12, opacity: 0.7 }}>
-        Last manual sync: {lastSync ?? "never"}
+        Last sync: {lastSync ?? "never"}
       </p>
       <p style={{ opacity: 0.7 }}>
-        UI refreshes automatically after pull via sync events (no page reload).
+        Offline changes stay in the outbox. On reconnect: Push → ACK → Pull →
+        Live UI (no page reload).
       </p>
     </main>
   );

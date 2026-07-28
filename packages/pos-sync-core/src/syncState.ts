@@ -163,6 +163,29 @@ export function createSyncState(storage: KeyValueStorage) {
     return Boolean(state.backoffUntil && Date.now() < state.backoffUntil);
   }
 
+  function nextBatchSequence() {
+    const state = readRawState();
+    const current =
+      typeof state.batchSequence === "number" && state.batchSequence >= 0
+        ? (state.batchSequence as number)
+        : 1;
+    writeRawState({ batchSequence: current + 1 });
+    return current;
+  }
+
+  function setLastSalesSyncAt(iso?: string) {
+    writeRawState({
+      lastSalesSyncAt: iso || new Date().toISOString(),
+    });
+  }
+
+  function getLastSalesSyncAt() {
+    const state = readRawState();
+    return typeof state.lastSalesSyncAt === "string"
+      ? state.lastSalesSyncAt
+      : null;
+  }
+
   return {
     getPullScopeKey,
     getPullCursors,
@@ -170,6 +193,9 @@ export function createSyncState(storage: KeyValueStorage) {
     updatePullSuccess,
     updatePullFailure,
     isPullBackedOff,
+    nextBatchSequence,
+    setLastSalesSyncAt,
+    getLastSalesSyncAt,
   };
 }
 

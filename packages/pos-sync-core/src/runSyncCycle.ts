@@ -5,7 +5,7 @@ export function createRunSyncCycle(deps: {
   pushPending: () => Promise<{ ok: boolean }>;
   pullChanges: () => Promise<{ ok: boolean }>;
 }) {
-  return async function runSyncCycle() {
+  async function runSyncCycle() {
     if (cycleInFlight) {
       cycleReschedule = true;
       return { ok: false as const, reason: "cycle_in_flight" };
@@ -23,16 +23,24 @@ export function createRunSyncCycle(deps: {
         pull: pullResult,
         durationMs: Date.now() - startedAt,
       };
+    } catch (err) {
+      return {
+        ok: false as const,
+        reason: err instanceof Error ? err.message : "cycle_failed",
+        durationMs: Date.now() - startedAt,
+      };
     } finally {
       cycleInFlight = false;
       if (cycleReschedule) {
         cycleReschedule = false;
         queueMicrotask(() => {
-          void deps.pushPending().then(() => deps.pullChanges());
+          void runSyncCycle();
         });
       }
     }
-  };
+  }
+
+  return runSyncCycle;
 }
 
 export function resetSyncCycleLockForTests() {

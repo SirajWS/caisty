@@ -11,6 +11,8 @@ describe("pos-web local repository", () => {
       payments: 0,
       shifts: 0,
       receiptEvents: 0,
+      outboxPending: 0,
+      outboxEligible: 0,
     });
   });
 });

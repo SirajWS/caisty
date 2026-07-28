@@ -319,9 +319,15 @@ describe("applyPullSnapshots", () => {
     ]);
     repo.setOutbox([
       {
+        syncEventId: "22222222-2222-4222-8222-222222222222",
         localId: "ext-1",
         type: "order",
         status: "pending",
+        occurredAt: "2026-07-08T10:00:00.000Z",
+        payload: {},
+        attempts: 0,
+        lastError: null,
+        syncedAt: null,
         createdAt: Date.now(),
       },
     ]);

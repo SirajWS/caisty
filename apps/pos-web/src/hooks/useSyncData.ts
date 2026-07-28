@@ -5,13 +5,14 @@ import {
   EVT_RECEIPT_EVENTS_CHANGED,
   EVT_SALES_CHANGED,
   EVT_SHIFTS_CHANGED,
+  EVT_SYNC_OUTBOX_CHANGED,
 } from "@caisty/pos-sync-core";
 
 import { readLocalCounts } from "../sync/localRepository.js";
-import { runSyncCycle } from "../sync/syncEngine.js";
+import { outbox, runSyncCycle } from "../sync/syncEngine.js";
 
 export function useSyncData() {
-  const [counts, setCounts] = useState(readLocalCounts);
+  const [counts, setCounts] = useState(() => readLocalCounts(outbox));
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [online, setOnline] = useState(
@@ -19,7 +20,7 @@ export function useSyncData() {
   );
 
   const refresh = useCallback(() => {
-    setCounts(readLocalCounts());
+    setCounts(readLocalCounts(outbox));
   }, []);
 
   const syncNow = useCallback(async () => {
@@ -42,6 +43,7 @@ export function useSyncData() {
       EVT_SALES_CHANGED,
       EVT_RECEIPT_EVENTS_CHANGED,
       EVT_SHIFTS_CHANGED,
+      EVT_SYNC_OUTBOX_CHANGED,
     ];
     const handler = () => refresh();
     for (const name of events) {
@@ -55,7 +57,10 @@ export function useSyncData() {
   }, [refresh]);
 
   useEffect(() => {
-    const onOnline = () => setOnline(true);
+    const onOnline = () => {
+      setOnline(true);
+      void runSyncCycle().then(() => refresh());
+    };
     const onOffline = () => setOnline(false);
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
@@ -63,7 +68,7 @@ export function useSyncData() {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, []);
+  }, [refresh]);
 
   return { counts, lastSync, syncing, online, syncNow, refresh };
 }
