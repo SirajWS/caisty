@@ -1,8 +1,8 @@
 // Stripe Price ID Mapping
-// Diese Price IDs musst du in deinem Stripe Dashboard anlegen:
 // Dashboard → Products → Create Product → Add Price → Copy Price ID
 
 export type StripePriceId = string;
+export type StripeCatalogPlan = "starter" | "pro" | "business";
 
 export const STRIPE_PRICES: Record<
   "EUR" | "TND",
@@ -15,16 +15,24 @@ export const STRIPE_PRICES: Record<
       monthly: StripePriceId;
       yearly: StripePriceId;
     };
+    business: {
+      monthly: StripePriceId;
+      yearly: StripePriceId;
+    };
   }
 > = {
   EUR: {
     starter: {
-      monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY_EUR || "", // z.B. "price_1234567890"
+      monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY_EUR || "",
       yearly: process.env.STRIPE_PRICE_STARTER_YEARLY_EUR || "",
     },
     pro: {
       monthly: process.env.STRIPE_PRICE_PRO_MONTHLY_EUR || "",
       yearly: process.env.STRIPE_PRICE_PRO_YEARLY_EUR || "",
+    },
+    business: {
+      monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY_EUR || "",
+      yearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY_EUR || "",
     },
   },
   TND: {
@@ -36,18 +44,21 @@ export const STRIPE_PRICES: Record<
       monthly: process.env.STRIPE_PRICE_PRO_MONTHLY_TND || "",
       yearly: process.env.STRIPE_PRICE_PRO_YEARLY_TND || "",
     },
+    business: {
+      monthly: process.env.STRIPE_PRICE_BUSINESS_MONTHLY_TND || "",
+      yearly: process.env.STRIPE_PRICE_BUSINESS_YEARLY_TND || "",
+    },
   },
 };
 
 export function getStripePriceEnvVarName(
-  plan: "starter" | "pro",
+  plan: StripeCatalogPlan,
   currency: "EUR" | "TND",
   period: "monthly" | "yearly",
 ): string {
   return `STRIPE_PRICE_${plan.toUpperCase()}_${period.toUpperCase()}_${currency}`;
 }
 
-/** Safe for logs — never log full price IDs in production. */
 export function formatStripePriceIdPrefix(priceId: string | null | undefined): string {
   const raw = String(priceId ?? "").trim();
   if (!raw) return "(empty)";
@@ -58,14 +69,13 @@ export function formatStripePriceIdPrefix(priceId: string | null | undefined): s
 
 export interface StripeCheckoutPriceMapLog {
   planId: string;
-  plan: "starter" | "pro";
+  plan: StripeCatalogPlan;
   billingPeriod: "monthly" | "yearly";
   currency: "EUR" | "TND";
   envVarName: string;
   priceIdPrefix: string;
 }
 
-/** Production-safe stdout log before Stripe Checkout Session creation. */
 export function logStripeCheckoutPriceMap(
   entry: StripeCheckoutPriceMapLog,
   logFn: (tag: string, payload: StripeCheckoutPriceMapLog) => void = (
@@ -85,17 +95,10 @@ export function logStripeCheckoutPriceMap(
   });
 }
 
-/**
- * Get Stripe Price ID for a plan
- * @param plan - "starter" | "pro"
- * @param currency - "EUR" | "TND"
- * @param period - "monthly" | "yearly"
- * @returns Stripe Price ID (e.g. "price_1234567890")
- */
 export function getStripePriceId(
-  plan: "starter" | "pro",
+  plan: StripeCatalogPlan,
   currency: "EUR" | "TND" = "EUR",
-  period: "monthly" | "yearly" = "monthly"
+  period: "monthly" | "yearly" = "monthly",
 ): StripePriceId | null {
   const priceId = STRIPE_PRICES[currency][plan][period];
   return priceId || null;
@@ -103,7 +106,7 @@ export function getStripePriceId(
 
 export function describeStripePriceSelection(params: {
   planId: string;
-  plan: "starter" | "pro";
+  plan: StripeCatalogPlan;
   billingPeriod: "monthly" | "yearly";
   currency?: "EUR" | "TND";
 }): StripeCheckoutPriceMapLog {
@@ -118,4 +121,3 @@ export function describeStripePriceSelection(params: {
     priceIdPrefix: formatStripePriceIdPrefix(priceId),
   };
 }
-

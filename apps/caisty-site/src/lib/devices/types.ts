@@ -42,10 +42,13 @@ export type DeviceSeatSummaryView = {
   plan: string;
   planLabel: string;
   hasLicense: boolean;
-  maxDevices: number;
+  /** Positive integer = hard cap. null = unlimited. */
+  maxDevices: number | null;
   usedDevices: number;
+  /** Free seats; Infinity when unlimited (UI must not loop this). */
   availableSlots: number;
   percent: number;
+  unlimitedDevices: boolean;
 };
 
 /** A single slot in the device management grid: a registered device or a free seat. */

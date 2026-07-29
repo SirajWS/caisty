@@ -22,7 +22,9 @@ export interface LicenseCore {
   key: string;
   plan: string;
   status: string;
-  maxDevices: number;
+  /** null = unlimited */
+  maxDevices: number | null;
+  unlimitedDevices: boolean;
   validFrom: Date | null;
   validUntil: Date | null;
   createdAt: Date | null;
@@ -146,7 +148,12 @@ export async function verifyLicenseForPos(
 
   const planId = (lic.plan || "starter") as LicensePlanId;
   const planConfig = LICENSE_PLANS[planId];
-  const maxDevices = lic.maxDevices ?? planConfig?.maxDevices ?? 1;
+  const maxDevices =
+    lic.maxDevices === null
+      ? null
+      : typeof lic.maxDevices === "number"
+        ? lic.maxDevices
+        : (planConfig?.maxDevices ?? 1);
 
   let currentDeviceRow: (typeof devices.$inferSelect) | undefined;
 
@@ -187,12 +194,19 @@ export async function verifyLicenseForPos(
 function mapLicenseCore(
   row: typeof licenses.$inferSelect & { maxDevices?: number | null },
 ): LicenseCore {
+  const maxDevices =
+    row.maxDevices === null
+      ? null
+      : typeof row.maxDevices === "number"
+        ? row.maxDevices
+        : 1;
   return {
     id: String(row.id),
     key: String(row.key),
     plan: String(row.plan),
     status: String(row.status),
-    maxDevices: row.maxDevices ?? 1,
+    maxDevices,
+    unlimitedDevices: maxDevices === null,
     validFrom: row.validFrom ?? null,
     validUntil: row.validUntil ?? null,
     createdAt: row.createdAt ?? null,

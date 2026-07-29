@@ -10,7 +10,9 @@ export function DeviceSeatSummary({
     planTitle: string;
     noPlan: string;
     used: string;
+    usedUnlimited: string;
     available: string;
+    availableUnlimited: string;
     full: string;
   };
 }) {
@@ -18,12 +20,15 @@ export function DeviceSeatSummary({
     ? labels.planTitle.replace("{{plan}}", seats.planLabel)
     : labels.noPlan;
 
-  const usedText = labels.used
-    .replace("{{used}}", String(seats.usedDevices))
-    .replace("{{max}}", String(seats.maxDevices));
+  const usedText = seats.unlimitedDevices
+    ? labels.usedUnlimited.replace("{{used}}", String(seats.usedDevices))
+    : labels.used
+        .replace("{{used}}", String(seats.usedDevices))
+        .replace("{{max}}", String(seats.maxDevices ?? 0));
 
-  const availableText =
-    seats.availableSlots > 0
+  const availableText = seats.unlimitedDevices
+    ? labels.availableUnlimited
+    : seats.availableSlots > 0
       ? labels.available.replace("{{count}}", String(seats.availableSlots))
       : labels.full;
 
@@ -42,18 +47,20 @@ export function DeviceSeatSummary({
         {seats.hasLicense ? (
           <>
             <p className="devices-seat-used">{usedText}</p>
-            <div
-              className="devices-seat-progress"
-              role="progressbar"
-              aria-valuenow={seats.usedDevices}
-              aria-valuemin={0}
-              aria-valuemax={seats.maxDevices}
-            >
-              <span
-                className="devices-seat-progress-fill"
-                style={{ width: `${seats.percent}%` }}
-              />
-            </div>
+            {!seats.unlimitedDevices ? (
+              <div
+                className="devices-seat-progress"
+                role="progressbar"
+                aria-valuenow={seats.usedDevices}
+                aria-valuemin={0}
+                aria-valuemax={seats.maxDevices ?? 0}
+              >
+                <span
+                  className="devices-seat-progress-fill"
+                  style={{ width: `${seats.percent}%` }}
+                />
+              </div>
+            ) : null}
           </>
         ) : null}
       </div>

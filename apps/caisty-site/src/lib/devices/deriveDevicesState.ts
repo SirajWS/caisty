@@ -31,6 +31,7 @@ function formatPlanLabel(plan: string, t: DeriveDevicesInput["t"]): string {
   if (p === "trial") return t.pos.planTrial;
   if (p === "starter") return t.pos.planStarter;
   if (p === "pro") return t.pos.planPro;
+  if (p === "business") return t.pos.planBusiness;
   if (p === "enterprise") return t.pos.planEnterprise;
   return plan || t.labels.dash;
 }
@@ -432,7 +433,7 @@ export function deriveRemoteActions(input: DeriveDevicesInput): RemoteAction[] {
 
 /**
  * Seat/plan summary from the primary license. maxDevices comes from the license;
- * availableSlots = maxDevices - registered devices (never negative).
+ * null / unlimitedDevices = unlimited seats (do not coerce to 0 or 1).
  */
 export function deriveDeviceSeats(
   cards: DeviceCardView[],
@@ -440,8 +441,38 @@ export function deriveDeviceSeats(
 ): DeviceSeatSummaryView {
   const primary = pickPrimaryPortalLicense(input.data.licenses);
   const plan = primary?.plan ?? "";
-  const maxDevices = Math.max(0, primary?.maxDevices ?? 0);
   const usedDevices = cards.filter((card) => !card.isReleased).length;
+  const unlimitedDevices =
+    Boolean(primary?.unlimitedDevices) ||
+    (primary != null && primary.maxDevices === null);
+
+  if (!primary) {
+    return {
+      plan,
+      planLabel: formatPlanLabel(plan, input.t),
+      hasLicense: false,
+      maxDevices: 0,
+      usedDevices,
+      availableSlots: 0,
+      percent: 0,
+      unlimitedDevices: false,
+    };
+  }
+
+  if (unlimitedDevices) {
+    return {
+      plan,
+      planLabel: formatPlanLabel(plan, input.t),
+      hasLicense: true,
+      maxDevices: null,
+      usedDevices,
+      availableSlots: Number.POSITIVE_INFINITY,
+      percent: 0,
+      unlimitedDevices: true,
+    };
+  }
+
+  const maxDevices = Math.max(0, primary.maxDevices ?? 0);
   const availableSlots = Math.max(0, maxDevices - usedDevices);
   const percent =
     maxDevices > 0 ? Math.min(100, Math.round((usedDevices / maxDevices) * 100)) : 0;
@@ -449,17 +480,18 @@ export function deriveDeviceSeats(
   return {
     plan,
     planLabel: formatPlanLabel(plan, input.t),
-    hasLicense: Boolean(primary),
+    hasLicense: true,
     maxDevices,
     usedDevices,
     availableSlots,
     percent,
+    unlimitedDevices: false,
   };
 }
 
 /**
  * Ordered grid slots: registered devices first, then free seats up to maxDevices.
- * If more devices exist than seats, every device is still shown (no empty slots).
+ * Unlimited plans show registered devices only (no empty-slot flood).
  */
 export function deriveDeviceSlots(
   cards: DeviceCardView[],
@@ -470,6 +502,10 @@ export function deriveDeviceSlots(
     id: card.id,
     card,
   }));
+
+  if (seats.unlimitedDevices || !Number.isFinite(seats.availableSlots)) {
+    return slots;
+  }
 
   for (let i = 0; i < seats.availableSlots; i += 1) {
     slots.push({ kind: "empty", id: `empty-${i}` });

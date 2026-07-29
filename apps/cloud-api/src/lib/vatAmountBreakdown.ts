@@ -36,11 +36,14 @@ export interface NetTaxGrossCents {
 
 /** Catalog prices are VAT-inclusive; extract net and tax from gross. */
 export function catalogNetTaxGrossCents(
-  plan: "starter" | "pro",
+  plan: "starter" | "pro" | "business",
   currency: Currency,
   period: BillingPeriod,
 ): NetTaxGrossCents {
   const grossCents = grossPlanAmountCents(plan, currency, period);
+  if (grossCents == null) {
+    throw new Error(`Missing catalog price for ${plan}/${period}/${currency}`);
+  }
   const netCents = Math.round(grossCents / (1 + PORTAL_CHECKOUT_VAT_RATE));
   const taxCents = grossCents - netCents;
   return {
@@ -58,6 +61,9 @@ export function legacyAddedVatGrossCents(
   period: BillingPeriod,
 ): number {
   const inclusiveGross = grossPlanAmountCents(plan, currency, period);
+  if (inclusiveGross == null) {
+    throw new Error(`Missing catalog price for ${plan}/${period}/${currency}`);
+  }
   return Math.round(inclusiveGross * (1 + PORTAL_CHECKOUT_VAT_RATE));
 }
 

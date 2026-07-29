@@ -6,6 +6,7 @@ import { licenseEvents } from "../db/schema/licenseEvents.js";
 import { subscriptions } from "../db/schema/subscriptions.js";
 import { generateLicenseKey } from "./licenseKey.js";
 import { maxLicenseValidUntil } from "./licenseGrantGuard.js";
+import { maxDevicesForPlan } from "../config/licensePlans.js";
 
 export type PaidLicensePaymentSource =
   | "portal_payment"
@@ -13,9 +14,9 @@ export type PaidLicensePaymentSource =
   | "paypal_webhook";
 
 /**
- * After a successful Starter/Pro payment: create the paid license when appropriate,
- * revoke trial licenses, and for Pro upgrades revoke Starter licenses and cancel
- * old Starter subscriptions so only one active paid license remains.
+ * After a successful Starter/Pro/Business payment: create the paid license when appropriate,
+ * revoke trial licenses, and for upgrades revoke lower-tier licenses and cancel
+ * old subscriptions so only one active paid license remains.
  */
 export async function ensurePaidLicenseAfterSuccessfulPayment(params: {
   orgId: string;
@@ -48,11 +49,14 @@ export async function ensurePaidLicenseAfterSuccessfulPayment(params: {
     .where(eq(subscriptions.id as any, sid))
     .limit(1);
 
-  if (!sub || (sub.plan !== "starter" && sub.plan !== "pro")) {
+  if (
+    !sub ||
+    (sub.plan !== "starter" && sub.plan !== "pro" && sub.plan !== "business")
+  ) {
     return undefined;
   }
 
-  const plan = sub.plan as "starter" | "pro";
+  const plan = sub.plan as "starter" | "pro" | "business";
 
   // Same tier, new subscription (e.g. monthly→yearly): end prior subscription-backed
   // paid licenses on other subscriptions. Manual grants (subscriptionId null) stay untouched.
@@ -100,27 +104,35 @@ export async function ensurePaidLicenseAfterSuccessfulPayment(params: {
     return licenseForThisSub.id;
   }
 
-  if (plan === "pro") {
-    // Revoke subscription-backed Starter only — never touch manual apology grants.
+  if (plan === "pro" || plan === "business") {
+    // Revoke subscription-backed lower tiers — never touch manual apology grants.
+    const lowerPlans =
+      plan === "business"
+        ? sql`lower(${licenses.plan}) in ('starter', 'pro')`
+        : sql`lower(${licenses.plan}) = 'starter'`;
     await db
       .update(licenses as any)
       .set({ status: "revoked" } as any)
       .where(
         and(
           eq(licenses.customerId as any, cid),
-          sql`lower(${licenses.plan}) = 'starter'`,
+          lowerPlans,
           sql`lower(coalesce(${licenses.status}, '')) = 'active'`,
           isNotNull(licenses.subscriptionId as any),
         ),
       );
 
+    const lowerSubPlans =
+      plan === "business"
+        ? sql`lower(${subscriptions.plan}) in ('starter', 'pro')`
+        : sql`lower(${subscriptions.plan}) = 'starter'`;
     await db
       .update(subscriptions as any)
       .set({ status: "cancelled", canceledAt: new Date() } as any)
       .where(
         and(
           eq(subscriptions.customerId as any, cid as any),
-          sql`lower(${subscriptions.plan}) = 'starter'`,
+          lowerSubPlans,
           eq(subscriptions.status as any, "active"),
           ne(subscriptions.id as any, sid as any),
         ),
@@ -162,7 +174,7 @@ export async function ensurePaidLicenseAfterSuccessfulPayment(params: {
       plan,
       status: "active",
       key: licenseKey,
-      maxDevices: plan === "starter" ? 1 : 3,
+      maxDevices: maxDevicesForPlan(plan),
       validFrom: now,
       validUntil,
     } as any)

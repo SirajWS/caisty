@@ -11,6 +11,7 @@ function planLabel(plan: string | undefined, t: DeriveBillingInput["t"]): string
   if (p === "trial") return t.plan.trialTitle;
   if (p === "starter") return t.pos.planStarter;
   if (p === "pro") return t.pos.planPro;
+  if (p === "business") return t.pos.planBusiness;
   if (p === "enterprise") return t.pos.planEnterprise;
   return plan;
 }
@@ -91,7 +92,10 @@ function deriveOverview(input: DeriveBillingInput): BillingDerivedState["overvie
       id: "interval",
       label: c.kpiBillingInterval,
       value:
-        license && (license.plan === "starter" || license.plan === "pro")
+        license &&
+        (license.plan === "starter" ||
+          license.plan === "pro" ||
+          license.plan === "business")
           ? billingIntervalLabel(input.customer.paidBillingPeriod, input.t)
           : notConfigured(input.t),
     },
@@ -229,16 +233,12 @@ function deriveDownloadActions(input: DeriveBillingInput): BillingDerivedState["
   ];
 }
 
-/** Show upgrade plans when trial, no paid plan, or an upgrade path exists. */
+/** Always show the catalog plan cards (active plan is marked on the cards). */
 export function shouldShowUpgradePlans(
-  licenses: DeriveBillingInput["licenses"],
-  paidPeriod: "monthly" | "yearly" | null | undefined,
+  _licenses: DeriveBillingInput["licenses"],
+  _paidPeriod: "monthly" | "yearly" | null | undefined,
 ): boolean {
-  const activePaid = getActivePaidPlanTier(licenses);
-  if (!activePaid) return true;
-  if (activePaid === "starter") return true;
-  if (activePaid === "pro" && paidPeriod === "monthly") return true;
-  return false;
+  return true;
 }
 
 function deriveSubscriptionSummary(input: DeriveBillingInput): SubscriptionSummaryView {
@@ -266,7 +266,10 @@ function deriveSubscriptionSummary(input: DeriveBillingInput): SubscriptionSumma
     planLabel: license ? planLabel(license.plan, input.t) : c.noActivePlan,
     statusLabel: license ? licenseStatusLabel(license.status ?? "", input.t) : dash,
     intervalLabel:
-      license && (license.plan === "starter" || license.plan === "pro")
+      license &&
+      (license.plan === "starter" ||
+        license.plan === "pro" ||
+        license.plan === "business")
         ? billingIntervalLabel(input.customer.paidBillingPeriod, input.t)
         : null,
     validUntilLabel: formatDate(license?.validUntil, input.locale, dash),

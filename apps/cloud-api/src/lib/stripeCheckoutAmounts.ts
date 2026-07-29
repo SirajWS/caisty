@@ -14,10 +14,16 @@ export interface StripeAmountBreakdown {
 
 function parsePlanFromPlanId(
   planId: string | undefined,
-): { plan: "starter" | "pro"; period: "monthly" | "yearly" } | null {
+): { plan: "starter" | "pro" | "business"; period: "monthly" | "yearly" } | null {
   if (!planId) return null;
   const raw = planId.toLowerCase();
-  const plan = raw.startsWith("pro") ? "pro" : raw.startsWith("starter") ? "starter" : null;
+  const plan = raw.startsWith("business")
+    ? "business"
+    : raw.startsWith("pro")
+      ? "pro"
+      : raw.startsWith("starter")
+        ? "starter"
+        : null;
   if (!plan) return null;
   return { plan, period: parseBillingPeriodFromPlanId(planId) };
 }
@@ -40,26 +46,32 @@ function normalizeInclusiveAmounts(
         taxCents: catalog.taxCents,
       };
     }
-    const legacy = correctLegacyInvoiceAmounts(
-      grossCents,
-      amounts.netCents,
-      amounts.taxCents,
-      parsed.plan,
-      currency,
-      parsed.period,
-    );
-    if (legacy) {
-      return {
-        grossCents: legacy.grossCents,
-        netCents: legacy.netCents,
-        taxCents: legacy.taxCents,
-      };
+    if (parsed.plan === "starter" || parsed.plan === "pro") {
+      const legacy = correctLegacyInvoiceAmounts(
+        grossCents,
+        amounts.netCents,
+        amounts.taxCents,
+        parsed.plan,
+        currency,
+        parsed.period,
+      );
+      if (legacy) {
+        return {
+          grossCents: legacy.grossCents,
+          netCents: legacy.netCents,
+          taxCents: legacy.taxCents,
+        };
+      }
     }
   }
 
   if (amounts.taxCents > 0 && amounts.netCents > 0) {
     const parsed = parsePlanFromPlanId(planId);
-    if (parsed && currency === "EUR") {
+    if (
+      parsed &&
+      (parsed.plan === "starter" || parsed.plan === "pro") &&
+      currency === "EUR"
+    ) {
       const legacy = correctLegacyInvoiceAmounts(
         grossCents,
         amounts.netCents,

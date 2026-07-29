@@ -102,13 +102,14 @@ export async function registerSubscriptionsRoutes(app: FastifyInstance) {
 
               if (
                 interval &&
-                (tier === "starter" || tier === "pro")
+                (tier === "starter" || tier === "pro" || tier === "business")
               ) {
-                const plan = tier as "starter" | "pro";
+                const plan = tier as "starter" | "pro" | "business";
                 if (
+                  (tier === "starter" || tier === "pro") &&
                   isNetOnlyStripeAmountCents(
                     storedPriceCents,
-                    plan,
+                    tier,
                     cur,
                     interval,
                   )
@@ -124,7 +125,7 @@ export async function registerSubscriptionsRoutes(app: FastifyInstance) {
                 } else if (
                   Math.abs(
                     storedPriceCents -
-                      grossPlanAmountCents(plan, cur, interval),
+                      (grossPlanAmountCents(plan, cur, interval) ?? -999999),
                   ) <= 2
                 ) {
                   const corrected = catalogNetTaxGrossCents(

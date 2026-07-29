@@ -13,7 +13,7 @@ import { payments } from "../db/schema/payments.js";
 import { and, eq } from "drizzle-orm";
 import { addDays, addMonths } from "date-fns";
 import { ENV } from "../config/env.js";
-import { type Currency } from "../config/pricing.js";
+import { type Currency, isYearlyPriceAvailable } from "../config/pricing.js";
 import { parseCheckoutPlanId } from "../lib/billingPeriod.js";
 import { catalogNetTaxGrossCents } from "../lib/vatAmountBreakdown.js";
 import {
@@ -161,6 +161,7 @@ export async function registerBillingRoutes(app: FastifyInstance) {
         activeCheckout,
         plan,
         period,
+        { yearlyAvailable: isYearlyPriceAvailable(plan, currency) },
       );
 
       if (!eligibility.ok) {
@@ -179,6 +180,13 @@ export async function registerBillingRoutes(app: FastifyInstance) {
             error: "interval_downgrade_not_allowed",
             message:
               "Switching from yearly to monthly billing is not available in checkout. Please use the billing portal or contact support.",
+          };
+        }
+        if (eligibility.code === "period_not_available") {
+          return {
+            ok: false,
+            error: "period_not_available",
+            message: `Yearly billing is not available for the ${plan} plan.`,
           };
         }
         return {

@@ -51,7 +51,23 @@ const pricingLocales = {
           "Priorisierter Support",
         ],
       },
+      business: {
+        title: "Business",
+        badge: "Unbegrenzte Geräte",
+        description: "Für wachsende Unternehmen mit mehreren Kassen und Teams.",
+        devicesLabel: "aktive POS-Geräte",
+        devicesUnlimited: "Unbegrenzte POS-Geräte",
+        features: [
+          "Alle Funktionen aus Pro",
+          "Unbegrenzte aktive POS-Geräte",
+          "Zentrale Geräte- und Lizenzverwaltung",
+          "Erweiterte Berichte und Exportfunktionen",
+          "Priorisierter Support",
+        ],
+      },
     },
+    yearlyNotAvailable: "Jährliche Abrechnung noch nicht verfügbar",
+    yearlyNotAvailableShort: "N/A",
     info: {
       contract: {
         title: "Vertrag & Laufzeit",
@@ -125,7 +141,23 @@ const pricingLocales = {
           "Priority support",
         ],
       },
+      business: {
+        title: "Business",
+        badge: "Unlimited devices",
+        description: "For growing businesses with multiple registers and teams.",
+        devicesLabel: "active POS devices",
+        devicesUnlimited: "Unlimited POS devices",
+        features: [
+          "Everything included in Pro",
+          "Unlimited active POS devices",
+          "Central device and license management",
+          "Advanced reports and export features",
+          "Priority support",
+        ],
+      },
     },
+    yearlyNotAvailable: "Yearly billing not available yet",
+    yearlyNotAvailableShort: "N/A",
     info: {
       contract: {
         title: "Contract & Duration",
@@ -199,7 +231,23 @@ const pricingLocales = {
           "Support prioritaire",
         ],
       },
+      business: {
+        title: "Business",
+        badge: "Appareils illimités",
+        description: "Pour les entreprises en croissance disposant de plusieurs caisses et équipes.",
+        devicesLabel: "appareils POS actifs",
+        devicesUnlimited: "Appareils POS illimités",
+        features: [
+          "Toutes les fonctionnalités de Pro",
+          "Nombre illimité d’appareils POS actifs",
+          "Gestion centralisée des appareils et des licences",
+          "Rapports avancés et fonctions d’exportation",
+          "Support prioritaire",
+        ],
+      },
     },
+    yearlyNotAvailable: "Facturation annuelle pas encore disponible",
+    yearlyNotAvailableShort: "N/A",
     info: {
       contract: {
         title: "Contrat & Durée",
@@ -273,7 +321,23 @@ const pricingLocales = {
           "دعم ذو أولوية",
         ],
       },
+      business: {
+        title: "Business",
+        badge: "أجهزة غير محدودة",
+        description: "للشركات النامية التي تستخدم عدة نقاط بيع وفرق عمل.",
+        devicesLabel: "أجهزة نقاط بيع نشطة",
+        devicesUnlimited: "عدد غير محدود من أجهزة نقاط البيع",
+        features: [
+          "جميع مزايا خطة Pro",
+          "عدد غير محدود من أجهزة نقاط البيع النشطة",
+          "إدارة مركزية للأجهزة والتراخيص",
+          "تقارير متقدمة وخيارات تصدير",
+          "دعم ذو أولوية",
+        ],
+      },
     },
+    yearlyNotAvailable: "الفوترة السنوية غير متاحة بعد",
+    yearlyNotAvailableShort: "N/A",
     info: {
       contract: {
         title: "العقد والمدة",

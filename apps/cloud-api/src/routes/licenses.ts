@@ -8,6 +8,7 @@ import { licenseEvents } from "../db/schema/licenseEvents.js";
 import { devices } from "../db/schema/devices.js";
 import { customers } from "../db/schema/customers.js";
 import { generateLicenseKey } from "../lib/licenseKey.js";
+import { maxDevicesForPlan } from "../config/licensePlans.js";
 
 type CreateLicenseBody = {
   customerId?: string | null;
@@ -346,7 +347,13 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
       return { error: "plan is required" };
     }
 
-    const maxDevices = body.maxDevices ?? 1;
+    const planKey = String(body.plan).trim().toLowerCase();
+    const maxDevices =
+      planKey === "business"
+        ? null
+        : body.maxDevices != null && Number(body.maxDevices) > 0
+          ? Number(body.maxDevices)
+          : (maxDevicesForPlan(planKey) ?? 1);
 
     const customerId =
       body.customerId && body.customerId.trim().length > 0

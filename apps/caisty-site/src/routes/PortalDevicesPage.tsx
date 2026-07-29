@@ -112,7 +112,9 @@ const PortalDevicesPage: React.FC = () => {
               planTitle: d.seatPlanTitle,
               noPlan: d.seatNoPlan,
               used: d.seatUsed,
+              usedUnlimited: d.seatUsedUnlimited,
               available: d.seatAvailable,
+              availableUnlimited: d.seatAvailableUnlimited,
               full: d.seatFull,
             }}
           />

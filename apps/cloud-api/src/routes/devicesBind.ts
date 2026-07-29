@@ -6,6 +6,10 @@ import { db } from "../db/client";
 import { devices } from "../db/schema/devices";
 import { licenses } from "../db/schema/licenses";
 import { customers } from "../db/schema/customers";
+import {
+  canAcceptAdditionalDevice,
+  isUnlimitedDeviceLimit,
+} from "../lib/deviceLimits.js";
 
 // Strukturen wie aus der POS-Seite "Cloud Customer / Account"
 type CloudCustomerContact = {
@@ -176,9 +180,12 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
       }
 
       const usedSeats = devicesForLicense.length;
-      const maxDevices = license.maxDevices ?? 1;
+      const maxDevices = license.maxDevices ?? null;
 
-      if (!device && usedSeats >= maxDevices) {
+      if (
+        !device &&
+        !canAcceptAdditionalDevice(usedSeats, maxDevices)
+      ) {
         return reply.send({
           ok: false,
           reason: "max_devices_reached",
@@ -186,7 +193,8 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
           message: "Maximum number of devices for this license reached",
           devices: {
             used: usedSeats,
-            limit: maxDevices,
+            limit: isUnlimitedDeviceLimit(maxDevices) ? null : maxDevices,
+            unlimitedDevices: isUnlimitedDeviceLimit(maxDevices),
           },
         });
       }

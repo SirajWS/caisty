@@ -18,4 +18,17 @@ describe("getPosReleaseConfig", () => {
     expect(release.installer.fileName).toBe("Caisty.PoS_0.3.3_x64-setup.exe");
     expect(release.installer.downloadUrl).toBe(POS_WINDOWS_URL);
   });
+
+  it("Open Caisty Web uses local Caisty-Pos URL on port 5177", () => {
+    vi.stubEnv("VITE_POS_WEB_ENABLED", "true");
+    vi.stubEnv("VITE_POS_WEB_URL", "http://localhost:5177/pos");
+
+    const release = getPosReleaseConfig();
+
+    expect(release.web.enabled).toBe(true);
+    expect(release.web.url).toBe("http://localhost:5177/pos");
+    expect(release.web.plannedUrl).toBe("http://localhost:5177/pos");
+    expect(release.web.url).not.toContain(":5176");
+    expect(release.web.url).not.toContain(":5174");
+  });
 });

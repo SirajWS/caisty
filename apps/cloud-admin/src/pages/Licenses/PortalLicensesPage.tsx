@@ -207,7 +207,8 @@ export default function PortalLicensesPage() {
               !error &&
               filteredLicenses.map((lic) => {
                 const used = lic.devicesCount ?? 0;
-                const seatTotal = lic.maxDevices ?? used;
+                const seatTotal =
+                  lic.maxDevices === null ? null : (lic.maxDevices ?? used);
                 const customer = lic.customerId
                   ? customersById[lic.customerId]
                   : undefined;
@@ -223,7 +224,11 @@ export default function PortalLicensesPage() {
                     <td>
                       <LicenseStatusPill status={lic.status} />
                     </td>
-                    <td>{lic.maxDevices ?? "—"}</td>
+                    <td>
+                      {lic.maxDevices === null
+                        ? "Unlimited"
+                        : (lic.maxDevices ?? "—")}
+                    </td>
                     <td>
                       <SeatsStatus used={used} total={seatTotal} />
                     </td>

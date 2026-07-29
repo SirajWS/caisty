@@ -96,6 +96,7 @@ function formatPlanLabel(plan: string, t: DerivePosHubInput["t"]): string {
   if (p === "trial") return t.pos.planTrial;
   if (p === "starter") return t.pos.planStarter;
   if (p === "pro") return t.pos.planPro;
+  if (p === "business") return t.pos.planBusiness;
   if (p === "enterprise") return t.pos.planEnterprise;
   return plan || t.labels.dash;
 }

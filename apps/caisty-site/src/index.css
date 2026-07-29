@@ -6101,7 +6101,8 @@ body:has(.portal-root--dark) .receipt-detail-panel {
 
 @media (min-width: 640px) {
   .billing-plan-grid--2,
-  .billing-plan-grid--3 {
+  .billing-plan-grid--3,
+  .billing-plan-grid--4 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -6113,6 +6114,16 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   .billing-plan-grid--3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+  .billing-plan-grid--4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.billing-plan-price-note {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  font-weight: 600;
 }
 
 .billing-plan-card {

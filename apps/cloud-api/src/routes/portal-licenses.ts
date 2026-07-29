@@ -29,7 +29,9 @@ type PortalLicenseDto = {
   key: string;
   plan: string;
   status: string;
-  maxDevices: number;
+  /** null = unlimited */
+  maxDevices: number | null;
+  unlimitedDevices: boolean;
   validUntil: string | null;
   createdAt: string;
 };
@@ -51,19 +53,29 @@ export async function registerPortalLicensesRoutes(app: FastifyInstance) {
       .from(licenses)
       .where(eq(licenses.customerId as any, payload.customerId as any));
 
-    const result: PortalLicenseDto[] = rows.map((lic: any) => ({
-      id: String(lic.id),
-      key: String(lic.key),
-      plan: String(lic.plan),
-      status: String(lic.status),
-      maxDevices: Number(lic.maxDevices ?? 1),
-      validUntil: lic.validUntil
-        ? new Date(lic.validUntil).toISOString()
-        : null,
-      createdAt: lic.createdAt
-        ? new Date(lic.createdAt).toISOString()
-        : new Date().toISOString(),
-    }));
+    const result: PortalLicenseDto[] = rows.map((lic: any) => {
+      // Explicit null from DB = unlimited; never coalesce null → 1
+      const resolved: number | null =
+        lic.maxDevices === null
+          ? null
+          : typeof lic.maxDevices === "number"
+            ? lic.maxDevices
+            : Number(lic.maxDevices) || 1;
+      return {
+        id: String(lic.id),
+        key: String(lic.key),
+        plan: String(lic.plan),
+        status: String(lic.status),
+        maxDevices: resolved,
+        unlimitedDevices: resolved === null,
+        validUntil: lic.validUntil
+          ? new Date(lic.validUntil).toISOString()
+          : null,
+        createdAt: lic.createdAt
+          ? new Date(lic.createdAt).toISOString()
+          : new Date().toISOString(),
+      };
+    });
 
     return result;
   });

@@ -23,6 +23,7 @@ import {
   invoiceAmountFieldsFromBreakdown,
 } from "./stripeCheckoutAmounts.js";
 import { syncPaidInvoiceFromStripeInvoice } from "./syncPaidInvoiceFromStripe.js";
+import { maxDevicesForPlan } from "../config/licensePlans.js";
 
 export type ProcessStripePaidInvoiceResult = {
   success: boolean;
@@ -267,7 +268,7 @@ export async function processStripePaidInvoice(params: {
       "",
   ).toLowerCase();
   let nextPlan = sub.plan;
-  if (metaPlan === "starter" || metaPlan === "pro") {
+  if (metaPlan === "starter" || metaPlan === "pro" || metaPlan === "business") {
     nextPlan = metaPlan;
   }
 
@@ -323,9 +324,19 @@ export async function processStripePaidInvoice(params: {
       .set({
         validUntil: newUntil,
         updatedAt: new Date(),
-        plan: nextPlan === "starter" || nextPlan === "pro" ? nextPlan : paidLicense.plan,
-        maxDevices:
-          nextPlan === "pro" ? Math.max(Number(paidLicense.maxDevices ?? 1), 3) : paidLicense.maxDevices,
+        plan:
+          nextPlan === "starter" ||
+          nextPlan === "pro" ||
+          nextPlan === "business"
+            ? nextPlan
+            : paidLicense.plan,
+        maxDevices: maxDevicesForPlan(
+          nextPlan === "starter" ||
+            nextPlan === "pro" ||
+            nextPlan === "business"
+            ? String(nextPlan)
+            : String(paidLicense.plan),
+        ),
       } as any)
       .where(eq(licenses.id, paidLicense.id));
     extendedLicenseId = paidLicense.id;
@@ -532,7 +543,7 @@ export async function processStripePaidInvoice(params: {
   }
 
   let createdLicenseId: string | undefined;
-  if (invForLicense && (nextPlan === "starter" || nextPlan === "pro" || sub.plan === "starter" || sub.plan === "pro")) {
+  if (invForLicense && (nextPlan === "starter" || nextPlan === "pro" || nextPlan === "business" || sub.plan === "starter" || sub.plan === "pro" || sub.plan === "business")) {
     createdLicenseId = await ensurePaidLicenseAfterSuccessfulPayment({
       orgId: String(sub.orgId),
       customerId: cid,

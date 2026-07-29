@@ -1,7 +1,7 @@
 // apps/caisty-site/src/routes/PortalCheckoutPage.tsx
 import React from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { PRICING, formatPrice } from "../config/pricing";
+import { formatPrice, resolvePlanPrice, isYearlyPlanAvailable, type PaidPlanKey } from "../config/pricing";
 import { breakdownVatInclusive } from "../lib/vatDisplay";
 import { useCurrency } from "../lib/useCurrency";
 import {
@@ -28,27 +28,41 @@ const PAYPAL_CHECKOUT_ENABLED =
 const CHECKOUT_PLAN_IDS = new Set([
   "starter",
   "pro",
+  "business",
   "starter_monthly",
   "starter_yearly",
   "pro_monthly",
   "pro_yearly",
+  "business_monthly",
+  "business_yearly",
 ]);
 
-function parsePortalCheckoutPlan(param: string | null): {
-  tier: "starter" | "pro";
+type ParsedCheckoutPlan = {
+  tier: PaidPlanKey;
   period: "monthly" | "yearly";
   planId: string;
-} | null {
+  periodUnavailable?: boolean;
+};
+
+function parsePortalCheckoutPlan(param: string | null): ParsedCheckoutPlan | null {
   if (!param) return null;
   const raw = param.trim().toLowerCase();
   if (!CHECKOUT_PLAN_IDS.has(raw)) return null;
-  if (raw === "starter" || raw === "pro") {
-    const tier = raw as "starter" | "pro";
+  if (raw === "starter" || raw === "pro" || raw === "business") {
+    const tier = raw as PaidPlanKey;
     return { tier, period: "monthly", planId: `${tier}_monthly` };
   }
-  const tier = raw.startsWith("starter") ? "starter" : "pro";
+  const tier: PaidPlanKey = raw.startsWith("business")
+    ? "business"
+    : raw.startsWith("starter")
+      ? "starter"
+      : "pro";
   const period = raw.endsWith("_yearly") ? "yearly" : "monthly";
-  return { tier, period, planId: `${tier}_${period}` };
+  const planId = `${tier}_${period}`;
+  if (period === "yearly" && !isYearlyPlanAvailable(tier)) {
+    return { tier, period, planId, periodUnavailable: true };
+  }
+  return { tier, period, planId };
 }
 
 const PortalCheckoutPage: React.FC = () => {
@@ -126,12 +140,16 @@ const PortalCheckoutPage: React.FC = () => {
 
   const checkoutEligibility = React.useMemo(() => {
     if (!parsedPlan) return { ok: true as const };
+    if (parsedPlan.periodUnavailable) {
+      return { ok: false as const, code: "period_not_available" as const };
+    }
     return evaluateCheckoutEligibility(
       activeCheckoutCtx,
       parsedPlan.tier,
       parsedPlan.period,
+      { yearlyAvailable: isYearlyPlanAvailable(parsedPlan.tier, currency) },
     );
-  }, [activeCheckoutCtx, parsedPlan]);
+  }, [activeCheckoutCtx, parsedPlan, currency]);
 
   const checkoutBlockedProYearlyStarter = Boolean(
     parsedPlan &&
@@ -140,9 +158,6 @@ const PortalCheckoutPage: React.FC = () => {
       parsedPlan.tier === "pro" &&
       parsedPlan.period === "monthly",
   );
-
-  const checkoutBlocked =
-    !checkoutEligibility.ok || checkoutBlockedProYearlyStarter;
 
   React.useEffect(() => {
     if (!isValidPlan) {
@@ -155,20 +170,38 @@ const PortalCheckoutPage: React.FC = () => {
   }
 
   const { tier: plan, period: billingPeriod, planId } = parsedPlan;
-  const planPrice = PRICING[currency][plan][billingPeriod];
+  const resolvedPrice = resolvePlanPrice(plan, billingPeriod, currency);
+  const periodUnavailable = Boolean(parsedPlan.periodUnavailable) || !resolvedPrice;
+  const checkoutBlocked =
+    periodUnavailable ||
+    !checkoutEligibility.ok ||
+    checkoutBlockedProYearlyStarter;
+  const planPrice = resolvedPrice?.amount ?? 0;
+  const priceCurrency = resolvedPrice?.currency ?? currency;
   const vatBreakdown =
-    currency === "EUR" ? breakdownVatInclusive(planPrice) : null;
+    priceCurrency === "EUR" && resolvedPrice
+      ? breakdownVatInclusive(planPrice)
+      : null;
   const periodLabel =
     billingPeriod === "yearly"
-      ? currency === "EUR"
+      ? priceCurrency === "EUR"
         ? t.labels.perYearInclVat
         : t.labels.perYear
-      : currency === "EUR"
+      : priceCurrency === "EUR"
         ? t.labels.perMonthInclVat
         : t.labels.perMonth;
-  const planName = plan === "starter" ? "Starter" : "Pro";
+  const planName =
+    plan === "starter"
+      ? t.pos.planStarter
+      : plan === "pro"
+        ? t.pos.planPro
+        : t.pos.planBusiness;
   const planDescription =
-    plan === "starter" ? t.checkout.planStarterDesc : t.checkout.planProDesc;
+    plan === "starter"
+      ? t.checkout.planStarterDesc
+      : plan === "pro"
+        ? t.checkout.planProDesc
+        : t.checkout.planBusinessDesc;
 
   async function handlePayment() {
     try {
@@ -196,7 +229,9 @@ const PortalCheckoutPage: React.FC = () => {
       }
 
       if (checkoutBlocked) {
-        if (checkoutBlockedProYearlyStarter) {
+        if (periodUnavailable) {
+          setError(t.checkout.periodNotAvailable);
+        } else if (checkoutBlockedProYearlyStarter) {
           setError(t.checkout.upgradeProYearlyOnly);
         } else if (!checkoutEligibility.ok) {
           if (checkoutEligibility.code === "downgrade_not_allowed") {
@@ -205,6 +240,8 @@ const PortalCheckoutPage: React.FC = () => {
             checkoutEligibility.code === "interval_downgrade_not_allowed"
           ) {
             setError(t.checkout.intervalDowngradeNotAllowed);
+          } else if (checkoutEligibility.code === "period_not_available") {
+            setError(t.checkout.periodNotAvailable);
           } else {
             setError(t.checkout.alreadyHavePlan);
           }
@@ -316,16 +353,20 @@ const PortalCheckoutPage: React.FC = () => {
       {!licensesLoading && checkoutBlocked && (
         <div className="rounded-xl border border-amber-600/50 bg-amber-900/25 px-4 py-3 text-sm text-amber-100 space-y-2">
           <p>
-            {checkoutBlockedProYearlyStarter
-              ? t.checkout.upgradeProYearlyOnly
-              : !checkoutEligibility.ok &&
-                  checkoutEligibility.code === "downgrade_not_allowed"
-                ? t.checkout.downgradeNotAvailable
+            {periodUnavailable ||
+            (!checkoutEligibility.ok &&
+              checkoutEligibility.code === "period_not_available")
+              ? t.checkout.periodNotAvailable
+              : checkoutBlockedProYearlyStarter
+                ? t.checkout.upgradeProYearlyOnly
                 : !checkoutEligibility.ok &&
-                    checkoutEligibility.code ===
-                      "interval_downgrade_not_allowed"
-                  ? t.checkout.intervalDowngradeNotAllowed
-                  : t.checkout.alreadyHavePlan}
+                    checkoutEligibility.code === "downgrade_not_allowed"
+                  ? t.checkout.downgradeNotAvailable
+                  : !checkoutEligibility.ok &&
+                      checkoutEligibility.code ===
+                        "interval_downgrade_not_allowed"
+                    ? t.checkout.intervalDowngradeNotAllowed
+                    : t.checkout.alreadyHavePlan}
           </p>
           <Link
             to="/portal/billing"
@@ -360,7 +401,7 @@ const PortalCheckoutPage: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <div className="text-lg font-semibold text-orange-400">
-                    {formatPrice(planPrice, currency)}
+                    {formatPrice(planPrice, priceCurrency)}
                   </div>
                   <div className="text-xs text-slate-400">
                     {periodLabel}
@@ -373,7 +414,7 @@ const PortalCheckoutPage: React.FC = () => {
                   <>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-slate-300">{t.labels.subtotalInclVat}</span>
-                      <span className="text-slate-100">{formatPrice(planPrice, currency)}</span>
+                      <span className="text-slate-100">{formatPrice(planPrice, priceCurrency)}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-slate-300">{t.labels.includedVat19}</span>
@@ -384,7 +425,7 @@ const PortalCheckoutPage: React.FC = () => {
                     <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
                       <span className="text-base font-semibold text-slate-50">{t.labels.totalDue}</span>
                       <span className="text-xl font-semibold text-orange-400">
-                        {formatPrice(planPrice, currency)}
+                        {formatPrice(planPrice, priceCurrency)}
                       </span>
                     </div>
                   </>
@@ -392,7 +433,7 @@ const PortalCheckoutPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <span className="text-base font-semibold text-slate-50">{t.labels.total}</span>
                     <span className="text-xl font-semibold text-orange-400">
-                      {formatPrice(planPrice, currency)}
+                      {formatPrice(planPrice, priceCurrency)}
                     </span>
                   </div>
                 )}
@@ -520,7 +561,7 @@ const PortalCheckoutPage: React.FC = () => {
                   {vatBreakdown ? t.labels.totalDue : t.labels.total}
                 </span>
                 <span className="text-xl font-semibold text-orange-400">
-                  {formatPrice(planPrice, currency)}
+                  {formatPrice(planPrice, priceCurrency)}
                 </span>
               </div>
               {vatBreakdown && (

@@ -69,14 +69,19 @@ export class PayPalProvider implements PaymentProvider {
   async checkout(req: CheckoutRequest): Promise<CheckoutResponse> {
     const token = await this.getAccessToken();
 
-    // Parse planId (format: "starter" or "pro" or "starter_monthly" etc.)
-    const planId = req.planId.split("_")[0] as "starter" | "pro";
-    const period = req.planId.includes("yearly") ? "yearly" : "monthly";
+    // Parse planId (format: "starter_monthly", "business_yearly", …)
+    const { parseCheckoutPlanId } = await import("../../../lib/billingPeriod.js");
+    const { plan: planId, period } = parseCheckoutPlanId(req.planId);
     const currency = (req.currency ?? "EUR") as "EUR" | "TND";
 
     // Get price from pricing config
     const { grossPlanAmountCents } = await import("../../../config/pricing.js");
     const grossCents = grossPlanAmountCents(planId, currency, period);
+    if (grossCents == null) {
+      throw new Error(
+        `Catalog price not configured for ${planId}_${period} (${currency})`,
+      );
+    }
     const priceStr = (grossCents / 100).toFixed(2);
 
     const orderRes = await fetch(`${this.baseUrl}/v2/checkout/orders`, {

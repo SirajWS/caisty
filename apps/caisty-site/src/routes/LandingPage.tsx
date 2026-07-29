@@ -12,7 +12,7 @@ import {
   WifiOff,
   type LucideIcon,
 } from "lucide-react";
-import { formatLandingPlanPriceLine, PRICING } from "../config/pricing";
+import { formatLandingPlanPriceLine, resolvePlanPrice, isYearlyPlanAvailable, type PaidPlanKey } from "../config/pricing";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
 import { landingTn } from "../lib/translations/landingTn";
@@ -65,14 +65,29 @@ export default function LandingPage() {
   const planPriceSuffix =
     billingPeriod === "monthly" ? pricingCopy.priceMonthlySuffix : pricingCopy.priceYearlySuffix;
 
-  const landingPlanPriceLine = (plan: "starter" | "pro") =>
-    formatLandingPlanPriceLine(
-      PRICING[currency][plan][billingPeriod],
-      currency,
+  const landingPlanPriceLine = (plan: PaidPlanKey) => {
+    const yearlyOk = isYearlyPlanAvailable(plan, currency);
+    if (billingPeriod === "yearly" && !yearlyOk) {
+      const monthly = resolvePlanPrice(plan, "monthly", currency);
+      if (!monthly) return pricingCopy.yearlyNotAvailableShort;
+      return `${formatLandingPlanPriceLine(
+        monthly.amount,
+        monthly.currency,
+        language,
+        "monthly",
+        pricingCopy.priceMonthlySuffix,
+      )} · ${pricingCopy.yearlyNotAvailable}`;
+    }
+    const resolved = resolvePlanPrice(plan, billingPeriod, currency);
+    if (!resolved) return pricingCopy.yearlyNotAvailableShort;
+    return formatLandingPlanPriceLine(
+      resolved.amount,
+      resolved.currency,
       language,
       billingPeriod,
       planPriceSuffix,
     );
+  };
 
   return (
     <div
@@ -195,7 +210,7 @@ export default function LandingPage() {
               </button>
             </div>
           </div>
-          <div className="grid gap-5 lg:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             <PlanCard name={t.plans.trial.name} badge={t.plans.trial.badge} priceLine={t.plans.trial.priceLine} subline={t.plans.trial.subline} features={t.plans.trial.features} />
             <PlanCard
               name={t.plans.starter.name}
@@ -207,6 +222,13 @@ export default function LandingPage() {
               highlight
             />
             <PlanCard name={t.plans.pro.name} badge={t.plans.pro.badge} priceLine={landingPlanPriceLine("pro")} subline={t.plans.pro.subline} features={t.plans.pro.features} />
+            <PlanCard
+              name={t.plans.business.name}
+              badge={t.plans.business.badge}
+              priceLine={landingPlanPriceLine("business")}
+              subline={t.plans.business.subline}
+              features={t.plans.business.features}
+            />
           </div>
           <p className="text-sm m-0 max-w-3xl" style={{ color: "var(--mkt-text-subtle)" }}>
             {t.plans.note}

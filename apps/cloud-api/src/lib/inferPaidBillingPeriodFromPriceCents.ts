@@ -6,13 +6,17 @@ import { grossPlanAmountCents } from "../config/pricing.js";
  * using the same grossPlanAmountCents rules as checkout.
  */
 export function inferPaidBillingPeriodFromPriceCents(
-  plan: "starter" | "pro",
+  plan: "starter" | "pro" | "business",
   currency: Currency,
   priceCents: number,
 ): "monthly" | "yearly" | null {
   const monthlyGross = grossPlanAmountCents(plan, currency, "monthly");
   const yearlyGross = grossPlanAmountCents(plan, currency, "yearly");
-  if (Math.abs(priceCents - monthlyGross) <= 2) return "monthly";
-  if (Math.abs(priceCents - yearlyGross) <= 2) return "yearly";
+  if (monthlyGross != null && Math.abs(priceCents - monthlyGross) <= 2) {
+    return "monthly";
+  }
+  if (yearlyGross != null && Math.abs(priceCents - yearlyGross) <= 2) {
+    return "yearly";
+  }
   return null;
 }

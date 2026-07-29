@@ -20,7 +20,6 @@ import {
   LayoutDashboard,
   Menu,
   Receipt,
-  ScrollText,
   ShieldCheck,
   Users,
   X,
@@ -72,7 +71,6 @@ type NavItem = { to: string; label: string; icon: React.ReactNode };
 const NAV_ITEMS: NavItem[] = [
   { to: "/", label: "Dashboard", icon: <LayoutDashboard size={18} /> },
   { to: "/customers", label: "Customers", icon: <Users size={18} /> },
-  { to: "/receipts", label: "POS · Receipt History", icon: <ScrollText size={18} /> },
   { to: "/fiscal", label: "Fiscal / Compliance", icon: <ShieldCheck size={18} /> },
   { to: "/licenses", label: "Licenses", icon: <KeyRound size={18} /> },
   { to: "/devices", label: "Devices", icon: <HardDrive size={18} /> },

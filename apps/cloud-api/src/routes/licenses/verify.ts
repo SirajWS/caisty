@@ -82,8 +82,12 @@ export async function registerLicenseVerifyRoute(app: FastifyInstance) {
               end: lic.validUntil,
             },
             maxDevices:
-              planConfig?.maxDevices ??
-              (typeof lic.maxDevices === "number" ? lic.maxDevices : null),
+              lic.maxDevices === null
+                ? null
+                : typeof lic.maxDevices === "number"
+                  ? lic.maxDevices
+                  : (planConfig?.maxDevices ?? 1),
+            unlimitedDevices: lic.maxDevices === null,
             createdAt: lic.createdAt,
           };
         }
@@ -118,8 +122,12 @@ export async function registerLicenseVerifyRoute(app: FastifyInstance) {
             end: lic.validUntil,
           },
           maxDevices:
-            planConfig?.maxDevices ??
-            (typeof lic.maxDevices === "number" ? lic.maxDevices : null),
+            lic.maxDevices === null
+              ? null
+              : typeof lic.maxDevices === "number"
+                ? lic.maxDevices
+                : (planConfig?.maxDevices ?? 1),
+          unlimitedDevices: lic.maxDevices === null,
           createdAt: lic.createdAt,
         },
         devices: result.devices,

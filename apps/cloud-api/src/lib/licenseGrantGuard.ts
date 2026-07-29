@@ -14,7 +14,7 @@ export function isSubscriptionBackedPaidLicense(license: {
   const plan = String(license.plan ?? "")
     .trim()
     .toLowerCase();
-  if (plan !== "starter" && plan !== "pro") return false;
+  if (plan !== "starter" && plan !== "pro" && plan !== "business") return false;
   const status = String(license.status ?? "")
     .trim()
     .toLowerCase();

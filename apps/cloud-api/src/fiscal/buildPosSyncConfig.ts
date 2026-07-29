@@ -112,7 +112,8 @@ export function buildPosSyncConfig(input: {
       key: license.key,
       plan: license.plan,
       status: license.status,
-      maxDevices: license.maxDevices ?? 1,
+      maxDevices: license.maxDevices === null ? null : (license.maxDevices ?? 1),
+      unlimitedDevices: license.maxDevices === null,
       validUntil: license.validUntil ? iso(license.validUntil) : null,
     },
     device: {

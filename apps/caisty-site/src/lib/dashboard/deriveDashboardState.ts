@@ -46,6 +46,7 @@ function formatPlanLabel(plan: string, t: PortalTranslations): string {
   if (p === "trial") return t.pos.planTrial;
   if (p === "starter") return t.pos.planStarter;
   if (p === "pro") return t.pos.planPro;
+  if (p === "business") return t.pos.planBusiness;
   if (p === "enterprise") return t.pos.planEnterprise;
   return plan || t.labels.dash;
 }
@@ -741,8 +742,8 @@ function deriveRecentOrders(input: DeriveDashboardInput): PortalDashboardRecentO
       const statusRaw =
         typeof order.normalizedStatus === "string"
           ? order.normalizedStatus
-          : typeof (order as { status?: unknown }).status === "string"
-            ? (order as { status: string }).status
+          : typeof (order as unknown as { status?: unknown }).status === "string"
+            ? String((order as unknown as { status: string }).status)
             : null;
       const amountCents =
         typeof order.amountCents === "number" && Number.isFinite(order.amountCents)

@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { PRICING, MAX_DEVICES } from "../config/pricing";
+import {
+  MAX_DEVICES,
+  resolvePlanPrice,
+  isYearlyPlanAvailable,
+  type Currency,
+  type PaidPlanKey,
+} from "../config/pricing";
 import { useCurrency } from "../lib/useCurrency";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
@@ -17,15 +23,19 @@ export default function PricingPage() {
   const t = translations[language].pricing;
   const isTnd = currency === "TND";
 
-  const starterMonthly = PRICING[currency].starter.monthly;
-  const starterYearly = PRICING[currency].starter.yearly;
-  const starterDevices = MAX_DEVICES.starter;
-
-  const proMonthly = PRICING[currency].pro.monthly;
-  const proYearly = PRICING[currency].pro.yearly;
-  const proDevices = MAX_DEVICES.pro;
-
   const pageBg = isLight ? "bg-white text-slate-900" : "bg-[#0B1220] text-slate-50";
+
+  function planDevicesLabel(plan: PaidPlanKey): string {
+    const max = MAX_DEVICES[plan];
+    if (max === null) return t.plans.business.devicesUnlimited;
+    const unit =
+      plan === "starter"
+        ? t.plans.starter.devicesLabel
+        : plan === "pro"
+          ? t.plans.pro.devicesLabel
+          : t.plans.business.devicesLabel;
+    return `${max} ${unit}`;
+  }
 
   return (
     <div className={`min-h-screen ${pageBg}`}>
@@ -129,15 +139,15 @@ export default function PricingPage() {
           </div>
         </section>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-3">
           <PlanCard
             title={t.plans.starter.title}
             badge={t.plans.starter.badge}
             billing={billing}
-            priceMonthly={starterMonthly}
-            priceYearly={starterYearly}
+            plan="starter"
+            displayCurrency={currency}
             description={t.plans.starter.description}
-            devicesLabel={`${starterDevices} ${t.plans.starter.devicesLabel}`}
+            devicesLabel={planDevicesLabel("starter")}
             features={t.plans.starter.features}
             planNote={t.planNote}
             highlight
@@ -147,11 +157,23 @@ export default function PricingPage() {
             title={t.plans.pro.title}
             badge={t.plans.pro.badge}
             billing={billing}
-            priceMonthly={proMonthly}
-            priceYearly={proYearly}
+            plan="pro"
+            displayCurrency={currency}
             description={t.plans.pro.description}
-            devicesLabel={`${proDevices} ${t.plans.pro.devicesLabel}`}
+            devicesLabel={planDevicesLabel("pro")}
             features={t.plans.pro.features}
+            planNote={t.planNote}
+          />
+
+          <PlanCard
+            title={t.plans.business.title}
+            badge={t.plans.business.badge}
+            billing={billing}
+            plan="business"
+            displayCurrency={currency}
+            description={t.plans.business.description}
+            devicesLabel={planDevicesLabel("business")}
+            features={t.plans.business.features}
             planNote={t.planNote}
           />
         </div>
@@ -211,8 +233,8 @@ interface PlanCardProps {
   title: string;
   badge?: string | null;
   billing: BillingPeriod;
-  priceMonthly: number;
-  priceYearly: number;
+  plan: PaidPlanKey;
+  displayCurrency: Currency;
   description: string;
   devicesLabel: string;
   features: string[];
@@ -224,23 +246,32 @@ function PlanCard({
   title,
   badge,
   billing,
-  priceMonthly,
-  priceYearly,
+  plan,
+  displayCurrency,
   description,
   devicesLabel,
   features,
   planNote,
   highlight,
 }: PlanCardProps) {
-  const { currency } = useCurrency();
   const { language } = useLanguage();
   const { theme } = useTheme();
   const isLight = theme === "light";
-  const isMonthly = billing === "monthly";
-  const price = isMonthly ? priceMonthly : priceYearly;
   const tp = translations[language].pricing;
-  const suffix = isMonthly ? tp.priceMonthlySuffix : tp.priceYearlySuffix;
-  const currencySymbol = currency === "EUR" ? "€" : "TND";
+  const yearlyAvailable = isYearlyPlanAvailable(plan, displayCurrency);
+  const showYearlyUnavailable = billing === "yearly" && !yearlyAvailable;
+
+  const resolved = showYearlyUnavailable
+    ? resolvePlanPrice(plan, "monthly", displayCurrency)
+    : resolvePlanPrice(plan, billing, displayCurrency);
+
+  const amount = resolved?.amount;
+  const priceCurrency = resolved?.currency ?? displayCurrency;
+  const currencySymbol = priceCurrency === "EUR" ? "€" : "TND";
+  const suffix =
+    showYearlyUnavailable || billing === "monthly"
+      ? tp.priceMonthlySuffix
+      : tp.priceYearlySuffix;
 
   return (
     <div
@@ -275,12 +306,23 @@ function PlanCard({
         </div>
 
         <div className="space-y-1">
-          <div className={`text-3xl font-semibold ${isLight ? "text-orange-600" : "text-orange-400"}`}>
-            {price} {currencySymbol}
-            <span className={`text-base font-medium align-baseline ${isLight ? "text-slate-600" : "text-slate-300"}`}>
-              {suffix}
-            </span>
-          </div>
+          {typeof amount === "number" ? (
+            <div className={`text-3xl font-semibold ${isLight ? "text-orange-600" : "text-orange-400"}`}>
+              {amount} {currencySymbol}
+              <span className={`text-base font-medium align-baseline ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+                {suffix}
+              </span>
+            </div>
+          ) : (
+            <div className={`text-3xl font-semibold ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+              {tp.yearlyNotAvailableShort}
+            </div>
+          )}
+          {showYearlyUnavailable ? (
+            <div className={`text-[11px] font-medium ${isLight ? "text-amber-700" : "text-amber-300/90"}`}>
+              {tp.yearlyNotAvailable}
+            </div>
+          ) : null}
           <div className={`text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"}`}>{devicesLabel}</div>
         </div>
 

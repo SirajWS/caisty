@@ -1,6 +1,6 @@
 export type BillingPeriod = "monthly" | "yearly";
 
-export type CheckoutPlan = "starter" | "pro";
+export type CheckoutPlan = "starter" | "pro" | "business";
 
 export function parseBillingPeriodFromPlanId(
   planId: string | null | undefined,
@@ -9,13 +9,17 @@ export function parseBillingPeriodFromPlanId(
   return "monthly";
 }
 
-/** Parse portal checkout planId (starter_monthly, pro_yearly, …). */
+/** Parse portal checkout planId (starter_monthly, pro_yearly, business_monthly, …). */
 export function parseCheckoutPlanId(planId: string): {
   plan: CheckoutPlan;
   period: BillingPeriod;
 } {
   const raw = planId.trim().toLowerCase();
-  const plan: CheckoutPlan = raw.startsWith("pro") ? "pro" : "starter";
+  const plan: CheckoutPlan = raw.startsWith("business")
+    ? "business"
+    : raw.startsWith("pro")
+      ? "pro"
+      : "starter";
   const period = parseBillingPeriodFromPlanId(raw);
   return { plan, period };
 }
@@ -24,6 +28,7 @@ export function formatPlanTierLabel(plan: string | null | undefined): string {
   const raw = String(plan ?? "").trim().toLowerCase();
   if (raw === "starter") return "Starter";
   if (raw === "pro") return "Pro";
+  if (raw === "business") return "Business";
   if (!raw) return "—";
   return raw.charAt(0).toUpperCase() + raw.slice(1);
 }

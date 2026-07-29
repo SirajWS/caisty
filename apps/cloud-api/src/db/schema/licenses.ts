@@ -18,10 +18,11 @@ export const licenses = pgTable("licenses", {
   // z.B. CSTY-ABCD-EFGH-IJKL
   key: text("key").notNull().unique(),
 
-  // "trial" | "starter" | "pro" | ...
+  // "trial" | "starter" | "pro" | "business" | ...
   plan: text("plan").notNull(),
 
-  maxDevices: integer("max_devices").notNull().default(1),
+  /** Positive integer = hard seat cap. NULL = unlimited (Business). Never use 0 as unlimited. */
+  maxDevices: integer("max_devices").default(1),
 
   status: text("status").notNull().default("active"),
 

@@ -28,7 +28,7 @@ export function pickPrimaryPortalLicense(
  */
 export function getActivePaidPlanTier(
   licenses: PortalLicense[],
-): "starter" | "pro" | null {
+): "starter" | "pro" | "business" | null {
   const now = Date.now();
   const usable = (l: PortalLicense) => {
     if ((l.status ?? "").toLowerCase() !== "active") return false;
@@ -37,8 +37,9 @@ export function getActivePaidPlanTier(
   };
   const paid = licenses.filter((l) => {
     const p = (l.plan ?? "").toLowerCase();
-    return (p === "starter" || p === "pro") && usable(l);
+    return (p === "starter" || p === "pro" || p === "business") && usable(l);
   });
+  if (paid.some((l) => (l.plan ?? "").toLowerCase() === "business")) return "business";
   if (paid.some((l) => (l.plan ?? "").toLowerCase() === "pro")) return "pro";
   if (paid.some((l) => (l.plan ?? "").toLowerCase() === "starter")) return "starter";
   return null;

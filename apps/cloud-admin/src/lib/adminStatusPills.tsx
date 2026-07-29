@@ -12,7 +12,20 @@ export function LicenseStatusPill({ status }: { status: string }) {
   return <StatusPill tone="gray" label={status} />;
 }
 
-export function SeatsStatus({ used, total }: { used: number; total: number }) {
+export function SeatsStatus({
+  used,
+  total,
+}: {
+  used: number;
+  total: number | null;
+}) {
+  if (total === null) {
+    return (
+      <span className="ds-muted">
+        {used}/∞
+      </span>
+    );
+  }
   const full = total > 0 && used >= total;
   if (full) {
     return (

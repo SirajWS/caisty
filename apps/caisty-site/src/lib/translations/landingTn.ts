@@ -184,6 +184,19 @@ export const landingTn: LandingCopy = {
         "Mode hors ligne (app POS)",
       ],
     },
+    business: {
+      name: "Business",
+      badge: "Appareils illimités",
+      priceLine: "34,99 € / mois",
+      subline: "Appareils POS illimités",
+      features: [
+        "Toutes les fonctionnalités de Pro",
+        "Nombre illimité d’appareils POS actifs",
+        "Gestion centralisée des appareils et des licences",
+        "Rapports avancés et fonctions d’exportation",
+        "Support prioritaire",
+      ],
+    },
     note:
       "Paiements locaux en Tunisie : activation progressive. Les tarifs sont indicatifs TND hors taxes le cas échéant. Contactez-nous pour une démo ou un devis.",
   },

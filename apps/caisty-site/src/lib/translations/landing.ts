@@ -212,6 +212,19 @@ const landingLocales = {
           "Priority-ready structure for future features",
         ],
       },
+      business: {
+        name: "Business",
+        badge: "Unlimited devices",
+        priceLine: "34.99 € / month",
+        subline: "Unlimited POS devices",
+        features: [
+          "Everything included in Pro",
+          "Unlimited active POS devices",
+          "Central device and license management",
+          "Advanced reports and export features",
+          "Priority support",
+        ],
+      },
       note:
         "All prices are shown excluding VAT where applicable. Monthly and yearly billing can be added in the customer portal.",
     },
@@ -586,6 +599,19 @@ const landingLocales = {
           "Plusieurs appareils sous une même licence",
           "Adapté à plusieurs caisses ou petites succursales",
           "Structure prête pour des fonctionnalités futures prioritaires",
+        ],
+      },
+      business: {
+        name: "Business",
+        badge: "Appareils illimités",
+        priceLine: "34,99 € / mois",
+        subline: "Appareils POS illimités",
+        features: [
+          "Toutes les fonctionnalités de Pro",
+          "Nombre illimité d’appareils POS actifs",
+          "Gestion centralisée des appareils et des licences",
+          "Rapports avancés et fonctions d’exportation",
+          "Support prioritaire",
         ],
       },
       note:
@@ -966,6 +992,19 @@ const landingLocales = {
           "Struktur priorisiert für künftige Funktionen",
         ],
       },
+      business: {
+        name: "Business",
+        badge: "Unbegrenzte Geräte",
+        priceLine: "34,99 € / Monat",
+        subline: "Unbegrenzte POS-Geräte",
+        features: [
+          "Alle Funktionen aus Pro",
+          "Unbegrenzte aktive POS-Geräte",
+          "Zentrale Geräte- und Lizenzverwaltung",
+          "Erweiterte Berichte und Exportfunktionen",
+          "Priorisierter Support",
+        ],
+      },
       note:
         "Alle Preise zzgl. USt., soweit anwendbar. Monats- und Jahresabrechnung können im Kundenportal ergänzt werden.",
     },
@@ -1336,6 +1375,19 @@ const landingLocales = {
           "عدة أجهزة تحت ترخيص واحد",
           "أنسب لعدة صناديق أو فروع صغيرة",
           "هيكل جاهز أولويةً للميزات المستقبلية",
+        ],
+      },
+      business: {
+        name: "Business",
+        badge: "أجهزة غير محدودة",
+        priceLine: "34.99 € / شهريًا",
+        subline: "عدد غير محدود من أجهزة نقاط البيع",
+        features: [
+          "جميع مزايا خطة Pro",
+          "عدد غير محدود من أجهزة نقاط البيع النشطة",
+          "إدارة مركزية للأجهزة والتراخيص",
+          "تقارير متقدمة وخيارات تصدير",
+          "دعم ذو أولوية",
         ],
       },
       note:

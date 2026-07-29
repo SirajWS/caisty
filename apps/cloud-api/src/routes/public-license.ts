@@ -12,6 +12,11 @@ import {
   findDeviceById,
 } from "../lib/deviceLifecycleService.js";
 import { countBoundDevicesForLicense } from "../lib/deviceSeats.js";
+import {
+  canAcceptAdditionalDevice,
+  isUnlimitedDeviceLimit,
+  seatLimitForApi,
+} from "../lib/deviceLimits.js";
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -186,8 +191,10 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
     }
 
     const used = await countDevicesForLicense(license.id);
-    const limit = license.maxDevices ?? 1;
-    const remaining = Math.max(0, limit - used);
+    const seat = seatLimitForApi(license.maxDevices);
+    const remaining = seat.unlimitedDevices
+      ? null
+      : Math.max(0, (seat.limit ?? 1) - used);
 
     // Wenn POS-Profil mitgeschickt wurde → in Customer schreiben
     if (body.cloudCustomer) {
@@ -201,14 +208,16 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
         key: license.key,
         plan: license.plan,
         status: license.status,
-        maxDevices: license.maxDevices,
+        maxDevices: seat.maxDevices,
+        unlimitedDevices: seat.unlimitedDevices,
         validFrom: license.validFrom,
         validUntil: license.validUntil,
       },
       devices: {
         used,
-        limit,
+        limit: seat.limit,
         remaining,
+        unlimitedDevices: seat.unlimitedDevices,
       },
     };
   });
@@ -263,17 +272,18 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
     }
 
     const used = await countDevicesForLicense(license.id);
-    const limit = license.maxDevices ?? 1;
+    const seat = seatLimitForApi(license.maxDevices);
 
     // Nur wenn wir ein neues Device anlegen wollen, Seats prüfen
-    if (!existingDevice && used >= limit) {
+    if (!existingDevice && !canAcceptAdditionalDevice(used, license.maxDevices)) {
       return {
         ok: false,
         reason: "max_devices_reached",
         message: "Max devices for this license reached.",
         devices: {
           used,
-          limit,
+          limit: seat.limit,
+          unlimitedDevices: seat.unlimitedDevices,
         },
       };
     }

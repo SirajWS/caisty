@@ -499,20 +499,22 @@ describe("deriveDashboardState", () => {
   });
 
   it("treats null and undefined sales number fields as zero without inventing totals", () => {
-    const partial = salesSummary({
-      hasSalesData: true,
-      currency: "EUR",
-      todayRevenueCents: 1200,
-    }) as PortalDashboardSummary & Record<string, unknown>;
-    partial.posRevenueCents = null;
-    partial.onlineRevenueCents = undefined;
-    partial.liveOrdersCount = null;
-    partial.onlineOrdersCount = undefined;
-    partial.ordersToday = 4;
-    partial.averageOrderMinor = null;
+    const partial = {
+      ...salesSummary({
+        hasSalesData: true,
+        currency: "EUR",
+        todayRevenueCents: 1200,
+      }),
+      posRevenueCents: null,
+      onlineRevenueCents: undefined,
+      liveOrdersCount: null,
+      onlineOrdersCount: undefined,
+      ordersToday: 4,
+      averageOrderMinor: null,
+    } as unknown as PortalDashboardSummary;
 
     const state = deriveDashboardState(
-      deriveInput(makeData({ salesSummary: partial as PortalDashboardSummary })),
+      deriveInput(makeData({ salesSummary: partial })),
     );
 
     const revenue = state.kpis.find((k) => k.id === "revenue");

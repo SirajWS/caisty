@@ -27,6 +27,7 @@ function licensePlanLabel(plan: string, t: PortalTranslations): string {
   if (p === "trial") return t.pos.planTrial;
   if (p === "starter") return t.pos.planStarter;
   if (p === "pro") return t.pos.planPro;
+  if (p === "business") return t.pos.planBusiness;
   if (p === "enterprise") return t.pos.planEnterprise;
   return plan || t.labels.dash;
 }
@@ -257,7 +258,9 @@ const PortalLicensesPage: React.FC = () => {
                           isLight ? "text-slate-900" : "text-slate-200"
                         }`}
                       >
-                        {lic.maxDevices}
+                        {lic.maxDevices == null || lic.unlimitedDevices
+                          ? t.devices.seatAvailableUnlimited
+                          : lic.maxDevices}
                       </td>
                       <td
                         className={`text-sm ${

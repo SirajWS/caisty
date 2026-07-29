@@ -115,8 +115,14 @@ describe("shouldShowUpgradePlans", () => {
     expect(shouldShowUpgradePlans([baseLicense], "monthly")).toBe(true);
   });
 
-  it("hides plans for pro on yearly billing", () => {
+  it("always shows plans including for pro on yearly billing", () => {
     const proLicense = { ...baseLicense, plan: "pro" };
-    expect(shouldShowUpgradePlans([proLicense], "yearly")).toBe(false);
+    expect(shouldShowUpgradePlans([proLicense], "yearly")).toBe(true);
+  });
+
+  it("always shows plans for business tier", () => {
+    const businessLicense = { ...baseLicense, plan: "business", maxDevices: null };
+    expect(shouldShowUpgradePlans([businessLicense], "monthly")).toBe(true);
+    expect(shouldShowUpgradePlans([businessLicense], "yearly")).toBe(true);
   });
 });

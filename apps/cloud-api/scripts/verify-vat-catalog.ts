@@ -4,14 +4,19 @@ import { portalInvoiceDisplayBreakdown } from "../src/lib/portalInvoiceDisplayAm
 const expected = {
   starter_monthly: { gross: 1499, net: 1260, tax: 239 },
   pro_monthly: { gross: 2499, net: 2100, tax: 399 },
+  business_monthly: { gross: 3499, net: 2940, tax: 559 },
   starter_yearly: { gross: 14900, net: 12521, tax: 2379 },
   pro_yearly: { gross: 29900, net: 25126, tax: 4774 },
+  business_yearly: { gross: 34900, net: 29328, tax: 5572 },
 } as const;
 
 let ok = true;
 
 for (const [key, exp] of Object.entries(expected)) {
-  const [plan, period] = key.split("_") as ["starter" | "pro", "monthly" | "yearly"];
+  const [plan, period] = key.split("_") as [
+    "starter" | "pro" | "business",
+    "monthly" | "yearly",
+  ];
   const cat = catalogNetTaxGrossCents(plan, "EUR", period);
   const match =
     cat.grossCents === exp.gross &&

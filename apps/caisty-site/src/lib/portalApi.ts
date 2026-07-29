@@ -438,9 +438,12 @@ export async function changePortalPassword(input: {
 export interface PortalLicense {
   id: string;
   key: string;
-  plan: string; // "trial" | "starter" | "pro"
+  plan: string; // "trial" | "starter" | "pro" | "business"
   status: LicenseStatus | string;
-  maxDevices: number;
+  /** Positive integer = hard cap. null = unlimited (Business). */
+  maxDevices: number | null;
+  /** Present when API marks unlimited seats explicitly. */
+  unlimitedDevices?: boolean;
   validUntil: string | null; // ISO
   createdAt: string; // ISO
 }

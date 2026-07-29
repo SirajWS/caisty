@@ -41,40 +41,45 @@ export interface PortalInvoiceInput {
   provider?: string | null;
 }
 
-function inferStarterPro(
+function inferPaidPlan(
   planName: string | null | undefined,
   subscriptionPlan: string | null | undefined,
-): "starter" | "pro" | null {
+): "starter" | "pro" | "business" | null {
   const sp = (subscriptionPlan || "").toLowerCase().trim();
-  if (sp === "starter" || sp === "pro") return sp;
+  if (sp === "starter" || sp === "pro" || sp === "business") return sp;
 
   const raw = (planName || "").trim().toLowerCase();
   if (!raw) return null;
+  if (raw.includes("business")) return "business";
   if (raw.includes("starter")) return "starter";
   if (raw === "pro" || /\bpro\b/i.test(raw)) return "pro";
   return null;
 }
 
 function inferBillingPeriodFromStoredGross(
-  plan: "starter" | "pro",
+  plan: "starter" | "pro" | "business",
   currency: Currency,
   grossCents: number,
 ): BillingPeriod | null {
   for (const period of ["monthly", "yearly"] as const) {
     const catalogGross = grossPlanAmountCents(plan, currency, period);
-    if (Math.abs(grossCents - catalogGross) <= 2) return period;
+    if (catalogGross != null && Math.abs(grossCents - catalogGross) <= 2) {
+      return period;
+    }
 
-    const legacyWrong = legacyAddedVatGrossCents(plan, currency, period);
-    if (Math.abs(grossCents - legacyWrong) <= 2) return period;
+    if (plan === "starter" || plan === "pro") {
+      const legacyWrong = legacyAddedVatGrossCents(plan, currency, period);
+      if (Math.abs(grossCents - legacyWrong) <= 2) return period;
 
-    const oldLegacyWrong = oldCatalogAddedVatGrossCents(plan, currency, period);
-    if (Math.abs(grossCents - oldLegacyWrong) <= 2) return period;
+      const oldLegacyWrong = oldCatalogAddedVatGrossCents(plan, currency, period);
+      if (Math.abs(grossCents - oldLegacyWrong) <= 2) return period;
 
-    const legacy = LEGACY_GROSS_CENTS[plan]?.[period];
-    if (legacy != null && Math.abs(grossCents - legacy) <= 2) return period;
+      const legacy = LEGACY_GROSS_CENTS[plan]?.[period];
+      if (legacy != null && Math.abs(grossCents - legacy) <= 2) return period;
 
-    const newLegacy = NEW_LEGACY_GROSS_CENTS[plan]?.[period];
-    if (newLegacy != null && Math.abs(grossCents - newLegacy) <= 2) return period;
+      const newLegacy = NEW_LEGACY_GROSS_CENTS[plan]?.[period];
+      if (newLegacy != null && Math.abs(grossCents - newLegacy) <= 2) return period;
+    }
   }
   return null;
 }
@@ -82,7 +87,7 @@ function inferBillingPeriodFromStoredGross(
 function resolveBillingPeriod(
   billingPeriod: BillingPeriod | null | undefined,
   subscriptionBillingPeriod: BillingPeriod | null | undefined,
-  plan: "starter" | "pro" | null,
+  plan: "starter" | "pro" | "business" | null,
   currency: Currency,
   grossCents: number,
 ): BillingPeriod | null {
@@ -116,7 +121,7 @@ export function portalInvoiceDisplayBreakdown(
   const rate = PORTAL_CHECKOUT_VAT_RATE;
   const st = String(inv.status ?? "").toLowerCase();
   const provider = String(inv.provider ?? "").toLowerCase();
-  const plan = inferStarterPro(inv.planName, subscriptionPlan);
+  const plan = inferPaidPlan(inv.planName, subscriptionPlan);
   const cur = (inv.currency === "TND" ? "TND" : "EUR") as Currency;
 
   const storedGross = Number(inv.amountGrossCents ?? inv.amountCents ?? 0);
@@ -136,16 +141,18 @@ export function portalInvoiceDisplayBreakdown(
   if (plan && billingPeriod && cur === "EUR") {
     const catalog = catalogNetTaxGrossCents(plan, cur, billingPeriod);
 
-    const legacyCorrected = correctLegacyInvoiceAmounts(
-      storedGross,
-      explicitNet ?? 0,
-      explicitTax ?? 0,
-      plan,
-      cur,
-      billingPeriod,
-    );
-    if (legacyCorrected) {
-      return { ...legacyCorrected, billingPeriod };
+    if (plan === "starter" || plan === "pro") {
+      const legacyCorrected = correctLegacyInvoiceAmounts(
+        storedGross,
+        explicitNet ?? 0,
+        explicitTax ?? 0,
+        plan,
+        cur,
+        billingPeriod,
+      );
+      if (legacyCorrected) {
+        return { ...legacyCorrected, billingPeriod };
+      }
     }
 
     if (provider === "stripe" && OPEN_INVOICE_STATUSES.has(st)) {
@@ -153,6 +160,7 @@ export function portalInvoiceDisplayBreakdown(
     }
 
     if (
+      plan !== "business" &&
       provider === "stripe" &&
       explicitNet != null &&
       explicitTax != null &&

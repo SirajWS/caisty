@@ -54,6 +54,7 @@ const PLAN_DEFAULT_MAX_DEVICES: Record<string, string> = {
   trial: "1",
   starter: "1",
   pro: "3",
+  business: "", // unlimited — leave empty; API uses null
 };
 
 export default function LicensesListPage() {
@@ -184,16 +185,22 @@ export default function LicensesListPage() {
         customerIdToUse = await createCustomer(form.newCustomerName);
       }
 
-      // maxDevices aus Formular oder Standard aus Plan
-      let maxDevicesNum = Number(form.maxDevices);
-      if (!maxDevicesNum || maxDevicesNum <= 0) {
-        const fallback = PLAN_DEFAULT_MAX_DEVICES[form.plan] ?? "1";
-        maxDevicesNum = Number(fallback) || 1;
+      // maxDevices: Business = unlimited (null); else form or plan default
+      let maxDevicesPayload: number | null;
+      if (form.plan === "business") {
+        maxDevicesPayload = null;
+      } else {
+        let maxDevicesNum = Number(form.maxDevices);
+        if (!maxDevicesNum || maxDevicesNum <= 0) {
+          const fallback = PLAN_DEFAULT_MAX_DEVICES[form.plan] ?? "1";
+          maxDevicesNum = Number(fallback) || 1;
+        }
+        maxDevicesPayload = maxDevicesNum;
       }
 
       const payload: any = {
         plan: form.plan,
-        maxDevices: maxDevicesNum,
+        maxDevices: maxDevicesPayload,
         validFrom: new Date(form.validFrom).toISOString(),
         validUntil: new Date(form.validUntil).toISOString(),
       };
@@ -466,7 +473,8 @@ export default function LicensesListPage() {
             <tbody>
               {generatedLicenses.map((lic) => {
                 const used = lic.devicesCount ?? 0;
-                const seatTotal = lic.maxDevices ?? used;
+                const seatTotal =
+                  lic.maxDevices === null ? null : (lic.maxDevices ?? used);
 
                 return (
                   <tr key={lic.id}>
@@ -475,7 +483,11 @@ export default function LicensesListPage() {
                     <td>
                       <LicenseStatusPill status={lic.status} />
                     </td>
-                    <td>{lic.maxDevices ?? "—"}</td>
+                    <td>
+                      {lic.maxDevices === null
+                        ? "Unlimited"
+                        : (lic.maxDevices ?? "—")}
+                    </td>
                     <td>
                       <SeatsStatus used={used} total={seatTotal} />
                     </td>
@@ -602,7 +614,8 @@ export default function LicensesListPage() {
               !error &&
               filteredAssignedLicenses.map((lic) => {
                 const used = lic.devicesCount ?? 0;
-                const seatTotal = lic.maxDevices ?? used;
+                const seatTotal =
+                  lic.maxDevices === null ? null : (lic.maxDevices ?? used);
                 const customer = lic.customerId
                   ? customersById[lic.customerId]
                   : undefined;
@@ -618,7 +631,11 @@ export default function LicensesListPage() {
                     <td>
                       <LicenseStatusPill status={lic.status} />
                     </td>
-                    <td>{lic.maxDevices ?? "—"}</td>
+                    <td>
+                      {lic.maxDevices === null
+                        ? "Unlimited"
+                        : (lic.maxDevices ?? "—")}
+                    </td>
                     <td>
                       <SeatsStatus used={used} total={seatTotal} />
                     </td>

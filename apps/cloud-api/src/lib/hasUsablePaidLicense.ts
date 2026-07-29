@@ -6,12 +6,12 @@ import type { Currency } from "../config/pricing.js";
 import { inferPaidBillingPeriodFromPriceCents } from "./inferPaidBillingPeriodFromPriceCents.js";
 
 /**
- * Highest active paid tier for the customer: `pro` if any active Pro license exists,
- * else `starter`, else null. Ignores expired licenses (validUntil in the past).
+ * Highest active paid tier for the customer: business > pro > starter.
+ * Ignores expired licenses (validUntil in the past).
  */
 export async function getActivePaidLicenseTierForCustomer(
   customerId: string,
-): Promise<"starter" | "pro" | null> {
+): Promise<"starter" | "pro" | "business" | null> {
   const now = new Date();
   const cid = customerId.trim();
   const rows = await db
@@ -21,11 +21,14 @@ export async function getActivePaidLicenseTierForCustomer(
       and(
         eq(licenses.customerId, cid),
         sql`lower(coalesce(${licenses.status}, '')) = 'active'`,
-        sql`lower(${licenses.plan}) in ('starter', 'pro')`,
+        sql`lower(${licenses.plan}) in ('starter', 'pro', 'business')`,
         or(isNull(licenses.validUntil), gt(licenses.validUntil, now)),
       ),
     );
 
+  if (rows.some((r) => String(r.plan ?? "").toLowerCase() === "business")) {
+    return "business";
+  }
   if (rows.some((r) => String(r.plan ?? "").toLowerCase() === "pro")) {
     return "pro";
   }
@@ -53,13 +56,17 @@ export async function hasUsablePaidLicenseForCustomer(
  */
 export async function getActivePaidSubscriptionPlanPeriodForCustomer(
   customerId: string,
-): Promise<{ tier: "starter" | "pro"; period: "monthly" | "yearly" } | null> {
+): Promise<{
+  tier: "starter" | "pro" | "business";
+  period: "monthly" | "yearly";
+} | null> {
   const cid = customerId.trim();
   const [row] = await db
     .select({
       plan: subscriptions.plan,
       priceCents: subscriptions.priceCents,
       currency: subscriptions.currency,
+      billingPeriod: subscriptions.billingPeriod,
     })
     .from(subscriptions)
     .where(
@@ -69,6 +76,7 @@ export async function getActivePaidSubscriptionPlanPeriodForCustomer(
         or(
           eq(subscriptions.plan as any, "starter"),
           eq(subscriptions.plan as any, "pro"),
+          eq(subscriptions.plan as any, "business"),
         ),
       ),
     )
@@ -77,16 +85,23 @@ export async function getActivePaidSubscriptionPlanPeriodForCustomer(
 
   if (!row?.plan) return null;
   const p = String(row.plan).toLowerCase();
-  if (p !== "starter" && p !== "pro") return null;
+  if (p !== "starter" && p !== "pro" && p !== "business") return null;
+  const storedPeriod = String(row.billingPeriod ?? "").toLowerCase();
+  if (storedPeriod === "monthly" || storedPeriod === "yearly") {
+    return {
+      tier: p as "starter" | "pro" | "business",
+      period: storedPeriod,
+    };
+  }
   const curRaw = (row.currency || "EUR").toString().toUpperCase();
   const currency: Currency = curRaw === "TND" ? "TND" : "EUR";
   const inferred = inferPaidBillingPeriodFromPriceCents(
-    p as "starter" | "pro",
+    p as "starter" | "pro" | "business",
     currency,
     Number(row.priceCents ?? 0),
   );
   return {
-    tier: p as "starter" | "pro",
+    tier: p as "starter" | "pro" | "business",
     period: inferred ?? "monthly",
   };
 }
