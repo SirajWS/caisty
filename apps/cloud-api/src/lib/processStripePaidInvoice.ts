@@ -543,7 +543,15 @@ export async function processStripePaidInvoice(params: {
   }
 
   let createdLicenseId: string | undefined;
-  if (invForLicense && (nextPlan === "starter" || nextPlan === "pro" || nextPlan === "business" || sub.plan === "starter" || sub.plan === "pro" || sub.plan === "business")) {
+  if (
+    invForLicense &&
+    (nextPlan === "starter" ||
+      nextPlan === "pro" ||
+      nextPlan === "business" ||
+      sub.plan === "starter" ||
+      sub.plan === "pro" ||
+      sub.plan === "business")
+  ) {
     createdLicenseId = await ensurePaidLicenseAfterSuccessfulPayment({
       orgId: String(sub.orgId),
       customerId: cid,

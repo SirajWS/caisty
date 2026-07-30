@@ -17,6 +17,9 @@ export type PaidLicensePaymentSource =
  * After a successful Starter/Pro/Business payment: create the paid license when appropriate,
  * revoke trial licenses, and for upgrades revoke lower-tier licenses and cancel
  * old subscriptions so only one active paid license remains.
+ *
+ * Renewals: when periodEnd is set and a subscription-backed license already exists,
+ * only extend validUntil via maxLicenseValidUntil (never shorten).
  */
 export async function ensurePaidLicenseAfterSuccessfulPayment(params: {
   orgId: string;
