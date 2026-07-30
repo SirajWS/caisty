@@ -47,8 +47,6 @@ import PortalLicensesPage from "../pages/Licenses/PortalLicensesPage";
 import NotificationsPage from "../pages/Notifications/NotificationsPage";
 import AnalyticsPage from "../pages/AnalyticsPage";
 import FiscalCompliancePage from "../pages/Fiscal/FiscalCompliancePage";
-import ReceiptsListPage from "../pages/Receipts/ReceiptsListPage";
-import ReceiptDetailPage from "../pages/Receipts/ReceiptDetailPage";
 import NotificationBell from "../components/NotificationBell";
 import { CaistyLogo } from "../components/CaistyLogo.tsx";
 
@@ -226,8 +224,6 @@ function AppRoutes() {
       <Route path="/" element={<ProtectedPage><DashboardPage /></ProtectedPage>} />
       <Route path="/customers" element={<ProtectedPage><CustomersListPage /></ProtectedPage>} />
       <Route path="/customers/:customerId" element={<ProtectedPage><CustomerDetailPage /></ProtectedPage>} />
-      <Route path="/receipts" element={<ProtectedPage><ReceiptsListPage /></ProtectedPage>} />
-      <Route path="/receipts/:id" element={<ProtectedPage><ReceiptDetailPage /></ProtectedPage>} />
       <Route path="/fiscal" element={<ProtectedPage><FiscalCompliancePage /></ProtectedPage>} />
       <Route path="/subscriptions" element={<ProtectedPage><SubscriptionsListPage /></ProtectedPage>} />
       <Route path="/invoices" element={<ProtectedPage><InvoicesListPage /></ProtectedPage>} />
