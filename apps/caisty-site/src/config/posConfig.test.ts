@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { getPosReleaseConfig } from "./posConfig";
 
 const POS_WINDOWS_URL =
-  "https://github.com/SirajWS/Caisty-Pos/releases/download/v0.3.5/Caisty.PoS_0.3.5_x64-setup.exe";
+  "https://www.caisty.com/downloads/Caisty.PoS_0.3.5_x64-setup.exe";
 
 describe("getPosReleaseConfig", () => {
   afterEach(() => {
