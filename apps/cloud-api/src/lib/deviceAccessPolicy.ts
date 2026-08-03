@@ -1,5 +1,3 @@
-import { DEVICE_RELEASED_STATUS } from "./deviceLifecycleService.js";
-
 /**
  * Supported device lifecycle statuses (target model).
  *
@@ -12,7 +10,7 @@ export const DEVICE_STATUS = {
   ACTIVE: "active",
   BLOCKED: "blocked",
   REJECTED: "rejected",
-  RELEASED: DEVICE_RELEASED_STATUS,
+  RELEASED: "released",
 } as const;
 
 export type DeviceLifecycleStatus =

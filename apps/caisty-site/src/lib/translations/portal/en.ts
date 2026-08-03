@@ -902,6 +902,84 @@ export const portalEn = {
     tableFootnote:
       "Devices appear here automatically once Caisty POS is installed and connected with your license key.",
     empty: "No devices registered.",
+    statusNeverSeen: "Never connected",
+    lifecyclePending: "Pending approval",
+    lifecycleActive: "Active",
+    lifecycleBlocked: "Blocked",
+    lifecycleRejected: "Rejected",
+    lifecycleReleased: "Released",
+    lifecyclePendingDesc:
+      "This device is waiting for your approval before it can access your license.",
+    lifecycleActiveDesc: "This device is approved and can use your license.",
+    lifecycleBlockedDesc:
+      "This device is temporarily blocked but still reserves a license seat.",
+    lifecycleRejectedDesc:
+      "This activation request was rejected. The device has no access.",
+    lifecycleReleasedDesc:
+      "This device was released from its license seat and cannot be reactivated directly.",
+    lifecycleUnknownDesc: "Unknown device status.",
+    statActive: "{{count}} active",
+    statBlocked: "{{count}} blocked",
+    statPending: "{{count}} pending",
+    overLimitBanner:
+      "Your account uses more device seats than your current plan allows. Existing devices stay active, but new approvals are blocked until you release a seat or upgrade.",
+    actionApprove: "Approve device",
+    actionReject: "Reject",
+    actionBlock: "Block",
+    actionUnblock: "Unblock",
+    actionRelease: "Release seat",
+    approveDisabledNoSeats: "No free device seats available",
+    colType: "Type",
+    colCreated: "Requested",
+    colContact: "Connection",
+    colFingerprint: "Device ID hint",
+    refreshing: "Updating…",
+    retryLoad: "Try again",
+    loadError: "Devices could not be loaded.",
+    actionError: "Action failed. Please try again.",
+    errorNotFound: "This device is no longer available. The list will refresh.",
+    errorInvalidTransition:
+      "The device status has changed. The list will refresh.",
+    errorLimitReached:
+      "Your plan device limit has been reached. Release a seat or upgrade your plan to approve more devices.",
+    errorLimitReachedDetail:
+      "{{used}} of {{max}} seats used · {{remaining}} remaining",
+    errorLicenseInvalid: "The target license is not available for this action.",
+    errorOrgMismatch: "This action is not permitted for your account.",
+    errorUnauthorized: "Session expired. Please sign in again.",
+    errorNetwork: "Connection problem. Please try again.",
+    errorServiceUnavailable:
+      "Device management is temporarily unavailable. Please try again.",
+    dialogApproveTitle: "Approve device?",
+    dialogApproveDescription:
+      "This device will receive access to your license and count as one active device seat.",
+    dialogApproveNotice:
+      "Currently {{used}} of {{max}} seats used · {{remaining}} available after approval.",
+    dialogApproveNoticeUnlimited:
+      "Currently {{used}} device seats in use · unlimited plan.",
+    dialogApproveConfirm: "Approve device",
+    dialogRejectTitle: "Reject activation request?",
+    dialogRejectDescription:
+      "The device will not receive access and no license seat will be used.",
+    dialogRejectNotice:
+      "The POS can submit a new activation request later, which will appear here again.",
+    dialogRejectConfirm: "Reject request",
+    dialogBlockTitle: "Block device?",
+    dialogBlockDescription:
+      "The device will temporarily lose POS access. The license seat remains reserved.",
+    dialogBlockNotice:
+      "Blocking does not free a seat. You can unblock the device later to restore access.",
+    dialogBlockConfirm: "Block device",
+    dialogUnblockTitle: "Unblock device?",
+    dialogUnblockDescription:
+      "The device will regain POS access with the same license. No additional seat is required.",
+    dialogUnblockNotice: "The license assignment will not change.",
+    dialogUnblockConfirm: "Unblock device",
+    releaseDialogDescriptionExtended:
+      "This permanently disconnects the device from its license seat. The seat becomes available immediately.",
+    releaseDialogNoticeExtended:
+      "The old device identity cannot be reactivated. A new connection requires a fresh activation request. Sales history is preserved.",
+    noPendingHint: "No pending activation requests.",
   },
   billing: {
     center: {

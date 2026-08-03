@@ -901,6 +901,87 @@ export const portalFr: PortalTranslations = {
     tableFootnote:
       "Les appareils apparaissent ici automatiquement une fois Caisty POS installé et connecté avec votre clé de licence.",
     empty: "Aucun appareil enregistré.",
+    statusNeverSeen: "Jamais connecté",
+    lifecyclePending: "En attente d'approbation",
+    lifecycleActive: "Actif",
+    lifecycleBlocked: "Bloqué",
+    lifecycleRejected: "Refusé",
+    lifecycleReleased: "Libéré",
+    lifecyclePendingDesc:
+      "Cet appareil attend votre approbation avant d'accéder à votre licence.",
+    lifecycleActiveDesc:
+      "Cet appareil est approuvé et peut utiliser votre licence.",
+    lifecycleBlockedDesc:
+      "Cet appareil est temporairement bloqué mais conserve son emplacement de licence.",
+    lifecycleRejectedDesc:
+      "Cette demande d'activation a été refusée. L'appareil n'a pas accès.",
+    lifecycleReleasedDesc:
+      "Cet appareil a été libéré de son emplacement de licence et ne peut pas être réactivé directement.",
+    lifecycleUnknownDesc: "Statut d'appareil inconnu.",
+    statActive: "{{count}} actif(s)",
+    statBlocked: "{{count}} bloqué(s)",
+    statPending: "{{count}} en attente",
+    overLimitBanner:
+      "Votre compte utilise plus d'emplacements que votre forfait actuel ne le permet. Les appareils existants restent actifs, mais les nouvelles approbations sont bloquées jusqu'à ce que vous libériez un emplacement ou passiez à un forfait supérieur.",
+    actionApprove: "Approuver l'appareil",
+    actionReject: "Refuser",
+    actionBlock: "Bloquer",
+    actionUnblock: "Débloquer",
+    actionRelease: "Libérer l'emplacement",
+    approveDisabledNoSeats: "Aucun emplacement disponible",
+    colType: "Type",
+    colCreated: "Demandé le",
+    colContact: "Connexion",
+    colFingerprint: "Indice d'identifiant",
+    refreshing: "Mise à jour…",
+    retryLoad: "Réessayer",
+    loadError: "Impossible de charger les appareils.",
+    actionError: "L'action a échoué. Veuillez réessayer.",
+    errorNotFound:
+      "Cet appareil n'est plus disponible. La liste sera actualisée.",
+    errorInvalidTransition:
+      "Le statut de l'appareil a changé. La liste sera actualisée.",
+    errorLimitReached:
+      "La limite d'appareils de votre forfait est atteinte. Libérez un emplacement ou passez à un forfait supérieur pour approuver d'autres appareils.",
+    errorLimitReachedDetail:
+      "{{used}} sur {{max}} emplacements utilisés · {{remaining}} restant(s)",
+    errorLicenseInvalid:
+      "La licence cible n'est pas disponible pour cette action.",
+    errorOrgMismatch: "Cette action n'est pas autorisée pour votre compte.",
+    errorUnauthorized: "Session expirée. Veuillez vous reconnecter.",
+    errorNetwork: "Problème de connexion. Veuillez réessayer.",
+    errorServiceUnavailable:
+      "La gestion des appareils est momentanément indisponible. Veuillez réessayer.",
+    dialogApproveTitle: "Approuver l'appareil ?",
+    dialogApproveDescription:
+      "Cet appareil recevra l'accès à votre licence et comptera comme un emplacement actif.",
+    dialogApproveNotice:
+      "Actuellement {{used}} sur {{max}} emplacements utilisés · {{remaining}} disponible(s) après approbation.",
+    dialogApproveNoticeUnlimited:
+      "Actuellement {{used}} emplacements utilisés · forfait illimité.",
+    dialogApproveConfirm: "Approuver l'appareil",
+    dialogRejectTitle: "Refuser la demande d'activation ?",
+    dialogRejectDescription:
+      "L'appareil n'aura pas accès et aucun emplacement de licence ne sera utilisé.",
+    dialogRejectNotice:
+      "Le POS pourra soumettre une nouvelle demande d'activation plus tard, qui réapparaîtra ici.",
+    dialogRejectConfirm: "Refuser la demande",
+    dialogBlockTitle: "Bloquer l'appareil ?",
+    dialogBlockDescription:
+      "L'appareil perdra temporairement l'accès au POS. L'emplacement de licence reste réservé.",
+    dialogBlockNotice:
+      "Le blocage ne libère pas d'emplacement. Vous pourrez débloquer l'appareil plus tard.",
+    dialogBlockConfirm: "Bloquer l'appareil",
+    dialogUnblockTitle: "Débloquer l'appareil ?",
+    dialogUnblockDescription:
+      "L'appareil retrouvera l'accès au POS avec la même licence. Aucun emplacement supplémentaire n'est requis.",
+    dialogUnblockNotice: "L'attribution de licence ne changera pas.",
+    dialogUnblockConfirm: "Débloquer l'appareil",
+    releaseDialogDescriptionExtended:
+      "Cela déconnecte définitivement l'appareil de son emplacement de licence. L'emplacement devient immédiatement disponible.",
+    releaseDialogNoticeExtended:
+      "L'ancienne identité de l'appareil ne peut pas être réactivée. Une nouvelle connexion nécessite une demande d'activation. L'historique des ventes est conservé.",
+    noPendingHint: "Aucune demande d'activation en attente.",
   },
   billing: {
     center: {

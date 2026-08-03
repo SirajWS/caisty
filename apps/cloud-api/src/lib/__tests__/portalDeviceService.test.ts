@@ -626,6 +626,7 @@ describe("invalid transition matrix", () => {
   });
 });
 
+describe("031 pending fingerprint migration (static)", () => {
   it("defines tenant-scoped partial unique index without global fingerprint lock", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
