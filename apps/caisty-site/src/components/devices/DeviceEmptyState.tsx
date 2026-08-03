@@ -1,5 +1,6 @@
 import { Download, HardDrive, Monitor } from "lucide-react";
 import type { PosReleaseConfig } from "../../config/posConfig";
+import { PosInstallerDownloadAction } from "../pos/PosInstallerDownloadAction";
 import { openDesktopPos } from "./openDesktopPos";
 
 export function DeviceEmptyState({
@@ -7,12 +8,14 @@ export function DeviceEmptyState({
   description,
   ctaLabel,
   downloadLabel,
+  maintenanceMessage,
   release,
 }: {
   headline: string;
   description: string;
   ctaLabel: string;
   downloadLabel: string;
+  maintenanceMessage: string;
   release: PosReleaseConfig;
 }) {
   return (
@@ -31,14 +34,16 @@ export function DeviceEmptyState({
           <Monitor size={16} />
           {ctaLabel}
         </button>
-        <a
+        <PosInstallerDownloadAction
+          downloadUrl={release.installer.downloadUrl}
+          fileName={release.installer.fileName}
+          label={downloadLabel}
           className="devices-empty-download"
-          href={release.installer.downloadUrl}
-          download
+          maintenanceMessage={maintenanceMessage}
         >
           <Download size={16} />
           {downloadLabel}
-        </a>
+        </PosInstallerDownloadAction>
       </div>
     </section>
   );

@@ -1,4 +1,5 @@
 import { Download, ExternalLink } from "lucide-react";
+import { PosInstallerDownloadAction } from "../pos/PosInstallerDownloadAction";
 import type { PosHubTone } from "../../lib/posHub/types";
 import type { VersionManagementView } from "../../lib/devices/types";
 
@@ -12,6 +13,7 @@ function toneClass(tone: PosHubTone): string {
 export function VersionManagement({
   version,
   labels,
+  maintenanceMessage,
 }: {
   version: VersionManagementView;
   labels: {
@@ -23,6 +25,7 @@ export function VersionManagement({
     downloadInstaller: string;
     releaseNotes: string;
   };
+  maintenanceMessage: string;
 }) {
   return (
     <section className="dashboard-panel dashboard-panel--wide">
@@ -48,10 +51,15 @@ export function VersionManagement({
         </div>
       </div>
       <div className="devices-version-actions">
-        <a href={version.downloadUrl} className="devices-remote-btn devices-remote-btn--primary no-underline">
+        <PosInstallerDownloadAction
+          downloadUrl={version.downloadUrl}
+          label={labels.downloadInstaller}
+          className="devices-remote-btn devices-remote-btn--primary no-underline"
+          maintenanceMessage={maintenanceMessage}
+        >
           <Download size={14} />
           {labels.downloadInstaller}
-        </a>
+        </PosInstallerDownloadAction>
         {version.releaseNotesUrl ? (
           <a
             href={version.releaseNotesUrl}

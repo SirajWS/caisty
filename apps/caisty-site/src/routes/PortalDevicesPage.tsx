@@ -102,6 +102,7 @@ const PortalDevicesPage: React.FC = () => {
           description={d.emptyDescription}
           ctaLabel={d.emptyCta}
           downloadLabel={d.emptyDownload}
+          maintenanceMessage={t.pos.downloadMaintenance}
           release={release}
         />
       ) : (

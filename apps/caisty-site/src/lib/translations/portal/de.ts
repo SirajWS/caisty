@@ -1233,6 +1233,8 @@ export const portalDe: PortalTranslations = {
     winB3: "Optimiert für Maus & Touchscreen",
     winDownload: "Caisty POS für Windows herunterladen",
     winUnavailable: "Windows-Installer derzeit nicht verfügbar.",
+    downloadMaintenance:
+      "Der Download ist aufgrund kurzfristiger Wartungsarbeiten vorübergehend nicht verfügbar.",
     linuxTitle: "Linux",
     linuxDesc: "Für leichte Kassen-Boxen oder eigene Linux-Setups.",
     linuxB1: "AppImage / .deb als Paket",
@@ -1375,6 +1377,8 @@ export const portalDe: PortalTranslations = {
     updatesDownload: "Herunterladen",
     updatesReleaseNotes: "Versionshinweise folgen in Kürze.",
     downloadUnavailable: "Download derzeit nicht verfügbar.",
+    downloadMaintenance:
+      "Der Download ist aufgrund kurzfristiger Wartungsarbeiten vorübergehend nicht verfügbar.",
     systemStatusTitle: "Systemstatus",
     systemCloudApi: "Cloud-API",
     systemPortal: "Portal",

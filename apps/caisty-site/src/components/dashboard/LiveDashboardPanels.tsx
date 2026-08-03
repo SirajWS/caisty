@@ -37,6 +37,7 @@ import type { PosReleaseConfig } from "../../config/posConfig";
 import { OrderStatusBadge } from "../orders/OrderStatusBadge";
 import type { PortalDashboardRecentOrder } from "../../lib/dashboard/types";
 import { openDesktopPos } from "../devices/openDesktopPos";
+import { PosInstallerDownloadAction } from "../pos/PosInstallerDownloadAction";
 import { portalSectionLabel } from "../../lib/portalUi";
 
 type LiveCopy = PortalTranslations["dashboard"]["live"];
@@ -631,9 +632,11 @@ export function ConnectedDevicesWidget({
 export function ReleaseCenterWidget({
   release,
   l,
+  downloadMaintenance,
 }: {
   release: LiveReleaseCenter;
   l: LiveCopy;
+  downloadMaintenance: string;
 }) {
   return (
     <section id="pos-release-center" className="dashboard-panel">
@@ -674,14 +677,16 @@ export function ReleaseCenterWidget({
             <ExternalLink size={11} />
           </a>
         ) : null}
-        <a
-          href={release.downloadUrl}
-          download={release.installerName}
+        <PosInstallerDownloadAction
+          downloadUrl={release.downloadUrl}
+          fileName={release.installerName}
+          label={l.releaseDownload}
           className="dashboard-quick-btn dashboard-quick-btn--primary no-underline"
+          maintenanceMessage={downloadMaintenance}
         >
           <Download size={12} />
           {l.releaseDownload}
-        </a>
+        </PosInstallerDownloadAction>
       </div>
     </section>
   );

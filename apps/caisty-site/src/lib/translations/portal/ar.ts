@@ -1226,6 +1226,8 @@ export const portalAr: PortalTranslations = {
     winB3: "محسّن للفأرة والشاشة اللمسية",
     winDownload: "تنزيل Caisty POS لـ Windows",
     winUnavailable: "مثبت Windows غير متاح حاليًا.",
+    downloadMaintenance:
+      "التنزيل غير متاح مؤقتًا بسبب أعمال صيانة قصيرة الأمد.",
     linuxTitle: "Linux",
     linuxDesc: "لصناديق كاشير خفيفة أو إعدادات Linux مخصصة.",
     linuxB1: "حزمة AppImage / .deb",
@@ -1366,6 +1368,8 @@ export const portalAr: PortalTranslations = {
     updatesDownload: "تنزيل",
     updatesReleaseNotes: "ملاحظات الإصدار قريباً.",
     downloadUnavailable: "التنزيل غير متاح حالياً.",
+    downloadMaintenance:
+      "التنزيل غير متاح مؤقتًا بسبب أعمال صيانة قصيرة الأمد.",
     systemStatusTitle: "حالة النظام",
     systemCloudApi: "واجهة السحابة",
     systemPortal: "البوابة",

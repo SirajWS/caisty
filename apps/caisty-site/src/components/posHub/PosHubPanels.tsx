@@ -19,6 +19,7 @@ import type {
 } from "../../lib/posHub/types";
 import { formatInstallerBytes } from "../../lib/posHub/format";
 import { portalSectionLabel } from "../../lib/portalUi";
+import { PosInstallerDownloadAction } from "../pos/PosInstallerDownloadAction";
 import { useOpenDesktopPos } from "./useOpenDesktopPos";
 
 function toneIconClass(tone: PosHubTone): string {
@@ -308,13 +309,13 @@ export function PosHubActionPanel({
           </span>
           <h3 className="pos-hub-action-title">{p.downloadLatest}</h3>
           <p className="pos-hub-action-desc">{p.downloadLatestDesc}</p>
-          <a
-            href={release.installer.downloadUrl}
-            download={release.installer.fileName}
+          <PosInstallerDownloadAction
+            downloadUrl={release.installer.downloadUrl}
+            fileName={release.installer.fileName}
+            label={`${p.updatesDownload} (${release.latestVersion})`}
             className="pos-hub-action-btn no-underline"
-          >
-            {p.updatesDownload} ({release.latestVersion})
-          </a>
+            maintenanceMessage={p.downloadMaintenance}
+          />
         </div>
       </div>
     </section>
@@ -536,13 +537,13 @@ export function PosHubReleaseCenter({
             {p.releaseNotesView}
           </a>
         ) : null}
-        <a
-          href={release.installer.downloadUrl}
-          download={release.installer.fileName}
+        <PosInstallerDownloadAction
+          downloadUrl={release.installer.downloadUrl}
+          fileName={release.installer.fileName}
+          label={p.updatesDownload}
           className="dashboard-quick-btn dashboard-quick-btn--primary no-underline"
-        >
-          {p.updatesDownload}
-        </a>
+          maintenanceMessage={p.downloadMaintenance}
+        />
       </div>
     </section>
   );
