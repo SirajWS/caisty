@@ -1,18 +1,34 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "../db/client.js";
 import { devices } from "../db/schema/devices.js";
 import { licenses } from "../db/schema/licenses.js";
 import { isUnlimitedDeviceLimit } from "./deviceLimits.js";
+import {
+  DEVICE_SEAT_CONSUMING_STATUSES,
+  countSeatOccupyingDevicesForLicense,
+  deviceOccupiesSeat,
+} from "./deviceSeatPolicy.js";
 
-/** Count devices currently bound to a license (occupying a seat). */
+export {
+  DEVICE_SEAT_CONSUMING_STATUSES,
+  countSeatOccupyingDevicesForLicense,
+  deviceOccupiesSeat,
+};
+
+/** Count devices currently occupying a license seat (active or blocked with licenseId). */
 export async function countBoundDevicesForLicense(
   licenseId: string,
 ): Promise<number> {
   const [row] = await db
     .select({ value: sql<number>`count(*)::int` })
     .from(devices)
-    .where(eq(devices.licenseId, licenseId));
+    .where(
+      and(
+        eq(devices.licenseId, licenseId),
+        inArray(devices.status, [...DEVICE_SEAT_CONSUMING_STATUSES]),
+      ),
+    );
 
   return Number(row?.value ?? 0);
 }

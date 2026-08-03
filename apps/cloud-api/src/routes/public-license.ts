@@ -1,452 +1,901 @@
 // apps/cloud-api/src/routes/public-license.ts
+
 import type { FastifyInstance } from "fastify";
-import { and, eq } from "drizzle-orm";
+
+import { eq } from "drizzle-orm";
+
+
 
 import { db } from "../db/client.js";
+
 import { licenses } from "../db/schema/licenses.js";
+
 import { devices } from "../db/schema/devices.js";
+
 import { licenseEvents } from "../db/schema/licenseEvents.js";
+
 import { customers } from "../db/schema/customers.js";
-import {
-  DEVICE_RELEASED_STATUS,
-  findDeviceById,
-} from "../lib/deviceLifecycleService.js";
+
+import { findDeviceById } from "../lib/deviceLifecycleService.js";
+
 import { countBoundDevicesForLicense } from "../lib/deviceSeats.js";
+
+import { seatLimitForApi } from "../lib/deviceLimits.js";
+
 import {
-  canAcceptAdditionalDevice,
-  isUnlimitedDeviceLimit,
-  seatLimitForApi,
-} from "../lib/deviceLimits.js";
+
+  bindDeviceRequest,
+
+  findLicenseByKey,
+
+} from "../lib/deviceBindService.js";
+
+import {
+
+  DEVICE_STATUS,
+
+  evaluateDevicePosAccess,
+
+} from "../lib/deviceAccessPolicy.js";
+
+import {
+
+  formatDeviceAccessDenial,
+
+  formatPendingBindResponse,
+
+  formatPendingVerifyResponse,
+
+  httpStatusForDeviceAccessCode,
+
+} from "../lib/deviceAccessResponse.js";
+
+import {
+
+  authenticateDeviceHeartbeat,
+
+  formatPosDeviceAuthFailure,
+
+} from "../lib/posDeviceAuth.js";
+
+
 
 function isUuid(value: string): boolean {
+
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+
     value,
+
   );
+
 }
+
+
 
 type CloudCustomerProfile = {
+
   accountName?: string;
+
   legalName?: string;
+
   externalId?: string;
+
   contact?: {
+
     firstName?: string;
+
     lastName?: string;
+
     email?: string;
+
     phone?: string;
+
   };
+
   address?: {
+
     country?: string;
+
     city?: string;
+
     street?: string;
+
     zip?: string;
+
   };
+
   language?: string;
+
   notes?: string;
+
   lastSyncAt?: string;
+
 };
+
+
 
 type VerifyBody = {
+
   key: string;
+
+  deviceId?: string;
+
   deviceName?: string;
+
   deviceType?: string;
+
   fingerprint?: string;
+
   cloudCustomer?: CloudCustomerProfile;
+
 };
+
+
 
 type BindBody = {
+
   licenseKey: string;
+
   deviceName: string;
+
   deviceType?: string;
+
   fingerprint?: string;
+
   cloudCustomer?: CloudCustomerProfile;
+
 };
+
+
 
 type HeartbeatBody = {
+
   deviceId: string;
+
 };
 
-async function findLicenseByKey(key: string) {
-  const [license] = await db
-    .select()
-    .from(licenses)
-    .where(eq(licenses.key, key))
-    .limit(1);
 
-  return license ?? null;
-}
 
 async function countDevicesForLicense(licenseId: string) {
+
   return countBoundDevicesForLicense(licenseId);
+
 }
 
-// Cloud-Customer-Profil in customers.profile übernehmen / mergen
-// LEGACY (Phase V): POS push archive only — business_profiles is source of truth for Business/Fiscal.
-// Portal PATCH does not write back to customers.profile. Admin fiscal views use business_profiles.
+
+
 async function upsertCustomerProfileFromPos(
+
   license: typeof licenses.$inferSelect,
+
   cloudProfile?: CloudCustomerProfile,
+
 ) {
+
   if (!license.customerId || !cloudProfile) return;
+
+
 
   const nowIso = new Date().toISOString();
 
+
+
   const [existing] = await db
+
     .select({ profile: customers.profile })
+
     .from(customers)
+
     .where(eq(customers.id, license.customerId))
+
     .limit(1);
 
-  const prev = (existing?.profile ?? null) as any;
+
+
+  const prev = (existing?.profile ?? null) as Record<string, unknown> | null;
+
+
 
   const mergedContact = {
-    ...(prev?.contact ?? {}),
+
+    ...((prev?.contact as object) ?? {}),
+
     ...(cloudProfile.contact ?? {}),
+
   };
+
+
 
   const mergedAddress = {
-    ...(prev?.address ?? {}),
+
+    ...((prev?.address as object) ?? {}),
+
     ...(cloudProfile.address ?? {}),
+
   };
+
+
 
   const merged: CloudCustomerProfile = {
+
     ...(prev ?? {}),
+
     ...cloudProfile,
+
     contact: mergedContact,
+
     address: mergedAddress,
+
     lastSyncAt: cloudProfile.lastSyncAt ?? nowIso,
+
   };
 
+
+
   await db
-    .update(customers as any)
-    .set({ profile: merged } as any)
-    .where(eq((customers as any).id, license.customerId));
+
+    .update(customers as typeof customers)
+
+    .set({ profile: merged } as typeof customers.$inferInsert)
+
+    .where(eq(customers.id, license.customerId));
+
 }
 
+
+
 export async function registerPublicLicenseRoutes(app: FastifyInstance) {
-  // 1) License prüfen
+
   app.post<{ Body: VerifyBody }>("/licenses/verify", async (request, reply) => {
+
     const body = request.body;
+
+
 
     if (!body.key) {
+
       reply.code(400);
+
       return {
+
         ok: false,
+
         reason: "missing_key",
+
         message: "Field 'key' is required.",
+
       };
+
     }
+
+
 
     const key = body.key.trim();
+
     const license = await findLicenseByKey(key);
 
+
+
     if (!license) {
+
       return {
+
         ok: false,
+
         reason: "license_not_found",
+
         message: "License key not found.",
+
       };
+
     }
+
+
 
     const now = new Date();
 
-    // Revoked → klarer Fehler
+
+
     if (license.status === "revoked") {
+
       return {
+
         ok: false,
+
         reason: "license_revoked",
+
         message: "License has been revoked.",
+
         license: {
+
           id: license.id,
+
           key: license.key,
+
           plan: license.plan,
+
           status: license.status,
+
           maxDevices: license.maxDevices,
+
           validFrom: license.validFrom,
+
           validUntil: license.validUntil,
+
         },
+
       };
+
     }
 
-    // Nicht aktiv oder außerhalb Zeitraum → invalid_or_expired
+
+
     const notYetValid =
+
       license.validFrom && license.validFrom.getTime() > now.getTime();
+
     const expired =
+
       license.validUntil && license.validUntil.getTime() < now.getTime();
 
+
+
     if (license.status !== "active" || notYetValid || expired) {
+
       return {
+
         ok: false,
+
         reason: "invalid_or_expired",
+
         message: "License is invalid or expired.",
+
         license: {
+
           id: license.id,
+
           key: license.key,
+
           plan: license.plan,
+
           status: license.status,
+
           maxDevices: license.maxDevices,
+
           validFrom: license.validFrom,
+
           validUntil: license.validUntil,
+
         },
+
       };
+
     }
 
+
+
+    const deviceId = body.deviceId?.trim();
+
+
+
+    if (deviceId) {
+
+      if (!isUuid(deviceId)) {
+
+        reply.code(400);
+
+        return {
+
+          ok: false,
+
+          reason: "invalid_device_id",
+
+          message: "deviceId must be a UUID returned by /devices/bind",
+
+        };
+
+      }
+
+
+
+      const device = await findDeviceById(deviceId);
+
+
+
+      if (!device) {
+
+        return {
+
+          ok: false,
+
+          reason: "device_not_found",
+
+          message: "Device not found.",
+
+        };
+
+      }
+
+
+
+      if (device.status === DEVICE_STATUS.PENDING_APPROVAL) {
+
+        if (
+
+          device.pendingLicenseId &&
+
+          String(device.pendingLicenseId) === String(license.id) &&
+
+          String(device.orgId) === String(license.orgId)
+
+        ) {
+
+          reply.code(httpStatusForDeviceAccessCode("DEVICE_PENDING_APPROVAL"));
+
+          return formatPendingVerifyResponse({ id: device.id });
+
+        }
+
+        reply.code(httpStatusForDeviceAccessCode("DEVICE_LICENSE_MISMATCH"));
+
+        return formatDeviceAccessDenial({
+
+          code: "DEVICE_LICENSE_MISMATCH",
+
+          message: "Device is not bound to the provided license.",
+
+        });
+
+      }
+
+
+
+      const access = evaluateDevicePosAccess({
+
+        device: {
+
+          orgId: String(device.orgId),
+
+          status: device.status,
+
+          licenseId: device.licenseId,
+
+        },
+
+        license: {
+
+          id: String(license.id),
+
+          orgId: String(license.orgId),
+
+        },
+
+      });
+
+
+
+      if (!access.allowed) {
+
+        reply.code(httpStatusForDeviceAccessCode(access.code));
+
+        return formatDeviceAccessDenial(access);
+
+      }
+
+
+
+      if (body.cloudCustomer) {
+
+        await upsertCustomerProfileFromPos(license, body.cloudCustomer);
+
+      }
+
+
+
+      const used = await countDevicesForLicense(license.id);
+
+      const seat = seatLimitForApi(license.maxDevices);
+
+      const remaining = seat.unlimitedDevices
+
+        ? null
+
+        : Math.max(0, (seat.limit ?? 1) - used);
+
+
+
+      return {
+
+        ok: true,
+
+        license: {
+
+          id: license.id,
+
+          key: license.key,
+
+          plan: license.plan,
+
+          status: license.status,
+
+          maxDevices: seat.maxDevices,
+
+          unlimitedDevices: seat.unlimitedDevices,
+
+          validFrom: license.validFrom,
+
+          validUntil: license.validUntil,
+
+        },
+
+        device: {
+
+          id: device.id,
+
+          name: device.name,
+
+          type: device.type,
+
+          status: device.status,
+
+          licenseId: device.licenseId,
+
+        },
+
+        devices: {
+
+          used,
+
+          limit: seat.limit,
+
+          remaining,
+
+          unlimitedDevices: seat.unlimitedDevices,
+
+        },
+
+      };
+
+    }
+
+
+
     const used = await countDevicesForLicense(license.id);
+
     const seat = seatLimitForApi(license.maxDevices);
+
     const remaining = seat.unlimitedDevices
+
       ? null
+
       : Math.max(0, (seat.limit ?? 1) - used);
 
-    // Wenn POS-Profil mitgeschickt wurde → in Customer schreiben
+
+
     if (body.cloudCustomer) {
+
       await upsertCustomerProfileFromPos(license, body.cloudCustomer);
+
     }
 
+
+
     return {
+
       ok: true,
+
       license: {
+
         id: license.id,
+
         key: license.key,
+
         plan: license.plan,
+
         status: license.status,
+
         maxDevices: seat.maxDevices,
+
         unlimitedDevices: seat.unlimitedDevices,
+
         validFrom: license.validFrom,
+
         validUntil: license.validUntil,
+
       },
+
       devices: {
+
         used,
+
         limit: seat.limit,
+
         remaining,
+
         unlimitedDevices: seat.unlimitedDevices,
+
       },
+
     };
+
   });
 
-  // 2) Device binden
+
+
   app.post<{ Body: BindBody }>("/devices/bind", async (request, reply) => {
+
     const body = request.body;
 
+
+
     if (!body.licenseKey || !body.deviceName) {
+
       reply.code(400);
+
       return {
+
         ok: false,
+
         reason: "missing_fields",
+
         message: "licenseKey and deviceName are required.",
+
       };
+
     }
 
-    const licenseKey = body.licenseKey.trim();
-    const license = await findLicenseByKey(licenseKey);
 
-    if (!license || license.status !== "active") {
+
+    const result = await bindDeviceRequest({
+
+      licenseKey: body.licenseKey,
+
+      deviceName: body.deviceName,
+
+      deviceType: body.deviceType,
+
+      fingerprint: body.fingerprint,
+
+    });
+
+
+
+    if (result.kind === "error") {
+
+      reply.code(result.httpStatus);
+
       return {
+
         ok: false,
-        reason: "invalid_or_expired",
-        message: "License is invalid, revoked or expired.",
+
+        reason: result.reason,
+
+        message: result.message,
+
+        ...(result.devices ? { devices: result.devices } : {}),
+
       };
+
     }
 
-    const now = new Date();
 
-    // POS-Profil, falls vorhanden, in Customer übernehmen
-    if (body.cloudCustomer) {
-      await upsertCustomerProfileFromPos(license, body.cloudCustomer);
-    }
 
-    // Fingerprint-Reuse: vorhandenes Device für diese License mit gleichem Fingerprint suchen
-    let existingDevice = null as (typeof devices.$inferSelect) | null;
+    if (result.kind === "pending") {
 
-    if (body.fingerprint) {
-      const rows = await db
-        .select()
-        .from(devices)
-        .where(
-          and(
-            eq(devices.licenseId, license.id),
-            eq(devices.fingerprint, body.fingerprint),
-          ),
-        )
-        .limit(1);
+      reply.code(result.httpStatus);
 
-      existingDevice = rows[0] ?? null;
-    }
+      return formatPendingBindResponse({
 
-    const used = await countDevicesForLicense(license.id);
-    const seat = seatLimitForApi(license.maxDevices);
+        id: result.device.id,
 
-    // Nur wenn wir ein neues Device anlegen wollen, Seats prüfen
-    if (!existingDevice && !canAcceptAdditionalDevice(used, license.maxDevices)) {
-      return {
-        ok: false,
-        reason: "max_devices_reached",
-        message: "Max devices for this license reached.",
-        devices: {
-          used,
-          limit: seat.limit,
-          unlimitedDevices: seat.unlimitedDevices,
-        },
-      };
-    }
+        name: result.device.name,
 
-    let device: typeof devices.$inferSelect;
+        type: result.device.type,
 
-    if (!existingDevice) {
-      // Neues Device anlegen
-      const inserted = await db
-        .insert(devices)
-        .values({
-          orgId: license.orgId,
-          customerId: license.customerId,
-          name: body.deviceName,
-          type: body.deviceType ?? "pos",
-          status: "active",
-          licenseId: license.id,
-          fingerprint: body.fingerprint ?? null,
-          lastHeartbeatAt: now,
-          lastSeenAt: now,
-        } as any)
-        .returning();
-
-      device = inserted[0];
-
-      await db.insert(licenseEvents).values({
-        orgId: license.orgId,
-        licenseId: license.id,
-        type: "activated",
-        metadata: {
-          deviceId: device.id,
-          deviceName: device.name,
-        },
       });
-    } else {
-      // Bestehendes Device updaten (Name, Typ, Status, Heartbeat)
-      const updated = await db
-        .update(devices)
-        .set(
-          {
-            name: body.deviceName,
-            type: body.deviceType ?? existingDevice.type,
-            status: "active",
-            lastHeartbeatAt: now,
-            lastSeenAt: now,
-          } as any,
-        )
-        .where(eq(devices.id, existingDevice.id))
-        .returning();
 
-      device = updated[0] ?? existingDevice;
     }
 
-    reply.code(existingDevice ? 200 : 201);
+
+
+    if (body.cloudCustomer) {
+
+      await upsertCustomerProfileFromPos(result.license, body.cloudCustomer);
+
+    }
+
+
+
+    reply.code(result.httpStatus);
+
     return {
+
       ok: true,
+
       device: {
-        id: device.id,
-        name: device.name,
-        type: device.type,
-        status: device.status,
-        licenseId: device.licenseId,
-        customerId: device.customerId,
-        lastHeartbeatAt: device.lastHeartbeatAt,
-        createdAt: device.createdAt,
+
+        id: result.device.id,
+
+        name: result.device.name,
+
+        type: result.device.type,
+
+        status: result.device.status,
+
+        licenseId: result.device.licenseId,
+
+        customerId: result.device.customerId,
+
+        lastHeartbeatAt: result.device.lastHeartbeatAt,
+
+        createdAt: result.device.createdAt,
+
       },
+
       license: {
-        id: license.id,
-        key: license.key,
-        plan: license.plan,
-        status: license.status,
-        maxDevices: license.maxDevices,
-        validFrom: license.validFrom,
-        validUntil: license.validUntil,
-        customerId: license.customerId,
+
+        id: result.license.id,
+
+        key: result.license.key,
+
+        plan: result.license.plan,
+
+        status: result.license.status,
+
+        maxDevices: result.license.maxDevices,
+
+        validFrom: result.license.validFrom,
+
+        validUntil: result.license.validUntil,
+
+        customerId: result.license.customerId,
+
       },
+
     };
+
   });
 
-  // 3) Heartbeat
+
+
   app.post<{ Body: HeartbeatBody }>(
+
     "/devices/heartbeat",
+
     async (request, reply) => {
+
       const body = request.body;
 
+
+
       if (!body.deviceId) {
+
         reply.code(400);
+
         return {
+
           ok: false,
+
           reason: "missing_device_id",
+
           message: "Field 'deviceId' is required.",
+
         };
+
       }
 
+
+
       if (!isUuid(body.deviceId)) {
+
         reply.code(400);
+
         return {
+
           ok: false,
+
           reason: "invalid_device_id",
+
           message: "deviceId must be a UUID returned by /devices/bind",
+
         };
+
       }
+
+
+
+      const auth = await authenticateDeviceHeartbeat(body.deviceId);
+
+
+
+      if (!auth.ok) {
+
+        reply.code(auth.statusCode);
+
+        return formatPosDeviceAuthFailure(auth);
+
+      }
+
+
 
       const now = new Date();
 
-      const existing = await findDeviceById(body.deviceId);
 
-      if (!existing) {
-        return {
-          ok: false,
-          reason: "device_not_found",
-          message: "Device not found.",
-        };
-      }
-
-      if (
-        existing.status === DEVICE_RELEASED_STATUS ||
-        !existing.licenseId
-      ) {
-        reply.code(403);
-        return {
-          ok: false,
-          reason: "DEVICE_RELEASED",
-          message: "This device has been released from its license.",
-        };
-      }
 
       const [updated] = await db
+
         .update(devices)
+
         .set({
+
           lastHeartbeatAt: now,
+
           lastSeenAt: now,
-          status: "active",
-        } as any)
+
+        } as typeof devices.$inferInsert)
+
         .where(eq(devices.id, body.deviceId))
+
         .returning();
 
+
+
       if (!updated) {
+
         return {
+
           ok: false,
+
           reason: "device_not_found",
+
           message: "Device not found.",
+
         };
+
       }
+
+
 
       if (updated.licenseId) {
+
         await db.insert(licenseEvents).values({
+
           orgId: updated.orgId,
+
           licenseId: updated.licenseId,
+
           type: "heartbeat",
+
           metadata: {
+
             deviceId: updated.id,
+
           },
+
         });
+
       }
 
+
+
       return {
+
         ok: true,
+
         device: {
+
           id: updated.id,
+
           lastHeartbeatAt: updated.lastHeartbeatAt,
+
         },
+
       };
+
     },
+
   );
+
 }
+
+

@@ -1,3 +1,5 @@
+import { DEVICE_STATUS } from "./deviceAccessPolicy.js";
+
 import { eq } from "drizzle-orm";
 
 import { db } from "../db/client.js";
@@ -15,7 +17,8 @@ export type ReleaseDeviceErrorCode =
   | "not_found"
   | "forbidden"
   | "already_released"
-  | "not_bound";
+  | "not_bound"
+  | "invalid_transition";
 
 export type ReleaseDeviceResult =
   | {
@@ -88,6 +91,17 @@ export async function releaseDevice(
     };
   }
 
+  if (
+    existing.status !== DEVICE_STATUS.ACTIVE &&
+    existing.status !== DEVICE_STATUS.BLOCKED
+  ) {
+    return {
+      ok: false,
+      code: "invalid_transition",
+      message: `Device cannot be released from status "${existing.status}".`,
+    };
+  }
+
   if (!existing.licenseId) {
     return {
       ok: false,
@@ -103,8 +117,10 @@ export async function releaseDevice(
     .update(devices)
     .set({
       licenseId: null,
+      pendingLicenseId: null,
       status: DEVICE_RELEASED_STATUS,
       releasedAt: now,
+      blockedAt: null,
     } as typeof devices.$inferInsert)
     .where(eq(devices.id, existing.id));
 

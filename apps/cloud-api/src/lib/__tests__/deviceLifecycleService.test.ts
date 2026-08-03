@@ -22,6 +22,7 @@ vi.mock("../deviceSeats.js", () => ({
 }));
 
 import { releaseDevice, DEVICE_RELEASED_STATUS } from "../deviceLifecycleService.js";
+import { DEVICE_STATUS } from "../deviceAccessPolicy.js";
 
 function chainSelect(rows: unknown[]) {
   const chain = {
@@ -147,5 +148,54 @@ describe("releaseDevice", () => {
       code: "not_bound",
       message: "Device is not bound to a license.",
     });
+  });
+
+  it("rejects release from pending_approval status", async () => {
+    chainSelect([
+      {
+        ...activeDevice,
+        status: "pending_approval",
+        licenseId: null,
+        pendingLicenseId: "lic-1",
+      },
+    ]);
+
+    const result = await releaseDevice("dev-1", {
+      type: "admin",
+      adminUserId: "admin-1",
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      code: "invalid_transition",
+      message: 'Device cannot be released from status "pending_approval".',
+    });
+  });
+
+  it("releases blocked devices and clears blocked_at", async () => {
+    chainSelect([
+      {
+        ...activeDevice,
+        status: "blocked",
+        blockedAt: new Date("2026-08-01T12:00:00Z"),
+      },
+    ]);
+    const updateChain = chainUpdate();
+    chainInsert();
+
+    const result = await releaseDevice("dev-1", {
+      type: "portal_customer",
+      customerId: "cust-1",
+      orgId: "org-1",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(updateChain.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: DEVICE_RELEASED_STATUS,
+        blockedAt: null,
+        pendingLicenseId: null,
+      }),
+    );
   });
 });

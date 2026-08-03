@@ -21,7 +21,7 @@ export const licenses = pgTable("licenses", {
   // "trial" | "starter" | "pro" | "business" | ...
   plan: text("plan").notNull(),
 
-  /** Positive integer = hard seat cap. NULL = unlimited (Business). Never use 0 as unlimited. */
+  /** Positive integer = hard seat cap. NULL = unlimited (enterprise/custom override only). */
   maxDevices: integer("max_devices").default(1),
 
   status: text("status").notNull().default("active"),

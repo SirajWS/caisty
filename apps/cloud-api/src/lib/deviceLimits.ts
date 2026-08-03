@@ -1,7 +1,7 @@
 /**
  * Device seat limits on licenses.
- * - positive integer = hard cap
- * - null = unlimited (Business)
+ * - positive integer = hard cap (Starter 1, Pro 3, Business 5 via plan config)
+ * - null = unlimited (explicit enterprise/custom override on the license row only)
  * - never treat 0 as unlimited
  */
 

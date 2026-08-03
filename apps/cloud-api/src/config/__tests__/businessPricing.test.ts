@@ -39,8 +39,8 @@ describe("Business EUR pricing catalog", () => {
     });
   });
 
-  it("keeps Business maxDevices null for monthly and yearly licenses", () => {
-    expect(maxDevicesForPlan("business")).toBeNull();
+  it("keeps Business maxDevices at 5 for monthly and yearly licenses", () => {
+    expect(maxDevicesForPlan("business")).toBe(5);
   });
 
   it("maps Business yearly VAT breakdown from catalog", () => {
