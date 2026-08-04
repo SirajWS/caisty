@@ -183,6 +183,81 @@ describe("authenticateDeviceHeartbeat", () => {
 
     expect(result.ok).toBe(true);
   });
+
+  it("denies released device with HTTP 403 policy code", async () => {
+    mocks.findDeviceById.mockResolvedValue({
+      ...activeDevice,
+      status: "released",
+      licenseId: null,
+    });
+
+    const result = await authenticateDeviceHeartbeat("dev-1");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok && "code" in result) {
+      expect(result.statusCode).toBe(403);
+      expect(result.code).toBe("DEVICE_RELEASED");
+    }
+  });
+
+  it("denies blocked device", async () => {
+    mocks.findDeviceById.mockResolvedValue({
+      ...activeDevice,
+      status: DEVICE_STATUS.BLOCKED,
+    });
+    chainSelect([license]);
+
+    const result = await authenticateDeviceHeartbeat("dev-1");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok && "code" in result) {
+      expect(result.code).toBe("DEVICE_BLOCKED");
+      expect(result.statusCode).toBe(403);
+    }
+  });
+
+  it("denies rejected device", async () => {
+    mocks.findDeviceById.mockResolvedValue({
+      ...activeDevice,
+      status: DEVICE_STATUS.REJECTED,
+      licenseId: null,
+    });
+
+    const result = await authenticateDeviceHeartbeat("dev-1");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok && "code" in result) {
+      expect(result.code).toBe("DEVICE_REJECTED");
+    }
+  });
+
+  it("denies when bound license row is inactive", async () => {
+    mocks.findDeviceById.mockResolvedValue(activeDevice);
+    chainSelect([{ ...license, status: "revoked" }]);
+
+    const result = await authenticateDeviceHeartbeat("dev-1");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok && "error" in result) {
+      expect(result.error).toBe("invalid_license");
+      expect(result.statusCode).toBe(403);
+    }
+  });
+
+  it("denies org mismatch between device and license", async () => {
+    mocks.findDeviceById.mockResolvedValue({
+      ...activeDevice,
+      orgId: "org-other",
+    });
+    chainSelect([license]);
+
+    const result = await authenticateDeviceHeartbeat("dev-1");
+
+    expect(result.ok).toBe(false);
+    if (!result.ok && "code" in result) {
+      expect(result.code).toBe("DEVICE_ORG_MISMATCH");
+    }
+  });
 });
 
 describe("formatPosDeviceAuthFailure", () => {
