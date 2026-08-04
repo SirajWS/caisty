@@ -1,6 +1,7 @@
 import { pgTable, uuid, text, varchar, timestamp, integer } from "drizzle-orm/pg-core";
 import { orgs } from "./orgs";
 import { customers } from "./customers";
+import { licenses } from "./licenses";
 
 export const devices = pgTable("devices", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -23,4 +24,10 @@ export const devices = pgTable("devices", {
   lastSalesSyncAt: timestamp("last_sales_sync_at", { withTimezone: true }),
   offlineQueueCount: integer("offline_queue_count").notNull().default(0),
   releasedAt: timestamp("released_at", { withTimezone: true }),
+  pendingLicenseId: text("pending_license_id").references(() => licenses.id, {
+    onDelete: "set null",
+  }),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  blockedAt: timestamp("blocked_at", { withTimezone: true }),
+  rejectedAt: timestamp("rejected_at", { withTimezone: true }),
 });

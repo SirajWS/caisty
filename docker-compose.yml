@@ -39,13 +39,14 @@ services:
       - "127.0.0.1:3333:3333"
     volumes:
       - ./:/app
+      - cloud_api_node_modules:/app/apps/cloud-api/node_modules
     networks:
       - caisty-internal
       - default
 
 volumes:
   caisty_pg_data:
-
+  cloud_api_node_modules:
 networks:
   caisty-internal:
     internal: true

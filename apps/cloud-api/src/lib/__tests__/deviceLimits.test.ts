@@ -23,7 +23,12 @@ describe("deviceLimits", () => {
     expect(canAcceptAdditionalDevice(3, 3)).toBe(false);
   });
 
-  it("allows business unlimited beyond 5 and 10", () => {
+  it("blocks business at 5 devices", () => {
+    expect(canAcceptAdditionalDevice(4, 5)).toBe(true);
+    expect(canAcceptAdditionalDevice(5, 5)).toBe(false);
+  });
+
+  it("still treats explicit null license cap as unlimited (enterprise override)", () => {
     expect(canAcceptAdditionalDevice(5, null)).toBe(true);
     expect(canAcceptAdditionalDevice(10, null)).toBe(true);
     expect(canAcceptAdditionalDevice(100, null)).toBe(true);

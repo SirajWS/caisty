@@ -8,10 +8,11 @@ import { businessProfiles } from "../db/schema/businessProfiles.js";
 import { orgs } from "../db/schema/orgs.js";
 import { syncFiscalConfigurationForOrg } from "../fiscal/fiscalConfigurationService.js";
 import { buildPosSyncConfig } from "../fiscal/buildPosSyncConfig.js";
+import { findDeviceById } from "../lib/deviceLifecycleService.js";
 import {
-  DEVICE_RELEASED_STATUS,
-  findDeviceById,
-} from "../lib/deviceLifecycleService.js";
+  authenticatePosDevice,
+  formatPosDeviceAuthFailure,
+} from "../lib/posDeviceAuth.js";
 
 type PosConfigQuery = {
   deviceId?: string;
@@ -19,56 +20,40 @@ type PosConfigQuery = {
 };
 
 export async function registerPosConfigRoutes(app: FastifyInstance) {
-  /**
-   * GET /pos/config?deviceId=...&licenseKey=...
-   * Phase V: full business + fiscal + license + device + sync payload for POS Desktop.
-   */
   app.get<{ Querystring: PosConfigQuery }>(
     "/pos/config",
     async (request, reply) => {
       const { deviceId, licenseKey } = request.query;
 
-      if (!deviceId?.trim() || !licenseKey?.trim()) {
-        reply.code(400);
-        return {
-          ok: false,
-          error: "invalid_request",
-          message: "deviceId and licenseKey are required.",
-        };
+      const auth = await authenticatePosDevice({ deviceId, licenseKey });
+
+      if (!auth.ok) {
+        reply.code(auth.statusCode);
+        return formatPosDeviceAuthFailure(auth);
       }
 
       const [license] = await db
         .select()
         .from(licenses)
-        .where(eq(licenses.key, licenseKey.trim()))
+        .where(eq(licenses.key, licenseKey!.trim()))
         .limit(1);
 
-      if (!license || license.status !== "active") {
-        reply.code(403);
-        return { ok: false, error: "invalid_license" };
-      }
-
-      const device = await findDeviceById(deviceId.trim());
-
-      if (!device) {
+      if (!license) {
         reply.code(404);
         return { ok: false, error: "device_not_found" };
-      }
-
-      if (device.status === DEVICE_RELEASED_STATUS || !device.licenseId) {
-        reply.code(403);
-        return { ok: false, error: "device_released" };
-      }
-
-      if (String(device.licenseId) !== String(license.id)) {
-        reply.code(403);
-        return { ok: false, error: "device_not_bound" };
       }
 
       const orgId = license.orgId;
       if (!orgId) {
         reply.code(404);
         return { ok: false, error: "org_not_found" };
+      }
+
+      const device = await findDeviceById(auth.context.deviceId);
+
+      if (!device) {
+        reply.code(404);
+        return { ok: false, error: "device_not_found" };
       }
 
       const [businessRow] = await db

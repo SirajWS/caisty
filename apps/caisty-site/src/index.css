@@ -5039,6 +5039,196 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   }
 }
 
+.devices-release-dialog-btn--primary {
+  border: 1px solid var(--dashboard-accent, #ea580c);
+  background: var(--dashboard-accent, #ea580c);
+  color: #ffffff;
+}
+
+.devices-release-dialog-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.devices-release-dialog-btn--warning {
+  border: 1px solid rgba(234, 88, 12, 0.35);
+  background: rgba(234, 88, 12, 0.12);
+  color: var(--dashboard-accent, #ea580c);
+}
+
+.devices-confirm-dialog {
+  max-height: min(90vh, 640px);
+  overflow-y: auto;
+}
+
+.devices-confirm-dialog-icon--destructive {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.devices-confirm-dialog-icon--warning,
+.devices-confirm-dialog-icon--default {
+  color: var(--dashboard-accent, #ea580c);
+  background: rgba(234, 88, 12, 0.1);
+}
+
+.devices-lifecycle-grid {
+  margin-top: 12px;
+}
+
+.devices-lifecycle-card--historical {
+  opacity: 0.82;
+}
+
+.devices-lifecycle-desc {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--dashboard-text-secondary);
+  margin: 0 0 10px;
+}
+
+.devices-lifecycle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.devices-lifecycle-action {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface-elevated, var(--dashboard-surface));
+  color: var(--dashboard-text-primary);
+  cursor: pointer;
+}
+
+.devices-lifecycle-action--primary {
+  background: rgba(234, 88, 12, 0.1);
+  border-color: rgba(234, 88, 12, 0.35);
+  color: var(--dashboard-accent, #ea580c);
+}
+
+.devices-lifecycle-action--secondary-destructive {
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.25);
+}
+
+.devices-lifecycle-action--destructive {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: rgba(220, 38, 38, 0.3);
+  color: #b91c1c;
+}
+
+.devices-lifecycle-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.devices-mgmt-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.devices-mgmt-stat {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--dashboard-border-soft);
+  color: var(--dashboard-text-secondary);
+}
+
+.devices-overlimit-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(234, 88, 12, 0.35);
+  background: rgba(234, 88, 12, 0.08);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.devices-mgmt-refreshing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--dashboard-text-secondary);
+}
+
+.devices-mgmt-refresh-icon {
+  animation: devices-spin 1s linear infinite;
+}
+
+@keyframes devices-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.devices-seat-progress-fill--over {
+  background: #dc2626;
+}
+
+.devices-load-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-surface);
+}
+
+.devices-action-toast {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background: rgba(5, 150, 105, 0.12);
+  border: 1px solid rgba(5, 150, 105, 0.25);
+}
+
+.devices-no-pending-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--dashboard-text-secondary);
+}
+
+@media (max-width: 480px) {
+  .devices-lifecycle-actions {
+    flex-direction: column;
+  }
+
+  .devices-lifecycle-action {
+    width: 100%;
+    flex: none;
+  }
+
+  .devices-mgmt-stats {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .devices-release-dialog {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+  }
+}
+
 .devices-slot-empty {
   display: flex;
   flex-direction: column;

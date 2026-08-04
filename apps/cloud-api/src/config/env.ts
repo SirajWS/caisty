@@ -12,7 +12,7 @@ dotenv.config({ path: path.join(process.cwd(), ".env") });
 // 2) Immer: `apps/cloud-api/.env` neben diesem Package — überschreibt bei Konflikten (override)
 const packageEnvResult = dotenv.config({
   path: path.join(packageRoot, ".env"),
-  override: true,
+  override: false,
 });
 if (packageEnvResult.error) {
   console.warn("[env] apps/cloud-api/.env:", packageEnvResult.error.message);

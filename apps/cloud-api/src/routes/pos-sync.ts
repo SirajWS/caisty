@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 
-import { authenticatePosDevice } from "../lib/posDeviceAuth.js";
+import { authenticatePosDevice, formatPosDeviceAuthFailure } from "../lib/posDeviceAuth.js";
 import { InvalidPullCursorError } from "../posSync/pullErrors.js";
 import { posPullService } from "../posSync/PosPullService.js";
 import { posSyncService } from "../posSync/PosSyncService.js";
@@ -33,12 +33,7 @@ export async function registerPosSyncRoutes(app: FastifyInstance) {
 
     if (!auth.ok) {
       reply.code(auth.statusCode);
-      return { ok: false, error: auth.error };
-    }
-
-    if (auth.context.deviceId !== body.deviceId) {
-      reply.code(403);
-      return { ok: false, error: "device_not_bound" };
+      return formatPosDeviceAuthFailure(auth);
     }
 
     const idempotencyKey = request.headers["idempotency-key"];
@@ -97,12 +92,7 @@ export async function registerPosSyncRoutes(app: FastifyInstance) {
 
     if (!auth.ok) {
       reply.code(auth.statusCode);
-      return { ok: false, error: auth.error };
-    }
-
-    if (auth.context.deviceId !== body.deviceId) {
-      reply.code(403);
-      return { ok: false, error: "device_not_bound" };
+      return formatPosDeviceAuthFailure(auth);
     }
 
     try {

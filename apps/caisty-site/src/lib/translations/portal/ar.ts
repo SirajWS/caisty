@@ -900,6 +900,83 @@ export const portalAr: PortalTranslations = {
     tableFootnote:
       "تظهر الأجهزة هنا تلقائيًا بعد تثبيت Caisty POS وربطه بمفتاح الترخيص.",
     empty: "لا توجد أجهزة مسجّلة.",
+    statusNeverSeen: "لم يتصل أبداً",
+    lifecyclePending: "في انتظار الموافقة",
+    lifecycleActive: "نشط",
+    lifecycleBlocked: "محظور",
+    lifecycleRejected: "مرفوض",
+    lifecycleReleased: "مُحرَّر",
+    lifecyclePendingDesc:
+      "ينتظر هذا الجهاز موافقتك قبل الوصول إلى ترخيصك.",
+    lifecycleActiveDesc: "تمت الموافقة على هذا الجهاز ويمكنه استخدام ترخيصك.",
+    lifecycleBlockedDesc:
+      "هذا الجهاز محظور مؤقتاً لكنه ما زال يحجز مقعد الترخيص.",
+    lifecycleRejectedDesc:
+      "تم رفض طلب التفعيل. ليس للجهاز أي وصول.",
+    lifecycleReleasedDesc:
+      "تم تحرير هذا الجهاز من مقعد الترخيص ولا يمكن إعادة تفعيله مباشرة.",
+    lifecycleUnknownDesc: "حالة الجهاز غير معروفة.",
+    statActive: "{{count}} نشط",
+    statBlocked: "{{count}} محظور",
+    statPending: "{{count}} قيد الانتظار",
+    overLimitBanner:
+      "يستخدم حسابك مقاعد أجهزة أكثر مما يسمح به خطتك الحالية. تبقى الأجهزة الحالية نشطة، لكن الموافقات الجديدة محظورة حتى تحرر مقعداً أو ترقِّ خطتك.",
+    actionApprove: "الموافقة على الجهاز",
+    actionReject: "رفض",
+    actionBlock: "حظر",
+    actionUnblock: "إلغاء الحظر",
+    actionRelease: "تحرير المقعد",
+    approveDisabledNoSeats: "لا توجد مقاعد أجهزة متاحة",
+    colType: "النوع",
+    colCreated: "تاريخ الطلب",
+    colContact: "الاتصال",
+    colFingerprint: "تلميح معرف الجهاز",
+    refreshing: "جارٍ التحديث…",
+    retryLoad: "إعادة المحاولة",
+    loadError: "تعذّر تحميل الأجهزة.",
+    actionError: "فشل الإجراء. يرجى المحاولة مرة أخرى.",
+    errorNotFound: "هذا الجهاز لم يعد متاحاً. سيتم تحديث القائمة.",
+    errorInvalidTransition: "تغيّرت حالة الجهاز. سيتم تحديث القائمة.",
+    errorLimitReached:
+      "تم الوصول إلى حد أجهزة خطتك. حرّر مقعداً أو رقِّ خطتك للموافقة على المزيد.",
+    errorLimitReachedDetail:
+      "{{used}} من {{max}} مقاعد مستخدمة · {{remaining}} متبقٍ",
+    errorLicenseInvalid: "الترخيص المستهدف غير متاح لهذا الإجراء.",
+    errorOrgMismatch: "هذا الإجراء غير مسموح لحسابك.",
+    errorUnauthorized: "انتهت الجلسة. يرجى تسجيل الدخول مجدداً.",
+    errorNetwork: "مشكلة في الاتصال. يرجى المحاولة مرة أخرى.",
+    errorServiceUnavailable:
+      "إدارة الأجهزة غير متاحة حالياً. يرجى المحاولة مرة أخرى.",
+    dialogApproveTitle: "الموافقة على الجهاز؟",
+    dialogApproveDescription:
+      "سيحصل هذا الجهاز على الوصول إلى ترخيصك ويُحتسب كمقعد جهاز نشط.",
+    dialogApproveNotice:
+      "حالياً {{used}} من {{max}} مقاعد مستخدمة · {{remaining}} متاح بعد الموافقة.",
+    dialogApproveNoticeUnlimited:
+      "حالياً {{used}} مقاعد أجهزة مستخدمة · خطة غير محدودة.",
+    dialogApproveConfirm: "الموافقة على الجهاز",
+    dialogRejectTitle: "رفض طلب التفعيل؟",
+    dialogRejectDescription:
+      "لن يحصل الجهاز على وصول ولن يُستخدم أي مقعد ترخيص.",
+    dialogRejectNotice:
+      "يمكن لنقطة البيع تقديم طلب تفعيل جديد لاحقاً وسيظهر هنا مجدداً.",
+    dialogRejectConfirm: "رفض الطلب",
+    dialogBlockTitle: "حظر الجهاز؟",
+    dialogBlockDescription:
+      "سيفقد الجهاز الوصول إلى نقطة البيع مؤقتاً. يبقى مقعد الترخيص محجوزاً.",
+    dialogBlockNotice:
+      "الحظر لا يحرّر مقعداً. يمكنك إلغاء الحظر لاحقاً لاستعادة الوصول.",
+    dialogBlockConfirm: "حظر الجهاز",
+    dialogUnblockTitle: "إلغاء حظر الجهاز؟",
+    dialogUnblockDescription:
+      "سيستعيد الجهاز الوصول إلى نقطة البيع بنفس الترخيص. لا يلزم مقعد إضافي.",
+    dialogUnblockNotice: "لن يتغيّر تعيين الترخيص.",
+    dialogUnblockConfirm: "إلغاء حظر الجهاز",
+    releaseDialogDescriptionExtended:
+      "يفصل هذا الجهاز نهائياً عن مقعد الترخيص. يصبح المقعد متاحاً فوراً.",
+    releaseDialogNoticeExtended:
+      "لا يمكن إعادة تفعيل هوية الجهاز القديمة. يتطلب الاتصال مجدداً طلب تفعيل جديد. يُحفظ سجل المبيعات.",
+    noPendingHint: "لا توجد طلبات تفعيل قيد الانتظار.",
   },
   billing: {
     center: {

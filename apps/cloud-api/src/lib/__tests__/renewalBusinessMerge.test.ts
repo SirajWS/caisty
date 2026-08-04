@@ -20,8 +20,8 @@ describe("paid plan device seats (new purchase contract)", () => {
     expect(maxDevicesForPlan("pro")).toBe(3);
   });
 
-  it("Business → max_devices = null (unlimited)", () => {
-    expect(maxDevicesForPlan("business")).toBeNull();
+  it("Business → max_devices = 5", () => {
+    expect(maxDevicesForPlan("business")).toBe(5);
   });
 
   it("rejects inventing unlimited for unknown plans (falls back to 1)", () => {
@@ -80,13 +80,13 @@ describe("renewal extend preserves seat limits by plan", () => {
     expect(maxDevicesForPlan("pro")).toBe(3);
   });
 
-  it("Business renewal: validity extends forward; seat stays null", () => {
+  it("Business renewal: validity extends forward; seat stays 5", () => {
     const current = new Date("2026-07-01T00:00:00Z");
     const periodEnd = new Date("2026-08-01T00:00:00Z");
     expect(maxLicenseValidUntil(current, periodEnd).getTime()).toBe(
       periodEnd.getTime(),
     );
-    expect(maxDevicesForPlan("business")).toBeNull();
+    expect(maxDevicesForPlan("business")).toBe(5);
   });
 
   it("never shortens validity on overlapping renewals (idempotent max)", () => {

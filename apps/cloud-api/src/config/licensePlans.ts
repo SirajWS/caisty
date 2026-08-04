@@ -6,7 +6,7 @@ export interface LicensePlanConfig {
   id: LicensePlanId;
   label: string;
   description: string;
-  /** Positive integer = hard cap. null = unlimited devices. */
+  /** Positive integer = hard cap. null reserved for future enterprise overrides — not used by standard plans. */
   maxDevices: number | null;
 }
 
@@ -32,8 +32,8 @@ export const LICENSE_PLANS: Record<LicensePlanId, LicensePlanConfig> = {
   business: {
     id: "business",
     label: "Business",
-    description: "Unbegrenzte aktive POS-Geräte in derselben Organisation",
-    maxDevices: null,
+    description: "Plan für bis zu 5 aktive POS-Geräte in derselben Organisation",
+    maxDevices: 5,
   },
 } as const;
 

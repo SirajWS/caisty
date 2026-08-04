@@ -902,6 +902,86 @@ export const portalDe: PortalTranslations = {
     tableFootnote:
       "Geräte erscheinen hier automatisch, sobald Caisty POS installiert ist und mit deinem Lizenzschlüssel verbunden wurde.",
     empty: "Keine Geräte registriert.",
+    statusNeverSeen: "Noch nicht verbunden",
+    lifecyclePending: "Freigabe ausstehend",
+    lifecycleActive: "Aktiv",
+    lifecycleBlocked: "Blockiert",
+    lifecycleRejected: "Abgelehnt",
+    lifecycleReleased: "Freigegeben",
+    lifecyclePendingDesc:
+      "Dieses Gerät wartet auf Ihre Freigabe, bevor es auf die Lizenz zugreifen kann.",
+    lifecycleActiveDesc: "Dieses Gerät ist freigegeben und kann die Lizenz nutzen.",
+    lifecycleBlockedDesc:
+      "Dieses Gerät ist vorübergehend gesperrt, belegt aber weiterhin einen Geräteplatz.",
+    lifecycleRejectedDesc:
+      "Diese Aktivierungsanfrage wurde abgelehnt. Das Gerät hat keinen Zugriff.",
+    lifecycleReleasedDesc:
+      "Dieses Gerät wurde vom Lizenzplatz getrennt und kann nicht direkt reaktiviert werden.",
+    lifecycleUnknownDesc: "Unbekannter Gerätestatus.",
+    statActive: "{{count}} aktiv",
+    statBlocked: "{{count}} blockiert",
+    statPending: "{{count}} ausstehend",
+    overLimitBanner:
+      "Ihr Konto nutzt mehr Geräteplätze als Ihr aktueller Plan erlaubt. Bestehende Geräte bleiben aktiv, neue Freigaben sind gesperrt, bis Sie einen Platz freigeben oder upgraden.",
+    actionApprove: "Gerät freigeben",
+    actionReject: "Ablehnen",
+    actionBlock: "Blockieren",
+    actionUnblock: "Entsperren",
+    actionRelease: "Platz freigeben",
+    approveDisabledNoSeats: "Kein freier Geräteplatz verfügbar",
+    colType: "Typ",
+    colCreated: "Angefragt",
+    colContact: "Verbindung",
+    colFingerprint: "Gerätehinweis",
+    refreshing: "Aktualisiere…",
+    retryLoad: "Erneut versuchen",
+    loadError: "Geräte konnten nicht geladen werden.",
+    actionError: "Aktion fehlgeschlagen. Bitte erneut versuchen.",
+    errorNotFound:
+      "Dieses Gerät ist nicht mehr verfügbar. Die Liste wird aktualisiert.",
+    errorInvalidTransition:
+      "Der Gerätestatus hat sich geändert. Die Liste wird aktualisiert.",
+    errorLimitReached:
+      "Das Gerätelimit Ihres Plans ist erreicht. Geben Sie einen Platz frei oder upgraden Sie, um weitere Geräte freizugeben.",
+    errorLimitReachedDetail:
+      "{{used}} von {{max}} Plätzen belegt · {{remaining}} verfügbar",
+    errorLicenseInvalid:
+      "Die Ziel-Lizenz ist für diese Aktion nicht verfügbar.",
+    errorOrgMismatch: "Diese Aktion ist für Ihr Konto nicht erlaubt.",
+    errorUnauthorized: "Sitzung abgelaufen. Bitte erneut anmelden.",
+    errorNetwork: "Verbindungsproblem. Bitte erneut versuchen.",
+    errorServiceUnavailable:
+      "Die Geräteverwaltung ist momentan nicht verfügbar. Bitte versuchen Sie es erneut.",
+    dialogApproveTitle: "Gerät freigeben?",
+    dialogApproveDescription:
+      "Dieses Gerät erhält Zugriff auf Ihre Lizenz und belegt einen aktiven Geräteplatz.",
+    dialogApproveNotice:
+      "Aktuell {{used}} von {{max}} Plätzen belegt · danach {{remaining}} verfügbar.",
+    dialogApproveNoticeUnlimited:
+      "Aktuell {{used}} Geräteplätze belegt · unbegrenzter Plan.",
+    dialogApproveConfirm: "Gerät freigeben",
+    dialogRejectTitle: "Aktivierungsanfrage ablehnen?",
+    dialogRejectDescription:
+      "Das Gerät erhält keinen Zugriff und es wird kein Lizenzplatz belegt.",
+    dialogRejectNotice:
+      "Die Kasse kann später eine neue Anfrage senden, die hier erneut erscheint.",
+    dialogRejectConfirm: "Anfrage ablehnen",
+    dialogBlockTitle: "Gerät blockieren?",
+    dialogBlockDescription:
+      "Das Gerät verliert vorübergehend den POS-Zugriff. Der Geräteplatz bleibt reserviert.",
+    dialogBlockNotice:
+      "Blockieren gibt keinen Platz frei. Sie können das Gerät später wieder entsperren.",
+    dialogBlockConfirm: "Gerät blockieren",
+    dialogUnblockTitle: "Gerät entsperren?",
+    dialogUnblockDescription:
+      "Das Gerät erhält wieder POS-Zugriff mit derselben Lizenz. Es wird kein zusätzlicher Platz benötigt.",
+    dialogUnblockNotice: "Die Lizenzzuordnung ändert sich nicht.",
+    dialogUnblockConfirm: "Gerät entsperren",
+    releaseDialogDescriptionExtended:
+      "Das Gerät wird dauerhaft vom Lizenzplatz getrennt. Der Platz steht sofort wieder zur Verfügung.",
+    releaseDialogNoticeExtended:
+      "Die alte Geräteidentität kann nicht reaktiviert werden. Eine erneute Verbindung erfordert eine neue Aktivierungsanfrage. Verkaufshistorie bleibt erhalten.",
+    noPendingHint: "Keine ausstehenden Aktivierungsanfragen.",
   },
   billing: {
     center: {
