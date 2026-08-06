@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 
 import { authenticatePosDevice, formatPosDeviceAuthFailure } from "../lib/posDeviceAuth.js";
-import { InvalidPullCursorError } from "../posSync/pullErrors.js";
+import { InvalidPullCursorError, PullCursorOrgMismatchError } from "../posSync/pullErrors.js";
 import { posPullService } from "../posSync/PosPullService.js";
 import { posSyncService } from "../posSync/PosSyncService.js";
 import { validatePullRequest } from "../posSync/validatePullRequest.js";
@@ -101,6 +101,14 @@ export async function registerPosSyncRoutes(app: FastifyInstance) {
       return result;
     } catch (err: unknown) {
       if (err instanceof InvalidPullCursorError) {
+        reply.code(400);
+        return {
+          ok: false,
+          error: err.code,
+          message: err.message,
+        };
+      }
+      if (err instanceof PullCursorOrgMismatchError) {
         reply.code(400);
         return {
           ok: false,

@@ -9,6 +9,7 @@ import {
   type LicensePlanId,
 } from "../config/licensePlans.js";
 import { OFFLINE_GRACE_DAYS } from "../config/license.js";
+import { resolveConsistentDeviceOrgId } from "../lib/posOrgContext.js";
 
 export type LicenseErrorCode =
   | "NOT_FOUND"
@@ -52,6 +53,7 @@ export interface VerifyLicenseResult {
   message?: string;
   checkedAt: Date;
   offlineGraceDays: number;
+  orgId?: string | null;
   license?: LicenseCore;
   devices?: {
     used: number;
@@ -182,6 +184,12 @@ export async function verifyLicenseForPos(
     ok: true,
     checkedAt: now,
     offlineGraceDays: OFFLINE_GRACE_DAYS,
+    orgId: currentDeviceRow
+      ? resolveConsistentDeviceOrgId({
+          deviceOrgId: currentDeviceRow.orgId,
+          licenseOrgId: lic.orgId,
+        })
+      : null,
     license: mapLicenseCore({ ...lic, maxDevices }),
     devices: {
       used: usedSeats,

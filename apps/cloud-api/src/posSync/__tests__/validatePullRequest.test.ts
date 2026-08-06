@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { encodePullCursor } from "../pullCursor.js";
+import { encodeChannelPullCursor } from "../channelPullCursor.js";
 import {
   POS_PULL_DEFAULT_LIMIT,
   POS_PULL_MAX_LIMIT,
@@ -20,6 +21,7 @@ function baseBody() {
       payments: null,
       receiptEvents: null,
       shifts: null,
+      channels: null,
     },
     limit: 100,
   };
@@ -91,5 +93,24 @@ describe("validatePullRequest", () => {
       },
     });
     expect(result.ok).toBe(true);
+  });
+
+  it("accepts channels v2 cursor", () => {
+    const cursor = encodeChannelPullCursor({
+      orgId: "11111111-1111-1111-1111-111111111111",
+      timestamp: "2026-07-27T10:00:00.000Z",
+      id: "11111111-1111-1111-1111-111111111111",
+    });
+    const result = validatePullRequest({
+      ...baseBody(),
+      cursors: {
+        ...baseBody().cursors,
+        channels: cursor,
+      },
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.request.cursors.channels).toBe(cursor);
+    }
   });
 });
