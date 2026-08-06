@@ -1,4 +1,5 @@
 import { decodePullCursor } from "./pullCursor.js";
+import { isValidChannelPullCursor } from "./channelPullCursor.js";
 import type {
   PosPullCursors,
   PosPullEntityType,
@@ -16,6 +17,7 @@ const CURSOR_KEYS: PosPullEntityType[] = [
   "payments",
   "receiptEvents",
   "shifts",
+  "channels",
 ];
 
 export type PosPullValidationError = {
@@ -109,10 +111,15 @@ function parseCursors(
     if (typeof raw !== "string" || !raw.trim()) {
       return invalid(`cursors.${key} must be a non-empty string or null.`);
     }
-    if (!decodePullCursor(raw.trim())) {
+    const trimmed = raw.trim();
+    if (key === "channels") {
+      if (!isValidChannelPullCursor(trimmed)) {
+        return invalid(`cursors.${key} is invalid.`);
+      }
+    } else if (!decodePullCursor(trimmed)) {
       return invalid(`cursors.${key} is invalid.`);
     }
-    cursors[key] = raw.trim();
+    cursors[key] = trimmed;
   }
 
   return { ok: true, cursors };
@@ -125,6 +132,7 @@ function emptyCursors(): PosPullCursors {
     payments: null,
     receiptEvents: null,
     shifts: null,
+    channels: null,
   };
 }
 

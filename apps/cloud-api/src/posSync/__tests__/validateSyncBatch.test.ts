@@ -322,4 +322,46 @@ describe("validateSyncBatchRequest shift", () => {
 
     expect(result.ok).toBe(true);
   });
+
+  it("accepts valid channel upsert and delete payloads", () => {
+    const upsert = validateSyncBatchRequest({
+      deviceId: DEVICE_ID,
+      licenseKey: "CSTY-TEST",
+      batch: { batchId: BATCH_ID },
+      events: [
+        {
+          eventId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          type: "channel",
+          payload: {
+            op: "upsert",
+            channelId: "00000000-0000-0000-0000-000000000001",
+            clientUpdatedAt: "2026-07-08T10:00:00.000Z",
+            name: "Thunder",
+            slug: "thunder",
+            providerStoreId: "S1",
+            statusMap: { created: "open" },
+          },
+        },
+      ],
+    });
+    expect(upsert.ok).toBe(true);
+
+    const del = validateSyncBatchRequest({
+      deviceId: DEVICE_ID,
+      licenseKey: "CSTY-TEST",
+      batch: { batchId: BATCH_ID },
+      events: [
+        {
+          eventId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          type: "channel",
+          payload: {
+            op: "delete",
+            channelId: "00000000-0000-0000-0000-000000000001",
+            clientUpdatedAt: "2026-07-08T11:00:00.000Z",
+          },
+        },
+      ],
+    });
+    expect(del.ok).toBe(true);
+  });
 });

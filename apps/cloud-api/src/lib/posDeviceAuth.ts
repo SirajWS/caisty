@@ -49,6 +49,29 @@ export function policyDenialToAuthResult(denial: {
   };
 }
 
+function buildAuthContext(
+  device: NonNullable<Awaited<ReturnType<typeof findDeviceById>>>,
+  license: typeof licenses.$inferSelect,
+): PosDeviceAuthResult {
+  const resolvedOrgId = String(device.orgId ?? "").trim();
+  if (!resolvedOrgId) {
+    return policyDenialToAuthResult({
+      code: "DEVICE_ORG_MISMATCH",
+      message: "Device organization context is missing.",
+    });
+  }
+
+  return {
+    ok: true,
+    context: {
+      orgId: resolvedOrgId,
+      customerId: device.customerId ?? license.customerId ?? null,
+      deviceId: device.id,
+      licenseId: license.id,
+    },
+  };
+}
+
 export async function authenticatePosDevice(input: {
   deviceId?: string;
   licenseKey?: string;
@@ -96,19 +119,10 @@ export async function authenticatePosDevice(input: {
     return policyDenialToAuthResult(access);
   }
 
-  return {
-    ok: true,
-    context: {
-      orgId: String(device.orgId),
-      customerId: device.customerId ?? license.customerId ?? null,
-      deviceId: device.id,
-      licenseId: license.id,
-    },
-  };
+  return buildAuthContext(device, license);
 }
 
 /**
- * Heartbeat auth: deviceId only (legacy). Loads license from device.licenseId for active devices.
  * Never upgrades device status — caller updates timestamps only.
  */
 export async function authenticateDeviceHeartbeat(
@@ -163,15 +177,7 @@ export async function authenticateDeviceHeartbeat(
     return policyDenialToAuthResult(access);
   }
 
-  return {
-    ok: true,
-    context: {
-      orgId: String(device.orgId),
-      customerId: device.customerId ?? license.customerId ?? null,
-      deviceId: device.id,
-      licenseId: license.id,
-    },
-  };
+  return buildAuthContext(device, license);
 }
 
 export function formatPosDeviceAuthFailure(

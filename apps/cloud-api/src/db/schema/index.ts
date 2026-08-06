@@ -21,3 +21,4 @@ export * from "./businessProfiles";
 export * from "./fiscalConfigurations";
 export * from "./countryConfig";
 export * from "./posSync";
+export * from "./posChannels";

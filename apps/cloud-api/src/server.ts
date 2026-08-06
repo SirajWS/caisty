@@ -36,6 +36,7 @@ import { registerPortalUpgradeRoutes } from "./routes/portal-upgrade.js";
 import { registerPortalLicensesRoutes } from "./routes/portal-licenses.js";
 import { registerPortalInvoiceRoutes } from "./routes/portal-invoices.js";
 import { registerPortalBusinessRoutes } from "./routes/portal-business.js";
+import { registerPortalChannelsRoutes } from "./routes/portal-channels.js";
 import { registerPosConfigRoutes } from "./routes/pos-config.js";
 import { registerPosSyncRoutes } from "./routes/pos-sync.js";
 import { registerCountryConfigRoutes } from "./routes/country-config.js";
@@ -197,6 +198,7 @@ export async function buildServer() {
   await registerPortalLicensesRoutes(app); // "Meine Lizenzen" (Portal-Liste)
   await registerPortalInvoiceRoutes(app); // Invoice-Details
   await registerPortalBusinessRoutes(app); // Business profile (company, tax, fiscal)
+  await registerPortalChannelsRoutes(app); // Org-scoped delivery channels
 
   // ---------------------------------------------------------------------------
   // Admin-Auth (neues Admin-Auth-System)

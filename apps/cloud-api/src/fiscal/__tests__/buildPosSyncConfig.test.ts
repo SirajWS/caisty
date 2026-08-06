@@ -135,6 +135,7 @@ describe("buildPosSyncConfig / GET /pos/config contract", () => {
       fiscalSnapshot,
       license: makeLicense(),
       device: makeDevice(),
+      resolvedOrgId: "org-1",
     });
 
     expect(Object.keys(payload.business).sort()).toEqual(
@@ -164,6 +165,7 @@ describe("buildPosSyncConfig / GET /pos/config contract", () => {
       fiscalSnapshot,
       license: makeLicense(),
       device: makeDevice(),
+      resolvedOrgId: "org-1",
     });
 
     expect(payload.business.currency).toBe("EUR");
@@ -206,6 +208,7 @@ describe("buildPosSyncConfig / GET /pos/config contract", () => {
       fiscalSnapshot: deSnapshot,
       license: makeLicense(),
       device: makeDevice(),
+      resolvedOrgId: "org-1",
     });
 
     expect(deSnapshot.currency).toBe("EUR");
