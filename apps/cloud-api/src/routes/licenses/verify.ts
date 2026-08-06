@@ -111,6 +111,7 @@ export async function registerLicenseVerifyRoute(app: FastifyInstance) {
         offlineGraceDays: effectiveOfflineGraceDays,
         lastVerified: result.checkedAt.toISOString(),
         deviceId: result.device?.id ?? null,
+        orgId: result.orgId ?? null,
         license: {
           id: lic.id,
           key: lic.key,

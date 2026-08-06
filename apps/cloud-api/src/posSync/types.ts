@@ -3,7 +3,8 @@ export type PosSyncEventType =
   | "receipt"
   | "payment"
   | "receipt_event"
-  | "shift";
+  | "shift"
+  | "channel";
 
 export type PosSyncBatchMeta = {
   batchId: string;
@@ -85,6 +86,26 @@ export type PosSyncShiftPayload = {
   schemaVersion: number;
 };
 
+export type PosSyncChannelPayload = {
+  op: "upsert" | "delete";
+  channelId: string;
+  clientUpdatedAt: string;
+  name?: string;
+  slug?: string;
+  enabled?: boolean;
+  status?: string;
+  provider?: string;
+  mode?: string | null;
+  storeId?: string | null;
+  providerStoreId?: string;
+  statusMapping?: Record<string, unknown>;
+  statusMap?: Record<string, unknown>;
+  notes?: string | null;
+  logoDataUrl?: string | null;
+  publicSettings?: Record<string, unknown>;
+  createdAt?: string;
+};
+
 export type PosSyncEvent = {
   eventId: string;
   type: PosSyncEventType;
@@ -93,7 +114,8 @@ export type PosSyncEvent = {
     | PosSyncReceiptPayload
     | PosSyncPaymentPayload
     | PosSyncReceiptEventPayload
-    | PosSyncShiftPayload;
+    | PosSyncShiftPayload
+    | PosSyncChannelPayload;
 };
 
 export type PosSyncBatchRequest = {
@@ -141,7 +163,8 @@ export type PosPullEntityType =
   | "receipts"
   | "payments"
   | "receiptEvents"
-  | "shifts";
+  | "shifts"
+  | "channels";
 
 export type PosPullCursors = Record<PosPullEntityType, string | null>;
 
@@ -243,6 +266,27 @@ export type PosPullShiftSnapshot = {
   updatedAt: string;
 };
 
+export type PosPullChannelSnapshot = {
+  id: string;
+  slug: string;
+  name: string;
+  enabled: boolean;
+  provider: string | null;
+  mode: string | null;
+  storeId: string | null;
+  statusMapping: Record<string, unknown>;
+  notes: string | null;
+  logoDataUrl: string | null;
+  publicSettings: Record<string, unknown>;
+  deleted: boolean;
+  deletedAt: string | null;
+  /** null for portal-created channels; UUID for POS-created channels */
+  sourceDeviceId: string | null;
+  clientUpdatedAt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type PosPullResponse = {
   ok: true;
   schemaVersion: 1;
@@ -257,6 +301,7 @@ export type PosPullResponse = {
     payments: PosPullPaymentSnapshot[];
     receiptEvents: PosPullReceiptEventSnapshot[];
     shifts: PosPullShiftSnapshot[];
+    channels: PosPullChannelSnapshot[];
   };
   nextCursors: PosPullCursors;
   hasMore: Record<PosPullEntityType, boolean>;

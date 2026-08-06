@@ -10,6 +10,7 @@ import {
   canAcceptAdditionalDevice,
   isUnlimitedDeviceLimit,
 } from "../lib/deviceLimits.js";
+import { resolveConsistentDeviceOrgId } from "../lib/posOrgContext.js";
 
 // Strukturen wie aus der POS-Seite "Cloud Customer / Account"
 type CloudCustomerContact = {
@@ -92,6 +93,8 @@ type BindDeviceResponse = {
     createdAt: string;
     profile: unknown;
   } | null;
+  /** Authoritative org id from bound device/license (never from client input). */
+  orgId?: string;
 };
 
 function hasCloudCustomerPayload(
@@ -275,8 +278,14 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
       }
 
       // 5) Antwort aufbauen
+      const resolvedOrgId = resolveConsistentDeviceOrgId({
+        deviceOrgId: (device as { orgId?: unknown }).orgId,
+        licenseOrgId: (license as { orgId?: unknown }).orgId,
+      });
+
       return reply.send({
         ok: true,
+        ...(resolvedOrgId ? { orgId: resolvedOrgId } : {}),
         device: {
           id: String(device.id),
           name: String(device.name),

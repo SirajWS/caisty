@@ -52,6 +52,7 @@ export type PosSyncMeta = {
 };
 
 export type PosSyncConfigPayload = {
+  orgId: string;
   business: PosSyncBusiness;
   fiscal: PosSyncFiscal;
   license: PosSyncLicense;
@@ -76,8 +77,9 @@ export function buildPosSyncConfig(input: {
   license: LicenseRow;
   device: DeviceRow;
   orgName?: string | null;
+  resolvedOrgId: string;
 }): PosSyncConfigPayload {
-  const { businessRow, fiscalSnapshot, license, device } = input;
+  const { businessRow, fiscalSnapshot, license, device, resolvedOrgId } = input;
   const address = sanitizeBusinessAddress(
     businessRow.businessAddressJson,
     businessRow.country,
@@ -87,6 +89,7 @@ export function buildPosSyncConfig(input: {
   const businessUpdatedAt = businessRow.updatedAt;
 
   return {
+    orgId: resolvedOrgId,
     business: {
       companyName: businessRow.companyName?.trim() || input.orgName?.trim() || "",
       legalName: businessRow.legalName?.trim() || "",

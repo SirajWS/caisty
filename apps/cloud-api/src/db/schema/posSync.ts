@@ -83,7 +83,8 @@ export const posSyncEvents = pgTable(
       .defaultNow(),
   },
   (t) => ({
-    uqSyncEventId: uniqueIndex("uq_pos_sync_events_sync_event_id").on(
+    uqSyncEventOrgId: uniqueIndex("uq_pos_sync_events_org_sync_event_id").on(
+      t.orgId,
       t.syncEventId,
     ),
     idxBatch: index("idx_pos_sync_events_batch").on(t.batchId),
