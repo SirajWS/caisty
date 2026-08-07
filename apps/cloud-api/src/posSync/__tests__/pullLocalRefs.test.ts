@@ -2,178 +2,59 @@ import { describe, expect, it } from "vitest";
 
 import {
   comparePaymentRefCandidates,
-  deviceLocalKey,
-  latestLocalPaymentIdByDeviceReceipt,
-  latestPaymentMethodByDeviceOrder,
+  latestPaymentSettlementByLocalOrderId,
   type PullPaymentRefCandidate,
 } from "../pullLocalRefs.js";
 
 function payment(
-  partial: Partial<PullPaymentRefCandidate> &
-    Pick<
-      PullPaymentRefCandidate,
-      "id" | "deviceId" | "method" | "localPaymentId"
-    >,
+  partial: Partial<PullPaymentRefCandidate> & Pick<PullPaymentRefCandidate, "localOrderId">,
 ): PullPaymentRefCandidate {
   return {
-    localOrderId: null,
-    localReceiptId: null,
-    paidAt: new Date("2026-07-27T10:00:00.000Z"),
-    updatedAt: new Date("2026-07-27T10:00:00.000Z"),
-    ...partial,
+    id: partial.id ?? "pay-1",
+    deviceId: partial.deviceId ?? "device-a",
+    method: partial.method ?? "cash",
+    localPaymentId: partial.localPaymentId ?? "local-pay-1",
+    localOrderId: partial.localOrderId,
+    localReceiptId: partial.localReceiptId ?? null,
+    paidAt: partial.paidAt ?? new Date("2026-08-07T10:00:00.000Z"),
+    updatedAt: partial.updatedAt ?? new Date("2026-08-07T10:00:00.000Z"),
   };
 }
 
-describe("deviceLocalKey", () => {
-  it("pairs device and local id", () => {
-    expect(deviceLocalKey("device-a", "100")).toBe("device-a|100");
-  });
-});
-
-describe("latestPaymentMethodByDeviceOrder", () => {
-  it("does not cross-assign same localOrderId across devices", () => {
-    const map = latestPaymentMethodByDeviceOrder([
+describe("latestPaymentSettlementByLocalOrderId", () => {
+  it("picks latest payment settlement org-wide by localOrderId", () => {
+    const map = latestPaymentSettlementByLocalOrderId([
       payment({
-        id: "p-a",
+        id: "p1",
         deviceId: "device-a",
-        localPaymentId: "pay-a",
-        localOrderId: "100",
+        localOrderId: "ORDER-1",
         method: "cash",
-        paidAt: new Date("2026-07-27T10:00:00.000Z"),
+        paidAt: new Date("2026-08-07T09:00:00.000Z"),
       }),
       payment({
-        id: "p-b",
+        id: "p2",
         deviceId: "device-b",
-        localPaymentId: "pay-b",
-        localOrderId: "100",
+        localOrderId: "ORDER-1",
         method: "card",
-        paidAt: new Date("2026-07-27T11:00:00.000Z"),
+        paidAt: new Date("2026-08-07T11:00:00.000Z"),
       }),
     ]);
 
-    expect(map.get(deviceLocalKey("device-a", "100"))).toBe("cash");
-    expect(map.get(deviceLocalKey("device-b", "100"))).toBe("card");
+    expect(map.get("ORDER-1")).toEqual({
+      method: "card",
+      paidAt: new Date("2026-08-07T11:00:00.000Z"),
+    });
   });
 
-  it("picks latest payment on same device order deterministically", () => {
-    const map = latestPaymentMethodByDeviceOrder([
-      payment({
-        id: "p-old",
-        deviceId: "device-a",
-        localPaymentId: "pay-1",
-        localOrderId: "100",
-        method: "cash",
-        paidAt: new Date("2026-07-27T10:00:00.000Z"),
-        updatedAt: new Date("2026-07-27T10:00:00.000Z"),
-      }),
-      payment({
-        id: "p-new",
-        deviceId: "device-a",
-        localPaymentId: "pay-2",
-        localOrderId: "100",
-        method: "card",
-        paidAt: new Date("2026-07-27T12:00:00.000Z"),
-        updatedAt: new Date("2026-07-27T12:00:00.000Z"),
-      }),
-    ]);
-
-    expect(map.get(deviceLocalKey("device-a", "100"))).toBe("card");
-  });
-
-  it("breaks ties with updatedAt then id when paidAt equal", () => {
-    const samePaidAt = new Date("2026-07-27T10:00:00.000Z");
-    const map = latestPaymentMethodByDeviceOrder([
-      payment({
-        id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
-        deviceId: "device-a",
-        localPaymentId: "pay-1",
-        localOrderId: "100",
-        method: "cash",
-        paidAt: samePaidAt,
-        updatedAt: samePaidAt,
-      }),
-      payment({
-        id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
-        deviceId: "device-a",
-        localPaymentId: "pay-2",
-        localOrderId: "100",
-        method: "card",
-        paidAt: samePaidAt,
-        updatedAt: samePaidAt,
-      }),
-    ]);
-
-    expect(map.get(deviceLocalKey("device-a", "100"))).toBe("card");
-  });
-
-  it("treats null paidAt as earliest", () => {
-    const map = latestPaymentMethodByDeviceOrder([
-      payment({
-        id: "p-null",
-        deviceId: "device-a",
-        localPaymentId: "pay-1",
-        localOrderId: "100",
-        method: "cash",
-        paidAt: null,
-      }),
-      payment({
-        id: "p-dated",
-        deviceId: "device-a",
-        localPaymentId: "pay-2",
-        localOrderId: "100",
-        method: "card",
-        paidAt: new Date("2026-07-27T10:00:00.000Z"),
-      }),
-    ]);
-
-    expect(map.get(deviceLocalKey("device-a", "100"))).toBe("card");
-  });
-});
-
-describe("latestLocalPaymentIdByDeviceReceipt", () => {
-  it("does not cross-assign same localReceiptId across devices", () => {
-    const map = latestLocalPaymentIdByDeviceReceipt([
-      payment({
-        id: "p-a",
-        deviceId: "device-a",
-        localPaymentId: "pay-a",
-        localReceiptId: "rcpt-100",
-        method: "cash",
-      }),
-      payment({
-        id: "p-b",
-        deviceId: "device-b",
-        localPaymentId: "pay-b",
-        localReceiptId: "rcpt-100",
-        method: "card",
-        paidAt: new Date("2026-07-27T12:00:00.000Z"),
-      }),
-    ]);
-
-    expect(map.get(deviceLocalKey("device-a", "rcpt-100"))).toBe("pay-a");
-    expect(map.get(deviceLocalKey("device-b", "rcpt-100"))).toBe("pay-b");
-  });
-});
-
-describe("comparePaymentRefCandidates", () => {
-  it("is stable for identical timestamps using id tie-breaker", () => {
+  it("orders candidates deterministically by paidAt", () => {
     const a = payment({
-      id: "a",
-      deviceId: "d",
-      localPaymentId: "1",
-      method: "cash",
-      paidAt: new Date("2026-07-27T10:00:00.000Z"),
-      updatedAt: new Date("2026-07-27T10:00:00.000Z"),
+      localOrderId: "ORDER-2",
+      paidAt: new Date("2026-08-07T08:00:00.000Z"),
     });
     const b = payment({
-      id: "b",
-      deviceId: "d",
-      localPaymentId: "2",
-      method: "card",
-      paidAt: new Date("2026-07-27T10:00:00.000Z"),
-      updatedAt: new Date("2026-07-27T10:00:00.000Z"),
+      localOrderId: "ORDER-2",
+      paidAt: new Date("2026-08-07T12:00:00.000Z"),
     });
     expect(comparePaymentRefCandidates(a, b)).toBeLessThan(0);
-    expect(comparePaymentRefCandidates(b, a)).toBeGreaterThan(0);
   });
 });

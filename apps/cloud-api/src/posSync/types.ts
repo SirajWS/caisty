@@ -197,6 +197,8 @@ export type PosPullOrderSnapshot = {
   status: string;
   paymentStatus: string | null;
   paymentMethod: string | null;
+  paid?: boolean;
+  paidAt?: string | null;
   totalCents: number;
   currency: string;
   soldAt: string;

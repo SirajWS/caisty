@@ -19,6 +19,10 @@ import { DEFAULT_RECEIPT_STATUS } from "../lib/receiptStatus.js";
 import { parseIsoDate } from "./validateSyncBatch.js";
 import { mergePaymentMethodForSync, mergePaymentStatusForSync } from "./orderPaymentMerge.js";
 import { mergeOrderStatusForSync } from "./orderStatusMerge.js";
+import {
+  confirmManualPosOrderPayment,
+  isManualPosSettlementPayment,
+} from "./manualPosPaymentSettlement.js";
 import type {
   PosSyncBatchRequest,
   PosSyncBatchResponse,
@@ -691,56 +695,72 @@ export class PosSyncService {
       };
     }
 
-    try {
-      await db.insert(posSalePayments).values({
-        orgId: auth.orgId,
-        customerId: auth.customerId,
-        deviceId: auth.deviceId,
-        localPaymentId: payload.localPaymentId,
-        localOrderId: payload.localOrderId ?? null,
-        localReceiptId: payload.localReceiptId ?? null,
-        method: payload.method,
-        amountCents: payload.amountCents,
-        currency: payload.currency ?? "EUR",
-        paidAt,
-        syncBatchId: batchId,
-      });
-      return { status: "accepted" as const };
-    } catch (err: unknown) {
-      if (isUniqueViolation(err)) {
-        const [existing] = await db
-          .select({ method: posSalePayments.method })
-          .from(posSalePayments)
-          .where(
-            and(
-              eq(posSalePayments.orgId, auth.orgId),
-              eq(posSalePayments.deviceId, auth.deviceId),
-              eq(posSalePayments.localPaymentId, payload.localPaymentId),
-            ),
-          )
-          .limit(1);
+    const manualSettlement = isManualPosSettlementPayment(payload);
 
-        await db
-          .update(posSalePayments)
-          .set({
+    try {
+      await db.transaction(async (tx) => {
+        try {
+          await tx.insert(posSalePayments).values({
+            orgId: auth.orgId,
+            customerId: auth.customerId,
+            deviceId: auth.deviceId,
+            localPaymentId: payload.localPaymentId,
             localOrderId: payload.localOrderId ?? null,
             localReceiptId: payload.localReceiptId ?? null,
-            method: mergePaymentMethodForSync(existing?.method, payload.method),
+            method: payload.method,
             amountCents: payload.amountCents,
             currency: payload.currency ?? "EUR",
             paidAt,
             syncBatchId: batchId,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(posSalePayments.orgId, auth.orgId),
-              eq(posSalePayments.deviceId, auth.deviceId),
-              eq(posSalePayments.localPaymentId, payload.localPaymentId),
-            ),
-          );
-        return { status: "accepted" as const };
-      }
+          });
+        } catch (err: unknown) {
+          if (!isUniqueViolation(err)) {
+            throw err;
+          }
+
+          const [existing] = await tx
+            .select({ method: posSalePayments.method })
+            .from(posSalePayments)
+            .where(
+              and(
+                eq(posSalePayments.orgId, auth.orgId),
+                eq(posSalePayments.deviceId, auth.deviceId),
+                eq(posSalePayments.localPaymentId, payload.localPaymentId),
+              ),
+            )
+            .limit(1);
+
+          await tx
+            .update(posSalePayments)
+            .set({
+              localOrderId: payload.localOrderId ?? null,
+              localReceiptId: payload.localReceiptId ?? null,
+              method: mergePaymentMethodForSync(existing?.method, payload.method),
+              amountCents: payload.amountCents,
+              currency: payload.currency ?? "EUR",
+              paidAt,
+              syncBatchId: batchId,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(posSalePayments.orgId, auth.orgId),
+                eq(posSalePayments.deviceId, auth.deviceId),
+                eq(posSalePayments.localPaymentId, payload.localPaymentId),
+              ),
+            );
+        }
+
+        if (manualSettlement && payload.localOrderId) {
+          await confirmManualPosOrderPayment(tx, {
+            orgId: auth.orgId,
+            deviceId: auth.deviceId,
+            localOrderId: payload.localOrderId,
+          });
+        }
+      });
+      return { status: "accepted" as const };
+    } catch (err: unknown) {
       throw err;
     }
   }
