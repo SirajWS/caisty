@@ -17,6 +17,8 @@ import { shiftService } from "../lib/shiftService.js";
 import { channelSyncService } from "./channelSyncService.js";
 import { DEFAULT_RECEIPT_STATUS } from "../lib/receiptStatus.js";
 import { parseIsoDate } from "./validateSyncBatch.js";
+import { normalizeProviderSyncOrderPayment } from "../lib/normalizeProviderOrderPayment.js";
+import { traceProviderOrderStage } from "../lib/providerOrderTrace.js";
 import { mergePaymentMethodForSync, mergePaymentStatusForSync } from "./orderPaymentMerge.js";
 import { mergeOrderStatusForSync } from "./orderStatusMerge.js";
 import {
@@ -497,6 +499,22 @@ export class PosSyncService {
     payload: PosSyncOrderPayload,
     existingPaymentStatus?: string | null,
   ) {
+    const normalizedIncoming = normalizeProviderSyncOrderPayment({
+      platform: payload.platform,
+      paymentStatus: payload.paymentStatus,
+      providerOrderId: payload.providerOrderId,
+      localOrderId: payload.localOrderId,
+    });
+
+    traceProviderOrderStage(payload.localOrderId, "pos_sync_order_before_db", {
+      localOrderId: payload.localOrderId,
+      providerOrderId: payload.providerOrderId ?? null,
+      platform: payload.platform ?? null,
+      source: "pos_sync_batch",
+      paymentStatus: normalizedIncoming,
+      incomingPaymentStatus: payload.paymentStatus ?? null,
+    });
+
     return {
       platform: payload.platform ?? null,
       providerOrderId: payload.providerOrderId ?? null,
@@ -507,7 +525,7 @@ export class PosSyncService {
       customerNote: payload.customerNote ?? null,
       paymentStatus: mergePaymentStatusForSync(
         existingPaymentStatus,
-        payload.paymentStatus,
+        normalizedIncoming,
       ),
     };
   }
