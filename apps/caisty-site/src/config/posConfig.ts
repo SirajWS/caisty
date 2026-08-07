@@ -80,17 +80,9 @@ function resolveLatestVersion(): string {
 }
 
 function resolveDownloadUrl(version: string): string {
-  if (!isPosDesktopDownloadEnabled()) return "";
   const envUrl = env("VITE_POS_WINDOWS_URL");
   if (envUrl) return envUrl;
   return buildInstallerRelativePath(version);
-}
-
-/** Whether the desktop installer download is offered (build-time env). */
-export function isPosDesktopDownloadEnabled(): boolean {
-  const raw = env("VITE_POS_DOWNLOAD_ENABLED").toLowerCase();
-  if (raw === "false" || raw === "0") return false;
-  return true;
 }
 
 function parseOptionalInt(raw: string): number | null {
@@ -138,13 +130,12 @@ export function getPosLatestVersion(): string {
 
 /** @deprecated Use getPosReleaseConfig().installer.downloadUrl */
 export function getPosWindowsDownloadUrl(): string | null {
-  if (!isPosDesktopDownloadEnabled()) return null;
   const url = getPosReleaseConfig().installer.downloadUrl;
   return url || null;
 }
 
 export function isPosDownloadConfigured(): boolean {
-  return isPosDesktopDownloadEnabled() && Boolean(getPosReleaseConfig().installer.downloadUrl);
+  return Boolean(getPosWindowsDownloadUrl());
 }
 
 /** @deprecated Use getPosReleaseConfig().web.plannedUrl */

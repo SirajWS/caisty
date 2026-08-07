@@ -1,11 +1,4 @@
 {
-  "redirects": [
-    {
-      "source": "/downloads/Caisty.PoS_0.3.5_x64-setup.exe",
-      "destination": "/caisty-pos",
-      "statusCode": 307
-    }
-  ],
   "headers": [
     {
       "source": "/downloads/(.*)",

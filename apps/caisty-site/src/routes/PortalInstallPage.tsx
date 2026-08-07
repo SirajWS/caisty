@@ -159,27 +159,13 @@ const PortalInstallPage: React.FC = () => {
                   {t.install.winDownload}
                 </a>
               ) : (
-                <div className="space-y-2">
-                  <p
-                    role="status"
-                    className={`text-xs leading-relaxed rounded-lg border px-3 py-2 ${
-                      isLight
-                        ? "border-amber-200 bg-amber-50 text-amber-900"
-                        : "border-amber-500/30 bg-amber-500/10 text-amber-100"
-                    }`}
-                  >
-                    {t.install.downloadMaintenance}
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-center text-xs font-medium opacity-50 cursor-not-allowed pointer-events-none"
-                    disabled
-                    aria-disabled="true"
-                    tabIndex={-1}
-                  >
-                    {t.install.winDownload}
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  className="w-full justify-center text-xs font-medium opacity-50 cursor-not-allowed"
+                  disabled
+                >
+                  {t.install.winUnavailable}
+                </Button>
               )}
             </div>
           </div>
