@@ -54,7 +54,6 @@ export type PortalChannelResponse = {
   notes: string | null;
   statusMapping: Record<string, unknown>;
   publicSettings: PortalChannelPublicConfig;
-  webhookPath: string;
   secrets: {
     apiKey: { configured: boolean };
     apiSecret: { configured: boolean };
@@ -90,10 +89,6 @@ function readBool(value: unknown, fallback = false): boolean {
 
 export function isValidPortalChannelSlug(slug: string): boolean {
   return PORTAL_CHANNEL_SLUG_RE.test(slug.trim());
-}
-
-export function buildWebhookPath(slug: string): string {
-  return `/webhooks/channels/${slug}`;
 }
 
 function isDirectPosChannelEntry(entry: Record<string, unknown>): boolean {
@@ -548,7 +543,6 @@ export function dbRowToPortalChannel(row: {
         ? (row.statusMapping as Record<string, unknown>)
         : {},
     publicSettings,
-    webhookPath: buildWebhookPath(row.slug),
     secrets: {
       apiKey: { configured: false },
       apiSecret: { configured: false },

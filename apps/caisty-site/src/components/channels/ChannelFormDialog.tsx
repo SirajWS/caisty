@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Copy, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import type { PortalChannelWriteBody } from "../../lib/channels/portalChannelApi";
 import { portalInputClass, portalPrimaryCta, portalSectionLabel } from "../../lib/portalUi";
@@ -12,14 +12,12 @@ type ChannelFormDialogProps = {
   error: string | null;
   busy: boolean;
   isLight: boolean;
-  webhookPath: string;
   secretsUnavailableNotice: string;
   testOrderLaterNotice: string;
   labels: Record<string, string>;
   onChange: (next: PortalChannelWriteBody) => void;
   onCancel: () => void;
   onSave: () => void;
-  onCopyWebhook: () => void;
 };
 
 const STATUS_KEYS = [
@@ -38,14 +36,12 @@ export function ChannelFormDialog({
   error,
   busy,
   isLight,
-  webhookPath,
   secretsUnavailableNotice,
   testOrderLaterNotice,
   labels,
   onChange,
   onCancel,
   onSave,
-  onCopyWebhook,
 }: ChannelFormDialogProps) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -276,22 +272,6 @@ export function ChannelFormDialog({
                   />
                 </label>
               ))}
-            </div>
-          </section>
-
-          <section className="portal-channel-form-section">
-            <h3 className={portalSectionLabel(isLight)}>{labels.sectionWebhook}</h3>
-            <div className="portal-channel-webhook-row">
-              <code className="portal-channel-webhook-path">{webhookPath}</code>
-              <button
-                type="button"
-                className="portal-channel-icon-btn"
-                disabled={busy}
-                onClick={onCopyWebhook}
-              >
-                <Copy size={16} />
-                <span>{labels.copyWebhook}</span>
-              </button>
             </div>
           </section>
 

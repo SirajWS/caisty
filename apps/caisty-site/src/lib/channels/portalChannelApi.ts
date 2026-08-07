@@ -95,7 +95,6 @@ export type PortalChannel = {
   notes: string | null;
   statusMapping: Record<string, unknown>;
   publicSettings: PortalChannelPublicSettings;
-  webhookPath: string;
   secrets: PortalChannelSecrets;
   deleted: boolean;
   deletedAt: string | null;

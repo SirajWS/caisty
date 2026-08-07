@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  dbRowToPortalChannel,
   dbRowToPosExportChannel,
   parsePosChannelImportPayload,
   posChannelObjectToSyncPayload,
@@ -199,5 +200,29 @@ describe("portalChannelPosFormat", () => {
         ackTimeoutSec: 0,
       }).ok,
     ).toBe(false);
+  });
+
+  it("does not expose webhookPath in portal API response", () => {
+    const now = new Date("2026-08-06T00:00:00.000Z");
+    const response = dbRowToPortalChannel({
+      id: "11111111-1111-1111-1111-111111111111",
+      slug: "postman",
+      name: "Fake Provider",
+      enabled: true,
+      provider: "other",
+      mode: "realtime",
+      storeId: "store-1",
+      statusMapping: { created: "new" },
+      notes: null,
+      logoDataUrl: null,
+      configJson: { providerType: "delivery_app" },
+      deletedAt: null,
+      clientUpdatedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    expect(response).not.toHaveProperty("webhookPath");
+    expect(response.slug).toBe("postman");
   });
 });

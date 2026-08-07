@@ -62,7 +62,6 @@ export default function PortalChannelsPage() {
       sectionRealtime: c.formSectionRealtime,
       sectionAck: c.formSectionAck,
       sectionStatusMap: c.formSectionStatusMap,
-      sectionWebhook: c.formSectionWebhook,
       sectionSecrets: c.formSectionSecrets,
       displayName: c.formDisplayName,
       slug: c.formSlug,
@@ -85,7 +84,6 @@ export default function PortalChannelsPage() {
       status_dispatched: c.statusDispatched,
       status_delivered: c.statusDelivered,
       status_canceled: c.statusCanceled,
-      copyWebhook: c.copyWebhook,
       cancel: c.cancel,
       save: c.save,
       saving: c.saving,
@@ -207,8 +205,6 @@ export default function PortalChannelsPage() {
       ].join("\n")
     : c.importConfirmDescription;
 
-  const webhookPath = buildWebhookPath(formValues.slug || "your-slug");
-
   return (
     <div className={`${portalPageShell()} portal-channels-page`}>
       <header className="portal-channels-header">
@@ -325,17 +321,12 @@ export default function PortalChannelsPage() {
         error={formError}
         busy={mgmt.saving}
         isLight={isLight}
-        webhookPath={webhookPath}
         secretsUnavailableNotice={c.secretsUnavailable}
         testOrderLaterNotice={c.testOrderLater}
         labels={formLabels}
         onChange={setFormValues}
         onCancel={closeForm}
         onSave={() => void saveForm()}
-        onCopyWebhook={() => {
-          void navigator.clipboard.writeText(webhookPath);
-          showToast(c.webhookCopied);
-        }}
       />
 
       <DeviceConfirmDialog
@@ -375,8 +366,4 @@ export default function PortalChannelsPage() {
       />
     </div>
   );
-}
-
-function buildWebhookPath(slug: string): string {
-  return `/webhooks/channels/${slug}`;
 }
