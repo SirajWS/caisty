@@ -57,6 +57,29 @@ export function latestPaymentMethodByDeviceOrder(
   return map;
 }
 
+export type PullPaymentSettlement = {
+  method: string;
+  paidAt: Date | null;
+};
+
+/**
+ * Latest manual settlement per localOrderId across all devices in an org pull page.
+ */
+export function latestPaymentSettlementByLocalOrderId(
+  payments: PullPaymentRefCandidate[],
+): Map<string, PullPaymentSettlement> {
+  const sorted = [...payments].sort(comparePaymentRefCandidates);
+  const map = new Map<string, PullPaymentSettlement>();
+  for (const payment of sorted) {
+    if (!payment.localOrderId) continue;
+    map.set(payment.localOrderId, {
+      method: payment.method,
+      paidAt: payment.paidAt,
+    });
+  }
+  return map;
+}
+
 /**
  * Build map: deviceLocalKey(deviceId, localReceiptId) → latest localPaymentId.
  */
