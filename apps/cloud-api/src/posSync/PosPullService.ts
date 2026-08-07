@@ -30,6 +30,7 @@ import {
   deviceLocalKey,
   latestLocalPaymentIdByDeviceReceipt,
   latestPaymentMethodByDeviceOrder,
+  latestPaymentSettlementByLocalOrderId,
   type PullPaymentRefCandidate,
 } from "./pullLocalRefs.js";
 import type {
@@ -122,7 +123,6 @@ export class PosPullService {
     const pageRows = rows.slice(0, limit);
     const orderIds = pageRows.map((row) => row.id);
     const localOrderIds = [...new Set(pageRows.map((row) => row.localOrderId))];
-    const deviceIds = [...new Set(pageRows.map((row) => row.deviceId))];
 
     const orderLines =
       orderIds.length > 0
@@ -134,7 +134,7 @@ export class PosPullService {
         : [];
 
     const paymentsByOrder =
-      localOrderIds.length > 0 && deviceIds.length > 0
+      localOrderIds.length > 0
         ? await db
             .select({
               id: posSalePayments.id,
@@ -150,7 +150,6 @@ export class PosPullService {
             .where(
               and(
                 eq(posSalePayments.orgId, orgId),
-                inArray(posSalePayments.deviceId, deviceIds),
                 inArray(posSalePayments.localOrderId, localOrderIds),
               ),
             )
@@ -176,26 +175,43 @@ export class PosPullService {
     const latestPaymentMethodByDeviceOrderKey = latestPaymentMethodByDeviceOrder(
       paymentsByOrder as PullPaymentRefCandidate[],
     );
+    const latestSettlementByLocalOrderId = latestPaymentSettlementByLocalOrderId(
+      paymentsByOrder as PullPaymentRefCandidate[],
+    );
 
-    const snapshots: PosPullOrderSnapshot[] = pageRows.map((row) => ({
-      id: row.id,
-      localOrderId: row.localOrderId,
-      providerOrderId: row.providerOrderId,
-      platform: row.platform,
-      sourceDeviceId: row.deviceId,
-      status: row.status,
-      paymentStatus: row.paymentStatus,
-      paymentMethod:
-        latestPaymentMethodByDeviceOrderKey.get(
-          deviceLocalKey(row.deviceId, row.localOrderId),
-        ) ?? null,
-      totalCents: row.totalCents,
-      currency: row.currency,
-      soldAt: row.soldAt.toISOString(),
-      createdAt: row.createdAt.toISOString(),
-      updatedAt: row.updatedAt.toISOString(),
-      lines: linesByOrderId.get(row.id) ?? [],
-    }));
+    const snapshots: PosPullOrderSnapshot[] = pageRows.map((row) => {
+      const devicePaymentMethod = latestPaymentMethodByDeviceOrderKey.get(
+        deviceLocalKey(row.deviceId, row.localOrderId),
+      );
+      const orgSettlement = latestSettlementByLocalOrderId.get(row.localOrderId);
+      const paymentMethod = devicePaymentMethod ?? orgSettlement?.method ?? null;
+      const paymentStatus = row.paymentStatus;
+      const isPaid = paymentStatus === "paid";
+      const paidAt =
+        isPaid && orgSettlement?.paidAt
+          ? orgSettlement.paidAt.toISOString()
+          : null;
+
+      return {
+        id: row.id,
+        localOrderId: row.localOrderId,
+        providerOrderId: row.providerOrderId,
+        platform: row.platform,
+        sourceDeviceId: row.deviceId,
+        status: row.status,
+        paymentStatus,
+        paymentMethod,
+        ...(isPaid && paymentMethod
+          ? { paid: true, paidAt }
+          : {}),
+        totalCents: row.totalCents,
+        currency: row.currency,
+        soldAt: row.soldAt.toISOString(),
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+        lines: linesByOrderId.get(row.id) ?? [],
+      };
+    });
 
     return this.buildPageFromRows("orders", rows, snapshots, limit, (row) => ({
       timestamp: row.updatedAt.toISOString(),
