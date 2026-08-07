@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { getPosReleaseConfig } from "./posConfig";
 
 const POS_WINDOWS_URL =
-  "https://www.caisty.com/downloads/Caisty.PoS_0.3.5_x64-setup.exe";
+  "https://www.caisty.com/downloads/Caisty.PoS_0.3.6_x64-setup.exe";
 
 describe("getPosReleaseConfig", () => {
   afterEach(() => {
@@ -14,8 +14,8 @@ describe("getPosReleaseConfig", () => {
 
     const release = getPosReleaseConfig();
 
-    expect(release.latestVersion).toBe("0.3.5");
-    expect(release.installer.fileName).toBe("Caisty.PoS_0.3.5_x64-setup.exe");
+    expect(release.latestVersion).toBe("0.3.6");
+    expect(release.installer.fileName).toBe("Caisty.PoS_0.3.6_x64-setup.exe");
     expect(release.installer.downloadUrl).toBe(POS_WINDOWS_URL);
   });
 
