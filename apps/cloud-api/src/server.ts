@@ -16,6 +16,7 @@ import { registerPublicLicenseRoutes } from "./routes/public-license.js";
 
 import { registerPaymentsRoutes } from "./routes/payments.js";
 import { registerWebhooksRoutes } from "./routes/webhooks.js";
+import { registerChannelWebhooksRoutes } from "./routes/channel-webhooks.js";
 import { registerBillingRoutes } from "./routes/billing.js";
 
 // 🔹 Portal (eigenes JWT, separate Auth)
@@ -115,6 +116,7 @@ export async function buildServer() {
       url.startsWith("/api/billing/") || // Billing-API (Portal-JWT, handled in route)
       (url === "/webhooks/paypal" && method === "POST") ||
       (url === "/webhooks/stripe" && method === "POST") ||
+      (url.startsWith("/webhooks/channels/") && method === "POST") ||
       (url === "/licenses/verify" && method === "POST") ||
       (url === "/devices/bind" && method === "POST") ||
       (url === "/devices/heartbeat" && method === "POST") ||
@@ -239,6 +241,7 @@ export async function buildServer() {
   // ---------------------------------------------------------------------------
   await registerPaymentsRoutes(app);
   await registerWebhooksRoutes(app);
+  await registerChannelWebhooksRoutes(app);
   await registerBillingRoutes(app);
 
   // ---------------------------------------------------------------------------
