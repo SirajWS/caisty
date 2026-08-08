@@ -545,6 +545,7 @@ export async function registerPortalBusinessRoutes(app: FastifyInstance) {
           lastHeartbeatAt: null,
         },
         orgName: org?.name ?? null,
+        resolvedOrgId: payload.orgId,
       });
       return {
         ok: true,

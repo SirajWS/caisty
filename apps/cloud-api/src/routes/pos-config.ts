@@ -88,6 +88,7 @@ export async function registerPosConfigRoutes(app: FastifyInstance) {
           license,
           device,
           orgName: org?.name ?? null,
+          resolvedOrgId: auth.context.orgId,
         });
 
         return {

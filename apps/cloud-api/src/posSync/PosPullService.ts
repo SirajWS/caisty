@@ -9,6 +9,7 @@ import {
 } from "drizzle-orm";
 
 import { db } from "../db/client.js";
+import { posChannels } from "../db/schema/posChannels.js";
 import {
   posOrderLines,
   posOrders,
@@ -17,6 +18,11 @@ import {
   posSalePayments,
   posShifts,
 } from "../db/schema/posSync.js";
+import { toChannelPullConfig } from "./channelPayload.js";
+import {
+  decodeChannelPullCursor,
+  encodeChannelPullCursor,
+} from "./channelPullCursor.js";
 import type { PosDeviceAuthContext } from "../lib/posDeviceAuth.js";
 import { InvalidPullCursorError } from "./pullErrors.js";
 import { decodePullCursor, encodePullCursor } from "./pullCursor.js";
@@ -24,6 +30,7 @@ import {
   deviceLocalKey,
   latestLocalPaymentIdByDeviceReceipt,
   latestPaymentMethodByDeviceOrder,
+  latestPaymentSettlementByLocalOrderId,
   type PullPaymentRefCandidate,
 } from "./pullLocalRefs.js";
 import type {
@@ -36,6 +43,7 @@ import type {
   PosPullResponse,
   PosPullShiftSnapshot,
   PosPullPaymentSnapshot,
+  PosPullChannelSnapshot,
 } from "./types.js";
 
 type EntityPage<T> = {
@@ -49,13 +57,14 @@ export class PosPullService {
     request: PosPullRequest,
     auth: PosDeviceAuthContext,
   ): Promise<PosPullResponse> {
-    const [ordersPage, receiptsPage, paymentsPage, receiptEventsPage, shiftsPage] =
+    const [ordersPage, receiptsPage, paymentsPage, receiptEventsPage, shiftsPage, channelsPage] =
       await Promise.all([
         this.pullOrders(auth.orgId, request.cursors.orders, request.limit),
         this.pullReceipts(auth.orgId, request.cursors.receipts, request.limit),
         this.pullPayments(auth.orgId, request.cursors.payments, request.limit),
         this.pullReceiptEvents(auth.orgId, request.cursors.receiptEvents, request.limit),
         this.pullShifts(auth.orgId, request.cursors.shifts, request.limit),
+        this.pullChannels(auth.orgId, request.cursors.channels ?? null, request.limit),
       ]);
 
     return {
@@ -72,6 +81,7 @@ export class PosPullService {
         payments: paymentsPage.items,
         receiptEvents: receiptEventsPage.items,
         shifts: shiftsPage.items,
+        channels: channelsPage.items,
       },
       nextCursors: {
         orders: ordersPage.nextCursor,
@@ -79,6 +89,7 @@ export class PosPullService {
         payments: paymentsPage.nextCursor,
         receiptEvents: receiptEventsPage.nextCursor,
         shifts: shiftsPage.nextCursor,
+        channels: channelsPage.nextCursor,
       },
       hasMore: {
         orders: ordersPage.hasMore,
@@ -86,6 +97,7 @@ export class PosPullService {
         payments: paymentsPage.hasMore,
         receiptEvents: receiptEventsPage.hasMore,
         shifts: shiftsPage.hasMore,
+        channels: channelsPage.hasMore,
       },
     };
   }
@@ -111,7 +123,6 @@ export class PosPullService {
     const pageRows = rows.slice(0, limit);
     const orderIds = pageRows.map((row) => row.id);
     const localOrderIds = [...new Set(pageRows.map((row) => row.localOrderId))];
-    const deviceIds = [...new Set(pageRows.map((row) => row.deviceId))];
 
     const orderLines =
       orderIds.length > 0
@@ -123,7 +134,7 @@ export class PosPullService {
         : [];
 
     const paymentsByOrder =
-      localOrderIds.length > 0 && deviceIds.length > 0
+      localOrderIds.length > 0
         ? await db
             .select({
               id: posSalePayments.id,
@@ -139,7 +150,6 @@ export class PosPullService {
             .where(
               and(
                 eq(posSalePayments.orgId, orgId),
-                inArray(posSalePayments.deviceId, deviceIds),
                 inArray(posSalePayments.localOrderId, localOrderIds),
               ),
             )
@@ -165,26 +175,43 @@ export class PosPullService {
     const latestPaymentMethodByDeviceOrderKey = latestPaymentMethodByDeviceOrder(
       paymentsByOrder as PullPaymentRefCandidate[],
     );
+    const latestSettlementByLocalOrderId = latestPaymentSettlementByLocalOrderId(
+      paymentsByOrder as PullPaymentRefCandidate[],
+    );
 
-    const snapshots: PosPullOrderSnapshot[] = pageRows.map((row) => ({
-      id: row.id,
-      localOrderId: row.localOrderId,
-      providerOrderId: row.providerOrderId,
-      platform: row.platform,
-      sourceDeviceId: row.deviceId,
-      status: row.status,
-      paymentStatus: row.paymentStatus,
-      paymentMethod:
-        latestPaymentMethodByDeviceOrderKey.get(
-          deviceLocalKey(row.deviceId, row.localOrderId),
-        ) ?? null,
-      totalCents: row.totalCents,
-      currency: row.currency,
-      soldAt: row.soldAt.toISOString(),
-      createdAt: row.createdAt.toISOString(),
-      updatedAt: row.updatedAt.toISOString(),
-      lines: linesByOrderId.get(row.id) ?? [],
-    }));
+    const snapshots: PosPullOrderSnapshot[] = pageRows.map((row) => {
+      const devicePaymentMethod = latestPaymentMethodByDeviceOrderKey.get(
+        deviceLocalKey(row.deviceId, row.localOrderId),
+      );
+      const orgSettlement = latestSettlementByLocalOrderId.get(row.localOrderId);
+      const paymentMethod = devicePaymentMethod ?? orgSettlement?.method ?? null;
+      const paymentStatus = row.paymentStatus;
+      const isPaid = paymentStatus === "paid";
+      const paidAt =
+        isPaid && orgSettlement?.paidAt
+          ? orgSettlement.paidAt.toISOString()
+          : null;
+
+      return {
+        id: row.id,
+        localOrderId: row.localOrderId,
+        providerOrderId: row.providerOrderId,
+        platform: row.platform,
+        sourceDeviceId: row.deviceId,
+        status: row.status,
+        paymentStatus,
+        paymentMethod,
+        ...(isPaid && paymentMethod
+          ? { paid: true, paidAt }
+          : {}),
+        totalCents: row.totalCents,
+        currency: row.currency,
+        soldAt: row.soldAt.toISOString(),
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+        lines: linesByOrderId.get(row.id) ?? [],
+      };
+    });
 
     return this.buildPageFromRows("orders", rows, snapshots, limit, (row) => ({
       timestamp: row.updatedAt.toISOString(),
@@ -406,6 +433,103 @@ export class PosPullService {
       timestamp: row.updatedAt.toISOString(),
       id: row.id,
     }));
+  }
+
+  private async pullChannels(
+    orgId: string,
+    encodedCursor: string | null,
+    limit: number,
+  ): Promise<EntityPage<PosPullChannelSnapshot>> {
+    const cursorFilter = this.buildChannelCursorFilter(
+      orgId,
+      encodedCursor,
+      posChannels.updatedAt,
+      posChannels.id,
+    );
+
+    const rows = await db
+      .select()
+      .from(posChannels)
+      .where(and(eq(posChannels.orgId, orgId), cursorFilter))
+      .orderBy(asc(posChannels.updatedAt), asc(posChannels.id))
+      .limit(limit + 1);
+
+    const snapshots: PosPullChannelSnapshot[] = rows.slice(0, limit).map((row) => {
+      const config = toChannelPullConfig(row);
+      return {
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        enabled: row.enabled,
+        provider: row.provider,
+        mode: row.mode,
+        storeId: row.storeId,
+        statusMapping: config.statusMapping,
+        notes: row.notes,
+        logoDataUrl: row.logoDataUrl,
+        publicSettings: config.publicSettings,
+        deleted: row.deletedAt != null,
+        deletedAt: row.deletedAt ? row.deletedAt.toISOString() : null,
+        sourceDeviceId: row.sourceDeviceId ?? null,
+        clientUpdatedAt: row.clientUpdatedAt.toISOString(),
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+      };
+    });
+
+    return this.buildChannelPageFromRows(
+      orgId,
+      rows,
+      snapshots,
+      limit,
+      (row) => ({
+        timestamp: row.updatedAt.toISOString(),
+        id: row.id,
+      }),
+    );
+  }
+
+  private buildChannelCursorFilter(
+    orgId: string,
+    encodedCursor: string | null,
+    timestampColumn: SQL | { name?: string },
+    idColumn: SQL | { name?: string },
+  ) {
+    if (!encodedCursor) {
+      return undefined;
+    }
+    const decoded = decodeChannelPullCursor(encodedCursor, orgId);
+    const ts = new Date(decoded.timestamp);
+    return or(
+      gt(timestampColumn as never, ts),
+      and(eq(timestampColumn as never, ts), gt(idColumn as never, decoded.id)),
+    );
+  }
+
+  private buildChannelPageFromRows<TRow, TSnapshot>(
+    orgId: string,
+    rows: TRow[],
+    snapshots: TSnapshot[],
+    limit: number,
+    cursorSelector: (row: TRow) => { timestamp: string; id: string },
+  ): EntityPage<TSnapshot> {
+    const hasMore = rows.length > limit;
+    const lastItem =
+      snapshots.length > 0 ? rows[Math.min(limit, rows.length) - 1] : null;
+    const nextCursor =
+      hasMore && lastItem
+        ? encodeChannelPullCursor({
+            orgId,
+            timestamp: cursorSelector(lastItem).timestamp,
+            id: cursorSelector(lastItem).id,
+          })
+        : null;
+
+    return {
+      items: snapshots,
+      hasMore,
+      nextCursor,
+    };
   }
 
   private buildCursorFilter(

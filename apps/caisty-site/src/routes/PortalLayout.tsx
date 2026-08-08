@@ -21,6 +21,7 @@ import {
   User,
   X,
   ScrollText,
+  Share2,
 } from "lucide-react";
 import {
   fetchPortalMe,
@@ -80,6 +81,7 @@ function usePortalNav(): PortalNav {
         label: t.layout.navSectionBusiness,
         items: [
           { to: "/portal/business", label: t.layout.navBusiness, icon: <Building2 size={18} /> },
+          { to: "/portal/channels", label: t.layout.navChannels, icon: <Share2 size={18} /> },
           { to: "/portal/account", label: t.layout.navAccount, icon: <User size={18} /> },
         ],
       },

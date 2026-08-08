@@ -12,6 +12,12 @@ vi.mock("../../db/client.js", () => ({
     select: mocks.mockSelect,
     insert: mocks.mockInsert,
     update: mocks.mockUpdate,
+    transaction: async (fn: (tx: typeof mocks) => unknown) =>
+      fn({
+        select: mocks.mockSelect,
+        insert: mocks.mockInsert,
+        update: mocks.mockUpdate,
+      }),
   },
 }));
 
@@ -48,10 +54,13 @@ const auth = {
   deviceId: "33333333-3333-3333-3333-333333333333",
 };
 
-function chainSelect(rows: unknown[]) {
+function chainSelect(rows: unknown[], terminal: "limit" | "where" = "limit") {
   const chain = {
     from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
+    where:
+      terminal === "where"
+        ? vi.fn().mockResolvedValue(rows)
+        : vi.fn().mockReturnThis(),
     limit: vi.fn().mockResolvedValue(rows),
   };
   mocks.mockSelect.mockReturnValue(chain);
@@ -112,6 +121,38 @@ describe("PosSyncService entity upserts", () => {
     vi.clearAllMocks();
   });
 
+  it("downgrades unconfirmed paid provider sync orders to pending", async () => {
+    chainSelect([]);
+    const returningOrder = vi.fn().mockResolvedValue([
+      {
+        id: "order-pending",
+        localOrderId: "T1786060842435",
+        paymentStatus: "pending",
+      },
+    ]);
+    mocks.mockInsert.mockReturnValue({
+      values: vi.fn().mockReturnValue({ returning: returningOrder }),
+    });
+
+    const result = await service.upsertOrder(
+      {
+        localOrderId: "T1786060842435",
+        platform: "fake_delivery",
+        providerOrderId: "T1786060842435",
+        status: "new",
+        paymentStatus: "paid",
+        totalCents: 27500,
+        soldAt: "2026-08-07T00:00:42.860Z",
+      },
+      auth,
+      "batch-1",
+    );
+
+    expect(result.status).toBe("accepted");
+    const insertCall = mocks.mockInsert.mock.results[0]?.value?.values?.mock?.calls?.[0]?.[0];
+    expect(insertCall?.paymentStatus).toBe("pending");
+  });
+
   it("upsertOrder preserves delivered over stale accepted", async () => {
     chainSelect([{ status: "delivered", paymentStatus: "paid" }]);
     chainInsertOrderConflict();
@@ -161,6 +202,90 @@ describe("PosSyncService entity upserts", () => {
         method: "card",
         amountCents: 1200,
       }),
+    );
+  });
+
+  it("manual cash payment marks linked provider order paid in same transaction", async () => {
+    chainSelect([{ deviceId: auth.deviceId, platform: "fake_delivery" }], "where");
+    const insertValues = vi.fn().mockResolvedValue(undefined);
+    mocks.mockInsert.mockReturnValue({ values: insertValues });
+    const orderUpdate = chainUpdate();
+
+    const result = await service.upsertPayment(
+      {
+        localPaymentId: "RUNTIME-WEBHOOK-1-provider-payment",
+        localOrderId: "RUNTIME-WEBHOOK-1",
+        method: "cash",
+        amountCents: 2750,
+        paidAt: "2026-08-07T12:00:00.000Z",
+      },
+      auth,
+      "batch-cash",
+    );
+
+    expect(result.status).toBe("accepted");
+    expect(insertValues).toHaveBeenCalled();
+    expect(orderUpdate.set).toHaveBeenCalledWith(
+      expect.objectContaining({ paymentStatus: "paid" }),
+    );
+  });
+
+  it("manual card payment retry does not duplicate payment row", async () => {
+    mocks.mockSelect
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([{ method: "card" }]),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockResolvedValue([
+          { deviceId: auth.deviceId, platform: "fake_delivery" },
+        ]),
+      });
+    chainInsertPaymentConflict();
+    const update = chainUpdate();
+
+    const payload = {
+      localPaymentId: "RUNTIME-SYNC-1-provider-payment",
+      localOrderId: "RUNTIME-SYNC-1",
+      method: "card",
+      amountCents: 2750,
+      paidAt: "2026-08-07T12:05:00.000Z",
+    };
+
+    const result = await service.upsertPayment(payload, auth, "batch-card-retry");
+    expect(result.status).toBe("accepted");
+    expect(update.set).toHaveBeenCalledWith(
+      expect.objectContaining({ method: "card" }),
+    );
+    expect(update.set).toHaveBeenCalledWith(
+      expect.objectContaining({ paymentStatus: "paid" }),
+    );
+  });
+
+  it("provider pending order sync does not downgrade existing paid status", async () => {
+    chainSelect([{ status: "new", paymentStatus: "paid" }]);
+    chainInsertOrderConflict();
+    const update = chainUpdate();
+
+    const result = await service.upsertOrder(
+      {
+        localOrderId: "RUNTIME-WEBHOOK-1",
+        platform: "fake_delivery",
+        providerOrderId: "RUNTIME-WEBHOOK-1",
+        status: "new",
+        paymentStatus: "pending",
+        totalCents: 2750,
+        soldAt: "2026-08-07T12:00:00.000Z",
+      },
+      auth,
+      "batch-overwrite",
+    );
+
+    expect(result.status).toBe("accepted");
+    expect(update.set).toHaveBeenCalledWith(
+      expect.objectContaining({ paymentStatus: "paid" }),
     );
   });
 });

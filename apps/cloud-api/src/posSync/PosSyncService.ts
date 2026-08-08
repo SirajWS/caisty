@@ -14,10 +14,17 @@ import {
 import type { PosDeviceAuthContext } from "../lib/posDeviceAuth.js";
 import { receiptEventService } from "../lib/receiptEventService.js";
 import { shiftService } from "../lib/shiftService.js";
+import { channelSyncService } from "./channelSyncService.js";
 import { DEFAULT_RECEIPT_STATUS } from "../lib/receiptStatus.js";
 import { parseIsoDate } from "./validateSyncBatch.js";
+import { normalizeProviderSyncOrderPayment } from "../lib/normalizeProviderOrderPayment.js";
+import { traceProviderOrderStage } from "../lib/providerOrderTrace.js";
 import { mergePaymentMethodForSync, mergePaymentStatusForSync } from "./orderPaymentMerge.js";
 import { mergeOrderStatusForSync } from "./orderStatusMerge.js";
+import {
+  confirmManualPosOrderPayment,
+  isManualPosSettlementPayment,
+} from "./manualPosPaymentSettlement.js";
 import type {
   PosSyncBatchRequest,
   PosSyncBatchResponse,
@@ -28,10 +35,22 @@ import type {
   PosSyncReceiptEventPayload,
   PosSyncReceiptPayload,
   PosSyncShiftPayload,
+  PosSyncChannelPayload,
   POS_SYNC_IDEMPOTENCY_SCOPE,
 } from "./types.js";
 
 const IDEMPOTENCY_SCOPE: typeof POS_SYNC_IDEMPOTENCY_SCOPE = "pos.sync.batch";
+
+const SYNC_EVENT_UNIQUE_CONSTRAINT = "uq_pos_sync_events_org_sync_event_id";
+
+type ChannelSyncTx = Pick<typeof db, "select" | "insert">;
+
+class SyncEventDuplicateError extends Error {
+  constructor() {
+    super("Sync event already exists for organization.");
+    this.name = "SyncEventDuplicateError";
+  }
+}
 
 function isUniqueViolation(err: unknown): boolean {
   return (
@@ -40,6 +59,17 @@ function isUniqueViolation(err: unknown): boolean {
     "code" in err &&
     (err as { code?: string }).code === "23505"
   );
+}
+
+function isSyncEventUniqueViolation(err: unknown): boolean {
+  if (!isUniqueViolation(err)) {
+    return false;
+  }
+  const constraint = (err as { constraint?: string }).constraint;
+  if (typeof constraint === "string" && constraint.length > 0) {
+    return constraint === SYNC_EVENT_UNIQUE_CONSTRAINT;
+  }
+  return true;
 }
 
 export class PosSyncService {
@@ -219,6 +249,25 @@ export class PosSyncService {
       .where(eq(devices.id, deviceId));
   }
 
+  private async findExistingSyncEvent(
+    orgId: string,
+    syncEventId: string,
+    dbClient: ChannelSyncTx = db,
+  ) {
+    const [existingEvent] = await dbClient
+      .select({ id: posSyncEvents.id })
+      .from(posSyncEvents)
+      .where(
+        and(
+          eq(posSyncEvents.syncEventId, syncEventId),
+          eq(posSyncEvents.orgId, orgId),
+        ),
+      )
+      .limit(1);
+
+    return existingEvent ?? null;
+  }
+
   private async processEvent(
     event: PosSyncEvent,
     auth: PosDeviceAuthContext,
@@ -227,13 +276,15 @@ export class PosSyncService {
     | { status: "accepted" | "duplicate" }
     | { status: "failed"; code: string; error: string }
   > {
-    const [existingEvent] = await db
-      .select({ id: posSyncEvents.id })
-      .from(posSyncEvents)
-      .where(eq(posSyncEvents.syncEventId, event.eventId))
-      .limit(1);
+    const existingEvent = await this.findExistingSyncEvent(
+      auth.orgId,
+      event.eventId,
+    );
 
     if (existingEvent) {
+      if (event.type === "channel") {
+        return { status: "duplicate" };
+      }
       if (event.type === "order") {
         const outcome = await this.upsertOrder(
           event.payload as PosSyncOrderPayload,
@@ -277,6 +328,10 @@ export class PosSyncService {
       return { status: "duplicate" };
     }
 
+    if (event.type === "channel") {
+      return this.processChannelEventTransactional(event, auth, batchId);
+    }
+
     try {
       const entityOutcome = await this.upsertEntity(event, auth, batchId);
       await db.insert(posSyncEvents).values({
@@ -311,6 +366,66 @@ export class PosSyncService {
     }
   }
 
+  private async processChannelEventTransactional(
+    event: PosSyncEvent,
+    auth: PosDeviceAuthContext,
+    batchId: string,
+  ): Promise<
+    | { status: "accepted" | "duplicate" }
+    | { status: "failed"; code: string; error: string }
+  > {
+    try {
+      return await db.transaction(async (tx) => {
+        const existingEvent = await this.findExistingSyncEvent(
+          auth.orgId,
+          event.eventId,
+          tx,
+        );
+        if (existingEvent) {
+          return { status: "duplicate" as const };
+        }
+
+        const outcome = await channelSyncService.processChannelEvent(
+          event.payload as PosSyncChannelPayload,
+          auth,
+          batchId,
+          tx,
+        );
+
+        try {
+          await tx.insert(posSyncEvents).values({
+            syncEventId: event.eventId,
+            batchId,
+            orgId: auth.orgId,
+            deviceId: auth.deviceId,
+            eventType: event.type,
+            entityLocalId: this.entityLocalId(event),
+            status: outcome.status === "failed" ? "failed" : outcome.status,
+            errorCode: outcome.status === "failed" ? outcome.code : null,
+            errorMessage:
+              outcome.status === "failed" ? outcome.error : null,
+          });
+        } catch (err: unknown) {
+          if (isSyncEventUniqueViolation(err)) {
+            throw new SyncEventDuplicateError();
+          }
+          throw err;
+        }
+
+        if (outcome.status === "failed") {
+          return outcome;
+        }
+        return { status: outcome.status };
+      });
+    } catch (err: unknown) {
+      if (err instanceof SyncEventDuplicateError) {
+        return { status: "duplicate" };
+      }
+      const message = err instanceof Error ? err.message : "Unknown error";
+      return { status: "failed", code: "server_error", error: message };
+    }
+  }
+
   private entityLocalId(event: PosSyncEvent): string | null {
     if (event.type === "order") {
       return (event.payload as PosSyncOrderPayload).localOrderId;
@@ -323,6 +438,9 @@ export class PosSyncService {
     }
     if (event.type === "shift") {
       return (event.payload as PosSyncShiftPayload).localShiftId;
+    }
+    if (event.type === "channel") {
+      return (event.payload as PosSyncChannelPayload).channelId;
     }
     return (event.payload as PosSyncPaymentPayload).localPaymentId;
   }
@@ -363,6 +481,13 @@ export class PosSyncService {
         batchId,
       );
     }
+    if (event.type === "channel") {
+      return channelSyncService.processChannelEvent(
+        event.payload as PosSyncChannelPayload,
+        auth,
+        batchId,
+      );
+    }
     return this.upsertPayment(
       event.payload as PosSyncPaymentPayload,
       auth,
@@ -374,6 +499,22 @@ export class PosSyncService {
     payload: PosSyncOrderPayload,
     existingPaymentStatus?: string | null,
   ) {
+    const normalizedIncoming = normalizeProviderSyncOrderPayment({
+      platform: payload.platform,
+      paymentStatus: payload.paymentStatus,
+      providerOrderId: payload.providerOrderId,
+      localOrderId: payload.localOrderId,
+    });
+
+    traceProviderOrderStage(payload.localOrderId, "pos_sync_order_before_db", {
+      localOrderId: payload.localOrderId,
+      providerOrderId: payload.providerOrderId ?? null,
+      platform: payload.platform ?? null,
+      source: "pos_sync_batch",
+      paymentStatus: normalizedIncoming,
+      incomingPaymentStatus: payload.paymentStatus ?? null,
+    });
+
     return {
       platform: payload.platform ?? null,
       providerOrderId: payload.providerOrderId ?? null,
@@ -384,7 +525,7 @@ export class PosSyncService {
       customerNote: payload.customerNote ?? null,
       paymentStatus: mergePaymentStatusForSync(
         existingPaymentStatus,
-        payload.paymentStatus,
+        normalizedIncoming,
       ),
     };
   }
@@ -572,56 +713,72 @@ export class PosSyncService {
       };
     }
 
-    try {
-      await db.insert(posSalePayments).values({
-        orgId: auth.orgId,
-        customerId: auth.customerId,
-        deviceId: auth.deviceId,
-        localPaymentId: payload.localPaymentId,
-        localOrderId: payload.localOrderId ?? null,
-        localReceiptId: payload.localReceiptId ?? null,
-        method: payload.method,
-        amountCents: payload.amountCents,
-        currency: payload.currency ?? "EUR",
-        paidAt,
-        syncBatchId: batchId,
-      });
-      return { status: "accepted" as const };
-    } catch (err: unknown) {
-      if (isUniqueViolation(err)) {
-        const [existing] = await db
-          .select({ method: posSalePayments.method })
-          .from(posSalePayments)
-          .where(
-            and(
-              eq(posSalePayments.orgId, auth.orgId),
-              eq(posSalePayments.deviceId, auth.deviceId),
-              eq(posSalePayments.localPaymentId, payload.localPaymentId),
-            ),
-          )
-          .limit(1);
+    const manualSettlement = isManualPosSettlementPayment(payload);
 
-        await db
-          .update(posSalePayments)
-          .set({
+    try {
+      await db.transaction(async (tx) => {
+        try {
+          await tx.insert(posSalePayments).values({
+            orgId: auth.orgId,
+            customerId: auth.customerId,
+            deviceId: auth.deviceId,
+            localPaymentId: payload.localPaymentId,
             localOrderId: payload.localOrderId ?? null,
             localReceiptId: payload.localReceiptId ?? null,
-            method: mergePaymentMethodForSync(existing?.method, payload.method),
+            method: payload.method,
             amountCents: payload.amountCents,
             currency: payload.currency ?? "EUR",
             paidAt,
             syncBatchId: batchId,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(posSalePayments.orgId, auth.orgId),
-              eq(posSalePayments.deviceId, auth.deviceId),
-              eq(posSalePayments.localPaymentId, payload.localPaymentId),
-            ),
-          );
-        return { status: "accepted" as const };
-      }
+          });
+        } catch (err: unknown) {
+          if (!isUniqueViolation(err)) {
+            throw err;
+          }
+
+          const [existing] = await tx
+            .select({ method: posSalePayments.method })
+            .from(posSalePayments)
+            .where(
+              and(
+                eq(posSalePayments.orgId, auth.orgId),
+                eq(posSalePayments.deviceId, auth.deviceId),
+                eq(posSalePayments.localPaymentId, payload.localPaymentId),
+              ),
+            )
+            .limit(1);
+
+          await tx
+            .update(posSalePayments)
+            .set({
+              localOrderId: payload.localOrderId ?? null,
+              localReceiptId: payload.localReceiptId ?? null,
+              method: mergePaymentMethodForSync(existing?.method, payload.method),
+              amountCents: payload.amountCents,
+              currency: payload.currency ?? "EUR",
+              paidAt,
+              syncBatchId: batchId,
+              updatedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(posSalePayments.orgId, auth.orgId),
+                eq(posSalePayments.deviceId, auth.deviceId),
+                eq(posSalePayments.localPaymentId, payload.localPaymentId),
+              ),
+            );
+        }
+
+        if (manualSettlement && payload.localOrderId) {
+          await confirmManualPosOrderPayment(tx, {
+            orgId: auth.orgId,
+            deviceId: auth.deviceId,
+            localOrderId: payload.localOrderId,
+          });
+        }
+      });
+      return { status: "accepted" as const };
+    } catch (err: unknown) {
       throw err;
     }
   }

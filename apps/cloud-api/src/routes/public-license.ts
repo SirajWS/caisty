@@ -18,6 +18,8 @@ import { customers } from "../db/schema/customers.js";
 
 import { findDeviceById } from "../lib/deviceLifecycleService.js";
 
+import { resolveConsistentDeviceOrgId } from "../lib/posOrgContext.js";
+
 import { countBoundDevicesForLicense } from "../lib/deviceSeats.js";
 
 import { seatLimitForApi } from "../lib/deviceLimits.js";
@@ -484,6 +486,32 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
 
 
 
+      const resolvedOrgId = resolveConsistentDeviceOrgId({
+
+        deviceOrgId: device.orgId,
+
+        licenseOrgId: license.orgId,
+
+      });
+
+
+
+      if (!resolvedOrgId) {
+
+        reply.code(httpStatusForDeviceAccessCode("DEVICE_ORG_MISMATCH"));
+
+        return formatDeviceAccessDenial({
+
+          code: "DEVICE_ORG_MISMATCH",
+
+          message: "Device organization does not match the license organization.",
+
+        });
+
+      }
+
+
+
       if (body.cloudCustomer) {
 
         await upsertCustomerProfileFromPos(license, body.cloudCustomer);
@@ -507,6 +535,8 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
       return {
 
         ok: true,
+
+        orgId: resolvedOrgId,
 
         license: {
 
@@ -706,11 +736,39 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
 
 
 
+    const resolvedOrgId = resolveConsistentDeviceOrgId({
+
+      deviceOrgId: result.device.orgId,
+
+      licenseOrgId: result.license.orgId,
+
+    });
+
+
+
+    if (!resolvedOrgId) {
+
+      reply.code(httpStatusForDeviceAccessCode("DEVICE_ORG_MISMATCH"));
+
+      return formatDeviceAccessDenial({
+
+        code: "DEVICE_ORG_MISMATCH",
+
+        message: "Device organization does not match the license organization.",
+
+      });
+
+    }
+
+
+
     reply.code(result.httpStatus);
 
     return {
 
       ok: true,
+
+      orgId: resolvedOrgId,
 
       device: {
 
@@ -881,6 +939,8 @@ export async function registerPublicLicenseRoutes(app: FastifyInstance) {
       return {
 
         ok: true,
+
+        orgId: auth.context.orgId,
 
         device: {
 

@@ -7,6 +7,7 @@ import type {
   PosSyncReceiptEventPayload,
   PosSyncReceiptPayload,
   PosSyncShiftPayload,
+  PosSyncChannelPayload,
 } from "./types.js";
 import {
   isPosSyncReceiptEventType,
@@ -193,13 +194,14 @@ function validateSyncEvent(
     type !== "receipt" &&
     type !== "payment" &&
     type !== "receipt_event" &&
-    type !== "shift"
+    type !== "shift" &&
+    type !== "channel"
   ) {
     return {
       ok: false,
       error: {
         code: "invalid_request",
-        message: `events[${index}].type must be order, receipt, payment, receipt_event, or shift.`,
+        message: `events[${index}].type must be order, receipt, payment, receipt_event, shift, or channel.`,
       },
     };
   }
@@ -232,7 +234,8 @@ function validateEventPayload(
         | PosSyncReceiptPayload
         | PosSyncPaymentPayload
         | PosSyncReceiptEventPayload
-        | PosSyncShiftPayload;
+        | PosSyncShiftPayload
+        | PosSyncChannelPayload;
     }
   | { ok: false; error: SyncBatchValidationError } {
   if (!payload || typeof payload !== "object") {
@@ -578,6 +581,90 @@ function validateEventPayload(
         previousClosingFloatMinor,
         currency: currencyRaw,
         schemaVersion,
+      },
+    };
+  }
+
+  if (type === "channel") {
+    const op = payloadObj.op;
+    const channelId =
+      typeof payloadObj.channelId === "string"
+        ? payloadObj.channelId.trim()
+        : typeof payloadObj.entityId === "string"
+          ? payloadObj.entityId.trim()
+          : "";
+    const clientUpdatedAt =
+      typeof payloadObj.clientUpdatedAt === "string"
+        ? payloadObj.clientUpdatedAt
+        : "";
+
+    if (op !== "upsert" && op !== "delete") {
+      return invalidPayload(index, "op must be upsert or delete for channel events.");
+    }
+    if (!channelId || !isUuid(channelId)) {
+      return invalidPayload(index, "channelId must be a UUID for channel events.");
+    }
+    if (!clientUpdatedAt || !parseIsoDate(clientUpdatedAt, "clientUpdatedAt")) {
+      return invalidPayload(
+        index,
+        "clientUpdatedAt must be a valid ISO timestamp for channel events.",
+      );
+    }
+
+    return {
+      ok: true,
+      payload: {
+        op,
+        channelId,
+        clientUpdatedAt,
+        ...(typeof payloadObj.name === "string" ? { name: payloadObj.name } : {}),
+        ...(typeof payloadObj.slug === "string" ? { slug: payloadObj.slug } : {}),
+        ...(typeof payloadObj.enabled === "boolean"
+          ? { enabled: payloadObj.enabled }
+          : {}),
+        ...(typeof payloadObj.status === "string"
+          ? { status: payloadObj.status }
+          : {}),
+        ...(typeof payloadObj.provider === "string"
+          ? { provider: payloadObj.provider }
+          : {}),
+        ...(typeof payloadObj.mode === "string" ? { mode: payloadObj.mode } : {}),
+        ...(payloadObj.mode === null ? { mode: null } : {}),
+        ...(typeof payloadObj.storeId === "string"
+          ? { storeId: payloadObj.storeId }
+          : {}),
+        ...(payloadObj.storeId === null ? { storeId: null } : {}),
+        ...(typeof payloadObj.providerStoreId === "string"
+          ? { providerStoreId: payloadObj.providerStoreId }
+          : {}),
+        ...(payloadObj.statusMapping &&
+        typeof payloadObj.statusMapping === "object" &&
+        !Array.isArray(payloadObj.statusMapping)
+          ? {
+              statusMapping: payloadObj.statusMapping as Record<string, unknown>,
+            }
+          : {}),
+        ...(payloadObj.statusMap &&
+        typeof payloadObj.statusMap === "object" &&
+        !Array.isArray(payloadObj.statusMap)
+          ? { statusMap: payloadObj.statusMap as Record<string, unknown> }
+          : {}),
+        ...(typeof payloadObj.notes === "string" ? { notes: payloadObj.notes } : {}),
+        ...(payloadObj.notes === null ? { notes: null } : {}),
+        ...(payloadObj.logoDataUrl === null ||
+        typeof payloadObj.logoDataUrl === "string"
+          ? { logoDataUrl: payloadObj.logoDataUrl as string | null }
+          : {}),
+        ...(payloadObj.publicSettings &&
+        typeof payloadObj.publicSettings === "object" &&
+        !Array.isArray(payloadObj.publicSettings)
+          ? {
+              publicSettings: payloadObj.publicSettings as Record<string, unknown>,
+            }
+          : {}),
+        ...(typeof payloadObj.createdAt === "string"
+          ? { createdAt: payloadObj.createdAt }
+          : {}),
       },
     };
   }

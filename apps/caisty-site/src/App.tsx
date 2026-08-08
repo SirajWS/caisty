@@ -42,6 +42,7 @@ const PortalPosPage = lazy(() => import("./routes/PortalPosPage"));
 const PortalOrdersPage = lazy(() => import("./routes/PortalOrdersPage"));
 const PortalReceiptsPage = lazy(() => import("./routes/PortalReceiptsPage"));
 const PortalReportsPage = lazy(() => import("./routes/PortalReportsPage"));
+const PortalChannelsPage = lazy(() => import("./routes/PortalChannelsPage"));
 
 function RouteFallback() {
   return (
@@ -96,6 +97,7 @@ export default function App() {
           <Route path="invoices" element={<Lazy><PortalInvoicesPage /></Lazy>} />
           <Route path="invoices/:id" element={<Lazy><PortalInvoiceDetailPage /></Lazy>} />
           <Route path="business" element={<Lazy><PortalBusinessPage /></Lazy>} />
+          <Route path="channels" element={<Lazy><PortalChannelsPage /></Lazy>} />
           <Route path="support" element={<Lazy><PortalSupportPage /></Lazy>} />
           <Route path="pos" element={<Lazy><PortalPosPage /></Lazy>} />
           <Route path="orders" element={<Lazy><PortalOrdersPage /></Lazy>} />

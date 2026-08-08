@@ -155,6 +155,30 @@ describe("authenticatePosDevice", () => {
   });
 });
 
+describe("missing org context", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns DEVICE_ORG_MISMATCH when device org is empty", async () => {
+    mocks.findDeviceById.mockResolvedValue({
+      ...activeDevice,
+      orgId: "",
+    });
+    chainSelect([license]);
+
+    const result = await authenticatePosDevice({
+      deviceId: "dev-1",
+      licenseKey: "KEY-1",
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok && "code" in result) {
+      expect(result.code).toBe("DEVICE_ORG_MISMATCH");
+    }
+  });
+});
+
 describe("authenticateDeviceHeartbeat", () => {
   beforeEach(() => {
     vi.clearAllMocks();
