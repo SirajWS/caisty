@@ -1304,8 +1304,6 @@ export const portalEn = {
     winB3: "Optimized for mouse & touchscreen",
     winDownload: "Download Caisty POS for Windows",
     winUnavailable: "Windows installer is currently unavailable.",
-    downloadMaintenance:
-      "The download is temporarily unavailable due to short-term maintenance.",
     linuxTitle: "Linux",
     linuxDesc: "For lightweight till boxes or custom Linux setups.",
     linuxB1: "AppImage / .deb package",
@@ -1445,8 +1443,6 @@ export const portalEn = {
     updatesDownload: "Download",
     updatesReleaseNotes: "Release notes coming soon.",
     downloadUnavailable: "Download currently unavailable.",
-    downloadMaintenance:
-      "The download is temporarily unavailable due to short-term maintenance.",
     systemStatusTitle: "System status",
     systemCloudApi: "Cloud API",
     systemPortal: "Portal",
