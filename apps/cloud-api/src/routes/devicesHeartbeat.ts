@@ -1,10 +1,14 @@
-// apps/api/src/routes/devicesHeartbeat.ts
+// Legacy route module — kept in sync with registerPublicLicenseRoutes heartbeat handler.
 import type { FastifyInstance } from "fastify";
 import { eq } from "drizzle-orm";
 
-import { db } from "../db/client";
-import { devices } from "../db/schema/devices";
-import { licenses } from "../db/schema/licenses";
+import { db } from "../db/client.js";
+import { devices } from "../db/schema/devices.js";
+import { licenseEvents } from "../db/schema/licenseEvents.js";
+import {
+  authenticateDeviceHeartbeat,
+  formatPosDeviceAuthFailure,
+} from "../lib/posDeviceAuth.js";
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -16,108 +20,76 @@ type HeartbeatBody = {
   deviceId: string;
 };
 
-type HeartbeatResponse = {
-  ok: boolean;
-  error?: "MISSING_FIELDS" | "DEVICE_NOT_FOUND";
-  device?: {
-    id: string;
-    name: string;
-    type: string;
-    status: string;
-    lastHeartbeatAt: string | null;
-    lastSeenAt: string | null;
-    licenseId: string | null;
-  };
-  license?: {
-    id: string;
-    key: string;
-    plan: string;
-    status: string;
-    validUntil: string | null;
-  } | null;
-};
-
 const devicesHeartbeatRoutes = async (app: FastifyInstance) => {
-  app.post<{ Body: HeartbeatBody; Reply: HeartbeatResponse }>(
+  app.post<{ Body: HeartbeatBody }>(
     "/devices/heartbeat",
     async (request, reply) => {
-      const { deviceId } = request.body;
+      const body = request.body ?? ({} as HeartbeatBody);
+      const { deviceId } = body;
 
       if (!deviceId) {
-        return reply.status(400).send({
+        reply.code(400);
+        return {
           ok: false,
-          error: "MISSING_FIELDS",
-        });
+          reason: "missing_device_id",
+          message: "Field 'deviceId' is required.",
+        };
       }
 
       if (!isUuid(deviceId)) {
-        return reply.status(400).send({
+        reply.code(400);
+        return {
           ok: false,
-          error: "DEVICE_NOT_FOUND",
-        });
+          reason: "invalid_device_id",
+          message: "deviceId must be a UUID returned by /devices/bind",
+        };
       }
 
-      // Device anhand der ID finden
-      const device = await db.query.devices.findFirst({
-        where: eq(devices.id, deviceId),
-      });
+      const auth = await authenticateDeviceHeartbeat(deviceId);
 
-      if (!device) {
-        return reply.status(404).send({
-          ok: false,
-          error: "DEVICE_NOT_FOUND",
-        });
+      if (!auth.ok) {
+        reply.code(auth.statusCode);
+        return formatPosDeviceAuthFailure(auth);
       }
 
       const now = new Date();
 
-      const [updatedDevice] = await db
+      const [updated] = await db
         .update(devices)
-        .set(
-          {
-            // Device bleibt "active", Heartbeat aktualisiert nur "Seen"
-            lastHeartbeatAt: now,
-            lastSeenAt: now,
-          } as any,
-        )
-        .where(eq(devices.id, device.id))
+        .set({
+          lastHeartbeatAt: now,
+          lastSeenAt: now,
+        } as typeof devices.$inferInsert)
+        .where(eq(devices.id, deviceId))
         .returning();
 
-      // zugehörige License (optional) laden
-      let licenseRow: typeof licenses.$inferSelect | null = null;
-      if (updatedDevice.licenseId) {
-        licenseRow = await db.query.licenses.findFirst({
-          where: eq(licenses.id, updatedDevice.licenseId as any),
+      if (!updated) {
+        reply.code(404);
+        return formatPosDeviceAuthFailure({
+          ok: false,
+          error: "device_not_found",
+          statusCode: 404,
         });
       }
 
-      return reply.send({
+      if (updated.licenseId) {
+        await db.insert(licenseEvents).values({
+          orgId: updated.orgId,
+          licenseId: updated.licenseId,
+          type: "heartbeat",
+          metadata: {
+            deviceId: updated.id,
+          },
+        });
+      }
+
+      return {
         ok: true,
         device: {
-          id: String(updatedDevice.id),
-          name: String(updatedDevice.name),
-          type: String(updatedDevice.type),
-          status: String(updatedDevice.status),
-          licenseId: (updatedDevice as any).licenseId ?? null,
-          lastHeartbeatAt: updatedDevice.lastHeartbeatAt
-            ? new Date(updatedDevice.lastHeartbeatAt as any).toISOString()
-            : null,
-          lastSeenAt: updatedDevice.lastSeenAt
-            ? new Date(updatedDevice.lastSeenAt as any).toISOString()
-            : null,
+          id: updated.id,
+          lastHeartbeatAt: updated.lastHeartbeatAt,
         },
-        license: licenseRow
-          ? {
-              id: String(licenseRow.id),
-              key: String(licenseRow.key),
-              plan: String(licenseRow.plan),
-              status: String(licenseRow.status),
-              validUntil: licenseRow.validUntil
-                ? new Date(licenseRow.validUntil as any).toISOString()
-                : null,
-            }
-          : null,
-      });
+      };
     },
   );
 };
