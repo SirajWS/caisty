@@ -31,6 +31,21 @@ const STATUS_KEYS = [
   "canceled",
 ] as const;
 
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "textarea:not([disabled])",
+  "input:not([disabled]):not([type='hidden'])",
+  "select:not([disabled])",
+  "[tabindex]:not([tabindex='-1'])",
+].join(",");
+
+function getFocusableElements(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    (el) => !el.hasAttribute("disabled") && el.getAttribute("aria-hidden") !== "true",
+  );
+}
+
 export function ChannelFormDialog({
   open,
   title,
@@ -48,7 +63,9 @@ export function ChannelFormDialog({
   onCopyWebhook,
 }: ChannelFormDialogProps) {
   const titleId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -63,6 +80,93 @@ export function ChannelFormDialog({
     if (open) panelRef.current?.focus();
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        if (busy) return;
+        e.preventDefault();
+        onCancel();
+        return;
+      }
+
+      if (e.key !== "Tab" || !panelRef.current) return;
+
+      const focusable = getFocusableElements(panelRef.current);
+      if (focusable.length === 0) {
+        e.preventDefault();
+        panelRef.current.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      const panel = panelRef.current;
+
+      if (e.shiftKey) {
+        if (!active || active === first || active === panel || !panel.contains(active)) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (!active || active === last || !panel.contains(active)) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, busy, onCancel]);
+
+  useEffect(() => {
+    if (!open) return;
+    const root = rootRef.current;
+    if (!root) return;
+
+    const vv = window.visualViewport;
+    if (!vv) {
+      root.style.setProperty("--portal-channel-vvh", "100dvh");
+      root.style.setProperty("--portal-channel-vv-offset", "0px");
+      return;
+    }
+
+    const syncViewport = () => {
+      root.style.setProperty("--portal-channel-vvh", `${Math.round(vv.height)}px`);
+      root.style.setProperty("--portal-channel-vv-offset", `${Math.round(vv.offsetTop)}px`);
+    };
+
+    syncViewport();
+    vv.addEventListener("resize", syncViewport);
+    vv.addEventListener("scroll", syncViewport);
+    return () => {
+      vv.removeEventListener("resize", syncViewport);
+      vv.removeEventListener("scroll", syncViewport);
+      root.style.removeProperty("--portal-channel-vvh");
+      root.style.removeProperty("--portal-channel-vv-offset");
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const panel = panelRef.current;
+    if (!panel) return;
+
+    function onFocusIn(e: FocusEvent) {
+      const target = e.target;
+      const scrollBody = bodyRef.current;
+      if (!(target instanceof HTMLElement) || !scrollBody?.contains(target)) return;
+
+      window.setTimeout(() => {
+        target.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+      }, 50);
+    }
+
+    panel.addEventListener("focusin", onFocusIn);
+    return () => panel.removeEventListener("focusin", onFocusIn);
+  }, [open]);
+
   if (!open) return null;
 
   const setField = <K extends keyof PortalChannelWriteBody>(
@@ -71,7 +175,7 @@ export function ChannelFormDialog({
   ) => onChange({ ...values, [key]: value });
 
   return createPortal(
-    <div className="portal-channel-dialog-root">
+    <div ref={rootRef} className="portal-channel-dialog-root">
       <button
         type="button"
         className="portal-channel-dialog-backdrop"
@@ -101,7 +205,7 @@ export function ChannelFormDialog({
           </button>
         </div>
 
-        <div className="portal-channel-dialog-body">
+        <div ref={bodyRef} className="portal-channel-dialog-body">
           {error ? <div className="portal-channel-alert">{error}</div> : null}
 
           <section className="portal-channel-form-section">

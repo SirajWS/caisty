@@ -33,6 +33,7 @@ import LanguageSelector from "../components/LanguageSelector";
 import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
+import { translations } from "../lib/translations/index";
 import { CaistyLogo } from "../components/CaistyLogo";
 import CookieBanner from "../components/CookieBanner";
 
@@ -127,6 +128,7 @@ function pageTitle(pathname: string, items: NavItem[]): string {
 export default function PortalLayout() {
   const { language } = useLanguage();
   const t = getPortalTranslations(language);
+  const commonT = translations[language].common;
   const { theme } = useTheme();
   const nav = usePortalNav();
   const navItems = flattenNavItems(nav);
@@ -176,6 +178,24 @@ export default function PortalLayout() {
   React.useEffect(() => {
     setMobileOpen(false);
   }, [location.pathname]);
+
+  React.useEffect(() => {
+    if (!mobileOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [mobileOpen]);
+
+  React.useEffect(() => {
+    if (!mobileOpen) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setMobileOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [mobileOpen]);
 
   React.useEffect(() => {
     const assignTableLabels = () => {
@@ -230,13 +250,24 @@ export default function PortalLayout() {
 
   return (
     <div className={`portal-root portal-root--${theme}`}>
-      <aside className={`portal-sidebar ${mobileOpen ? "is-open" : ""}`}>
+      <aside
+        id="portal-mobile-drawer"
+        className={`portal-sidebar ${mobileOpen ? "is-open" : ""}`}
+      >
         <div className="portal-brand">
           <CaistyLogo className="portal-logo-svg" />
           <div className="portal-brand-copy">
             <span className="portal-brand-main">{t.layout.taglineTitle}</span>
             <span className="portal-brand-sub">{t.layout.taglineSubtitle}</span>
           </div>
+          <button
+            type="button"
+            className="portal-icon-btn portal-mobile-only portal-drawer-close"
+            onClick={() => setMobileOpen(false)}
+            aria-label={commonT.layout.menuClose}
+          >
+            <X size={18} />
+          </button>
         </div>
         <nav className="portal-nav">
           <NavLink
@@ -285,6 +316,8 @@ export default function PortalLayout() {
               className="portal-icon-btn portal-mobile-only"
               onClick={() => setMobileOpen((v) => !v)}
               aria-label={t.layout.menuOpenAria}
+              aria-expanded={mobileOpen}
+              aria-controls="portal-mobile-drawer"
             >
               {mobileOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
