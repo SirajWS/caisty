@@ -5,37 +5,37 @@ import type { TranslationSchema } from "./types";
 const companyLocales = {
   en: {
     hero: {
-      badge: "Connected business software · Built in Germany",
-      headline: "Connected software for modern businesses.",
+      badge: "Independent software company",
+      headline: "Software products and digital solutions built for real business.",
       subtitle:
-        "Caisty builds practical software that connects sales, business management and everyday operations in one growing platform.",
+        "Caisty develops modern SaaS products, digital platforms and tailored software solutions that simplify operations, connect processes and help businesses grow.",
       ctaProducts: "Explore our products",
       ctaAbout: "About Caisty",
-      platformLabel: "The Caisty platform",
+      platformLabel: "The Caisty product ecosystem",
     },
     trustBar: {
       items: [
         "Built in Germany",
-        "Connected by design",
+        "Independent software company",
         "Multilingual",
-        "Built for daily operations",
+        "Built for real operations",
       ],
     },
     platform: {
-      title: "One platform. Three connected products.",
+      title: "One company. A growing software ecosystem.",
       subtitle:
-        "Caisty brings the tools of daily business together — so sales, management and team workflows share one practical foundation.",
+        "Caisty brings together its own SaaS products while creating digital solutions for businesses with different needs, workflows and ambitions.",
       products: [
         {
           id: "pos",
           title: "Caisty POS",
-          body: "Sales, orders, payments and receipts in a fast checkout workspace.",
+          body: "Sales, orders, payments and receipts in one fast, reliable workspace.",
           status: "Available",
         },
         {
           id: "business",
           title: "Caisty Business",
-          body: "Central management, insights, devices and licences in one workspace.",
+          body: "Central management, insights, devices and licences in one connected workspace.",
           status: "Available",
         },
         {
@@ -46,86 +46,86 @@ const companyLocales = {
         },
       ],
     },
-    storyPos: {
-      title: "From sale to business overview",
-      body: "Caisty POS handles the moment of sale. Orders and receipts stay connected to the same business environment — ready for central review.",
-      imageAlt: "Caisty POS workspace showing sales, products and checkout tools",
-      cta: "Explore Caisty POS",
-    },
-    storyDashboard: {
-      title: "Your business in one place",
-      body: "Caisty Business brings activity, devices and licences into one clear workspace — so teams can manage operations without switching between disconnected tools.",
-      imageAlt: "Caisty Business dashboard with business overview",
-    },
-    storyReports: {
-      title: "Understand performance",
-      body: "See how sales develop over time with clear reports. Use the overview to support everyday decisions — without turning the company page into a feature catalogue.",
-      imageAlt: "Reports and revenue trends in Caisty Business",
-    },
-    storyMobile: {
-      title: "Manage from anywhere",
-      body: "Keep an eye on key business activity from desktop or mobile. The same connected account stays available when you are away from the counter.",
-      imageAlt: "Mobile order overview in Caisty Business",
+    capabilities: {
+      eyebrow: "What we build",
+      title: "Software that turns business needs into practical systems.",
+      intro:
+        "We combine product thinking, technical development and a clear understanding of everyday operations to create software that is useful from the first interaction and ready to evolve.",
+      items: [
+        {
+          title: "SaaS products",
+          body: "We build focused software products that help businesses manage essential work with less complexity and greater clarity.",
+        },
+        {
+          title: "Digital platforms",
+          body: "We create connected environments that bring workflows, information and teams together instead of spreading them across disconnected tools.",
+        },
+        {
+          title: "Tailored software solutions",
+          body: "We develop solutions around specific business requirements, from focused digital tools to scalable systems that can grow over time.",
+        },
+      ],
     },
     about: {
       title: "About Caisty",
       body:
-        "Caisty is an independent software company based in Germany. We build connected SaaS products that simplify sales, business management and everyday operations.\n\nOur goal is to replace disconnected tools with practical software that is clear to use, multilingual and able to grow with each business — step by step.",
+        "Caisty is an independent software company based in Germany. We develop SaaS products, digital platforms and tailored software solutions for businesses across different industries.\n\nOur purpose is to turn complex processes and disconnected tools into practical, reliable software that is clear to use, multilingual and designed to grow with each business.\n\nAlongside our expanding product ecosystem, we create individual digital solutions that help companies improve workflows, connect systems and turn ideas into scalable software.",
       values: [
         {
           title: "Independent",
-          body: "An independent software company focused on practical products.",
+          body: "An independent software company with the freedom to build around real business needs.",
         },
         {
           title: "Connected",
-          body: "Products designed to work together across daily operations.",
+          body: "Products and solutions designed to connect workflows, information and everyday operations.",
         },
         {
           title: "Practical",
-          body: "Clear software that teams can use without unnecessary complexity.",
+          body: "Clear and reliable software created to solve real problems without unnecessary complexity.",
         },
       ],
     },
     cta: {
-      headline: "Build your business on one connected platform.",
-      subline: "Start with the tools you need today and grow with the Caisty platform.",
+      headline: "Build what your business needs next.",
+      subline:
+        "Explore the Caisty product ecosystem or talk to us about a software solution designed around your goals.",
       ctaProducts: "Explore our products",
-      ctaPos: "Explore Caisty POS",
+      ctaContact: "Contact Caisty",
     },
   },
   fr: {
     hero: {
-      badge: "Logiciel métier connecté · Conçu en Allemagne",
-      headline: "Des logiciels connectés pour les entreprises modernes.",
+      badge: "Société de logiciels indépendante",
+      headline: "Produits logiciels et solutions numériques pour le réel du quotidien métier.",
       subtitle:
-        "Caisty développe des logiciels pratiques qui relient ventes, gestion d’entreprise et opérations du quotidien dans une plateforme en croissance.",
+        "Caisty développe des produits SaaS modernes, des plateformes numériques et des solutions logicielles sur mesure qui simplifient les opérations, relient les processus et aident les entreprises à grandir.",
       ctaProducts: "Découvrir nos produits",
       ctaAbout: "À propos de Caisty",
-      platformLabel: "La plateforme Caisty",
+      platformLabel: "L’écosystème produits Caisty",
     },
     trustBar: {
       items: [
         "Conçu en Allemagne",
-        "Connecté par conception",
+        "Société de logiciels indépendante",
         "Multilingue",
-        "Pensé pour le quotidien",
+        "Pensé pour le réel",
       ],
     },
     platform: {
-      title: "Une plateforme. Trois produits connectés.",
+      title: "Une entreprise. Un écosystème logiciel en croissance.",
       subtitle:
-        "Caisty rassemble les outils du quotidien — pour que ventes, gestion et workflows d’équipe partagent une base pratique.",
+        "Caisty rassemble ses propres produits SaaS tout en créant des solutions numériques pour des entreprises aux besoins, workflows et ambitions différents.",
       products: [
         {
           id: "pos",
           title: "Caisty POS",
-          body: "Ventes, commandes, paiements et tickets dans un espace d’encaissement rapide.",
+          body: "Ventes, commandes, paiements et tickets dans un espace rapide et fiable.",
           status: "Disponible",
         },
         {
           id: "business",
           title: "Caisty Business",
-          body: "Gestion centrale, indicateurs, appareils et licences dans un seul espace.",
+          body: "Gestion centrale, indicateurs, appareils et licences dans un espace connecté.",
           status: "Disponible",
         },
         {
@@ -136,86 +136,86 @@ const companyLocales = {
         },
       ],
     },
-    storyPos: {
-      title: "De la vente à la vue d’ensemble",
-      body: "Caisty POS gère le moment de la vente. Commandes et tickets restent liés au même environnement métier — prêts pour une revue centrale.",
-      imageAlt: "Espace de travail Caisty POS avec ventes, produits et encaissement",
-      cta: "Découvrir Caisty POS",
-    },
-    storyDashboard: {
-      title: "Votre activité au même endroit",
-      body: "Caisty Business rassemble activité, appareils et licences dans un espace clair — pour piloter le quotidien sans outils dispersés.",
-      imageAlt: "Tableau de bord Caisty Business avec aperçu de l’activité",
-    },
-    storyReports: {
-      title: "Comprendre la performance",
-      body: "Suivez l’évolution des ventes avec des rapports clairs. Une vue utile pour les décisions du quotidien — sans transformer cette page en catalogue de fonctions.",
-      imageAlt: "Rapports et évolution du chiffre d’affaires dans Caisty Business",
-    },
-    storyMobile: {
-      title: "Gérer où que vous soyez",
-      body: "Gardez l’essentiel de l’activité sous les yeux sur desktop ou mobile. Le même compte connecté reste disponible loin du comptoir.",
-      imageAlt: "Aperçu mobile des commandes dans Caisty Business",
+    capabilities: {
+      eyebrow: "Ce que nous construisons",
+      title: "Des logiciels qui transforment les besoins métier en systèmes pratiques.",
+      intro:
+        "Nous combinons vision produit, développement technique et compréhension du quotidien pour créer des logiciels utiles dès la première interaction et prêts à évoluer.",
+      items: [
+        {
+          title: "Produits SaaS",
+          body: "Nous construisons des produits logiciels ciblés qui aident les entreprises à gérer l’essentiel avec moins de complexité et plus de clarté.",
+        },
+        {
+          title: "Plateformes numériques",
+          body: "Nous créons des environnements connectés qui rassemblent workflows, informations et équipes au lieu de les disperser dans des outils isolés.",
+        },
+        {
+          title: "Solutions logicielles sur mesure",
+          body: "Nous développons des solutions autour d’exigences métier précises, des outils numériques ciblés aux systèmes évolutifs.",
+        },
+      ],
     },
     about: {
       title: "À propos de Caisty",
       body:
-        "Caisty est une société de logiciels indépendante basée en Allemagne. Nous développons des produits SaaS connectés qui simplifient les ventes, la gestion d’entreprise et les opérations du quotidien.\n\nNotre objectif est de remplacer des outils dispersés par un logiciel pratique, clair, multilingue et capable de grandir avec chaque entreprise — étape par étape.",
+        "Caisty est une société de logiciels indépendante basée en Allemagne. Nous développons des produits SaaS, des plateformes numériques et des solutions logicielles sur mesure pour des entreprises de différents secteurs.\n\nNotre objectif est de transformer des processus complexes et des outils dispersés en logiciels pratiques et fiables, clairs à utiliser, multilingues et conçus pour grandir avec chaque entreprise.\n\nParallèlement à notre écosystème produits en expansion, nous créons des solutions numériques individuelles qui aident les entreprises à améliorer leurs workflows, connecter leurs systèmes et transformer des idées en logiciels évolutifs.",
       values: [
         {
           title: "Indépendant",
-          body: "Une société indépendante centrée sur des produits utiles.",
+          body: "Une société de logiciels indépendante, libre de construire autour de besoins métier réels.",
         },
         {
           title: "Connecté",
-          body: "Des produits conçus pour travailler ensemble au quotidien.",
+          body: "Des produits et solutions conçus pour relier workflows, informations et opérations du quotidien.",
         },
         {
           title: "Pratique",
-          body: "Un logiciel clair que les équipes peuvent utiliser sans complexité inutile.",
+          body: "Un logiciel clair et fiable, créé pour résoudre de vrais problèmes sans complexité inutile.",
         },
       ],
     },
     cta: {
-      headline: "Construisez votre activité sur une plateforme connectée.",
-      subline: "Commencez avec les outils dont vous avez besoin aujourd’hui et grandissez avec Caisty.",
+      headline: "Construisez ce dont votre entreprise a besoin ensuite.",
+      subline:
+        "Explorez l’écosystème produits Caisty ou parlez-nous d’une solution logicielle conçue autour de vos objectifs.",
       ctaProducts: "Découvrir nos produits",
-      ctaPos: "Découvrir Caisty POS",
+      ctaContact: "Contacter Caisty",
     },
   },
   de: {
     hero: {
-      badge: "Verbundene Business-Software · Entwickelt in Deutschland",
-      headline: "Verbundene Software für moderne Unternehmen.",
+      badge: "Unabhängiges Softwareunternehmen",
+      headline: "Softwareprodukte und digitale Lösungen für echte Geschäftsanforderungen.",
       subtitle:
-        "Caisty entwickelt praktische Software, die Verkauf, Unternehmenssteuerung und den täglichen Betrieb in einer wachsenden Plattform verbindet.",
+        "Caisty entwickelt moderne SaaS-Produkte, digitale Plattformen und individuelle Softwarelösungen, die Abläufe vereinfachen, Prozesse verbinden und Unternehmen beim Wachstum unterstützen.",
       ctaProducts: "Unsere Produkte entdecken",
       ctaAbout: "Über Caisty",
-      platformLabel: "Die Caisty-Plattform",
+      platformLabel: "Das Caisty-Produktökosystem",
     },
     trustBar: {
       items: [
         "Entwickelt in Deutschland",
-        "Von Grund auf verbunden",
+        "Unabhängiges Softwareunternehmen",
         "Mehrsprachig",
-        "Für den Geschäftsalltag",
+        "Für den echten Betrieb",
       ],
     },
     platform: {
-      title: "Eine Plattform. Drei verbundene Produkte.",
+      title: "Ein Unternehmen. Ein wachsendes Software-Ökosystem.",
       subtitle:
-        "Caisty bringt die Werkzeuge des Geschäftsalltags zusammen — damit Verkauf, Steuerung und Team-Abläufe eine praktische Grundlage teilen.",
+        "Caisty verbindet die eigenen SaaS-Produkte und entwickelt zugleich digitale Lösungen für Unternehmen mit unterschiedlichen Anforderungen, Abläufen und Zielen.",
       products: [
         {
           id: "pos",
           title: "Caisty POS",
-          body: "Verkauf, Bestellungen, Zahlungen und Belege in einem schnellen Kassen-Arbeitsbereich.",
+          body: "Verkauf, Bestellungen, Zahlungen und Belege in einem schnellen, zuverlässigen Arbeitsbereich.",
           status: "Verfügbar",
         },
         {
           id: "business",
           title: "Caisty Business",
-          body: "Zentrale Steuerung, Übersichten, Geräte und Lizenzen in einem Arbeitsbereich.",
+          body: "Zentrale Steuerung, Übersichten, Geräte und Lizenzen in einem verbundenen Arbeitsbereich.",
           status: "Verfügbar",
         },
         {
@@ -226,86 +226,81 @@ const companyLocales = {
         },
       ],
     },
-    storyPos: {
-      title: "Vom Verkauf zur Geschäftsübersicht",
-      body: "Caisty POS begleitet den Moment des Verkaufs. Bestellungen und Belege bleiben mit derselben Geschäftsumgebung verbunden — bereit für die zentrale Übersicht.",
-      imageAlt: "Caisty-POS-Arbeitsbereich mit Verkauf, Produkten und Kasse",
-      cta: "Caisty POS entdecken",
-    },
-    storyDashboard: {
-      title: "Ihr Geschäft an einem Ort",
-      body: "Caisty Business führt Aktivität, Geräte und Lizenzen in einem klaren Arbeitsbereich zusammen — damit Teams ohne isolierte Tools steuern können.",
-      imageAlt: "Caisty Business Dashboard mit Geschäftsübersicht",
-    },
-    storyReports: {
-      title: "Leistung verstehen",
-      body: "Sehen Sie, wie sich der Verkauf entwickelt — mit klaren Berichten für alltägliche Entscheidungen, ohne diese Seite zu einem Feature-Katalog zu machen.",
-      imageAlt: "Berichte und Umsatzentwicklung in Caisty Business",
-    },
-    storyMobile: {
-      title: "Von überall steuern",
-      body: "Behalten Sie wichtige Geschäftstätigkeit auf Desktop oder Mobilgerät im Blick. Dasselbe verbundene Konto bleibt auch abseits der Kasse verfügbar.",
-      imageAlt: "Mobile Bestellübersicht in Caisty Business",
+    capabilities: {
+      eyebrow: "Was wir entwickeln",
+      title: "Software, die Geschäftsanforderungen in praktische Systeme übersetzt.",
+      intro:
+        "Wir verbinden Produktdenken, technische Entwicklung und ein klares Verständnis des Alltagsbetriebs — für Software, die vom ersten Moment an nützlich ist und mitwachsen kann.",
+      items: [
+        {
+          title: "SaaS-Produkte",
+          body: "Wir entwickeln fokussierte Softwareprodukte, mit denen Unternehmen wesentliche Aufgaben klarer und mit weniger Komplexität steuern.",
+        },
+        {
+          title: "Digitale Plattformen",
+          body: "Wir schaffen verbundene Umgebungen, die Abläufe, Informationen und Teams zusammenführen statt sie über isolierte Tools zu verteilen.",
+        },
+        {
+          title: "Individuelle Softwarelösungen",
+          body: "Wir entwickeln Lösungen um konkrete Geschäftsanforderungen herum — von gezielten digitalen Werkzeugen bis zu skalierbaren Systemen.",
+        },
+      ],
     },
     about: {
       title: "Über Caisty",
       body:
-        "Caisty ist ein unabhängiges Softwareunternehmen mit Sitz in Deutschland. Wir entwickeln verbundene SaaS-Produkte, die Verkauf, Unternehmenssteuerung und den täglichen Betrieb vereinfachen.\n\nUnser Ziel ist es, isolierte Tools durch praktische Software zu ersetzen, die klar zu bedienen, mehrsprachig und schrittweise mit jedem Unternehmen mitwachsen kann.",
+        "Caisty ist ein unabhängiges Softwareunternehmen mit Sitz in Deutschland. Wir entwickeln SaaS-Produkte, digitale Plattformen und individuelle Softwarelösungen für Unternehmen aus unterschiedlichen Branchen.\n\nUnser Ziel ist es, komplexe Prozesse und voneinander getrennte Werkzeuge in praktische, zuverlässige Software zu verwandeln, die verständlich, mehrsprachig und auf nachhaltiges Wachstum ausgelegt ist.\n\nNeben unserem wachsenden Produktökosystem entwickeln wir individuelle digitale Lösungen, mit denen Unternehmen Abläufe verbessern, Systeme verbinden und Ideen in skalierbare Software umsetzen können.",
       values: [
         {
           title: "Unabhängig",
-          body: "Ein unabhängiges Softwareunternehmen mit Fokus auf praktische Produkte.",
+          body: "Ein unabhängiges Softwareunternehmen mit der Freiheit, echte Geschäftsanforderungen in den Mittelpunkt zu stellen.",
         },
         {
           title: "Verbunden",
-          body: "Produkte, die im Alltag zusammenarbeiten sollen.",
+          body: "Produkte und Lösungen, die Abläufe, Informationen und den Geschäftsalltag verbinden.",
         },
         {
           title: "Praktisch",
-          body: "Klare Software, die Teams ohne unnötige Komplexität nutzen können.",
+          body: "Klare und zuverlässige Software, die reale Probleme löst — ohne unnötige Komplexität.",
         },
       ],
     },
     cta: {
-      headline: "Bauen Sie Ihr Geschäft auf einer verbundenen Plattform auf.",
-      subline: "Starten Sie mit den Tools, die Sie heute brauchen, und wachsen Sie mit der Caisty-Plattform.",
+      headline: "Bauen Sie, was Ihr Unternehmen als Nächstes braucht.",
+      subline:
+        "Entdecken Sie das Caisty-Produktökosystem oder sprechen Sie mit uns über eine Softwarelösung für Ihre Ziele.",
       ctaProducts: "Unsere Produkte entdecken",
-      ctaPos: "Caisty POS entdecken",
+      ctaContact: "Caisty kontaktieren",
     },
   },
   ar: {
     hero: {
-      badge: "برمجيات أعمال متصلة · مطوّر في ألمانيا",
-      headline: "برمجيات متصلة للشركات الحديثة.",
+      badge: "شركة برمجيات مستقلة",
+      headline: "منتجات برمجية وحلول رقمية مبنية لاحتياجات الأعمال الحقيقية.",
       subtitle:
-        "تبني Caisty برمجيات عملية تربط المبيعات وإدارة الأعمال والعمليات اليومية في منصة متنامية واحدة.",
+        "تطوّر Caisty منتجات SaaS حديثة ومنصات رقمية وحلولاً برمجية مخصصة تبسّط العمليات وتربط العمليات وتساعد الشركات على النمو.",
       ctaProducts: "استكشف منتجاتنا",
       ctaAbout: "عن Caisty",
-      platformLabel: "منصة Caisty",
+      platformLabel: "منظومة منتجات Caisty",
     },
     trustBar: {
-      items: [
-        "مطوّر في ألمانيا",
-        "متصل بالتصميم",
-        "متعدد اللغات",
-        "مصمم للعمليات اليومية",
-      ],
+      items: ["مطوّر في ألمانيا", "شركة برمجيات مستقلة", "متعدد اللغات", "مصمم للعمليات الحقيقية"],
     },
     platform: {
-      title: "منصة واحدة. ثلاثة منتجات متصلة.",
+      title: "شركة واحدة. منظومة برمجيات متنامية.",
       subtitle:
-        "تجمع Caisty أدوات العمل اليومي — حتى تشترك المبيعات والإدارة وسير عمل الفريق في أساس عملي واحد.",
+        "تجمع Caisty بين منتجاتها SaaS الخاصة وتطوّر في الوقت نفسه حلولاً رقمية للشركات ذات الاحتياجات وسير العمل والطموحات المختلفة.",
       products: [
         {
           id: "pos",
           title: "Caisty POS",
-          body: "المبيعات والطلبات والمدفوعات والإيصالات في مساحة دفع سريعة.",
+          body: "المبيعات والطلبات والمدفوعات والإيصالات في مساحة عمل سريعة وموثوقة.",
           status: "متاح",
         },
         {
           id: "business",
           title: "Caisty Business",
-          body: "إدارة مركزية ورؤى وأجهزة وتراخيص في مساحة عمل واحدة.",
+          body: "إدارة مركزية ورؤى وأجهزة وتراخيص في مساحة عمل متصلة.",
           status: "متاح",
         },
         {
@@ -316,51 +311,51 @@ const companyLocales = {
         },
       ],
     },
-    storyPos: {
-      title: "من البيع إلى نظرة عامة على الأعمال",
-      body: "يتولى Caisty POS لحظة البيع. تبقى الطلبات والإيصالات متصلة بنفس بيئة الأعمال — جاهزة للمراجعة المركزية.",
-      imageAlt: "مساحة عمل Caisty POS تعرض المبيعات والمنتجات وأدوات الدفع",
-      cta: "استكشف Caisty POS",
-    },
-    storyDashboard: {
-      title: "عملك في مكان واحد",
-      body: "يجمع Caisty Business النشاط والأجهزة والتراخيص في مساحة واضحة — حتى تدير الفرق العمليات دون أدوات منفصلة.",
-      imageAlt: "لوحة تحكم Caisty Business مع نظرة عامة على الأعمال",
-    },
-    storyReports: {
-      title: "فهم الأداء",
-      body: "اطّلع على تطور المبيعات بتقارير واضحة لدعم القرارات اليومية — دون تحويل صفحة الشركة إلى كتالوج ميزات.",
-      imageAlt: "التقارير واتجاهات الإيرادات في Caisty Business",
-    },
-    storyMobile: {
-      title: "الإدارة من أي مكان",
-      body: "تابع نشاط الأعمال الأساسي من سطح المكتب أو الجوال. يبقى الحساب المتصل متاحاً بعيداً عن نقطة البيع.",
-      imageAlt: "نظرة عامة على الطلبات عبر الجوال في Caisty Business",
+    capabilities: {
+      eyebrow: "ما نبنيه",
+      title: "برمجيات تحول احتياجات الأعمال إلى أنظمة عملية.",
+      intro:
+        "نجمع بين التفكير المنتج والتطوير التقني وفهماً واضحاً للعمليات اليومية لإنشاء برمجيات مفيدة من أول تفاعل وجاهزة للتطور.",
+      items: [
+        {
+          title: "منتجات SaaS",
+          body: "نبني منتجات برمجية مركّزة تساعد الشركات على إدارة العمل الأساسي بتعقيد أقل ووضوح أكبر.",
+        },
+        {
+          title: "منصات رقمية",
+          body: "ننشئ بيئات متصلة تجمع سير العمل والمعلومات والفرق بدلاً من تشتيتها عبر أدوات منفصلة.",
+        },
+        {
+          title: "حلول برمجية مخصصة",
+          body: "نطوّر حلولاً حول متطلبات أعمال محددة، من أدوات رقمية مركّزة إلى أنظمة قابلة للتوسع مع الوقت.",
+        },
+      ],
     },
     about: {
       title: "عن Caisty",
       body:
-        "Caisty شركة برمجيات مستقلة مقرها ألمانيا. نبني منتجات SaaS متصلة تبسّط المبيعات وإدارة الأعمال والعمليات اليومية.\n\nهدفنا استبدال الأدوات المنفصلة ببرمجيات عملية واضحة ومتعددة اللغات وقادرة على النمو مع كل عمل — خطوة بخطوة.",
+        "Caisty شركة برمجيات مستقلة مقرها ألمانيا. نطوّر منتجات SaaS ومنصات رقمية وحلولاً برمجية مخصصة للشركات عبر قطاعات مختلفة.\n\nهدفنا تحويل العمليات المعقدة والأدوات المتفرقة إلى برمجيات عملية وموثوقة وواضحة الاستخدام ومتعددة اللغات ومصممة للنمو مع كل شركة.\n\nإلى جانب منظومة منتجاتنا المتنامية، ننشئ حلولاً رقمية فردية تساعد الشركات على تحسين سير العمل وربط الأنظمة وتحويل الأفكار إلى برمجيات قابلة للتوسع.",
       values: [
         {
-          title: "مستقلة",
-          body: "شركة برمجيات مستقلة تركز على منتجات عملية.",
+          title: "مستقل",
+          body: "شركة برمجيات مستقلة تتمتع بحرية البناء حول احتياجات الأعمال الحقيقية.",
         },
         {
-          title: "متصلة",
-          body: "منتجات مصممة للعمل معاً عبر العمليات اليومية.",
+          title: "متصل",
+          body: "منتجات وحلول مصممة لربط سير العمل والمعلومات والعمليات اليومية.",
         },
         {
-          title: "عملية",
-          body: "برمجيات واضحة يمكن للفرق استخدامها دون تعقيد غير ضروري.",
+          title: "عملي",
+          body: "برمجيات واضحة وموثوقة لحل مشكلات حقيقية دون تعقيد غير ضروري.",
         },
       ],
     },
     cta: {
-      headline: "ابنِ عملك على منصة متصلة واحدة.",
-      subline: "ابدأ بالأدوات التي تحتاجها اليوم وانمُ مع منصة Caisty.",
+      headline: "ابنِ ما تحتاجه شركتك بعد ذلك.",
+      subline:
+        "استكشف منظومة منتجات Caisty أو تحدث معنا عن حل برمجي مصمم حول أهدافك.",
       ctaProducts: "استكشف منتجاتنا",
-      ctaPos: "استكشف Caisty POS",
+      ctaContact: "تواصل مع Caisty",
     },
   },
 };

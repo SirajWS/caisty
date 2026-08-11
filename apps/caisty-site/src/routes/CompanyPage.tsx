@@ -5,13 +5,8 @@ import { translations } from "../lib/translations/index";
 import { companyTn } from "../lib/translations/companyTn";
 import { getSiteMarket } from "../lib/siteMarket";
 import { useTheme } from "../lib/theme";
-import { POS_LANDING_PATH } from "../config/marketingRoutes";
+import { CONTACT_PATH } from "../config/marketingRoutes";
 import { applyCompanySiteMeta } from "../lib/siteDocumentMeta";
-
-const POS_IMAGE = "/screenshots/CaistyPosDarkMode.png";
-const BUSINESS_DASHBOARD = "/screenshots/caisty-business-dashboard-tight.png";
-const BUSINESS_REPORTS = "/screenshots/caisty-business-reports-tight.png";
-const BUSINESS_MOBILE = "/screenshots/caisty-business-mobile.png";
 
 export default function CompanyPage() {
   const { language } = useLanguage();
@@ -95,7 +90,7 @@ export default function CompanyPage() {
         </div>
       </section>
 
-      {/* C. Platform overview */}
+      {/* C. Product ecosystem */}
       <section id="products" className="mkt-section company-page__platform scroll-mt-24">
         <div className="mkt-shell company-page__shell">
           <div className="company-page__section-intro">
@@ -119,108 +114,29 @@ export default function CompanyPage() {
         </div>
       </section>
 
-      {/* D1. POS story */}
-      <section className="mkt-section company-page__story company-page__story--muted">
+      {/* D. Capabilities */}
+      <section className="mkt-section company-page__capabilities" aria-labelledby="company-capabilities-heading">
         <div className="mkt-shell company-page__shell">
-          <div className="company-page__split company-page__split--copy-first">
-            <div className="company-page__split-copy">
-              <h2 className="mkt-section-title company-page__h2 m-0">{t.storyPos.title}</h2>
-              <p className="company-page__body company-page__read m-0">{t.storyPos.body}</p>
-              <Link to={POS_LANDING_PATH} className="mkt-btn-primary">
-                {t.storyPos.cta}
-              </Link>
-            </div>
-            <figure className="company-page__split-media m-0">
-              <div className="company-page__media-frame company-page__media-frame--dark">
-                <div className="company-page__media-stage company-page__media-stage--pos">
-                  <img
-                    src={POS_IMAGE}
-                    alt={t.storyPos.imageAlt}
-                    width={1309}
-                    height={867}
-                    loading="lazy"
-                    decoding="async"
-                  />
+          <div className="company-page__section-intro">
+            <p className="company-page__capabilities-eyebrow m-0">{t.capabilities.eyebrow}</p>
+            <h2 id="company-capabilities-heading" className="mkt-section-title company-page__h2 m-0">
+              {t.capabilities.title}
+            </h2>
+            <p className="mkt-section-desc company-page__read m-0">{t.capabilities.intro}</p>
+          </div>
+          <ol className="company-page__capability-list">
+            {t.capabilities.items.map((item, index) => (
+              <li key={item.title} className="company-page__capability">
+                <span className="company-page__capability-index" aria-hidden>
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <div className="company-page__capability-copy">
+                  <h3 className="m-0">{item.title}</h3>
+                  <p className="m-0">{item.body}</p>
                 </div>
-              </div>
-            </figure>
-          </div>
-        </div>
-      </section>
-
-      {/* D2. Dashboard */}
-      <section className="mkt-section company-page__story">
-        <div className="mkt-shell company-page__shell">
-          <div className="company-page__split company-page__split--media-first">
-            <div className="company-page__split-copy">
-              <h2 className="mkt-section-title company-page__h2 m-0">{t.storyDashboard.title}</h2>
-              <p className="company-page__body company-page__read m-0">{t.storyDashboard.body}</p>
-            </div>
-            <figure className="company-page__split-media m-0">
-              <div className="company-page__media-frame">
-                <div className="company-page__media-stage company-page__media-stage--dashboard">
-                  <img
-                    src={BUSINESS_DASHBOARD}
-                    alt={t.storyDashboard.imageAlt}
-                    width={1464}
-                    height={684}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-              </div>
-            </figure>
-          </div>
-        </div>
-      </section>
-
-      {/* D3. Reports */}
-      <section className="mkt-section company-page__story company-page__story--muted">
-        <div className="mkt-shell company-page__shell">
-          <div className="company-page__split company-page__split--copy-first">
-            <div className="company-page__split-copy">
-              <h2 className="mkt-section-title company-page__h2 m-0">{t.storyReports.title}</h2>
-              <p className="company-page__body company-page__read m-0">{t.storyReports.body}</p>
-            </div>
-            <figure className="company-page__split-media m-0">
-              <div className="company-page__media-frame">
-                <div className="company-page__media-stage company-page__media-stage--reports">
-                  <img
-                    src={BUSINESS_REPORTS}
-                    alt={t.storyReports.imageAlt}
-                    width={1468}
-                    height={853}
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-              </div>
-            </figure>
-          </div>
-        </div>
-      </section>
-
-      {/* D4. Mobile */}
-      <section className="mkt-section company-page__story company-page__story--mobile">
-        <div className="mkt-shell company-page__shell">
-          <div className="company-page__split company-page__split--mobile">
-            <div className="company-page__split-copy">
-              <h2 className="mkt-section-title company-page__h2 m-0">{t.storyMobile.title}</h2>
-              <p className="company-page__body company-page__read m-0">{t.storyMobile.body}</p>
-            </div>
-            <figure className="company-page__split-media company-page__split-media--phone m-0">
-              <div className="company-page__phone-frame">
-                <img
-                  src={BUSINESS_MOBILE}
-                  alt={t.storyMobile.imageAlt}
-                  width={480}
-                  height={907}
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
-            </figure>
-          </div>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
 
@@ -267,8 +183,8 @@ export default function CompanyPage() {
               <a href="#products" className="mkt-btn-primary">
                 {t.cta.ctaProducts}
               </a>
-              <Link to={POS_LANDING_PATH} className="mkt-btn-secondary">
-                {t.cta.ctaPos}
+              <Link to={CONTACT_PATH} className="mkt-btn-secondary">
+                {t.cta.ctaContact}
               </Link>
             </div>
           </div>

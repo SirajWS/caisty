@@ -3,10 +3,10 @@ import type { TranslationSchema } from "./types";
 
 const worktrackLocales = {
   en: {
-    documentTitle: "WorkTrack",
+    documentTitle: "Caisty Staff",
     hero: {
       badge: "Coming soon",
-      title: "WorkTrack",
+      title: "Caisty Staff",
       subtitle: "Workforce management and employee time tracking for modern teams.",
     },
     featuresTitle: "Planned capabilities",
@@ -20,7 +20,7 @@ const worktrackLocales = {
       "Leave management",
       "Workforce insights",
     ],
-    whyTitle: "Why WorkTrack",
+    whyTitle: "Why Caisty Staff",
     whyBody: [
       "Employee time tracking",
       "Workforce scheduling",
@@ -31,10 +31,10 @@ const worktrackLocales = {
     ctaContact: "Contact us",
   },
   fr: {
-    documentTitle: "WorkTrack",
+    documentTitle: "Caisty Staff",
     hero: {
       badge: "Bientôt disponible",
-      title: "WorkTrack",
+      title: "Caisty Staff",
       subtitle: "Gestion des équipes et suivi du temps de travail pour les organisations modernes.",
     },
     featuresTitle: "Fonctionnalités prévues",
@@ -48,7 +48,7 @@ const worktrackLocales = {
       "Gestion des congés",
       "Indicateurs RH",
     ],
-    whyTitle: "Pourquoi WorkTrack",
+    whyTitle: "Pourquoi Caisty Staff",
     whyBody: [
       "Suivi du temps des employés",
       "Planification des équipes",
@@ -59,10 +59,10 @@ const worktrackLocales = {
     ctaContact: "Nous contacter",
   },
   de: {
-    documentTitle: "WorkTrack",
+    documentTitle: "Caisty Staff",
     hero: {
       badge: "Demnächst verfügbar",
-      title: "WorkTrack",
+      title: "Caisty Staff",
       subtitle: "Workforce-Management und Zeiterfassung für moderne Teams.",
     },
     featuresTitle: "Geplante Funktionen",
@@ -76,24 +76,24 @@ const worktrackLocales = {
       "Urlaubsverwaltung",
       "Workforce-Insights",
     ],
-    whyTitle: "Warum WorkTrack",
+    whyTitle: "Warum Caisty Staff",
     whyBody: [
       "Zeiterfassung für Mitarbeitende",
-      "Personaleinsatzplanung",
-      "Teamführung",
-      "Reporting in der Cloud",
+      "Schichtplanung",
+      "Teamverwaltung",
+      "Cloud-Berichte",
     ],
     ctaComingSoon: "Demnächst verfügbar",
     ctaContact: "Kontakt",
   },
   ar: {
-    documentTitle: "WorkTrack",
+    documentTitle: "Caisty Staff",
     hero: {
       badge: "قريباً",
-      title: "WorkTrack",
-      subtitle: "إدارة القوى العاملة وتتبع وقت الموظفين للفرق الحديثة.",
+      title: "Caisty Staff",
+      subtitle: "إدارة القوى البشرية وتتبع الوقت للفرق الحديثة.",
     },
-    featuresTitle: "القدرات المخطط لها",
+    featuresTitle: "القدرات المخططة",
     features: [
       "تتبع الوقت",
       "تخطيط الورديات",
@@ -104,7 +104,7 @@ const worktrackLocales = {
       "إدارة الإجازات",
       "رؤى القوى العاملة",
     ],
-    whyTitle: "لماذا WorkTrack",
+    whyTitle: "لماذا Caisty Staff",
     whyBody: [
       "تتبع وقت الموظفين",
       "جدولة القوى العاملة",

@@ -41,6 +41,9 @@ export default function MarketingPreFooter() {
                 <p className="text-xs m-0 pt-1" style={{ color: "var(--mkt-text-subtle)" }}>
                   {pm.worktrackNavSoon}
                 </p>
+                <p className="text-xs m-0" style={{ color: "var(--mkt-text-subtle)" }}>
+                  {pm.businessTitle} · {pm.businessStatus}
+                </p>
               </article>
             </div>
           </section>

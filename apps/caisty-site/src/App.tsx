@@ -65,6 +65,7 @@ export default function App() {
           <Route path="/product" element={<Navigate to={POS_LANDING_PATH} replace />} />
           <Route path="/pricing" element={<Lazy><PricingPage /></Lazy>} />
           <Route path="/worktrack" element={<Lazy><WorkTrackPage /></Lazy>} />
+          <Route path="/caisty-staff" element={<Navigate to="/worktrack" replace />} />
           <Route path="/shiftiq" element={<Navigate to="/worktrack" replace />} />
           <Route path="/login" element={<Lazy><LoginPage /></Lazy>} />
           <Route path="/register" element={<Lazy><RegisterPage /></Lazy>} />

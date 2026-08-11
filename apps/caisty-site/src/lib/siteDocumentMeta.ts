@@ -1,11 +1,11 @@
 import { POS_LANDING_PATH } from "../config/marketingRoutes";
 
 /** Default document + sharing copy for the company homepage (`/`). */
-export const COMPANY_SITE_TITLE = "Caisty – Cloud POS & platform for restaurants and retail";
+export const COMPANY_SITE_TITLE = "Caisty – SaaS products & digital solutions";
 const COMPANY_META_DESCRIPTION =
-  "Caisty combines touchscreen POS, customer portal and cloud platform in one product — built in Germany for restaurants, cafés and retail.";
+  "Caisty is an independent software company from Germany developing SaaS products, digital platforms and tailored software solutions.";
 const COMPANY_OG_DESCRIPTION =
-  "Modern cloud POS, customer portal and cloud platform — one integrated product for growing businesses.";
+  "Independent software company from Germany — SaaS products, digital platforms and tailored software solutions.";
 
 export const COMPANY_OG_IMAGE_PATH = "/og/company-default.svg";
 

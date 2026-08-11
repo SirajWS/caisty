@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Outlet, Link, NavLink, useLocation } from "react-router-dom";
 import LanguageSelector from "../components/LanguageSelector";
 import ThemeToggle from "../components/ThemeToggle";
@@ -9,12 +9,15 @@ import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
 import { tunisiaWhatsappUrl } from "../config/marketContact";
-import { COMPANY_HOME, LEGAL_PATHS, POS_LANDING_PATH } from "../config/marketingRoutes";
-import { CaistyLogo } from "../components/CaistyLogo";
 import {
-  DesktopCaistyPosQuickAccessMenu,
-  MobileCaistyPosQuickAccessMenu,
-} from "../components/CaistyPosQuickAccessMenu";
+  COMPANY_HOME,
+  CONTACT_PATH,
+  LEGAL_PATHS,
+  POS_LANDING_PATH,
+  STAFF_LANDING_PATH,
+} from "../config/marketingRoutes";
+import { CaistyLogo } from "../components/CaistyLogo";
+import { DesktopProductsNavMenu, MobileProductsNavMenu } from "../components/ProductsNavMenu";
 
 export default function SiteLayout() {
   const { theme } = useTheme();
@@ -34,12 +37,39 @@ export default function SiteLayout() {
   const { pathname } = useLocation();
   const showMarketingPreFooter = pathname === POS_LANDING_PATH || pathname === "/pricing";
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
+
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     ["mkt-nav-link", isActive ? "is-active" : ""].filter(Boolean).join(" ");
 
+  const productsCopy = {
+    productsLabel: t.nav.product,
+    posTitle: productMenu.posTitle,
+    posStatus: productMenu.posStatus,
+    businessTitle: productMenu.businessTitle,
+    businessStatus: productMenu.businessStatus,
+    staffTitle: productMenu.worktrackTitle,
+    staffStatus: productMenu.worktrackStatus,
+  };
+
   const footerTextClass = "text-sm transition-colors no-underline";
-  const footerMuted = { color: "var(--mkt-text-muted)" } as const;
-  const footerLinkStyle = { ...footerMuted, background: "transparent", border: 0, padding: 0, cursor: "pointer", font: "inherit", textAlign: "start" as const };
+  const footerMuted = { color: "var(--mkt-footer-muted)" } as const;
+  const footerLinkStyle = {
+    ...footerMuted,
+    background: "transparent",
+    border: 0,
+    padding: 0,
+    cursor: "pointer",
+    font: "inherit",
+    textAlign: "start" as const,
+  };
 
   return (
     <div
@@ -47,15 +77,21 @@ export default function SiteLayout() {
       style={{ background: "var(--mkt-bg)", color: "var(--mkt-text)" }}
     >
       <header
-        className="sticky top-0 z-40 border-b backdrop-blur-xl"
+        className="sticky top-0 z-40 border-b"
         style={{
           borderColor: "var(--mkt-border)",
-          background: isLight ? "color-mix(in srgb, var(--mkt-bg) 88%, transparent)" : "color-mix(in srgb, var(--mkt-bg) 90%, transparent)",
+          background: isLight
+            ? "color-mix(in srgb, var(--mkt-bg) 94%, transparent)"
+            : "color-mix(in srgb, var(--mkt-bg) 94%, transparent)",
         }}
       >
         <div className="mkt-shell py-3">
           <div className="flex items-center justify-between gap-3 min-w-0">
-            <Link to={COMPANY_HOME} className="flex min-w-0 shrink-0 items-center gap-3 no-underline" onClick={closeMobile}>
+            <Link
+              to={COMPANY_HOME}
+              className="flex min-w-0 shrink-0 items-center gap-3 no-underline"
+              onClick={closeMobile}
+            >
               <CaistyLogo className="h-11 w-11" />
               <div className="flex min-w-0 flex-col leading-tight">
                 <span className="text-lg font-semibold" style={{ color: "var(--mkt-text)" }}>
@@ -67,25 +103,26 @@ export default function SiteLayout() {
               </div>
             </Link>
 
-            <nav className="hidden lg:flex items-center gap-8">
+            <nav className="hidden lg:flex items-center gap-6 xl:gap-8" aria-label={t.layout.headerBrand}>
               <NavLink to={COMPANY_HOME} end className={navLinkClass}>
                 {t.nav.company}
               </NavLink>
-              <DesktopCaistyPosQuickAccessMenu
-                label={productMenu.posTitle}
-                registerLabel={t.buttons.register}
-                loginLabel={t.buttons.login}
-                isLight={isLight}
-              />
+              <DesktopProductsNavMenu copy={productsCopy} />
               <NavLink to="/pricing" className={navLinkClass}>
                 {t.nav.pricing}
               </NavLink>
-              <span className="mkt-nav-soon" title={productMenu.worktrackStatus}>
-                {productMenu.worktrackNavSoon}
-              </span>
+              <NavLink to={CONTACT_PATH} className={navLinkClass}>
+                {t.nav.contact}
+              </NavLink>
             </nav>
 
             <div className="hidden lg:flex items-center gap-3 shrink-0">
+              <Link to="/login" className="mkt-nav-link">
+                {t.buttons.login}
+              </Link>
+              <Link to="/register" className="mkt-btn-primary !min-h-[2.25rem] !px-4 !text-xs !shadow-none">
+                {t.buttons.register}
+              </Link>
               {!isTN && <LanguageSelector />}
               <ThemeToggle />
               {isTN && waUrl && (
@@ -97,9 +134,14 @@ export default function SiteLayout() {
 
             <button
               type="button"
-              className="lg:hidden inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border"
-              style={{ borderColor: "var(--mkt-border)", background: "var(--mkt-bg-elevated)", color: "var(--mkt-text)" }}
+              className="lg:hidden inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border"
+              style={{
+                borderColor: "var(--mkt-border)",
+                background: "var(--mkt-bg-elevated)",
+                color: "var(--mkt-text)",
+              }}
               aria-expanded={mobileOpen}
+              aria-controls="mkt-mobile-nav"
               aria-label={mobileOpen ? t.layout.menuClose : t.layout.menuOpen}
               onClick={() => setMobileOpen((o) => !o)}
             >
@@ -115,28 +157,46 @@ export default function SiteLayout() {
         </div>
 
         {mobileOpen && (
-          <div className="lg:hidden border-t" style={{ borderColor: "var(--mkt-border)", background: "var(--mkt-bg-elevated)" }}>
-            <div className="mkt-shell pb-4 pt-3 space-y-3">
+          <div
+            id="mkt-mobile-nav"
+            className="lg:hidden border-t"
+            style={{ borderColor: "var(--mkt-border)", background: "var(--mkt-bg-elevated)" }}
+          >
+            <div className="mkt-shell pb-4 pt-3 space-y-1">
               <NavLink to={COMPANY_HOME} end onClick={closeMobile} className={navLinkClass}>
                 {t.nav.company}
               </NavLink>
-              <MobileCaistyPosQuickAccessMenu
-                label={productMenu.posTitle}
-                registerLabel={t.buttons.register}
-                loginLabel={t.buttons.login}
-                isLight={isLight}
-                onNavigate={closeMobile}
-              />
+              <MobileProductsNavMenu copy={productsCopy} onNavigate={closeMobile} />
               <NavLink to="/pricing" onClick={closeMobile} className={navLinkClass}>
                 {t.nav.pricing}
               </NavLink>
-              <p className="mkt-nav-soon py-2 m-0">{productMenu.worktrackNavSoon}</p>
+              <NavLink to={CONTACT_PATH} onClick={closeMobile} className={navLinkClass}>
+                {t.nav.contact}
+              </NavLink>
+              <div className="pt-2 flex flex-col gap-2">
+                <Link to="/register" onClick={closeMobile} className="mkt-btn-primary !min-h-[2.5rem] !text-sm">
+                  {t.buttons.register}
+                </Link>
+                <Link to="/login" onClick={closeMobile} className="mkt-btn-secondary !min-h-[2.5rem] !text-sm">
+                  {t.buttons.login}
+                </Link>
+              </div>
               {isTN && waUrl && (
-                <a href={waUrl} target="_blank" rel="noopener noreferrer" onClick={closeMobile} className={`${footerTextClass} block py-2`} style={footerMuted}>
+                <a
+                  href={waUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={closeMobile}
+                  className={`${footerTextClass} block py-2`}
+                  style={{ color: "var(--mkt-text-muted)" }}
+                >
                   WhatsApp
                 </a>
               )}
-              <div className="flex flex-wrap items-center gap-3 pt-3 border-t" style={{ borderColor: "var(--mkt-border)" }}>
+              <div
+                className="flex flex-wrap items-center gap-3 pt-3 border-t"
+                style={{ borderColor: "var(--mkt-border)" }}
+              >
                 {!isTN && <LanguageSelector />}
                 <ThemeToggle />
               </div>
@@ -151,40 +211,61 @@ export default function SiteLayout() {
 
       {showMarketingPreFooter ? <MarketingPreFooter /> : null}
 
-      <footer className="border-t" style={{ borderColor: "var(--mkt-border)", background: "var(--mkt-bg-elevated)" }}>
+      <footer className="mkt-site-footer border-t" style={{ borderColor: "var(--mkt-footer-border)" }}>
         <div className="mkt-shell py-14 lg:py-16">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-12">
-            <div className="sm:col-span-2 space-y-4 min-w-0">
-              <h2 className="text-lg font-bold tracking-tight" style={{ color: "var(--mkt-text)" }}>
+            <div className="space-y-4 min-w-0">
+              <h2 className="text-lg font-bold tracking-tight m-0" style={{ color: "var(--mkt-footer-text)" }}>
                 {t.footer.companyBrand}
               </h2>
-              <p className="text-sm leading-relaxed max-w-md m-0" style={{ color: "var(--mkt-text-muted)" }}>
+              <p className="text-sm leading-relaxed max-w-md m-0" style={{ color: "var(--mkt-footer-muted)" }}>
                 {t.footer.companyTagline}
               </p>
-              <div className="pt-2 space-y-2 text-sm">
-                <Link to={POS_LANDING_PATH} className="font-semibold no-underline" style={{ color: "var(--mkt-accent)" }}>
-                  {t.footer.productPosName}
-                </Link>
-                <p className="m-0 text-xs leading-relaxed" style={{ color: "var(--mkt-text-muted)" }}>
-                  {t.footer.productPosBlurb}
-                </p>
-                <p className="m-0 text-xs" style={{ color: "var(--mkt-text-subtle)" }}>
-                  {t.footer.productWorktrackSoon}
-                </p>
-              </div>
             </div>
 
             <div className="space-y-3 min-w-0">
-              <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--mkt-text-subtle)" }}>
+              <h3
+                className="text-xs font-bold uppercase tracking-wider m-0"
+                style={{ color: "var(--mkt-footer-subtle)" }}
+              >
                 {t.footer.colCompany}
               </h3>
-              <nav className="flex flex-col gap-2">
-                <button type="button" className={footerTextClass} style={footerLinkStyle} onClick={() => setFooterModal("company")}>
+              <nav className="flex flex-col gap-2" aria-label={t.footer.colCompany}>
+                <Link to={COMPANY_HOME} className={footerTextClass} style={footerMuted}>
                   {t.footer.linkCompany}
-                </button>
-                <button type="button" className={footerTextClass} style={footerLinkStyle} onClick={() => setFooterModal("contact")}>
+                </Link>
+                <Link to={CONTACT_PATH} className={footerTextClass} style={footerMuted}>
                   {t.footer.linkContact}
+                </Link>
+                <button
+                  type="button"
+                  className={footerTextClass}
+                  style={footerLinkStyle}
+                  onClick={() => setFooterModal("company")}
+                >
+                  {t.footer.companyModal.title}
                 </button>
+              </nav>
+            </div>
+
+            <div className="space-y-3 min-w-0">
+              <h3
+                className="text-xs font-bold uppercase tracking-wider m-0"
+                style={{ color: "var(--mkt-footer-subtle)" }}
+              >
+                {t.footer.colProducts}
+              </h3>
+              <nav className="flex flex-col gap-2" aria-label={t.footer.colProducts}>
+                <Link to={POS_LANDING_PATH} className={footerTextClass} style={footerMuted}>
+                  {t.footer.productPosName}
+                </Link>
+                <Link to={`${COMPANY_HOME}#products`} className={footerTextClass} style={footerMuted}>
+                  {productMenu.businessTitle}
+                </Link>
+                <Link to={STAFF_LANDING_PATH} className={`${footerTextClass} mkt-footer-soon`} style={footerMuted}>
+                  <span>{productMenu.worktrackTitle}</span>
+                  <span className="mkt-footer-soon__badge">{productMenu.worktrackStatus}</span>
+                </Link>
                 <Link to="/pricing" className={footerTextClass} style={footerMuted}>
                   {t.nav.pricing}
                 </Link>
@@ -192,10 +273,13 @@ export default function SiteLayout() {
             </div>
 
             <div className="space-y-3 min-w-0">
-              <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--mkt-text-subtle)" }}>
+              <h3
+                className="text-xs font-bold uppercase tracking-wider m-0"
+                style={{ color: "var(--mkt-footer-subtle)" }}
+              >
                 {t.footer.colLegal}
               </h3>
-              <nav className="flex flex-col gap-2">
+              <nav className="flex flex-col gap-2" aria-label={t.footer.colLegal}>
                 {(
                   [
                     [LEGAL_PATHS.terms, t.footer.terms],
@@ -206,7 +290,14 @@ export default function SiteLayout() {
                     [LEGAL_PATHS.imprint, t.footer.imprint],
                   ] as const
                 ).map(([to, label]) => (
-                  <Link key={to} to={to} target="_blank" rel="noopener noreferrer" className={footerTextClass} style={footerMuted}>
+                  <Link
+                    key={to}
+                    to={to}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={footerTextClass}
+                    style={footerMuted}
+                  >
                     {label}
                   </Link>
                 ))}
@@ -214,7 +305,10 @@ export default function SiteLayout() {
             </div>
           </div>
 
-          <div className="mt-12 pt-8 border-t flex flex-col gap-2 text-xs sm:text-sm" style={{ borderColor: "var(--mkt-border)", color: "var(--mkt-text-subtle)" }}>
+          <div
+            className="mt-12 pt-8 border-t flex flex-col gap-2 text-xs sm:text-sm"
+            style={{ borderColor: "var(--mkt-footer-border)", color: "var(--mkt-footer-subtle)" }}
+          >
             <span>{t.footer.copyright}</span>
             <span className="leading-relaxed max-w-3xl">{t.footer.developedIn}</span>
           </div>
