@@ -4,8 +4,8 @@ import type { TranslationSchema } from "../types";
 export const portalEn = {
   layout: {
     loading: "Loading customer portal…",
-    taglineTitle: "Caisty Portal",
-    taglineSubtitle: "POS & cloud account",
+    taglineTitle: "Caisty Business Portal",
+    taglineSubtitle: "Business portal",
     navDashboard: "Dashboard",
     navOrders: "Orders",
     navReceipts: "Receipts",

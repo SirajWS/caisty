@@ -7071,6 +7071,58 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   white-space: nowrap;
 }
 
+@media (max-width: 640px) {
+  .pos-summary {
+    padding: 12px;
+  }
+
+  .pos-summary-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .pos-summary-left {
+    width: 100%;
+  }
+
+  .pos-summary-mid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+    width: 100%;
+    flex: none;
+  }
+
+  .pos-summary-item {
+    min-width: 0;
+  }
+
+  .pos-summary-label,
+  .pos-summary-value,
+  .pos-summary-link {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .pos-summary-right {
+    width: 100%;
+    margin-left: 0;
+    margin-inline-start: 0;
+  }
+
+  .pos-summary-cta {
+    width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .pos-summary-mid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .pos-actions-panel,
 .pos-version-panel,
 .pos-checklist-panel {
@@ -7615,6 +7667,43 @@ body:has(.portal-root--dark) .receipt-detail-panel {
 
   .portal-sidebar.is-open {
     inset-inline-start: 0;
+  }
+
+  .portal-brand {
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+    min-height: 0;
+  }
+
+  .portal-logo-svg {
+    width: 30px;
+    height: 30px;
+    margin-block-start: 2px;
+  }
+
+  .portal-brand-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .portal-brand-main {
+    font-size: 13px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .portal-brand-sub {
+    font-size: 10px;
+    letter-spacing: 0.03em;
+    line-height: 1.2;
+  }
+
+  .portal-drawer-close {
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-block-start: 0;
   }
 
   .portal-backdrop {

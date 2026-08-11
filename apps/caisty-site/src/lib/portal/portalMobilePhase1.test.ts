@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { portalAr, portalDe, portalEn, portalFr } from "../translations/portal";
 
 const cssPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../index.css");
 const css = readFileSync(cssPath, "utf8");
@@ -132,5 +133,71 @@ describe("portal mobile phase 1 — RTL/LTR drawer", () => {
     expect(drawerMedia).toMatch(/\.portal-backdrop\s*\{[^}]*inset:\s*0/s);
     expect(drawerMedia).toContain("transition: opacity 0.2s");
     expect(drawerMedia).toContain("transition: inset-inline-start 0.2s ease");
+  });
+
+  it("keeps the mobile brand header compact with wrapping title and visible close control", () => {
+    expect(drawerMedia).toMatch(
+      /\.portal-brand\s*\{[^}]*align-items:\s*flex-start/s,
+    );
+    expect(drawerMedia).toMatch(/\.portal-brand\s*\{[^}]*gap:\s*8px/s);
+    expect(drawerMedia).toMatch(/\.portal-brand\s*\{[^}]*padding:\s*12px/s);
+    expect(drawerMedia).toMatch(
+      /\.portal-brand-copy\s*\{[^}]*min-width:\s*0/s,
+    );
+    expect(drawerMedia).toMatch(
+      /\.portal-brand-main\s*\{[^}]*overflow-wrap:\s*anywhere/s,
+    );
+    expect(drawerMedia).toMatch(
+      /\.portal-drawer-close\s*\{[^}]*flex-shrink:\s*0/s,
+    );
+    expect(drawerMedia).toMatch(
+      /\.portal-drawer-close\s*\{[^}]*align-self:\s*flex-start/s,
+    );
+  });
+});
+
+describe("portal brand copy — business portal", () => {
+  it("uses Caisty Business Portal title in all portal languages", () => {
+    for (const portal of [portalEn, portalDe, portalFr, portalAr]) {
+      expect(portal.layout.taglineTitle).toBe("Caisty Business Portal");
+      expect(portal.layout.taglineSubtitle.trim().length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("portal mobile — POS summary card", () => {
+  const summaryMobile = mediaBlockContaining(css, "max-width: 640px", ".pos-summary-bar");
+  const summaryNarrow = mediaBlockContaining(css, "max-width: 360px", ".pos-summary-mid");
+
+  it("stacks title, 2×2 status grid, and full-width CTA under 640px", () => {
+    expect(summaryMobile).toMatch(
+      /\.pos-summary-bar\s*\{[^}]*flex-direction:\s*column/s,
+    );
+    expect(summaryMobile).toMatch(
+      /\.pos-summary-mid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s,
+    );
+    expect(summaryMobile).toMatch(
+      /\.pos-summary-cta\s*\{[^}]*width:\s*100%/s,
+    );
+    expect(summaryMobile).toMatch(
+      /\.pos-summary-right\s*\{[^}]*margin-inline-start:\s*0/s,
+    );
+    expect(summaryMobile).toMatch(
+      /\.pos-summary-label,\s*\.pos-summary-value,\s*\.pos-summary-link\s*\{[^}]*white-space:\s*nowrap/s,
+    );
+  });
+
+  it("collapses the status grid to one column on very narrow phones", () => {
+    expect(summaryNarrow).toMatch(
+      /\.pos-summary-mid\s*\{[^}]*grid-template-columns:\s*1fr/s,
+    );
+  });
+
+  it("does not force the summary bar into a column layout on desktop rules", () => {
+    expect(css).toMatch(
+      /\.pos-summary-bar\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*wrap/s,
+    );
+    const desktopBar = css.match(/\.pos-summary-bar\s*\{[^}]*\}/s)?.[0] ?? "";
+    expect(desktopBar).not.toContain("flex-direction: column");
   });
 });

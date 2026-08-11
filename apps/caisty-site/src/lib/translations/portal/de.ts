@@ -3,8 +3,8 @@ import type { PortalTranslations } from "./en";
 export const portalDe: PortalTranslations = {
   layout: {
     loading: "Kundenportal wird geladen…",
-    taglineTitle: "Caisty Portal",
-    taglineSubtitle: "POS & Cloud-Konto",
+    taglineTitle: "Caisty Business Portal",
+    taglineSubtitle: "Business-Portal",
     navDashboard: "Dashboard",
     navOrders: "Bestellungen",
     navReceipts: "Belege",
