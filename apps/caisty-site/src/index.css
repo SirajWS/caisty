@@ -9273,6 +9273,11 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   max-width: 36rem;
 }
 
+.company-page .company-page__hero-copy .mkt-eyebrow {
+  width: fit-content;
+  max-width: 100%;
+}
+
 .company-page .company-page__hero-title {
   font-size: clamp(2.05rem, 3.6vw, 3.35rem);
   line-height: 1.08;
