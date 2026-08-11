@@ -3,75 +3,91 @@ import type { CompanyCopy } from "./company";
 
 export const companyTn: CompanyCopy = {
   hero: {
-    badge: "Cloud-native · Conçu en Allemagne",
-    headline: "Caisse moderne et plateforme cloud pour la Tunisie.",
+    badge: "Logiciel métier connecté · Conçu en Allemagne",
+    headline: "Des logiciels connectés pour les entreprises modernes.",
     subtitle:
-      "Caisty réunit caisse tactile, portail client et infrastructure cloud dans un seul produit — fiable, sécurisé et adapté aux cafés, restaurants et commerces.",
-    ctaExplore: "Découvrir Caisty POS",
-    ctaRegister: "Commencer gratuitement",
+      "Caisty développe des logiciels pratiques qui relient ventes, gestion d’entreprise et opérations du quotidien dans une plateforme en croissance, adaptée aux commerces et services.",
+    ctaProducts: "Découvrir nos produits",
+    ctaAbout: "À propos de Caisty",
+    platformLabel: "La plateforme Caisty",
   },
-  trust: {
-    title: "Pourquoi Caisty en Tunisie",
-    subtitle: "Un produit pour le comptoir, l’administratif et le cloud.",
-    points: [
-      {
-        title: "Caisse hors ligne",
-        body: "Encaissez même si la connexion faiblit. Synchronisation automatique au retour du réseau.",
-      },
-      {
-        title: "Portail client",
-        body: "Licences, appareils et facturation dans un espace clair — moins de paperasse.",
-      },
-      {
-        title: "Pensé pour le service",
-        body: "Interface tactile rapide, multilingue et rapports utiles au quotidien.",
-      },
-      {
-        title: "Sécurité cloud",
-        body: "Configuration centralisée et liaison sécurisée des appareils.",
-      },
+  trustBar: {
+    items: [
+      "Conçu en Allemagne",
+      "Connecté par conception",
+      "Multilingue",
+      "Pensé pour le quotidien",
     ],
   },
-  whatWeBuild: {
-    title: "Ce que nous construisons",
-    subtitle: "Trois piliers — une plateforme intégrée.",
-    cards: [
+  platform: {
+    title: "Une plateforme. Trois produits connectés.",
+    subtitle:
+      "Caisty rassemble les outils du quotidien — pour que ventes, gestion et workflows d’équipe partagent une base pratique.",
+    products: [
       {
         id: "pos",
         title: "Caisty POS",
-        body: "Caisse tactile pour cafés, restaurants et commerces — commandes, stocks et tickets.",
-        cta: "Voir le produit",
+        body: "Ventes, commandes, paiements et tickets dans un espace d’encaissement rapide.",
+        status: "Disponible",
       },
       {
-        id: "portal",
-        title: "Portail client",
-        body: "Essais, licences, appareils et installation POS en self-service.",
-        cta: "Commencer gratuitement",
+        id: "business",
+        title: "Caisty Business",
+        body: "Gestion centrale, indicateurs, appareils et licences dans un seul espace.",
+        status: "Disponible",
       },
       {
-        id: "cloud",
-        title: "Plateforme Cloud",
-        body: "Profils entreprise et synchro des appareils via Caisty Cloud.",
-        cta: "Découvrir le POS",
+        id: "staff",
+        title: "Caisty Staff",
+        body: "Gestion d’équipe, rôles et workflows du quotidien.",
+        status: "Bientôt disponible",
       },
     ],
+  },
+  storyPos: {
+    title: "De la vente à la vue d’ensemble",
+    body: "Caisty POS gère le moment de la vente. Commandes et tickets restent liés au même environnement métier — prêts pour une revue centrale.",
+    imageAlt: "Espace de travail Caisty POS avec ventes, produits et encaissement",
+    cta: "Découvrir Caisty POS",
+  },
+  storyDashboard: {
+    title: "Votre activité au même endroit",
+    body: "Caisty Business rassemble activité, appareils et licences dans un espace clair — pour piloter le quotidien sans outils dispersés.",
+    imageAlt: "Tableau de bord Caisty Business avec aperçu de l’activité",
+  },
+  storyReports: {
+    title: "Comprendre la performance",
+    body: "Suivez l’évolution des ventes avec des rapports clairs. Une vue utile pour les décisions du quotidien — sans transformer cette page en catalogue de fonctions.",
+    imageAlt: "Rapports et évolution du chiffre d’affaires dans Caisty Business",
+  },
+  storyMobile: {
+    title: "Gérer où que vous soyez",
+    body: "Gardez l’essentiel de l’activité sous les yeux sur desktop ou mobile. Le même compte connecté reste disponible loin du comptoir.",
+    imageAlt: "Aperçu mobile des commandes dans Caisty Business",
   },
   about: {
     title: "À propos de Caisty",
-    facts: [
-      { label: "Fondé en", value: "Allemagne" },
-      { label: "Développé en", value: "Allemagne" },
-      { label: "Plateforme", value: "Cloud-native" },
+    body:
+      "Caisty est une société de logiciels indépendante basée en Allemagne. Nous développons des produits SaaS connectés qui simplifient les ventes, la gestion d’entreprise et les opérations du quotidien.\n\nNotre objectif est de remplacer des outils dispersés par un logiciel pratique, clair, multilingue et capable de grandir avec chaque entreprise — étape par étape.",
+    values: [
+      {
+        title: "Indépendant",
+        body: "Une société indépendante centrée sur des produits utiles.",
+      },
+      {
+        title: "Connecté",
+        body: "Des produits conçus pour travailler ensemble au quotidien.",
+      },
+      {
+        title: "Pratique",
+        body: "Un logiciel clair que les équipes peuvent utiliser sans complexité inutile.",
+      },
     ],
   },
-  tech: {
-    title: "Stack technique",
-    subtitle: "Des outils modernes — du POS desktop à l’API cloud.",
-  },
   cta: {
-    headline: "Prêt à essayer Caisty POS ?",
-    subline: "Essai gratuit 3 jours — sans engagement.",
-    ctaExplore: "Découvrir Caisty POS",
-    ctaRegister: "Commencer gratuitement",
+    headline: "Construisez votre activité sur une plateforme connectée.",
+    subline: "Commencez avec les outils dont vous avez besoin aujourd’hui et grandissez avec Caisty.",
+    ctaProducts: "Découvrir nos produits",
+    ctaPos: "Découvrir Caisty POS",
   },
 };

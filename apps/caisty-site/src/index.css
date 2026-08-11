@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Geist:wght@400;500;600;700&display=swap");
+﻿@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Geist:wght@400;500;600;700&display=swap");
 
 @import "tailwindcss";
 
@@ -22,7 +22,7 @@ a {
   @apply text-sky-400 hover:text-sky-300;
 }
 
-/* ─── Landing page: SaaS navy / white / orange (scoped) ─── */
+/* ??? Landing page: SaaS navy / white / orange (scoped) ??? */
 .landing-page {
   --color-navy: #0b1220;
   --color-navy-soft: #0f172a;
@@ -164,7 +164,7 @@ a {
 
 @media (max-width: 768px) {
   .landing-page .lp-hero-glow {
-    /* avoid >100vw — causes horizontal overflow / “dark strip” on mobile */
+    /* avoid >100vw ? causes horizontal overflow / ?dark strip? on mobile */
     width: min(92vw, 420px);
     height: min(92vw, 420px);
     right: -12%;
@@ -556,7 +556,7 @@ a {
   color: #475569;
 }
 
-/* ─── Login page: "Secure & Premium" (scoped) ─── */
+/* ??? Login page: "Secure & Premium" (scoped) ??? */
 .login-page {
   font-family: "DM Sans", system-ui, sans-serif;
   --login-card-bg: rgba(15, 21, 32, 0.85);
@@ -642,7 +642,7 @@ a {
   }
 }
 
-/* ─── Customer Portal v2 (Admin-like layout, orange accent) ─── */
+/* ??? Customer Portal v2 (Admin-like layout, orange accent) ??? */
 .portal-root {
   min-height: 100vh;
   display: flex;
@@ -920,7 +920,7 @@ a {
   gap: 16px;
 }
 
-/* —— Business OS dashboard (Sprint 1) —— */
+/* ?? Business OS dashboard (Sprint 1) ?? */
 .dashboard-home {
   display: flex;
   flex-direction: column;
@@ -1485,7 +1485,7 @@ a {
   stroke: #10b981;
 }
 
-/* —— Live Business Center (Sprint 3) —— */
+/* ?? Live Business Center (Sprint 3) ?? */
 .live-dashboard {
   display: flex;
   flex-direction: column;
@@ -1830,7 +1830,7 @@ a {
   white-space: nowrap;
 }
 
-/* —— Orders Operations Center (Sprint 4) —— */
+/* ?? Orders Operations Center (Sprint 4) ?? */
 .orders-ops {
   display: flex;
   flex-direction: column;
@@ -2181,7 +2181,7 @@ a {
   color: #b91c1c;
 }
 
-/* —— Caisty badge system (drawer reference) —— */
+/* ?? Caisty badge system (drawer reference) ?? */
 .caisty-badge {
   display: inline-flex;
   align-items: center;
@@ -2554,7 +2554,7 @@ a {
 }
 
 /* ============================================================
-   Caisty Detail Drawer — Premium reference component
+   Caisty Detail Drawer ? Premium reference component
    Use this pattern for Orders, Receipts, Admin, Fiskaly drawers.
    ============================================================ */
 
@@ -2897,7 +2897,7 @@ a {
   border: 1px solid var(--receipt-drawer-border);
 }
 
-/* —— Activity timeline —— */
+/* ?? Activity timeline ?? */
 .caisty-timeline {
   list-style: none;
   margin: 0;
@@ -3601,7 +3601,7 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   border-color: var(--portal-accent-hover);
 }
 
-/* —— Reports Analytics Center (Sprint 5) —— */
+/* ?? Reports Analytics Center (Sprint 5) ?? */
 .reports-center {
   display: flex;
   flex-direction: column;
@@ -4266,7 +4266,7 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   margin-bottom: 4px;
 }
 
-/* —— Device Monitoring Center (Sprint 6) —— */
+/* ?? Device Monitoring Center (Sprint 6) ?? */
 .devices-center {
   display: flex;
   flex-direction: column;
@@ -4764,7 +4764,7 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   background: var(--dashboard-hover-bg);
 }
 
-/* —— Device Management (Sprint 1.7) —— */
+/* ?? Device Management (Sprint 1.7) ?? */
 .devices-seat-summary {
   display: flex;
   align-items: center;
@@ -5297,7 +5297,7 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   color: var(--dashboard-text-muted);
 }
 
-/* —— Business Management Center (Sprint 7 / 1.5) —— */
+/* ?? Business Management Center (Sprint 7 / 1.5) ?? */
 .business-center {
   display: flex;
   flex-direction: column;
@@ -6138,7 +6138,7 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   gap: 10px;
 }
 
-/* —— Billing Center (Sprint 1.8) —— */
+/* ?? Billing Center (Sprint 1.8) ?? */
 .billing-subscription-summary {
   padding: 14px 16px;
 }
@@ -6274,7 +6274,7 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   width: 35%;
 }
 
-/* Upgrade plans — compact */
+/* Upgrade plans ? compact */
 .billing-plans {
   padding: 14px 16px;
 }
@@ -6970,7 +6970,7 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   background: var(--dashboard-hover-bg);
 }
 
-/* —— POS Control Center (Sprint 2) —— */
+/* ?? POS Control Center (Sprint 2) ?? */
 .pos-hub-home {
   display: flex;
   flex-direction: column;
@@ -7824,7 +7824,7 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   border-radius: 9999px;
 }
 
-/* ─── Marketing site tokens (Company + shared shell) ─── */
+/* ??? Marketing site tokens (Company + shared shell) ??? */
 .marketing-site {
   --mkt-accent: #ea580c;
   --mkt-accent-hover: #c2410c;
@@ -8150,7 +8150,7 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   user-select: none;
 }
 
-/* POS landing — flatter CTA on dark band */
+/* POS landing ? flatter CTA on dark band */
 .marketing-site .mkt-cta-band .mkt-btn-primary {
   box-shadow: none;
 }
@@ -8357,7 +8357,7 @@ body:has(.portal-root--dark) .receipt-detail-panel {
 }
 
 .marketing-site .mkt-list-check li::before {
-  content: "✓";
+  content: "?";
   color: var(--mkt-accent);
   font-weight: 700;
   flex-shrink: 0;
@@ -8506,7 +8506,7 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   width: 100%;
 }
 
-/* Legal document pages (Terms, Privacy, …) */
+/* Legal document pages (Terms, Privacy, ?) */
 .marketing-site .mkt-legal-hero,
 .marketing-site .mkt-legal-body {
   max-width: 42rem;
@@ -9057,5 +9057,532 @@ body:has(.portal-root--dark) .receipt-detail-panel {
 
   .portal-channel-dialog-footer > * {
     flex: 1 1 0;
+  }
+}
+
+/* ==========================================================================
+   Company page (Phase 1.4) â€” scoped to .company-page only
+   ========================================================================== */
+
+.company-page {
+  --cp-space-1: 0.5rem;
+  --cp-space-2: 1rem;
+  --cp-space-3: 1.5rem;
+  --cp-space-4: 2rem;
+  --cp-space-5: 2.75rem;
+  --cp-space-6: 3.5rem;
+  --cp-space-7: 5rem;
+  --cp-radius: 1rem;
+  --cp-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.company-page .company-page__shell {
+  max-width: min(1380px, calc(100vw - 64px));
+}
+
+@media (max-width: 1023px) {
+  .company-page .company-page__shell {
+    max-width: calc(100vw - 64px);
+  }
+}
+
+@media (max-width: 767px) {
+  .company-page .company-page__shell {
+    max-width: calc(100vw - 40px);
+  }
+}
+
+@media (max-width: 479px) {
+  .company-page .company-page__shell {
+    max-width: calc(100vw - 32px);
+  }
+}
+
+.company-page .company-page__read {
+  max-width: 38rem;
+}
+
+.company-page .mkt-section {
+  padding-block: clamp(3rem, 5.5vw, 5.5rem);
+}
+
+.company-page .company-page__hero {
+  padding-block: clamp(2.75rem, 4.5vw, 4rem);
+}
+
+.company-page .company-page__story--mobile,
+.company-page .company-page__platform {
+  padding-block: clamp(2.5rem, 4vw, 4rem);
+}
+
+.company-page .company-page__cta {
+  padding-block: clamp(2.75rem, 4.5vw, 4rem);
+}
+
+.company-page .company-page__hero-grid {
+  display: grid;
+  gap: var(--cp-space-5);
+  align-items: center;
+}
+
+@media (min-width: 960px) {
+  .company-page .company-page__hero-grid {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr);
+    gap: clamp(2rem, 4vw, 3.5rem);
+  }
+}
+
+.company-page .company-page__hero-copy {
+  display: grid;
+  gap: var(--cp-space-3);
+  max-width: 40rem;
+}
+
+.company-page .company-page__hero-title {
+  font-size: clamp(2.25rem, 4.2vw, 3.75rem);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  max-width: 14ch;
+}
+
+.company-page .company-page__h2 {
+  font-size: clamp(1.75rem, 3vw, 2.75rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.company-page .company-page__hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding-top: 0.15rem;
+}
+
+.company-page .company-page__hero-actions--center {
+  justify-content: center;
+}
+
+.company-page .company-page__hero-platform {
+  border: 1px solid var(--mkt-border);
+  border-radius: calc(var(--cp-radius) + 0.15rem);
+  background: linear-gradient(165deg, var(--mkt-bg-elevated) 0%, var(--mkt-bg-muted) 100%);
+  box-shadow: var(--cp-shadow);
+  padding: 1.25rem 1.35rem 1.35rem;
+  min-width: 0;
+}
+
+.company-page .company-page__hero-platform-label {
+  margin: 0 0 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mkt-text-subtle);
+}
+
+.company-page .company-page__hero-modules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+
+.company-page .company-page__hero-module {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+  padding: 0.85rem 0;
+  border-top: 1px solid var(--mkt-border);
+}
+
+.company-page .company-page__hero-module:last-child {
+  padding-bottom: 0.15rem;
+}
+
+.company-page .company-page__hero-module-index {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--mkt-accent);
+  padding-top: 0.2rem;
+}
+
+.company-page .company-page__hero-module-copy {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.company-page .company-page__hero-module-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+}
+
+.company-page .company-page__hero-module-name {
+  font-family: "Geist", system-ui, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--mkt-text);
+}
+
+.company-page .company-page__hero-module-status {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--mkt-text-muted);
+  border: 1px solid var(--mkt-border-strong);
+  border-radius: 0.4rem;
+  padding: 0.12rem 0.45rem;
+  background: var(--mkt-bg-elevated);
+}
+
+.company-page .company-page__hero-module-line {
+  display: block;
+  height: 2px;
+  width: 100%;
+  max-width: 11rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--mkt-accent) 55%, var(--mkt-border));
+}
+
+.company-page .company-page__hero-module--soon .company-page__hero-module-line {
+  background: color-mix(in srgb, var(--mkt-border-strong) 70%, transparent);
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--mkt-border-strong) 0 6px,
+    transparent 6px 12px
+  );
+  height: 2px;
+}
+
+.company-page .company-page__trust-bar {
+  border-block: 1px solid var(--mkt-border);
+  padding-block: 0.85rem;
+}
+
+.company-page .company-page__trust-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem 1rem;
+  grid-template-columns: 1fr;
+  align-items: center;
+}
+
+@media (min-width: 640px) {
+  .company-page .company-page__trust-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .company-page .company-page__trust-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.company-page .company-page__trust-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 1.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--mkt-text-muted);
+}
+
+.company-page .company-page__trust-mark {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: var(--mkt-accent);
+  flex-shrink: 0;
+}
+
+.company-page .company-page__section-intro {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1.35rem;
+  max-width: 42rem;
+}
+
+.company-page .company-page__product-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--mkt-border);
+}
+
+.company-page .company-page__product-row {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--mkt-border);
+}
+
+@media (min-width: 768px) {
+  .company-page .company-page__product-row {
+    grid-template-columns: minmax(12rem, 0.85fr) minmax(0, 1.45fr);
+    gap: 1.25rem;
+    align-items: center;
+  }
+}
+
+.company-page .company-page__product-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+}
+
+.company-page .company-page__product-row-title {
+  font-family: "Geist", system-ui, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--mkt-text);
+}
+
+.company-page .company-page__product-row-status {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--mkt-text-muted);
+  border: 1px solid var(--mkt-border-strong);
+  border-radius: 0.4rem;
+  padding: 0.12rem 0.45rem;
+  background: var(--mkt-bg-elevated);
+}
+
+.company-page .company-page__product-row--soon {
+  opacity: 0.94;
+}
+
+.company-page .company-page__product-row-body {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--mkt-text-muted);
+  max-width: 40rem;
+}
+
+.company-page .company-page__story--muted {
+  background: var(--mkt-bg-muted);
+}
+
+.company-page .company-page__split {
+  display: grid;
+  gap: var(--cp-space-4);
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .company-page .company-page__split {
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.18fr);
+    gap: clamp(1.75rem, 3vw, 2.75rem);
+  }
+
+  .company-page .company-page__split--copy-first .company-page__split-copy {
+    order: 1;
+  }
+
+  .company-page .company-page__split--copy-first .company-page__split-media {
+    order: 2;
+  }
+
+  .company-page .company-page__split--media-first .company-page__split-media {
+    order: 1;
+  }
+
+  .company-page .company-page__split--media-first .company-page__split-copy {
+    order: 2;
+  }
+
+  .company-page .company-page__split--mobile {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
+    gap: 1.5rem;
+  }
+}
+
+.company-page .company-page__split-copy {
+  display: grid;
+  gap: 0.9rem;
+  justify-items: start;
+  align-content: center;
+}
+
+.company-page .company-page__body {
+  font-size: clamp(1.05rem, 1.2vw, 1.125rem);
+  line-height: 1.65;
+  color: var(--mkt-text-muted);
+}
+
+.company-page .company-page__media-frame {
+  border-radius: var(--cp-radius);
+  border: 1px solid var(--mkt-border);
+  background: var(--mkt-bg-elevated);
+  box-shadow: var(--cp-shadow);
+  overflow: hidden;
+}
+
+.company-page .company-page__media-frame--dark {
+  background: #0b1220;
+  border-color: color-mix(in srgb, #0b1220 70%, var(--mkt-border));
+}
+
+.company-page .company-page__media-stage {
+  display: block;
+  background: var(--mkt-bg-elevated);
+}
+
+.company-page .company-page__media-stage--pos {
+  background: #0b1220;
+}
+
+.company-page .company-page__media-stage--dashboard,
+.company-page .company-page__media-stage--reports {
+  background: #f9fafb;
+}
+
+.company-page .company-page__media-stage img {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  display: block;
+}
+
+.company-page .company-page__split-media--phone {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.company-page .company-page__phone-frame {
+  width: min(100%, 15.5rem);
+  border-radius: 1.35rem;
+  border: 1px solid var(--mkt-border-strong);
+  background: var(--mkt-bg-elevated);
+  box-shadow: var(--cp-shadow);
+  overflow: hidden;
+  padding: 0.45rem;
+}
+
+.company-page .company-page__phone-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 1rem;
+  aspect-ratio: 480 / 907;
+  object-fit: cover;
+  object-position: top center;
+}
+
+.company-page .company-page__about {
+  display: grid;
+  gap: var(--cp-space-5);
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .company-page .company-page__about {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 2.5rem;
+  }
+}
+
+.company-page .company-page__about-copy {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.company-page .company-page__values {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--mkt-border);
+}
+
+.company-page .company-page__value {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  padding: 0.95rem 0;
+  border-bottom: 1px solid var(--mkt-border);
+}
+
+.company-page .company-page__value-index {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--mkt-accent);
+  padding-top: 0.2rem;
+}
+
+.company-page .company-page__value-copy {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.company-page .company-page__value h3 {
+  font-family: "Geist", system-ui, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--mkt-text);
+}
+
+.company-page .company-page__value p {
+  font-size: 0.925rem;
+  line-height: 1.55;
+  color: var(--mkt-text-muted);
+}
+
+.company-page .company-page__cta-inner {
+  max-width: 40rem;
+  margin-inline: auto;
+  text-align: center;
+  display: grid;
+  gap: 0.9rem;
+  justify-items: center;
+}
+
+.company-page .mkt-cta-band {
+  background:
+    radial-gradient(1000px 280px at 50% -20%, color-mix(in srgb, var(--mkt-accent) 18%, transparent), transparent 70%),
+    var(--mkt-bg-inverse);
+}
+
+.company-page a:focus-visible,
+.company-page .mkt-btn-primary:focus-visible,
+.company-page .mkt-btn-secondary:focus-visible {
+  outline: 2px solid var(--mkt-accent);
+  outline-offset: 3px;
+}
+
+.company-page .mkt-btn-primary,
+.company-page .mkt-btn-secondary {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.company-page .company-page__hero,
+.company-page .company-page__platform,
+.company-page .company-page__story,
+.company-page .company-page__about,
+.company-page .company-page__values {
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .company-page .mkt-btn-primary,
+  .company-page .mkt-btn-secondary {
+    transition: none;
   }
 }
