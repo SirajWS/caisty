@@ -17,6 +17,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const siteLayoutSource = readFileSync(join(__dirname, "../layouts/SiteLayout.tsx"), "utf8");
 const productsNavSource = readFileSync(join(__dirname, "ProductsNavMenu.tsx"), "utf8");
 const appSource = readFileSync(join(__dirname, "../App.tsx"), "utf8");
+const indexCssSource = readFileSync(join(__dirname, "../index.css"), "utf8");
 
 const LANGUAGES: Language[] = ["en", "fr", "de", "ar"];
 
@@ -34,8 +35,21 @@ describe("Phase 2 marketing chrome", () => {
     expect(siteLayoutSource).toContain("caisty-company-mark-tight.png");
     expect(siteLayoutSource).toContain("caisty-company-mark-dark-tight.png");
     expect(siteLayoutSource).toContain("mkt-brand");
+    expect(siteLayoutSource).toContain("SaaS products & digital solutions");
     expect(siteLayoutSource).toContain("header");
     expect(siteLayoutSource).toContain("<nav");
+  });
+
+  it("keeps mobile header wordmark and tagline visible", () => {
+    expect(indexCssSource).toMatch(
+      /\.marketing-site \.mkt-brand__text\s*\{[^}]*display:\s*flex/s,
+    );
+    expect(indexCssSource).not.toMatch(
+      /\.marketing-site \.mkt-brand__text\s*\{[^}]*display:\s*none/s,
+    );
+    expect(indexCssSource).toMatch(
+      /\.company-page__hero-title\s*\{[^}]*overflow-wrap:\s*normal/s,
+    );
   });
 
   it("exposes Company, Products, Pricing and Contact navigation", () => {

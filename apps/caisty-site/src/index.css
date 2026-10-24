@@ -8016,9 +8016,10 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   --mkt-footer-border: rgba(255, 255, 255, 0.1);
 }
 
-/* Phase 1B.2 — mark + HTML wordmark (marketing shell only; no logo plate) */
+/* Phase 1B.2 / mobile hotfix — mark + HTML wordmark on all viewports */
 .marketing-site .mkt-brand-link {
-  max-width: min(100%, 3.25rem);
+  /* Room for mark + wordmark + tagline beside the 44px menu button */
+  max-width: min(100%, 15.5rem);
   min-height: 2.75rem;
   background: transparent;
   border: 0;
@@ -8028,7 +8029,7 @@ body:has(.portal-root--dark) .receipt-detail-panel {
 .marketing-site .mkt-brand {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.5625rem; /* ~9px mobile */
   max-width: 100%;
   background: transparent;
   border: 0;
@@ -8038,8 +8039,8 @@ body:has(.portal-root--dark) .receipt-detail-panel {
 }
 
 .marketing-site .mkt-brand__mark-slot {
-  width: 2.875rem; /* 46px mobile mark-only */
-  height: 2.875rem;
+  width: 2.75rem; /* 44px mobile */
+  height: 2.75rem;
 }
 
 .marketing-site .mkt-brand__mark {
@@ -8055,7 +8056,7 @@ body:has(.portal-root--dark) .receipt-detail-panel {
 }
 
 .marketing-site .mkt-brand__text {
-  display: none;
+  display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 0.1rem;
@@ -8066,7 +8067,7 @@ body:has(.portal-root--dark) .receipt-detail-panel {
 .marketing-site .mkt-brand__name {
   display: block;
   font-family: "Geist", system-ui, sans-serif;
-  font-size: 1.5625rem; /* 25px */
+  font-size: 1.375rem; /* 22px mobile */
   font-weight: 700;
   letter-spacing: -0.02em;
   white-space: nowrap;
@@ -8082,9 +8083,10 @@ body:has(.portal-root--dark) .receipt-detail-panel {
 
 .marketing-site .mkt-brand__tagline {
   display: block;
-  font-size: 0.71875rem; /* ~11.5px */
+  font-size: 0.59375rem; /* ~9.5px mobile */
   font-weight: 500;
   letter-spacing: 0.01em;
+  line-height: 1.15;
   color: #64748b;
   white-space: nowrap;
 }
@@ -8099,6 +8101,30 @@ body:has(.portal-root--dark) .receipt-detail-panel {
 
 .marketing-site.marketing-site--dark .mkt-brand__tagline {
   color: #94a3b8;
+}
+
+/* Ultra-narrow: keep wordmark + tagline visible, shrink only */
+@media (max-width: 339px) {
+  .marketing-site .mkt-brand-link {
+    max-width: min(100%, 13.5rem);
+  }
+
+  .marketing-site .mkt-brand {
+    gap: 0.5rem;
+  }
+
+  .marketing-site .mkt-brand__mark-slot {
+    width: 2.625rem; /* 42px */
+    height: 2.625rem;
+  }
+
+  .marketing-site .mkt-brand__name {
+    font-size: 1.3125rem; /* 21px */
+  }
+
+  .marketing-site .mkt-brand__tagline {
+    font-size: 0.5625rem; /* 9px */
+  }
 }
 
 @media (min-width: 1024px) {
@@ -8116,8 +8142,13 @@ body:has(.portal-root--dark) .receipt-detail-panel {
     height: 3.5rem;
   }
 
-  .marketing-site .mkt-brand__text {
-    display: flex;
+  .marketing-site .mkt-brand__name {
+    font-size: 1.5625rem; /* 25px desktop */
+  }
+
+  .marketing-site .mkt-brand__tagline {
+    font-size: 0.71875rem; /* ~11.5px desktop */
+    line-height: 1.05;
   }
 }
 
@@ -9534,6 +9565,7 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   display: grid;
   gap: var(--cp-space-4);
   align-items: center;
+  min-width: 0;
 }
 
 @media (min-width: 960px) {
@@ -9546,7 +9578,8 @@ body:has(.portal-root--dark) .receipt-detail-panel {
 .company-page .company-page__hero-copy {
   display: grid;
   gap: 1.1rem;
-  max-width: 36rem;
+  max-width: min(36rem, 100%);
+  min-width: 0;
 }
 
 .company-page .company-page__hero-copy .mkt-eyebrow {
@@ -9560,12 +9593,26 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   letter-spacing: -0.03em;
   text-wrap: balance;
   max-width: min(22ch, 100%);
+  min-width: 0;
+  /* Keep long German compounds intact (no mid-word splits) */
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  -webkit-hyphens: none;
 }
 
 @media (max-width: 639px) {
   .company-page .company-page__hero-title {
-    font-size: clamp(1.85rem, 8.2vw, 2.35rem);
-    max-width: none;
+    /*
+      Sized so longest DE compounds (e.g. Geschäftsanforderungen) fit on one
+      line of the mobile content column; whole words wrap to the next line.
+    */
+    font-size: clamp(1.375rem, 6.85vw, 2.375rem); /* ~22–38px; fits DE compounds at 320+ */
+    line-height: 1.08;
+    letter-spacing: -0.04em;
+    max-width: 100%;
+    width: 100%;
+    text-wrap: pretty;
   }
 
   .company-page .company-page__hero-copy {
@@ -10139,12 +10186,16 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-.company-page .company-page__hero,
+/* Hero title keeps normal wrapping; other sections may break long tokens */
 .company-page .company-page__platform,
 .company-page .company-page__capabilities,
 .company-page .company-page__about,
 .company-page .company-page__values {
   overflow-wrap: anywhere;
+}
+
+.company-page .company-page__hero {
+  overflow-wrap: normal;
 }
 
 @media (prefers-reduced-motion: reduce) {
