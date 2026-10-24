@@ -6,7 +6,8 @@ import { useAuth } from "../auth/AuthContext";
 import type { AuthUser } from "../auth/AuthContext";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "../components/ui";
-import { CaistyLogo } from "../components/CaistyLogo";
+const ADMIN_MARK_LIGHT_SRC = "/branding/caisty-company-mark-tight.png";
+const ADMIN_MARK_DARK_SRC = "/branding/caisty-company-mark-dark-tight.png";
 
 type LoginResponse = {
   token: string;
@@ -54,9 +55,27 @@ export default function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <div className="login-brand">
-          <CaistyLogo className="login-logo-svg" />
-          <div className="login-brand-wordmark">
+        <div className="login-brand" aria-label="Caisty Admin">
+          <span className="login-logo-mark-slot brand-mark-slot">
+            <img
+              src={ADMIN_MARK_LIGHT_SRC}
+              alt=""
+              className="login-logo-mark brand-mark brand-mark--light"
+              width={64}
+              height={64}
+              decoding="async"
+            />
+            <img
+              src={ADMIN_MARK_DARK_SRC}
+              alt=""
+              className="login-logo-mark brand-mark brand-mark--dark"
+              width={64}
+              height={64}
+              decoding="async"
+              aria-hidden="true"
+            />
+          </span>
+          <div className="login-brand-wordmark" aria-hidden="true">
             <span className="login-brand-main">Caisty</span>
             <span className="login-brand-sub">Admin</span>
           </div>

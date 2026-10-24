@@ -16,8 +16,14 @@ import {
   POS_LANDING_PATH,
   STAFF_LANDING_PATH,
 } from "../config/marketingRoutes";
-import { CaistyLogo } from "../components/CaistyLogo";
 import { DesktopProductsNavMenu, MobileProductsNavMenu } from "../components/ProductsNavMenu";
+
+/**
+ * Phase 1B.2 / 1C.4 — header uses mark PNG + HTML wordmark/tagline.
+ * Light/dark marks swap via CSS on marketing-site--dark (no theme logic here).
+ */
+const LOGO_MARK_LIGHT_SRC = "/branding/caisty-company-mark-tight.png";
+const LOGO_MARK_DARK_SRC = "/branding/caisty-company-mark-dark-tight.png";
 
 export default function SiteLayout() {
   const { theme } = useTheme();
@@ -89,18 +95,38 @@ export default function SiteLayout() {
           <div className="flex items-center justify-between gap-3 min-w-0">
             <Link
               to={COMPANY_HOME}
-              className="flex min-w-0 shrink-0 items-center gap-3 no-underline"
+              className="mkt-brand-link flex min-w-0 shrink-0 items-center no-underline"
               onClick={closeMobile}
+              aria-label="Caisty – Home"
             >
-              <CaistyLogo className="h-11 w-11" />
-              <div className="flex min-w-0 flex-col leading-tight">
-                <span className="text-lg font-semibold" style={{ color: "var(--mkt-text)" }}>
-                  {t.layout.headerBrand}
+              <span className="mkt-brand" dir="ltr">
+                <span className="mkt-brand__mark-slot brand-mark-slot">
+                  <img
+                    src={LOGO_MARK_LIGHT_SRC}
+                    alt=""
+                    className="mkt-brand__mark brand-mark brand-mark--light"
+                    width={56}
+                    height={56}
+                    decoding="async"
+                  />
+                  <img
+                    src={LOGO_MARK_DARK_SRC}
+                    alt=""
+                    className="mkt-brand__mark brand-mark brand-mark--dark"
+                    width={56}
+                    height={56}
+                    decoding="async"
+                    aria-hidden="true"
+                  />
                 </span>
-                <span className="text-xs font-medium" style={{ color: "var(--mkt-text-subtle)" }}>
-                  {t.layout.headerSubtitle}
+                <span className="mkt-brand__text" aria-hidden="true">
+                  <span className="mkt-brand__name">
+                    <span className="mkt-brand__name-c">C</span>
+                    <span className="mkt-brand__name-rest">aisty</span>
+                  </span>
+                  <span className="mkt-brand__tagline">SaaS products & digital solutions</span>
                 </span>
-              </div>
+              </span>
             </Link>
 
             <nav className="hidden lg:flex items-center gap-6 xl:gap-8" aria-label={t.layout.headerBrand}>

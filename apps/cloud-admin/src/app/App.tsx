@@ -48,7 +48,8 @@ import NotificationsPage from "../pages/Notifications/NotificationsPage";
 import AnalyticsPage from "../pages/AnalyticsPage";
 import FiscalCompliancePage from "../pages/Fiscal/FiscalCompliancePage";
 import NotificationBell from "../components/NotificationBell";
-import { CaistyLogo } from "../components/CaistyLogo.tsx";
+const ADMIN_MARK_LIGHT_SRC = "/branding/caisty-company-mark-tight.png";
+const ADMIN_MARK_DARK_SRC = "/branding/caisty-company-mark-dark-tight.png";
 
 import { AuthProvider, useAuth } from "../auth/AuthContext";
 import { ThemeProvider, useTheme } from "../theme/ThemeContext";
@@ -131,9 +132,27 @@ function AppShell({ children }: { children: React.ReactElement }) {
   return (
     <div className={`admin-root admin-root--${theme}`}>
       <aside className={`admin-sidebar ${mobileOpen ? "is-open" : ""}`}>
-        <div className="admin-brand">
-          <CaistyLogo className="admin-logo-svg" />
-          <div className="admin-brand-copy">
+        <div className="admin-brand" aria-label="Caisty Admin">
+          <span className="admin-logo-mark-slot brand-mark-slot">
+            <img
+              src={ADMIN_MARK_LIGHT_SRC}
+              alt=""
+              className="admin-logo-mark-img brand-mark brand-mark--light"
+              width={46}
+              height={46}
+              decoding="async"
+            />
+            <img
+              src={ADMIN_MARK_DARK_SRC}
+              alt=""
+              className="admin-logo-mark-img brand-mark brand-mark--dark"
+              width={46}
+              height={46}
+              decoding="async"
+              aria-hidden="true"
+            />
+          </span>
+          <div className="admin-brand-copy" aria-hidden="true">
             <span className="admin-brand-main">Caisty</span>
             <span className="admin-brand-sub">Admin</span>
           </div>
@@ -182,10 +201,12 @@ function AppShell({ children }: { children: React.ReactElement }) {
             <button
               type="button"
               onClick={toggleTheme}
-              className="admin-icon-btn"
-              title={`Zu ${theme === "dark" ? "Light" : "Dark"} Mode wechseln`}
+              className="admin-icon-btn admin-theme-toggle"
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             >
-              {theme === "dark" ? "☀️" : "🌙"}
+              <span aria-hidden="true">{theme === "dark" ? "☀️" : "🌙"}</span>
+              <span className="admin-theme-toggle__label">{theme === "dark" ? "Light" : "Dark"}</span>
             </button>
 
             <div className="admin-user-chip">

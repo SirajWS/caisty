@@ -18,8 +18,11 @@ body {
 }
 
 :root,
-.admin-root {
-  --brand: #f26722;
+.admin-root,
+html[data-theme="dark"],
+.admin-root--dark {
+  --brand: #ff6200;
+  --brand-hover: #c93b00;
   --bg: #0f1115;
   --panel: #171a21;
   --panel2: #1e2230;
@@ -32,7 +35,37 @@ body {
   --status-gray: #8b93a7;
   --radius-card: 12px;
   --radius-control: 8px;
+  --admin-chrome: color-mix(in srgb, var(--panel) 92%, transparent);
+  --admin-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
   /* Legacy aliases (migration) */
+  --admin-accent: var(--brand);
+  --admin-accent-soft: color-mix(in srgb, var(--brand) 14%, transparent);
+  --admin-bg: var(--bg);
+  --admin-bg-2: var(--panel);
+  --admin-bg-3: var(--panel2);
+  --admin-border: var(--line);
+  --admin-text: var(--ink);
+  --admin-muted: var(--ink2);
+  color-scheme: dark;
+}
+
+/* Light mode — same variable names, light values (Phase 1C.1) */
+html[data-theme="light"],
+.admin-root--light {
+  --brand: #ff6200;
+  --brand-hover: #c93b00;
+  --bg: #f8fafc;
+  --panel: #ffffff;
+  --panel2: #f1f5f9;
+  --line: #e2e8f0;
+  --ink: #0b1220;
+  --ink2: #64748b;
+  --status-green: #16a34a;
+  --status-amber: #d97706;
+  --status-red: #dc2626;
+  --status-gray: #64748b;
+  --admin-chrome: color-mix(in srgb, var(--panel) 94%, transparent);
+  --admin-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
   --admin-accent: var(--brand);
   --admin-accent-soft: color-mix(in srgb, var(--brand) 12%, transparent);
   --admin-bg: var(--bg);
@@ -41,6 +74,7 @@ body {
   --admin-border: var(--line);
   --admin-text: var(--ink);
   --admin-muted: var(--ink2);
+  color-scheme: light;
 }
 
 .admin-root {
@@ -58,7 +92,7 @@ body {
 .admin-sidebar {
   width: 272px;
   border-right: 1px solid var(--admin-border);
-  background: rgba(11, 18, 32, 0.92);
+  background: var(--admin-chrome);
   backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
@@ -92,9 +126,64 @@ body {
   height: 34px;
 }
 
+/* Phase 1C.4 — dual light/dark marks; slot keeps layout stable */
+.brand-mark-slot {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+}
+
+.brand-mark-slot > .brand-mark--dark {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+html[data-theme="dark"] .brand-mark-slot > .brand-mark--light,
+.admin-root--dark .brand-mark-slot > .brand-mark--light {
+  opacity: 0;
+}
+
+html[data-theme="dark"] .brand-mark-slot > .brand-mark--dark,
+.admin-root--dark .brand-mark-slot > .brand-mark--dark {
+  opacity: 1;
+}
+
+.admin-logo-mark-slot {
+  width: 44px;
+  height: 44px;
+}
+
+.admin-logo-mark-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: transparent;
+  border: 0;
+  filter: none;
+}
+
 .login-logo-svg {
   width: 60px;
   height: 60px;
+}
+
+.login-logo-mark-slot {
+  width: 68px;
+  height: 68px;
+}
+
+.login-logo-mark {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: transparent;
+  border: 0;
+  /* Soft lift that follows the mark alpha — no rectangular plate */
+  filter: drop-shadow(0 6px 14px rgba(15, 23, 42, 0.16));
 }
 
 .admin-brand-copy {
@@ -105,6 +194,7 @@ body {
 
 .admin-brand-main {
   font-weight: 700;
+  color: var(--ink);
 }
 
 .admin-brand-sub {
@@ -141,8 +231,13 @@ body {
 
 .admin-nav-link.is-active {
   background: var(--admin-accent-soft);
-  color: #fff;
+  color: var(--ink);
   border: 1px solid color-mix(in srgb, var(--brand) 45%, transparent);
+}
+
+html[data-theme="dark"] .admin-nav-link.is-active,
+.admin-root--dark .admin-nav-link.is-active {
+  color: #fff;
 }
 
 .admin-main {
@@ -156,7 +251,7 @@ body {
   z-index: 20;
   height: 64px;
   border-bottom: 1px solid var(--admin-border);
-  background: rgba(11, 18, 32, 0.8);
+  background: var(--admin-chrome);
   backdrop-filter: blur(8px);
   padding: 0 20px;
   display: flex;
@@ -208,9 +303,28 @@ body {
 }
 
 .admin-icon-btn:hover {
-  color: #fff;
+  color: var(--ink);
   border-color: var(--admin-accent);
   background: color-mix(in srgb, var(--brand) 14%, transparent);
+}
+
+.admin-icon-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.admin-theme-toggle {
+  min-height: 44px;
+  min-width: 44px;
+  height: auto;
+  padding: 0 12px;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-theme-toggle__label {
+  line-height: 1;
 }
 
 .admin-content {
@@ -411,7 +525,7 @@ body {
   gap: 8px;
   margin-bottom: 4px;
   font-size: 13px;
-  color: #d1d5db;
+  color: var(--ink2);
 }
 
 .status-dot {
@@ -456,20 +570,20 @@ body {
   padding: 40px;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--admin-shadow);
 }
 
 .login-title {
   font-size: 24px;
   font-weight: 600;
-  color: #f1f5f9;
+  color: var(--ink);
   margin-bottom: 8px;
   text-align: center;
 }
 
 .login-subtitle {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--ink2);
   margin-bottom: 32px;
   text-align: center;
 }
@@ -485,7 +599,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  color: #cbd5e1;
+  color: var(--ink2);
   font-weight: 500;
 }
 
@@ -640,16 +754,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: var(--panel2);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: color-mix(in srgb, var(--ink2) 55%, transparent);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: color-mix(in srgb, var(--ink2) 75%, transparent);
 }
 
 @media (max-width: 1199px) {
@@ -1261,7 +1375,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 24px;
 }
 

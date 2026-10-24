@@ -4,14 +4,13 @@ import { verifyEmail } from "../lib/portalApi";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
 import { useTheme } from "../lib/theme";
-import { CaistyLogo } from "../components/CaistyLogo";
+import { AuthBrand } from "../components/AuthBrand";
 
 type VerifyState = "loading" | "success" | "invalid" | "missing";
 
 export default function VerifyEmailPage() {
   const { language } = useLanguage();
   const t = translations[language].auth.verifyEmail;
-  const layoutT = translations[language].common.layout;
   const { theme } = useTheme();
   const isLight = theme === "light";
   const [searchParams] = useSearchParams();
@@ -203,14 +202,7 @@ export default function VerifyEmailPage() {
 
       <div className="relative z-10 w-full max-w-[420px]">
         <div className={cardClass}>
-          <div className="flex flex-col items-center gap-2">
-            <CaistyLogo className="h-16 w-16" />
-            <span
-              className={`text-[18px] font-medium tracking-[1px] ${isLight ? "text-[#1a1a1a]" : "text-[#f0f0f0]"}`}
-            >
-              {layoutT.headerBrand}
-            </span>
-          </div>
+          <AuthBrand />
           <div className="mt-6 text-center">{renderContent()}</div>
         </div>
       </div>

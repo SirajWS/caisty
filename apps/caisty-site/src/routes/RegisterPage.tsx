@@ -4,13 +4,12 @@ import { portalRegister, getGoogleAuthUrl } from "../lib/portalApi";
 import { useLanguage } from "../lib/LanguageContext";
 import { translations } from "../lib/translations/index";
 import { useTheme } from "../lib/theme";
-import { CaistyLogo } from "../components/CaistyLogo";
+import { AuthBrand } from "../components/AuthBrand";
 import { LegalAgreementCheckbox } from "../components/LegalAgreementCheckbox";
 
 export default function RegisterPage() {
   const { language } = useLanguage();
   const t = translations[language].auth.register;
-  const layoutT = translations[language].common.layout;
   const { theme } = useTheme();
   const isLight = theme === "light";
   const [searchParams] = useSearchParams();
@@ -156,14 +155,7 @@ export default function RegisterPage() {
               : "border border-white/[0.08] border-t-white/[0.12] bg-[rgba(15,21,32,0.85)]"
           }`}
         >
-          <div className="flex flex-col items-center gap-2">
-            <CaistyLogo className="h-16 w-16" />
-            <span
-              className={`text-[18px] font-medium tracking-[1px] ${isLight ? "text-[#1a1a1a]" : "text-[#f0f0f0]"}`}
-            >
-              {layoutT.headerBrand}
-            </span>
-          </div>
+          <AuthBrand />
 
           <h1
             className={`login-font-heading mt-6 text-2xl font-semibold tracking-tight ${

@@ -26,9 +26,13 @@ export default function CompanyPage() {
       className={`company-page marketing-site ${isLight ? "" : "marketing-site--dark"}`}
       style={{ background: "var(--mkt-bg)" }}
     >
-      {/* A. Company Hero */}
-      <section className="mkt-section company-page__hero border-b" style={{ borderColor: "var(--mkt-border)" }}>
-        <div className="mkt-shell company-page__shell">
+      {/* A. Company Hero — Phase 1B depth probe (CSS only; no screenshots) */}
+      <section
+        className="mkt-section company-page__hero company-page__hero--depth border-b"
+        style={{ borderColor: "var(--mkt-border)" }}
+      >
+        <div className="company-page__hero-atmosphere" aria-hidden />
+        <div className="mkt-shell company-page__shell company-page__hero-shell">
           <div className="company-page__hero-grid">
             <div className="company-page__hero-copy">
               <div className="mkt-eyebrow">
@@ -47,13 +51,18 @@ export default function CompanyPage() {
               </div>
             </div>
 
-            <aside className="company-page__hero-platform" aria-label={t.hero.platformLabel}>
+            <aside
+              className="company-page__hero-platform company-page__hero-platform--depth"
+              aria-label={t.hero.platformLabel}
+            >
+              <div className="company-page__hero-platform-glow" aria-hidden />
               <p className="company-page__hero-platform-label">{t.hero.platformLabel}</p>
               <ol className="company-page__hero-modules">
                 {t.platform.products.map((product, index) => (
                   <li
                     key={product.id}
-                    className={`company-page__hero-module${product.id === "staff" ? " company-page__hero-module--soon" : ""}`}
+                    className={`company-page__hero-module company-page__hero-module--layer${product.id === "staff" ? " company-page__hero-module--soon" : ""}`}
+                    style={{ ["--layer-i" as string]: String(index) }}
                   >
                     <span className="company-page__hero-module-index" aria-hidden>
                       {String(index + 1).padStart(2, "0")}
