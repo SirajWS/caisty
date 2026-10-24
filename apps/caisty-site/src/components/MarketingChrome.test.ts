@@ -30,8 +30,10 @@ function flattenCopy(value: unknown): string[] {
 }
 
 describe("Phase 2 marketing chrome", () => {
-  it("keeps the original logo component in the site layout", () => {
-    expect(siteLayoutSource).toContain("CaistyLogo");
+  it("keeps mark branding and chrome in the site layout", () => {
+    expect(siteLayoutSource).toContain("caisty-company-mark-tight.png");
+    expect(siteLayoutSource).toContain("caisty-company-mark-dark-tight.png");
+    expect(siteLayoutSource).toContain("mkt-brand");
     expect(siteLayoutSource).toContain("header");
     expect(siteLayoutSource).toContain("<nav");
   });

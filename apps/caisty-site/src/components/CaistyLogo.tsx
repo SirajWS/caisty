@@ -1,6 +1,7 @@
 /** Square vector mark: stacked tiles + C only (no raster; wordmark lives in HTML at call sites). */
 
-const ORANGE = "#FF6200";
+/** Aligned with marketing accent (--mkt-accent / #ea580c). */
+const ORANGE = "#ea580c";
 
 export type CaistyLogoProps = {
   className?: string;

@@ -13,30 +13,39 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 const THEME_STORAGE_KEY = "caisty.admin.theme";
 
+function resolveInitialTheme(): Theme {
+  if (typeof window === "undefined") return "dark";
+
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  if (stored === "dark" || stored === "light") {
+    return stored;
+  }
+
+  if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+    return "light";
+  }
+
+  return "dark";
+}
+
+function applyThemeToDocument(theme: Theme) {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  root.setAttribute("data-theme", theme);
+  root.style.colorScheme = theme;
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window === "undefined") return "dark";
-    
-    // Prüfe localStorage
-    const stored = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
-    if (stored === "dark" || stored === "light") {
-      return stored;
-    }
-    
-    // Fallback: System-Präferenz
-    if (window.matchMedia("(prefers-color-scheme: light)").matches) {
-      return "light";
-    }
-    
-    return "dark";
+    const initial = resolveInitialTheme();
+    // Apply before first paint of children to avoid a dark FOUC in light mode
+    applyThemeToDocument(initial);
+    return initial;
   });
 
   useEffect(() => {
-    // Theme auf <html> Element anwenden
-    const root = document.documentElement;
-    root.setAttribute("data-theme", theme);
-    
-    // In localStorage speichern
+    // Existing mechanism: data-theme on <html> + admin-root--{theme} in AppShell
+    applyThemeToDocument(theme);
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 

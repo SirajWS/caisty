@@ -34,8 +34,10 @@ import { useTheme } from "../lib/theme";
 import { useLanguage } from "../lib/LanguageContext";
 import { getPortalTranslations } from "../lib/translations";
 import { translations } from "../lib/translations/index";
-import { CaistyLogo } from "../components/CaistyLogo";
 import CookieBanner from "../components/CookieBanner";
+
+const PORTAL_MARK_LIGHT_SRC = "/branding/caisty-company-mark-tight.png";
+const PORTAL_MARK_DARK_SRC = "/branding/caisty-company-mark-dark-tight.png";
 
 export interface PortalOutletContext {
   customer: PortalCustomer;
@@ -254,9 +256,27 @@ export default function PortalLayout() {
         id="portal-mobile-drawer"
         className={`portal-sidebar ${mobileOpen ? "is-open" : ""}`}
       >
-        <div className="portal-brand">
-          <CaistyLogo className="portal-logo-svg" />
-          <div className="portal-brand-copy">
+        <div className="portal-brand" aria-label={t.layout.taglineTitle}>
+          <span className="portal-logo-mark-slot brand-mark-slot">
+            <img
+              src={PORTAL_MARK_LIGHT_SRC}
+              alt=""
+              className="portal-logo-mark brand-mark brand-mark--light"
+              width={46}
+              height={46}
+              decoding="async"
+            />
+            <img
+              src={PORTAL_MARK_DARK_SRC}
+              alt=""
+              className="portal-logo-mark brand-mark brand-mark--dark"
+              width={46}
+              height={46}
+              decoding="async"
+              aria-hidden="true"
+            />
+          </span>
+          <div className="portal-brand-copy" aria-hidden="true">
             <span className="portal-brand-main">{t.layout.taglineTitle}</span>
             <span className="portal-brand-sub">{t.layout.taglineSubtitle}</span>
           </div>
