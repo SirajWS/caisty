@@ -91,6 +91,8 @@ function makeData(overrides: Partial<ReportsData> = {}): ReportsData {
     reportsSummary: null,
     customer: baseCustomer,
     period: "today",
+    applied: { period: "today" },
+    incompatibleApi: false,
     loading: false,
     error: false,
     lastSyncedAt: new Date("2026-07-08T10:00:00Z"),
@@ -302,5 +304,23 @@ describe("deriveReportsState", () => {
     expect(state.overview.find((k) => k.id === "revenue")?.value).toContain(
       "6.00",
     );
+  });
+
+  it("uses hourly charts for a custom single-day range", () => {
+    const state = deriveReportsState({
+      data: makeData({
+        period: "custom",
+        applied: { period: "custom", from: "2026-11-15", to: "2026-11-15" },
+        reportsSummary: makeReportsSummary({
+          period: "custom",
+          from: "2026-11-15",
+          to: "2026-11-15",
+        }),
+      }),
+      t: portalEn,
+      locale: "en-GB",
+    });
+    expect(state.revenueChart.granularity).toBe("hour");
+    expect(state.showHourlySales).toBe(false);
   });
 });

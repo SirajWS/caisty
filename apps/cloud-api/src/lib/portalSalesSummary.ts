@@ -28,8 +28,9 @@ import {
   PORTAL_ORDER_STATUS,
 } from "./orderStatus.js";
 import {
-  sqlInPeriodBerlin,
-  type PortalReportsPeriod,
+  asReportWindow,
+  sqlInReportWindow,
+  type SalesPeriodInput,
 } from "./portalReportsPeriod.js";
 
 function receiptStatusContributesToKpis(status: string | null | undefined): boolean {
@@ -125,24 +126,24 @@ export function sqlIsLiveOrderPlatform(
 function receiptPeriodScope(
   orgId: string,
   customerId: string,
-  period: PortalReportsPeriod,
+  period: SalesPeriodInput,
 ) {
   return and(
     eq(posReceipts.orgId, orgId),
     customerDeviceScope(orgId, customerId),
-    sqlInPeriodBerlin(posReceipts.soldAt, period),
+    sqlInReportWindow(posReceipts.soldAt, asReportWindow(period)),
   );
 }
 
 function orderPeriodScope(
   orgId: string,
   customerId: string,
-  period: PortalReportsPeriod,
+  period: SalesPeriodInput,
 ) {
   return and(
     eq(posOrders.orgId, orgId),
     customerDeviceScope(orgId, customerId),
-    sqlInPeriodBerlin(posOrders.soldAt, period),
+    sqlInReportWindow(posOrders.soldAt, asReportWindow(period)),
   );
 }
 
@@ -154,11 +155,12 @@ function orderPeriodScope(
 export async function fetchPosPaymentsForSalesPeriod(input: {
   orgId: string;
   customerId: string;
-  period: PortalReportsPeriod;
+  period: SalesPeriodInput;
 }): Promise<OrderPaymentRow[]> {
   const { orgId, customerId, period } = input;
-  const periodSql = sqlInPeriodBerlin(posReceipts.soldAt, period);
-  const paidAtPeriodSql = sqlInPeriodBerlin(posSalePayments.paidAt, period);
+  const window = asReportWindow(period);
+  const periodSql = sqlInReportWindow(posReceipts.soldAt, window);
+  const paidAtPeriodSql = sqlInReportWindow(posSalePayments.paidAt, window);
 
   const rows = await db
     .select({
@@ -232,7 +234,7 @@ export async function fetchPosPaymentsForSalesPeriod(input: {
 export async function fetchPaymentsForSalesPeriod(input: {
   orgId: string;
   customerId: string;
-  period: PortalReportsPeriod;
+  period: SalesPeriodInput;
 }): Promise<OrderPaymentRow[]> {
   return fetchPosPaymentsForSalesPeriod(input);
 }
@@ -254,7 +256,7 @@ function isOrderExcludedFromOnlinePaymentSummary(
 export async function fetchPosRevenueCentsForPeriod(input: {
   orgId: string;
   customerId: string;
-  period: PortalReportsPeriod;
+  period: SalesPeriodInput;
 }): Promise<number> {
   const { orgId, customerId, period } = input;
   const receiptOrderJoin = and(
@@ -286,7 +288,7 @@ export async function fetchPosRevenueCentsForPeriod(input: {
 export async function fetchOnlinePaymentSummaryForPeriod(input: {
   orgId: string;
   customerId: string;
-  period: PortalReportsPeriod;
+  period: SalesPeriodInput;
 }): Promise<OnlinePaymentSummaryCents & { currency: string }> {
   const { orgId, customerId, period } = input;
 
@@ -448,7 +450,7 @@ export async function fetchOnlinePaymentSummaryForPeriod(input: {
 export async function fetchPortalSalesPeriodStats(input: {
   orgId: string;
   customerId: string;
-  period: PortalReportsPeriod;
+  period: SalesPeriodInput;
 }): Promise<PortalSalesPeriodStats> {
   const { orgId, customerId, period } = input;
 

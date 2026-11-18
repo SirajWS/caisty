@@ -8,9 +8,12 @@ import { portalLocaleTag } from "../lib/portalLocale";
 import { deriveReportsState } from "../lib/reports/deriveReportsState";
 import { usePortalReportsData } from "../lib/reports/usePortalReportsData";
 import {
-  DEFAULT_REPORTS_PERIOD,
-  getReportsPeriodLabel,
-  type ReportsPeriodId,
+  DEFAULT_APPLIED_REPORTS_PERIOD,
+  appliedPeriodLabel,
+  applyCustomDraft,
+  customPickerDraft,
+  type AppliedReportsPeriod,
+  type ReportsPresetId,
 } from "../lib/reports/reportsPeriod";
 import { ReportsOverview } from "../components/reports/ReportsOverview";
 import { ReportsBreakdowns } from "../components/reports/ReportsBreakdowns";
@@ -46,26 +49,34 @@ const PortalReportsPage: React.FC = () => {
 
   const release = React.useMemo(() => getPosReleaseConfig(), []);
   const locale = portalLocaleTag(language);
-  const [period, setPeriod] = React.useState<ReportsPeriodId>(DEFAULT_REPORTS_PERIOD);
-  const data = usePortalReportsData(customer, period);
+  const [applied, setApplied] = React.useState<AppliedReportsPeriod>(
+    DEFAULT_APPLIED_REPORTS_PERIOD,
+  );
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [draftFrom, setDraftFrom] = React.useState("");
+  const [draftTo, setDraftTo] = React.useState("");
+  const [draftError, setDraftError] = React.useState<string | null>(null);
+  const data = usePortalReportsData(customer, applied);
 
   const reports = React.useMemo(
     () => deriveReportsState({ data, t, locale }),
     [data, t, locale],
   );
 
-  const periodLabel = getReportsPeriodLabel(period, r);
+  const periodLabel = appliedPeriodLabel(applied, r, locale);
   const hasSalesData = Boolean(data.reportsSummary?.hasSalesData);
-  const showErrorHero = !data.loading && data.error && !hasSalesData;
+  const showIncompatibleHero = !data.loading && data.incompatibleApi;
+  const showErrorHero =
+    !data.loading && data.error && !hasSalesData && !data.incompatibleApi;
   const showEmptyHero = !data.loading && !data.error && !hasSalesData;
-  const mutedPlaceholders = showEmptyHero;
+  const mutedPlaceholders = showEmptyHero || data.loading;
   const syncHint = r.paymentEmptyHint;
   const fiscalHint = r.fiscalEmptyHint;
   const [exportingPdf, setExportingPdf] = React.useState(false);
 
   const handleExportPdf = React.useCallback(async () => {
     const summary = data.reportsSummary;
-    if (!summary) return;
+    if (!summary || data.loading || data.error || data.incompatibleApi) return;
 
     setExportingPdf(true);
     try {
@@ -86,7 +97,7 @@ const PortalReportsPage: React.FC = () => {
     } finally {
       setExportingPdf(false);
     }
-  }, [customer, data.reportsSummary, locale, periodLabel, t]);
+  }, [customer, data.error, data.incompatibleApi, data.loading, data.reportsSummary, locale, periodLabel, t]);
 
   return (
     <div className={`${portalPageShell()} dashboard-home reports-center`}>
@@ -107,7 +118,12 @@ const PortalReportsPage: React.FC = () => {
           <PortalExportPdfButton
             label={r.exportPdf}
             loadingLabel={t.pdfDocuments.exporting}
-            disabled={data.loading || !hasSalesData}
+            disabled={
+              data.loading ||
+              data.error ||
+              data.incompatibleApi ||
+              !hasSalesData
+            }
             loading={exportingPdf}
             onClick={handleExportPdf}
             isLight={isLight}
@@ -115,7 +131,69 @@ const PortalReportsPage: React.FC = () => {
         </div>
       </header>
 
-      <ReportsFilters r={r} period={period} onPeriodChange={setPeriod} />
+      <ReportsFilters
+        r={r}
+        applied={applied}
+        pickerOpen={pickerOpen}
+        draftFrom={draftFrom}
+        draftTo={draftTo}
+        draftError={draftError}
+        onPresetChange={(period: ReportsPresetId) => {
+          setPickerOpen(false);
+          setDraftError(null);
+          setApplied({ period });
+        }}
+        onCustomClick={() => {
+          const draft = customPickerDraft(applied);
+          setPickerOpen(true);
+          setDraftError(null);
+          setDraftFrom(draft.from);
+          setDraftTo(draft.to);
+        }}
+        onDraftFromChange={(value) => {
+          setDraftFrom(value);
+          setDraftError(null);
+        }}
+        onDraftToChange={(value) => {
+          setDraftTo(value);
+          setDraftError(null);
+        }}
+        onApply={() => {
+          const result = applyCustomDraft(draftFrom, draftTo, r);
+          if (!result.ok) {
+            setDraftError(result.error);
+            return;
+          }
+          setDraftError(null);
+          setPickerOpen(false);
+          setApplied(result.applied);
+        }}
+        onCancel={() => {
+          const draft = customPickerDraft(applied);
+          setPickerOpen(false);
+          setDraftError(null);
+          setDraftFrom(draft.from);
+          setDraftTo(draft.to);
+        }}
+        onReset={() => {
+          setPickerOpen(false);
+          setDraftFrom("");
+          setDraftTo("");
+          setDraftError(null);
+          setApplied(DEFAULT_APPLIED_REPORTS_PERIOD);
+        }}
+      />
+
+      {showIncompatibleHero ? (
+        <OrdersErrorState
+          headline={r.unavailableHeadline}
+          description={r.unavailableDescription}
+          retryLabel={r.errorRetry}
+          onRetry={() => data.reload()}
+          isLight={isLight}
+          loading={data.loading}
+        />
+      ) : null}
 
       {showErrorHero ? (
         <OrdersErrorState

@@ -7,7 +7,7 @@ import {
 } from "../portalApi";
 import {
   mapReportsPeriodToApi,
-  type ReportsPeriodId,
+  type AppliedReportsPeriod,
 } from "./reportsPeriod";
 import type { ReportsData } from "./types";
 
@@ -67,22 +67,42 @@ const emptyReportsSummary = (): PortalReportsSummary => ({
   },
 });
 
-const initialData = (
-  customer: PortalCustomer,
-  period: ReportsPeriodId,
-): Omit<ReportsData, "loading" | "error" | "lastSyncedAt"> => ({
-  devices: [],
-  reportsSummary: null,
-  customer,
-  period,
-});
+function isIncompatibleCustomResponse(
+  applied: AppliedReportsPeriod,
+  summary: PortalReportsSummary,
+): boolean {
+  if (applied.period !== "custom") return false;
+  if (summary.period !== "custom") return true;
+  return summary.from !== applied.from || summary.to !== applied.to;
+}
+
+/** Drop previous summary immediately so charts never show old numbers for a new range. */
+export function beginReportsFetchState(
+  prev: ReportsData,
+  requestApplied: AppliedReportsPeriod,
+): ReportsData {
+  return {
+    ...prev,
+    loading: true,
+    error: false,
+    incompatibleApi: false,
+    period: requestApplied.period,
+    applied: requestApplied,
+    reportsSummary: null,
+  };
+}
 
 export function usePortalReportsData(
   customer: PortalCustomer,
-  period: ReportsPeriodId,
+  applied: AppliedReportsPeriod,
 ): UsePortalReportsDataResult {
   const [state, setState] = React.useState<ReportsData>(() => ({
-    ...initialData(customer, period),
+    devices: [],
+    reportsSummary: null,
+    customer,
+    period: applied.period,
+    applied,
+    incompatibleApi: false,
     loading: true,
     error: false,
     lastSyncedAt: null,
@@ -95,16 +115,12 @@ export function usePortalReportsData(
 
   React.useEffect(() => {
     let cancelled = false;
+    const requestApplied = applied;
 
     (async () => {
-      setState((prev) => ({
-        ...prev,
-        loading: true,
-        error: false,
-        period,
-      }));
+      setState((prev) => beginReportsFetchState(prev, requestApplied));
       let hadError = false;
-      const apiPeriod = mapReportsPeriodToApi(period);
+      const apiQuery = mapReportsPeriodToApi(requestApplied);
 
       try {
         const [devices, reportsSummary] = await Promise.all([
@@ -112,7 +128,12 @@ export function usePortalReportsData(
             hadError = true;
             return [];
           }),
-          fetchPortalReportsSummary(apiPeriod).catch(() => {
+          fetchPortalReportsSummary(
+            apiQuery.period,
+            apiQuery.from && apiQuery.to
+              ? { from: apiQuery.from, to: apiQuery.to }
+              : undefined,
+          ).catch(() => {
             hadError = true;
             return emptyReportsSummary();
           }),
@@ -120,13 +141,19 @@ export function usePortalReportsData(
 
         if (cancelled) return;
 
+        const incompatibleApi = !hadError
+          ? isIncompatibleCustomResponse(requestApplied, reportsSummary)
+          : false;
+
         setState({
           devices,
-          reportsSummary,
+          reportsSummary: incompatibleApi ? null : reportsSummary,
           customer,
-          period,
+          period: requestApplied.period,
+          applied: requestApplied,
+          incompatibleApi,
           loading: false,
-          error: hadError,
+          error: hadError || incompatibleApi,
           lastSyncedAt: new Date(),
         });
       } catch {
@@ -135,6 +162,7 @@ export function usePortalReportsData(
             ...prev,
             loading: false,
             error: true,
+            incompatibleApi: false,
             lastSyncedAt: new Date(),
           }));
         }
@@ -144,7 +172,7 @@ export function usePortalReportsData(
     return () => {
       cancelled = true;
     };
-  }, [customer, period, tick]);
+  }, [customer, applied, tick]);
 
   return { ...state, reload };
 }

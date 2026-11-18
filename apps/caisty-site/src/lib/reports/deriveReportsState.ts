@@ -17,7 +17,10 @@ import type {
   TrendCard,
 } from "./types";
 import { normalizeSalesByHour } from "./salesByHour";
-import type { ReportsPeriodId } from "./reportsPeriod";
+import {
+  customChartGranularity,
+  type ReportsPeriodId,
+} from "./reportsPeriod";
 
 // POS Sales amounts are ISO 4217 minor units (Cent for EUR, Millime for TND).
 function formatMoney(minor: number, currency: string, locale: string): string {
@@ -48,7 +51,14 @@ function mapPeriodToChartRange(period: ReportsPeriodId): RevenueTimeRange {
   }
 }
 
-function mapPeriodToGranularity(period: ReportsPeriodId): RevenueSeriesGranularity {
+function mapPeriodToGranularity(
+  period: ReportsPeriodId,
+  from?: string,
+  to?: string,
+): RevenueSeriesGranularity {
+  if (period === "custom" && from && to) {
+    return customChartGranularity(from, to);
+  }
   switch (period) {
     case "today":
     case "yesterday":
@@ -60,6 +70,12 @@ function mapPeriodToGranularity(period: ReportsPeriodId): RevenueSeriesGranulari
     default:
       return "day";
   }
+}
+
+function granularityFromData(data: DeriveReportsInput["data"]): RevenueSeriesGranularity {
+  const from = data.applied?.period === "custom" ? data.applied.from : undefined;
+  const to = data.applied?.period === "custom" ? data.applied.to : undefined;
+  return mapPeriodToGranularity(data.period, from, to);
 }
 
 function formatPaymentTrendLabel(
@@ -389,7 +405,7 @@ function deriveTaxes(input: DeriveReportsInput): TaxCard[] {
 function deriveTrends(input: DeriveReportsInput): TrendCard[] {
   const r = input.t.reports;
   const summary = input.data.reportsSummary;
-  const granularity = mapPeriodToGranularity(input.data.period);
+  const granularity = granularityFromData(input.data);
 
   if (!summary?.hasSalesData) {
     return [];
@@ -483,7 +499,7 @@ export function deriveReportsState(input: DeriveReportsInput): ReportsDerivedSta
   const r = input.t.reports;
   const summary = input.data.reportsSummary;
   const hasSalesData = Boolean(summary?.hasSalesData);
-  const granularity = mapPeriodToGranularity(input.data.period);
+  const granularity = granularityFromData(input.data);
   const currency = summary?.overview.currency || "EUR";
 
   return {

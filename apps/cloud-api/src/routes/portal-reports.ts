@@ -1,9 +1,10 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 
+import { fetchPortalReportsSummary } from "../lib/portalReports.js";
 import {
-  fetchPortalReportsSummary,
-  parsePortalReportsPeriod,
-} from "../lib/portalReports.js";
+  parsePortalReportsSummaryQuery,
+  PortalReportsQueryError,
+} from "../lib/portalReportsPeriod.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 
 interface PortalJwtPayload {
@@ -24,7 +25,7 @@ function getPortalAuth(request: FastifyRequest): PortalJwtPayload {
 
 export async function registerPortalReportsRoutes(app: FastifyInstance) {
   /**
-   * GET /portal/reports/summary?period=today|yesterday|7_days|...
+   * GET /portal/reports/summary?period=today|yesterday|...|custom&from=&to=
    * POS sales analytics for the authenticated portal customer.
    * Monetary fields use ISO 4217 minor units (Cent for EUR, Millime for TND).
    */
@@ -37,18 +38,36 @@ export async function registerPortalReportsRoutes(app: FastifyInstance) {
       return { message: "Invalid or missing portal token" };
     }
 
-    const query = request.query as { period?: string };
-    const period = parsePortalReportsPeriod(query.period);
+    const query = request.query as {
+      period?: string | string[];
+      from?: string | string[];
+      to?: string | string[];
+    };
+
+    let window;
+    try {
+      window = parsePortalReportsSummaryQuery(query);
+    } catch (err: unknown) {
+      if (err instanceof PortalReportsQueryError) {
+        reply.code(400);
+        return {
+          ok: false,
+          error: err.code,
+          message: err.message,
+        };
+      }
+      throw err;
+    }
 
     try {
       return await fetchPortalReportsSummary({
         orgId: payload.orgId,
         customerId: payload.customerId,
-        period,
+        period: window,
       });
     } catch (err: unknown) {
       request.log.error(
-        { err, customerId: payload.customerId, period },
+        { err, customerId: payload.customerId, period: window.period },
         "GET /portal/reports/summary failed",
       );
       reply.code(500);

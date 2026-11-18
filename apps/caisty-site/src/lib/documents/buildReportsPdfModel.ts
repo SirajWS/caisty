@@ -43,8 +43,9 @@ function hasHourlyData(
   return points.some((point) => point.revenueMinor > 0 || point.ordersCount > 0);
 }
 
-function isHourlyPeriod(period: string): boolean {
-  return period === "today" || period === "yesterday";
+function isHourlyPeriod(period: string, from?: string, to?: string): boolean {
+  if (period === "today" || period === "yesterday") return true;
+  return period === "custom" && Boolean(from) && from === to;
 }
 
 function isMonthlyPeriod(period: string): boolean {
@@ -84,7 +85,7 @@ export function buildReportsPdfModel(
   };
 
   const period = summary.period;
-  const hourGrain = isHourlyPeriod(period);
+  const hourGrain = isHourlyPeriod(period, summary.from, summary.to);
   const online = summary.onlinePaymentSummary;
   const onlineCurrency = online?.currency || currency;
 

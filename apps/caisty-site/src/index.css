@@ -3844,6 +3844,52 @@ body:has(.portal-root--dark) .receipt-detail-panel {
   color: var(--dashboard-text-muted);
 }
 
+.reports-custom-panel {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 12px;
+  padding: 10px 0 2px;
+}
+
+.reports-custom-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--dashboard-text-muted);
+}
+
+.reports-custom-input {
+  min-width: 10.5rem;
+  border-radius: 10px;
+  border: 1px solid var(--dashboard-border-soft);
+  background: var(--dashboard-card-bg, transparent);
+  color: var(--dashboard-text-secondary);
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.reports-custom-input:focus {
+  outline: 2px solid var(--dashboard-accent-border-soft);
+  outline-offset: 1px;
+}
+
+.reports-custom-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.reports-custom-error {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+  color: var(--dashboard-danger, #c2410c);
+}
+
 .reports-chart-panel {
   padding-bottom: 16px;
 }

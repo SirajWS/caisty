@@ -26,14 +26,21 @@ import {
   fetchPortalSalesPeriodStats,
 } from "./portalSalesSummary.js";
 import {
+  asReportWindow,
+  enumerateIsoDates,
+  enumerateYearMonthKeys,
   parsePortalReportsPeriod,
-  revenueSeriesGranularity,
-  sqlInPeriodBerlin,
+  REPORTS_TIMEZONE,
+  revenueSeriesGranularityForWindow,
+  sqlInReportWindow,
   type PortalReportsPeriod,
+  type PortalReportsPeriodResponse,
+  type PortalReportsWindow,
   type RevenueSeriesGranularity,
+  type SalesPeriodInput,
 } from "./portalReportsPeriod.js";
 
-export type { PortalReportsPeriod };
+export type { PortalReportsPeriod, PortalReportsPeriodResponse, PortalReportsWindow };
 export { parsePortalReportsPeriod };
 
 export type PortalReportsOverview = {
@@ -93,7 +100,9 @@ export type PortalReportsBusinessTrends = {
 
 export type PortalReportsSummaryData = {
   timezone: string;
-  period: PortalReportsPeriod;
+  period: PortalReportsPeriodResponse;
+  from?: string;
+  to?: string;
   hasSalesData: boolean;
   overview: PortalReportsOverview;
   /** Same split as Dashboard/Orders — from fetchPortalSalesPeriodStats. */
@@ -118,24 +127,24 @@ function customerDeviceScope(orgId: string, customerId: string) {
 function receiptScope(
   orgId: string,
   customerId: string,
-  period: PortalReportsPeriod,
+  period: SalesPeriodInput,
 ) {
   return and(
     eq(posReceipts.orgId, orgId),
     customerDeviceScope(orgId, customerId),
-    sqlInPeriodBerlin(posReceipts.soldAt, period),
+    sqlInReportWindow(posReceipts.soldAt, asReportWindow(period)),
   );
 }
 
 function orderScope(
   orgId: string,
   customerId: string,
-  period: PortalReportsPeriod,
+  period: SalesPeriodInput,
 ) {
   return and(
     eq(posOrders.orgId, orgId),
     customerDeviceScope(orgId, customerId),
-    sqlInPeriodBerlin(posOrders.soldAt, period),
+    sqlInReportWindow(posOrders.soldAt, asReportWindow(period)),
   );
 }
 
@@ -500,8 +509,64 @@ export function fillSalesByHour24(
   return filled;
 }
 
+export function fillCustomRevenueSeries(
+  granularity: RevenueSeriesGranularity,
+  window: Extract<PortalReportsWindow, { kind: "custom" }>,
+  series: PortalReportsRevenuePoint[],
+): PortalReportsRevenuePoint[] {
+  if (granularity === "hour") {
+    const byHour = new Map(
+      series.map((point) => [Number.parseInt(point.label.slice(0, 2), 10), point]),
+    );
+    const filled: PortalReportsRevenuePoint[] = [];
+    for (let hour = 0; hour <= 23; hour++) {
+      const existing = byHour.get(hour);
+      if (existing) {
+        filled.push(existing);
+        continue;
+      }
+      filled.push({
+        label: formatHourLabel(hour),
+        bucketStart: new Date(Date.UTC(1970, 0, 1, hour, 0, 0)).toISOString(),
+        revenueMinor: 0,
+        ordersCount: 0,
+      });
+    }
+    return filled;
+  }
+  if (granularity === "day") {
+    const byDay = new Map(series.map((point) => [point.label, point]));
+    return enumerateIsoDates(window.from, window.to).map((day) => {
+      const existing = byDay.get(day);
+      if (existing) return existing;
+      const bucketStart = new Date(`${day}T00:00:00.000Z`).toISOString();
+      return {
+        label: formatBucketLabel(bucketStart, "day"),
+        bucketStart,
+        revenueMinor: 0,
+        ordersCount: 0,
+      };
+    });
+  }
+  const byMonth = new Map(series.map((point) => [point.label, point]));
+  return enumerateYearMonthKeys(window.from, window.to).map((monthKey) => {
+    const label = monthKey.slice(0, 7);
+    const existing = byMonth.get(label);
+    if (existing) return existing;
+    const bucketStart = new Date(`${monthKey}T00:00:00.000Z`).toISOString();
+    return {
+      label: formatBucketLabel(bucketStart, "month"),
+      bucketStart,
+      revenueMinor: 0,
+      ordersCount: 0,
+    };
+  });
+}
+
 export function buildPortalReportsResponse(input: {
-  period: PortalReportsPeriod;
+  period: PortalReportsPeriodResponse;
+  from?: string;
+  to?: string;
   overview: PortalReportsOverview;
   posRevenueCents: number;
   onlineRevenueCents: number;
@@ -523,8 +588,11 @@ export function buildPortalReportsResponse(input: {
     input.onlineRevenueCents > 0;
 
   return {
-    timezone: PORTAL_ORDERS_TIMEZONE,
+    timezone: REPORTS_TIMEZONE,
     period: input.period,
+    ...(input.period === "custom"
+      ? { from: input.from, to: input.to }
+      : {}),
     hasSalesData,
     overview: input.overview,
     posRevenueCents: input.posRevenueCents,
@@ -545,10 +613,12 @@ export function buildPortalReportsResponse(input: {
 export async function fetchPortalReportsSummary(input: {
   orgId: string;
   customerId: string;
-  period: PortalReportsPeriod;
+  period: SalesPeriodInput;
 }): Promise<PortalReportsSummaryData> {
-  const { orgId, customerId, period } = input;
-  const granularity = revenueSeriesGranularity(period);
+  const { orgId, customerId } = input;
+  const window = asReportWindow(input.period);
+  const period = window;
+  const granularity = revenueSeriesGranularityForWindow(window);
 
   const [periodStats, paymentRows, orderRows, receiptRows, topProductLineRows] =
     await Promise.all([
@@ -722,14 +792,21 @@ export async function fetchPortalReportsSummary(input: {
     currency,
   };
 
+  const filledSeries =
+    window.kind === "custom"
+      ? fillCustomRevenueSeries(granularity, window, revenueSeries)
+      : revenueSeries;
+
   return buildPortalReportsResponse({
-    period,
+    period: window.period,
+    from: window.kind === "custom" ? window.from : undefined,
+    to: window.kind === "custom" ? window.to : undefined,
     overview,
     posRevenueCents: periodStats.posRevenueCents,
     onlineRevenueCents: periodStats.onlineRevenueCents,
     liveOrdersCount: periodStats.liveOrdersCount,
     onlineOrdersCount: periodStats.onlineOrdersCount,
-    revenueSeries,
+    revenueSeries: filledSeries,
     salesByHour,
     paymentMethods,
     onlinePaymentSummary: {

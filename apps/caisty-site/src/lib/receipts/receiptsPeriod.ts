@@ -19,7 +19,8 @@ export const DEFAULT_RECEIPTS_PERIOD: ReceiptsPeriodId = "today";
 export const DEFAULT_RECEIPTS_SORT: ReceiptsSortId = "newest";
 
 export function mapReceiptsPeriodToApi(period: ReceiptsPeriodId): string {
-  return mapReportsPeriodToApi(period);
+  if (period === "custom") return "30_days";
+  return mapReportsPeriodToApi({ period }).period;
 }
 
 export function getReceiptsPeriodLabel(

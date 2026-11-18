@@ -6,6 +6,7 @@ import {
   buildPortalReportsResponse,
   buildRevenueSeriesFromBuckets,
   countOrdersByBerlinHour,
+  fillCustomRevenueSeries,
   fillSalesByHour24,
   receiptIncludedInReportAggregates,
   reportWinnerOrderIds,
@@ -518,5 +519,62 @@ describe("buildPortalReportsResponse", () => {
 
     expect(response.hasSalesData).toBe(false);
     expect(response.topEmployees).toEqual([]);
+  });
+
+  it("echoes custom period metadata without changing KPI formulas", () => {
+    const response = buildPortalReportsResponse({
+      ...basePayload,
+      period: "custom",
+      from: "2026-11-01",
+      to: "2026-11-15",
+    });
+    expect(response.period).toBe("custom");
+    expect(response.from).toBe("2026-11-01");
+    expect(response.to).toBe("2026-11-15");
+    expect(response.timezone).toBe("Europe/Berlin");
+    expect(response.overview.revenueMinor).toBe(6000);
+  });
+});
+
+describe("fillCustomRevenueSeries", () => {
+  const window = {
+    kind: "custom" as const,
+    period: "custom" as const,
+    from: "2026-11-01",
+    to: "2026-11-03",
+  };
+
+  it("fills missing custom days with zero revenue and does not invent sales", () => {
+    const filled = fillCustomRevenueSeries("day", window, [
+      {
+        label: "2026-11-02",
+        bucketStart: "2026-11-02T00:00:00.000Z",
+        revenueMinor: 1500,
+        ordersCount: 1,
+      },
+    ]);
+    expect(filled).toHaveLength(3);
+    expect(filled.map((point) => point.revenueMinor)).toEqual([0, 1500, 0]);
+    expect(filled.reduce((sum, point) => sum + point.revenueMinor, 0)).toBe(1500);
+  });
+
+  it("fills 24 hours for a custom single-day report", () => {
+    const day = {
+      kind: "custom" as const,
+      period: "custom" as const,
+      from: "2026-11-15",
+      to: "2026-11-15",
+    };
+    const filled = fillCustomRevenueSeries("hour", day, [
+      {
+        label: "10:00",
+        bucketStart: "1970-01-01T10:00:00.000Z",
+        revenueMinor: 400,
+        ordersCount: 2,
+      },
+    ]);
+    expect(filled).toHaveLength(24);
+    expect(filled[10]?.revenueMinor).toBe(400);
+    expect(filled[0]?.revenueMinor).toBe(0);
   });
 });

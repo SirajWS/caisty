@@ -2,7 +2,7 @@ import type { PosHubTone } from "../posHub/types";
 import type { PaymentMethodCard } from "../orders/types";
 import type { PaymentSummaryRevenueHeader } from "../portal/derivePaymentSummaryCards";
 import type { PortalCustomer, PortalDevice, PortalReportsSummary } from "../portalApi";
-import type { ReportsPeriodId } from "./reportsPeriod";
+import type { AppliedReportsPeriod, ReportsPeriodId } from "./reportsPeriod";
 
 export type ReportsKpi = {
   id: string;
@@ -116,6 +116,8 @@ export type ReportsData = {
   reportsSummary: PortalReportsSummary | null;
   customer: PortalCustomer;
   period: ReportsPeriodId;
+  applied: AppliedReportsPeriod;
+  incompatibleApi: boolean;
   loading: boolean;
   error: boolean;
   lastSyncedAt: Date | null;

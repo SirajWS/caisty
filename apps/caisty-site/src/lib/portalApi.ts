@@ -816,7 +816,8 @@ export type PortalReportsPeriod =
   | "this_month"
   | "12_months"
   | "this_year"
-  | "all_time";
+  | "all_time"
+  | "custom";
 
 export interface PortalReportsOverview {
   revenueMinor: number;
@@ -876,6 +877,8 @@ export interface PortalReportsBusinessTrends {
 export interface PortalReportsSummary {
   timezone: string;
   period: PortalReportsPeriod;
+  from?: string;
+  to?: string;
   hasSalesData: boolean;
   overview: PortalReportsOverview;
   /** Same period splits as Dashboard/Orders (from portal sales period stats). */
@@ -1091,8 +1094,13 @@ export async function fetchPortalDashboardSummary(): Promise<PortalDashboardSumm
 
 export async function fetchPortalReportsSummary(
   period: string,
+  range?: { from: string; to: string },
 ): Promise<PortalReportsSummary> {
   const query = new URLSearchParams({ period });
+  if (period === "custom" && range) {
+    query.set("from", range.from);
+    query.set("to", range.to);
+  }
   return authGet<PortalReportsSummary>(
     `/portal/reports/summary?${query.toString()}`,
   );
