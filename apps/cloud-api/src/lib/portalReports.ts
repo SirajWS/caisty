@@ -15,6 +15,7 @@ import {
   type OnlinePaymentSummaryCents,
   type PaymentBucket,
 } from "./portalOrders.js";
+import { evaluateSaleFinancialInclusion } from "../../../../packages/business-currency/src/index.ts";
 import { isProviderOrder } from "./orderSource.js";
 import {
   dedupeProviderOrders,
@@ -25,6 +26,7 @@ import {
   averageOrderMinor,
   fetchPaymentsForSalesPeriod,
   fetchPortalSalesPeriodStats,
+  paymentRowFinanciallyIncluded,
 } from "./portalSalesSummary.js";
 import {
   asReportWindow,
@@ -120,6 +122,11 @@ export type PortalReportsSummaryData = {
   taxes: PortalReportsTaxes;
   businessTrends: PortalReportsBusinessTrends;
   mixedCurrency: boolean;
+  financialCurrency: string;
+  includedTransactionCount: number;
+  excludedTransactionCount: number;
+  excludedCurrencies: string[];
+  hasCurrencyInconsistencies: boolean;
 };
 
 function customerDeviceScope(orgId: string, customerId: string) {
@@ -207,6 +214,7 @@ function pickMostUsedPayment(summary: ReturnType<typeof aggregatePaymentSummary>
 export type ReportOrderAggregateRow = ProviderOrderDedupFields & {
   deviceId: string;
   localOrderId: string;
+  currency?: string | null;
 };
 
 export type ReportReceiptAggregateRow = {
@@ -220,6 +228,8 @@ export type ReportReceiptAggregateRow = {
   taxCents: number;
   status: string | null;
   fiscalStatus: string | null;
+  currency?: string | null;
+  orderCurrency?: string | null;
 };
 
 export type ReportOrderLineAggregateRow = {
@@ -227,6 +237,7 @@ export type ReportOrderLineAggregateRow = {
   productName: string | null;
   quantity: number;
   lineTotalCents: number;
+  orderCurrency?: string | null;
 };
 
 /** Live POS rows + provider winners (central dedupeProviderOrders). */
@@ -582,6 +593,11 @@ export function buildPortalReportsResponse(input: {
   taxes: PortalReportsTaxes;
   businessTrends: PortalReportsBusinessTrends;
   mixedCurrency?: boolean;
+  financialCurrency?: string;
+  includedTransactionCount?: number;
+  excludedTransactionCount?: number;
+  excludedCurrencies?: string[];
+  hasCurrencyInconsistencies?: boolean;
 }): PortalReportsSummaryData {
   const hasSalesData =
     input.overview.ordersCount > 0 ||
@@ -599,6 +615,11 @@ export function buildPortalReportsResponse(input: {
       : {}),
     hasSalesData,
     mixedCurrency: Boolean(input.mixedCurrency),
+    financialCurrency: input.financialCurrency ?? input.overview.currency ?? "",
+    includedTransactionCount: input.includedTransactionCount ?? 0,
+    excludedTransactionCount: input.excludedTransactionCount ?? 0,
+    excludedCurrencies: input.excludedCurrencies ?? [],
+    hasCurrencyInconsistencies: Boolean(input.hasCurrencyInconsistencies),
     overview: input.overview,
     posRevenueCents: input.posRevenueCents,
     onlineRevenueCents: input.onlineRevenueCents,
@@ -639,6 +660,7 @@ export async function fetchPortalReportsSummary(input: {
           status: posOrders.status,
           updatedAt: posOrders.updatedAt,
           soldAt: posOrders.soldAt,
+          currency: posOrders.currency,
         })
         .from(posOrders)
         .innerJoin(devices, eq(posOrders.deviceId, devices.id))
@@ -655,6 +677,8 @@ export async function fetchPortalReportsSummary(input: {
           taxCents: posReceipts.taxCents,
           status: posReceipts.status,
           fiscalStatus: posReceipts.fiscalStatus,
+          currency: posReceipts.currency,
+          orderCurrency: posOrders.currency,
         })
         .from(posReceipts)
         .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
@@ -673,6 +697,7 @@ export async function fetchPortalReportsSummary(input: {
           productName: posOrderLines.productName,
           quantity: posOrderLines.quantity,
           lineTotalCents: posOrderLines.lineTotalCents,
+          orderCurrency: posOrders.currency,
         })
         .from(posOrderLines)
         .innerJoin(posOrders, eq(posOrderLines.orderId, posOrders.id))
@@ -681,45 +706,66 @@ export async function fetchPortalReportsSummary(input: {
     ]);
 
   const winners = selectReportOrderWinners(orderRows);
-  const winnerOrderIds = reportWinnerOrderIds(winners);
   const winnerKeys = reportWinnerOrderKeys(winners);
 
   const includedReceipts = receiptRows.filter((row) =>
     receiptIncludedInReportAggregates(row, winnerKeys),
   );
+  const financialCurrency = periodStats.financialCurrency;
+  const financialReceipts = includedReceipts.filter((row) =>
+    evaluateSaleFinancialInclusion({
+      activeCurrency: financialCurrency,
+      sources: [
+        { currency: row.currency },
+        ...(row.orderId ? [{ currency: row.orderCurrency }] : []),
+      ],
+    }).included,
+  );
+  const financialWinnerOrderIds = new Set(
+    winners
+      .filter((row) =>
+        evaluateSaleFinancialInclusion({
+          activeCurrency: financialCurrency,
+          sources: [{ currency: row.currency }],
+        }).included,
+      )
+      .map((row) => row.id),
+  );
 
-  const taxStats = aggregateReportTaxStats(includedReceipts);
+  const taxStats = aggregateReportTaxStats(financialReceipts);
   const mixedCurrency = periodStats.mixedCurrency;
-  const currency = mixedCurrency ? "" : periodStats.currency;
+  const currency = financialCurrency;
 
   const ordersCount = periodStats.ordersCount;
   const receiptsCount = periodStats.receiptsCount;
-  const revenueMinor = mixedCurrency ? 0 : periodStats.revenueCents;
-  const vatMinor = mixedCurrency ? 0 : taxStats.vat;
-  const netRevenueMinor = mixedCurrency ? 0 : taxStats.net;
+  const revenueMinor = periodStats.revenueCents;
+  const vatMinor = taxStats.vat;
+  const netRevenueMinor = taxStats.net;
   const grossRevenueMinor = revenueMinor;
-  const largestReceiptMinor = mixedCurrency ? 0 : taxStats.largest;
+  const largestReceiptMinor = taxStats.largest;
   const fiscalReceiptsCount = taxStats.fiscalCount;
 
-  const paymentSummary = mixedCurrency
-    ? { cashCents: 0, cardCents: 0, voucherCents: 0, otherCents: 0 }
-    : aggregateEffectivePaymentSummary(paymentRows);
+  const paymentSummary = aggregateEffectivePaymentSummary(
+    paymentRows.filter((row) =>
+      paymentRowFinanciallyIncluded(row, financialCurrency),
+    ),
+  );
 
   const ordersByHour = countOrdersByBerlinHour(winners);
   const ordersByDay = countOrdersByBerlinDay(winners);
   const ordersByMonth = countOrdersByBerlinMonth(winners);
 
-  const kpiRevenueByHour = sumReceiptRevenueByBerlinHour(includedReceipts, {
+  const kpiRevenueByHour = sumReceiptRevenueByBerlinHour(financialReceipts, {
     kpiOnly: true,
   });
-  const kpiRevenueByDay = sumReceiptRevenueByBerlinDay(includedReceipts, {
+  const kpiRevenueByDay = sumReceiptRevenueByBerlinDay(financialReceipts, {
     kpiOnly: true,
   });
-  const kpiRevenueByMonth = sumReceiptRevenueByBerlinMonth(includedReceipts, {
+  const kpiRevenueByMonth = sumReceiptRevenueByBerlinMonth(financialReceipts, {
     kpiOnly: true,
   });
   // salesByHour historically summed all receipt gross (not KPI-filtered).
-  const allRevenueByHour = sumReceiptRevenueByBerlinHour(includedReceipts, {
+  const allRevenueByHour = sumReceiptRevenueByBerlinHour(financialReceipts, {
     kpiOnly: false,
   });
 
@@ -742,8 +788,15 @@ export async function fetchPortalReportsSummary(input: {
   );
 
   const topProducts = aggregateTopProductsFromWinnerLines(
-    topProductLineRows,
-    winnerOrderIds,
+    topProductLineRows.filter(
+      (row) =>
+        financialWinnerOrderIds.has(row.orderId) &&
+        evaluateSaleFinancialInclusion({
+          activeCurrency: financialCurrency,
+          sources: [{ currency: row.orderCurrency }],
+        }).included,
+    ),
+    financialWinnerOrderIds,
   );
 
   const bestSeriesPoint = revenueSeries.reduce<PortalReportsRevenuePoint | null>(
@@ -769,7 +822,7 @@ export async function fetchPortalReportsSummary(input: {
     refundsCount: periodStats.refundsCount,
     averageOrderMinor: averageOrderMinorLocal(
       revenueMinor,
-      periodStats.kpiReceiptsCount,
+      periodStats.includedTransactionCount,
     ),
     vatMinor,
     currency,
@@ -800,9 +853,8 @@ export async function fetchPortalReportsSummary(input: {
     currency,
   };
 
-  const filledSeries = mixedCurrency
-    ? []
-    : window.kind === "custom"
+  const filledSeries =
+    window.kind === "custom"
       ? fillCustomRevenueSeries(granularity, window, revenueSeries)
       : revenueSeries;
 
@@ -811,38 +863,25 @@ export async function fetchPortalReportsSummary(input: {
     from: window.kind === "custom" ? window.from : undefined,
     to: window.kind === "custom" ? window.to : undefined,
     overview,
-    posRevenueCents: mixedCurrency ? 0 : periodStats.posRevenueCents,
-    onlineRevenueCents: mixedCurrency ? 0 : periodStats.onlineRevenueCents,
+    posRevenueCents: periodStats.posRevenueCents,
+    onlineRevenueCents: periodStats.onlineRevenueCents,
     liveOrdersCount: periodStats.liveOrdersCount,
     onlineOrdersCount: periodStats.onlineOrdersCount,
     revenueSeries: filledSeries,
-    salesByHour: mixedCurrency
-      ? fillSalesByHour24(
-          Array.from({ length: 24 }, (_, hour) => ({
-            hour,
-            revenueMinor: 0,
-            ordersCount: ordersByHour.get(hour) ?? 0,
-          })),
-        )
-      : salesByHour,
+    salesByHour,
     paymentMethods,
-    onlinePaymentSummary: mixedCurrency
-      ? periodStats.onlinePaymentSummary
-      : attachOperationalOnlineCurrency(
-          periodStats.onlinePaymentSummary,
-          currency,
-        ),
-    topProducts: mixedCurrency
-      ? topProducts.map((product) => ({ ...product, revenueMinor: 0 }))
-      : topProducts,
+    onlinePaymentSummary: attachOperationalOnlineCurrency(
+      periodStats.onlinePaymentSummary,
+      currency,
+    ),
+    topProducts,
     taxes,
-    businessTrends: mixedCurrency
-      ? {
-          ...businessTrends,
-          largestReceiptMinor: 0,
-          mostUsedPayment: null,
-        }
-      : businessTrends,
+    businessTrends,
     mixedCurrency,
+    financialCurrency,
+    includedTransactionCount: periodStats.includedTransactionCount,
+    excludedTransactionCount: periodStats.excludedTransactionCount,
+    excludedCurrencies: periodStats.excludedCurrencies,
+    hasCurrencyInconsistencies: periodStats.hasCurrencyInconsistencies,
   });
 }

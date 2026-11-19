@@ -74,12 +74,14 @@ export function buildReportsPdfModel(
   const { meta, labels, summary } = input;
   const { overview, paymentMethods, topProducts, taxes, businessTrends } =
     summary;
-  const mixed = Boolean(summary.mixedCurrency);
-  const currency = mixed ? "" : overview.currency || meta.currency;
+  const currency =
+    summary.financialCurrency || overview.currency || meta.currency;
   const { locale } = meta;
   const dash = labels.dash;
   const money = (amount: number, code = currency) =>
-    mixed ? dash : formatDocumentMoney(amount, code, locale);
+    currency
+      ? formatDocumentMoney(amount, code, locale)
+      : dash;
   const paymentLabels = {
     cash: labels.paymentCash,
     card: labels.paymentCard,
@@ -159,7 +161,7 @@ export function buildReportsPdfModel(
   if (businessTrends.bestSalesHour?.trim()) {
     trendRows.push([labels.trendBestHour, businessTrends.bestSalesHour.trim()]);
   }
-  if (!mixed && businessTrends.largestReceiptMinor > 0) {
+  if (businessTrends.largestReceiptMinor > 0) {
     trendRows.push([
       labels.trendLargestReceipt,
       money(businessTrends.largestReceiptMinor),
@@ -178,21 +180,21 @@ export function buildReportsPdfModel(
     ]);
   }
 
-  const totalProductRevenue = mixed
-    ? 0
-    : topProducts.reduce((sum, product) => sum + product.revenueMinor, 0);
+  const totalProductRevenue = topProducts.reduce(
+    (sum, product) => sum + product.revenueMinor,
+    0,
+  );
 
-  const revenueBars: ReportsPdfBarPoint[] =
-    !mixed && hasSeriesData(summary.revenueSeries)
-      ? summary.revenueSeries.map((point) => ({
-          label: point.label,
-          value: point.revenueMinor,
-          displayValue: money(point.revenueMinor),
-        }))
-      : [];
+  const revenueBars: ReportsPdfBarPoint[] = hasSeriesData(summary.revenueSeries)
+    ? summary.revenueSeries.map((point) => ({
+        label: point.label,
+        value: point.revenueMinor,
+        displayValue: money(point.revenueMinor),
+      }))
+    : [];
 
   const salesByHourBars: ReportsPdfBarPoint[] =
-    !mixed && !hourGrain && hasHourlyData(summary.salesByHour)
+    !hourGrain && hasHourlyData(summary.salesByHour)
       ? normalizeSalesByHour(summary.salesByHour)
           .filter((point) => point.revenueMinor > 0)
           .map((point) => ({
@@ -231,7 +233,7 @@ export function buildReportsPdfModel(
           String(index + 1),
           product.productName,
           String(product.quantity),
-          mixed ? dash : money(product.revenueMinor),
+          money(product.revenueMinor),
           share,
         ];
       }),

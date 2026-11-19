@@ -73,6 +73,68 @@ export function resolvePeriodCurrencies(
   return { mixedCurrency: true, currency: null };
 }
 
+/** Recorded currency may join active-currency totals only when both codes are known and equal. */
+export function matchesActiveBusinessCurrency(
+  recorded: string | null | undefined,
+  active: string | null | undefined,
+): boolean {
+  const recordedCode = normalizeCurrencyCode(recorded);
+  const activeCode = normalizeCurrencyCode(active);
+  if (!recordedCode || !activeCode) return false;
+  if (!isSupportedBusinessCurrency(recordedCode)) return false;
+  if (!isSupportedBusinessCurrency(activeCode)) return false;
+  return recordedCode === activeCode;
+}
+
+export type SaleFinancialInclusion = {
+  included: boolean;
+  inconsistent: boolean;
+  recordedCurrencies: string[];
+};
+
+/**
+ * A sale joins active-currency money totals only when every provided source
+ * (receipt, order, payment) is a supported code equal to the active currency.
+ * Missing, unknown, or conflicting codes are excluded and flagged.
+ */
+export function evaluateSaleFinancialInclusion(input: {
+  activeCurrency: string | null | undefined;
+  sources: Array<{ currency: string | null | undefined }>;
+}): SaleFinancialInclusion {
+  const active = normalizeCurrencyCode(input.activeCurrency);
+  const recordedCurrencies: string[] = [];
+  let inconsistent = false;
+
+  if (!isSupportedBusinessCurrency(active) || input.sources.length === 0) {
+    for (const source of input.sources) {
+      const code = normalizeCurrencyCode(source.currency);
+      if (code) recordedCurrencies.push(code);
+      else inconsistent = true;
+    }
+    return { included: false, inconsistent: true, recordedCurrencies };
+  }
+
+  for (const source of input.sources) {
+    const code = normalizeCurrencyCode(source.currency);
+    if (!code) {
+      inconsistent = true;
+      continue;
+    }
+    recordedCurrencies.push(code);
+    if (!isSupportedBusinessCurrency(code)) inconsistent = true;
+  }
+
+  const unique = [...new Set(recordedCurrencies)];
+  if (unique.length > 1) inconsistent = true;
+
+  const included =
+    !inconsistent &&
+    unique.length === 1 &&
+    matchesActiveBusinessCurrency(unique[0], active);
+
+  return { included, inconsistent, recordedCurrencies };
+}
+
 /**
  * Empty operational payment summaries use the business/period currency.
  * Non-zero historical rows keep the currency recorded on those rows.

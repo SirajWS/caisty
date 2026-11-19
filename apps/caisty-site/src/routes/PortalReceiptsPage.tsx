@@ -23,6 +23,7 @@ import { ReceiptsSummary } from "../components/receipts/ReceiptsSummary";
 import { ReceiptsFilters } from "../components/receipts/ReceiptsFilters";
 import { ReceiptsTable } from "../components/receipts/ReceiptsTable";
 import { ReceiptsEmptyState } from "../components/receipts/ReceiptsEmptyState";
+import { formatCurrencyExclusionBanner } from "../lib/portal/financialCurrencyScope";
 import { ReceiptPortalDetailDrawer } from "../components/receipts/ReceiptPortalDetailDrawer";
 import { PortalPagination } from "../components/portal/PortalPagination";
 import { PaymentOverview } from "../components/orders/PaymentOverview";
@@ -66,6 +67,11 @@ const PortalReceiptsPage: React.FC = () => {
     !data.loading && data.error && !data.incompatibleApi;
   const showEmptyHero =
     !data.loading && !data.error && !receipts.hasReceipts;
+  const currencyBanner = formatCurrencyExclusionBanner({
+    summary: data.page?.summary,
+    warning: r.mixedCurrencyWarning,
+    inconsistencyWarning: r.currencyInconsistencyWarning,
+  });
   const [identity, setIdentity] = React.useState<DocumentIdentity | null>(null);
 
   React.useEffect(() => {
@@ -370,9 +376,9 @@ const PortalReceiptsPage: React.FC = () => {
         }
       />
 
-      {data.page?.summary.mixedCurrency ? (
+      {currencyBanner ? (
         <p className="dashboard-text-muted" role="status">
-          {r.mixedCurrencyWarning}
+          {currencyBanner}
         </p>
       ) : null}
 

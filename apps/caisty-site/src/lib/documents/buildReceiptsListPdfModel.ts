@@ -90,14 +90,12 @@ export function buildReceiptsListPdfModel(input: {
 }): ReceiptsListPdfModel {
   const { meta, labels, page } = input;
   const { summary } = page;
-  const mixed = Boolean(summary.mixedCurrency);
-  const currency = mixed
-    ? ""
-    : summary.paymentSummary.currency || meta.currency;
+  const currency =
+    summary.financialCurrency || summary.paymentSummary.currency || meta.currency;
   const { locale, timezone } = meta;
   const dash = labels.dash;
   const money = (cents: number) =>
-    mixed ? dash : formatDocumentMoney(cents, currency, locale);
+    currency ? formatDocumentMoney(cents, currency, locale) : dash;
   const paymentLabels: PaymentMethodLabels = {
     cash: labels.paymentCash,
     card: labels.paymentCard,

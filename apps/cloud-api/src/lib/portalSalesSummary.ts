@@ -34,6 +34,9 @@ import {
   type SalesPeriodInput,
 } from "./portalReportsPeriod.js";
 import {
+  evaluateSaleFinancialInclusion,
+  isSupportedBusinessCurrency,
+  normalizeCurrencyCode,
   pickOperationalPaymentCurrency,
   resolvePeriodCurrencies,
 } from "../../../../packages/business-currency/src/index.ts";
@@ -106,9 +109,40 @@ export type PortalSalesPeriodStats = {
   refundsCount: number;
   currency: string;
   mixedCurrency: boolean;
+  financialCurrency: string;
+  includedTransactionCount: number;
+  excludedTransactionCount: number;
+  excludedCurrencies: string[];
+  hasCurrencyInconsistencies: boolean;
   paymentSummary: PaymentSummaryCents & { currency: string };
   onlinePaymentSummary: OnlinePaymentSummaryCents & { currency: string };
 };
+
+export function sqlCurrencyMatchesActive(
+  column: typeof posReceipts.currency | typeof posOrders.currency | typeof posSalePayments.currency,
+  activeCurrency: string,
+): SQL {
+  const code = normalizeCurrencyCode(activeCurrency);
+  if (!isSupportedBusinessCurrency(code)) {
+    return sql`false`;
+  }
+  return sql`upper(btrim(${column})) = ${code}`;
+}
+
+export function paymentRowFinanciallyIncluded(
+  row: OrderPaymentRow,
+  activeCurrency: string,
+): boolean {
+  const sources: Array<{ currency: string | null | undefined }> = [
+    { currency: row.currency },
+  ];
+  if (row.hasReceipt) sources.push({ currency: row.receiptCurrency });
+  if (row.hasOrder) sources.push({ currency: row.orderCurrency });
+  return evaluateSaleFinancialInclusion({
+    activeCurrency,
+    sources,
+  }).included;
+}
 
 export { resolvePeriodCurrencies };
 
@@ -198,6 +232,10 @@ export async function fetchPosPaymentsForSalesPeriod(input: {
       method: posSalePayments.method,
       amountCents: posSalePayments.amountCents,
       currency: posSalePayments.currency,
+      receiptCurrency: posReceipts.currency,
+      orderCurrency: posOrders.currency,
+      hasReceipt: sql<boolean>`${posReceipts.id} is not null`,
+      hasOrder: sql<boolean>`${posOrders.id} is not null`,
       paidAt: posSalePayments.paidAt,
       updatedAt: posSalePayments.updatedAt,
     })
@@ -252,6 +290,11 @@ export async function fetchPosPaymentsForSalesPeriod(input: {
     localPaymentId: row.localPaymentId,
     method: row.method,
     amountCents: row.amountCents,
+    currency: row.currency,
+    receiptCurrency: row.receiptCurrency,
+    orderCurrency: row.orderCurrency,
+    hasReceipt: Boolean(row.hasReceipt),
+    hasOrder: Boolean(row.hasOrder),
     paidAt: row.paidAt,
     updatedAt: row.updatedAt,
   }));
@@ -284,13 +327,40 @@ export async function fetchPosRevenueCentsForPeriod(input: {
   orgId: string;
   customerId: string;
   period: SalesPeriodInput;
+  financialCurrency?: string;
 }): Promise<number> {
   const { orgId, customerId, period } = input;
+  const financialCurrency = normalizeCurrencyCode(input.financialCurrency);
+  if (input.financialCurrency !== undefined && !isSupportedBusinessCurrency(financialCurrency)) {
+    return 0;
+  }
   const receiptOrderJoin = and(
     eq(posReceipts.orgId, posOrders.orgId),
     eq(posReceipts.deviceId, posOrders.deviceId),
     eq(posReceipts.localOrderId, posOrders.localOrderId),
   );
+
+  const currencyFilter = isSupportedBusinessCurrency(financialCurrency)
+    ? and(
+        sqlCurrencyMatchesActive(posReceipts.currency, financialCurrency),
+        sql`(
+          ${posOrders.id} is null
+          or ${sqlCurrencyMatchesActive(posOrders.currency, financialCurrency)}
+        )`,
+        sql`not exists (
+          select 1
+          from pos_sale_payments p
+          where p.org_id = ${posReceipts.orgId}
+            and p.device_id = ${posReceipts.deviceId}
+            and p.local_receipt_id = ${posReceipts.localReceiptId}
+            and (
+              p.currency is null
+              or btrim(p.currency) = ''
+              or upper(btrim(p.currency)) <> ${financialCurrency}
+            )
+        )`,
+      )
+    : sql`true`;
 
   const [row] = await db
     .select({
@@ -306,6 +376,7 @@ export async function fetchPosRevenueCentsForPeriod(input: {
           ${posOrders.id} is null
           or ${sqlIsLiveOrderPlatform(posOrders.platform)}
         )`,
+        currencyFilter,
       ),
     );
 
@@ -316,8 +387,10 @@ export async function fetchOnlinePaymentSummaryForPeriod(input: {
   orgId: string;
   customerId: string;
   period: SalesPeriodInput;
+  financialCurrency?: string;
 }): Promise<OnlinePaymentSummaryCents & { currency: string }> {
   const { orgId, customerId, period } = input;
+  const financialCurrency = normalizeCurrencyCode(input.financialCurrency);
 
   const orderRows = await db
     .select({
@@ -357,6 +430,8 @@ export async function fetchOnlinePaymentSummaryForPeriod(input: {
       localPaymentId: posSalePayments.localPaymentId,
       method: posSalePayments.method,
       amountCents: posSalePayments.amountCents,
+      currency: posSalePayments.currency,
+      orderCurrency: posOrders.currency,
       paidAt: posSalePayments.paidAt,
       updatedAt: posSalePayments.updatedAt,
     })
@@ -394,6 +469,9 @@ export async function fetchOnlinePaymentSummaryForPeriod(input: {
         localPaymentId: row.localPaymentId,
         method: row.method,
         amountCents: row.amountCents,
+        currency: row.currency,
+        orderCurrency: row.orderCurrency,
+        hasOrder: true,
         paidAt: row.paidAt,
         updatedAt: row.updatedAt,
       },
@@ -406,6 +484,7 @@ export async function fetchOnlinePaymentSummaryForPeriod(input: {
       localOrderId: posOrders.localOrderId,
       grossCents: posReceipts.grossCents,
       currency: posReceipts.currency,
+      orderCurrency: posOrders.currency,
       paymentStatus: posOrders.paymentStatus,
       status: posOrders.status,
     })
@@ -431,24 +510,58 @@ export async function fetchOnlinePaymentSummaryForPeriod(input: {
     winnerKeys.has(orderLinesLookupKey(row.deviceId, row.localOrderId)),
   );
 
+  const financiallyEligible = (sources: Array<{ currency: string | null | undefined }>) => {
+    if (!input.financialCurrency) return true;
+    if (!isSupportedBusinessCurrency(financialCurrency)) return false;
+    return evaluateSaleFinancialInclusion({
+      activeCurrency: financialCurrency,
+      sources,
+    }).included;
+  };
+
+  const financialReceiptRows = winnerKpiReceiptRows.filter((row) => {
+    const key = orderLinesLookupKey(row.deviceId, row.localOrderId);
+    const payments = paymentsByOrder.get(key) ?? [];
+    return financiallyEligible([
+      { currency: row.currency },
+      { currency: row.orderCurrency },
+      ...payments.map((payment) => ({ currency: payment.currency })),
+    ]);
+  });
+
   const ordersWithKpiReceipt = new Set<string>();
-  for (const row of winnerKpiReceiptRows) {
+  for (const row of financialReceiptRows) {
     ordersWithKpiReceipt.add(orderLinesLookupKey(row.deviceId, row.localOrderId));
   }
 
-  let currency =
-    dedupedOrderRows[0]?.currency?.trim().toUpperCase() ??
-    winnerKpiReceiptRows[0]?.currency?.trim().toUpperCase() ??
-    "";
+  const financialOrders = dedupedOrderRows.filter((order) => {
+    const key = orderLinesLookupKey(order.deviceId, order.localOrderId);
+    const payments = paymentsByOrder.get(key) ?? [];
+    return financiallyEligible([
+      { currency: order.currency },
+      ...payments.map((payment) => ({ currency: payment.currency })),
+    ]);
+  });
+
+  const currency = isSupportedBusinessCurrency(financialCurrency)
+    ? financialCurrency
+    : financialOrders[0]?.currency?.trim().toUpperCase() ??
+      financialReceiptRows[0]?.currency?.trim().toUpperCase() ??
+      "";
 
   const summary = aggregateOnlinePaymentSummary({
-    orders: dedupedOrderRows.map((order) => {
+    orders: financialOrders.map((order) => {
       const key = orderLinesLookupKey(order.deviceId, order.localOrderId);
       return {
         totalCents: order.totalCents,
         orderStatus: order.status,
         paymentStatus: order.paymentStatus,
-        paymentRows: paymentsByOrder.get(key) ?? [],
+        paymentRows: (paymentsByOrder.get(key) ?? []).filter((payment) =>
+          financiallyEligible([
+            { currency: payment.currency },
+            { currency: order.currency },
+          ]),
+        ),
         hasKpiReceipt: ordersWithKpiReceipt.has(key),
         excluded: isOrderExcludedFromOnlinePaymentSummary(
           order.status,
@@ -456,13 +569,19 @@ export async function fetchOnlinePaymentSummaryForPeriod(input: {
         ),
       };
     }),
-    providerReceipts: winnerKpiReceiptRows.map((receipt) => {
+    providerReceipts: financialReceiptRows.map((receipt) => {
       const key = orderLinesLookupKey(receipt.deviceId, receipt.localOrderId);
       return {
         grossCents: receipt.grossCents,
         orderStatus: receipt.status,
         paymentStatus: receipt.paymentStatus,
-        paymentRows: paymentsByOrder.get(key) ?? [],
+        paymentRows: (paymentsByOrder.get(key) ?? []).filter((payment) =>
+          financiallyEligible([
+            { currency: payment.currency },
+            { currency: receipt.currency },
+            { currency: receipt.orderCurrency },
+          ]),
+        ),
         excluded: isOrderExcludedFromOnlinePaymentSummary(
           receipt.status,
           receipt.paymentStatus,
@@ -474,12 +593,23 @@ export async function fetchOnlinePaymentSummaryForPeriod(input: {
   return { ...summary, currency };
 }
 
+export async function loadActiveBusinessCurrency(orgId: string): Promise<string> {
+  const [profile] = await db
+    .select({ currency: businessProfiles.currency })
+    .from(businessProfiles)
+    .where(eq(businessProfiles.orgId, orgId))
+    .limit(1);
+  const code = normalizeCurrencyCode(profile?.currency);
+  return isSupportedBusinessCurrency(code) ? code : "";
+}
+
 export async function fetchPortalSalesPeriodStats(input: {
   orgId: string;
   customerId: string;
   period: SalesPeriodInput;
 }): Promise<PortalSalesPeriodStats> {
   const { orgId, customerId, period } = input;
+  const financialCurrency = await loadActiveBusinessCurrency(orgId);
 
   const [orderStats] = await db
     .select({
@@ -503,6 +633,7 @@ export async function fetchPortalSalesPeriodStats(input: {
       soldAt: posOrders.soldAt,
       totalCents: posOrders.totalCents,
       paymentStatus: posOrders.paymentStatus,
+      currency: posOrders.currency,
     })
     .from(posOrders)
     .innerJoin(devices, eq(posOrders.deviceId, devices.id))
@@ -533,9 +664,12 @@ export async function fetchPortalSalesPeriodStats(input: {
     .select({
       deviceId: posReceipts.deviceId,
       localOrderId: posReceipts.localOrderId,
+      localReceiptId: posReceipts.localReceiptId,
       status: posReceipts.status,
       platform: posOrders.platform,
       orderId: posOrders.id,
+      receiptCurrency: posReceipts.currency,
+      orderCurrency: posOrders.currency,
     })
     .from(posReceipts)
     .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
@@ -567,34 +701,45 @@ export async function fetchPortalSalesPeriodStats(input: {
     period,
   });
 
+  const paymentsByReceiptKey = new Map<string, OrderPaymentRow[]>();
+  const paymentsByOrderKey = new Map<string, OrderPaymentRow[]>();
+  for (const row of paymentRows) {
+    if (row.deviceId && row.localReceiptId) {
+      appendOrderPaymentRow(
+        paymentsByReceiptKey,
+        orderLinesLookupKey(row.deviceId, row.localReceiptId),
+        row,
+      );
+    }
+    if (row.deviceId && row.localOrderId) {
+      appendOrderPaymentRow(
+        paymentsByOrderKey,
+        orderLinesLookupKey(row.deviceId, row.localOrderId),
+        row,
+      );
+    }
+  }
+
   const receiptOrderJoin = and(
     eq(posReceipts.orgId, posOrders.orgId),
     eq(posReceipts.deviceId, posOrders.deviceId),
     eq(posReceipts.localOrderId, posOrders.localOrderId),
   );
 
-  const [posReceiptRevenueRow] = await db
-    .select({
-      revenue: sql<number>`coalesce(sum(${posReceipts.grossCents}) filter (where ${sqlReceiptContributesToKpis()}), 0)::int`,
-    })
-    .from(posReceipts)
-    .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
-    .leftJoin(posOrders, receiptOrderJoin)
-    .where(
-      and(
-        receiptPeriodScope(orgId, customerId, period),
-        sql`(
-          ${posOrders.id} is null
-          or ${sqlIsLiveOrderPlatform(posOrders.platform)}
-        )`,
-      ),
-    );
+  const posRevenueCents = await fetchPosRevenueCentsForPeriod({
+    orgId,
+    customerId,
+    period,
+    financialCurrency,
+  });
 
   const providerKpiReceiptRows = await db
     .select({
       deviceId: posOrders.deviceId,
       localOrderId: posOrders.localOrderId,
       grossCents: posReceipts.grossCents,
+      receiptCurrency: posReceipts.currency,
+      orderCurrency: posOrders.currency,
     })
     .from(posReceipts)
     .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
@@ -611,6 +756,16 @@ export async function fetchPortalSalesPeriodStats(input: {
   for (const row of providerKpiReceiptRows) {
     const key = orderLinesLookupKey(row.deviceId, row.localOrderId);
     if (!winnerOrderKeys.has(key)) continue;
+    const payments = paymentsByOrderKey.get(key) ?? [];
+    const included = evaluateSaleFinancialInclusion({
+      activeCurrency: financialCurrency,
+      sources: [
+        { currency: row.receiptCurrency },
+        { currency: row.orderCurrency },
+        ...payments.map((payment) => ({ currency: payment.currency })),
+      ],
+    }).included;
+    if (!included) continue;
     receiptRevenueByWinnerKey.set(
       key,
       (receiptRevenueByWinnerKey.get(key) ?? 0) + row.grossCents,
@@ -634,12 +789,20 @@ export async function fetchPortalSalesPeriodStats(input: {
       continue;
     }
     const paymentStatus = (winner.paymentStatus ?? "").trim().toLowerCase();
-    if (!cancelled && paymentStatus === "paid") {
+    const orderIncluded = evaluateSaleFinancialInclusion({
+      activeCurrency: financialCurrency,
+      sources: [
+        { currency: winner.currency },
+        ...(paymentsByOrderKey.get(key) ?? []).map((payment) => ({
+          currency: payment.currency,
+        })),
+      ],
+    }).included;
+    if (!cancelled && paymentStatus === "paid" && orderIncluded) {
       onlineOrderRevenueCents += winner.totalCents;
     }
   }
 
-  const posRevenueCents = posReceiptRevenueRow?.revenue ?? 0;
   const onlineRevenueCents = onlineReceiptRevenueCents + onlineOrderRevenueCents;
   const revenueCents = combineRevenueMinor(posRevenueCents, onlineRevenueCents);
 
@@ -661,33 +824,70 @@ export async function fetchPortalSalesPeriodStats(input: {
     ...orderCurrencyRows.map((row) => row.currency),
   ]);
 
-  let currency = periodCurrencies.currency ?? "";
-  if (!currency && !periodCurrencies.mixedCurrency) {
-    const [profile] = await db
-      .select({ currency: businessProfiles.currency })
-      .from(businessProfiles)
-      .where(eq(businessProfiles.orgId, orgId))
-      .limit(1);
-    currency = profile?.currency?.trim().toUpperCase() ?? "";
+  let includedTransactionCount = 0;
+  let excludedTransactionCount = 0;
+  let hasCurrencyInconsistencies = false;
+  const excludedCurrencySet = new Set<string>();
+
+  for (const row of receiptCountRows) {
+    if (row.orderId && isProviderOrder(row.platform)) {
+      if (!row.localOrderId) continue;
+      if (
+        !winnerOrderKeys.has(
+          orderLinesLookupKey(row.deviceId, row.localOrderId),
+        )
+      ) {
+        continue;
+      }
+    }
+    const receiptPayments =
+      paymentsByReceiptKey.get(
+        orderLinesLookupKey(row.deviceId, row.localReceiptId),
+      ) ??
+      (row.localOrderId
+        ? paymentsByOrderKey.get(
+            orderLinesLookupKey(row.deviceId, row.localOrderId),
+          ) ?? []
+        : []);
+    const sources: Array<{ currency: string | null | undefined }> = [
+      { currency: row.receiptCurrency },
+    ];
+    if (row.orderId) sources.push({ currency: row.orderCurrency });
+    for (const payment of receiptPayments) {
+      sources.push({ currency: payment.currency });
+    }
+    const inclusion = evaluateSaleFinancialInclusion({
+      activeCurrency: financialCurrency,
+      sources,
+    });
+    if (inclusion.inconsistent) hasCurrencyInconsistencies = true;
+    if (inclusion.included && receiptStatusContributesToKpis(row.status)) {
+      includedTransactionCount += 1;
+    } else {
+      excludedTransactionCount += 1;
+      for (const code of inclusion.recordedCurrencies) {
+        if (code !== financialCurrency) excludedCurrencySet.add(code);
+      }
+    }
   }
 
-  const mixedCurrency = periodCurrencies.mixedCurrency;
-  const paymentSummary = mixedCurrency
-    ? { cashCents: 0, cardCents: 0, voucherCents: 0, otherCents: 0, currency: "" }
-    : { ...aggregateEffectivePaymentSummary(paymentRows), currency };
-  const onlinePaymentSummary = mixedCurrency
-    ? {
-        cashPaidCents: 0,
-        cardPaidCents: 0,
-        onlinePaidCents: 0,
-        pendingCents: 0,
-        currency: "",
-      }
-    : await fetchOnlinePaymentSummaryForPeriod({
-        orgId,
-        customerId,
-        period,
-      });
+  const mixedCurrency =
+    periodCurrencies.mixedCurrency || excludedCurrencySet.size > 0;
+
+  const financialPaymentRows = paymentRows.filter((row) =>
+    paymentRowFinanciallyIncluded(row, financialCurrency),
+  );
+
+  const paymentSummary = {
+    ...aggregateEffectivePaymentSummary(financialPaymentRows),
+    currency: financialCurrency,
+  };
+  const onlinePaymentSummary = await fetchOnlinePaymentSummaryForPeriod({
+    orgId,
+    customerId,
+    period,
+    financialCurrency,
+  });
 
   return {
     ordersCount: totalOrders,
@@ -695,16 +895,22 @@ export async function fetchPortalSalesPeriodStats(input: {
     onlineOrdersCount,
     receiptsCount,
     kpiReceiptsCount,
-    posRevenueCents: mixedCurrency ? 0 : posRevenueCents,
-    onlineRevenueCents: mixedCurrency ? 0 : onlineRevenueCents,
-    revenueCents: mixedCurrency ? 0 : revenueCents,
+    posRevenueCents,
+    onlineRevenueCents,
+    revenueCents,
     refundsCount,
-    currency: mixedCurrency ? "" : currency,
+    currency: financialCurrency,
     mixedCurrency,
+    financialCurrency,
+    includedTransactionCount,
+    excludedTransactionCount,
+    excludedCurrencies: [...excludedCurrencySet],
+    hasCurrencyInconsistencies,
     paymentSummary,
-    onlinePaymentSummary: mixedCurrency
-      ? onlinePaymentSummary
-      : attachOperationalOnlineCurrency(onlinePaymentSummary, currency),
+    onlinePaymentSummary: attachOperationalOnlineCurrency(
+      onlinePaymentSummary,
+      financialCurrency,
+    ),
   };
 }
 

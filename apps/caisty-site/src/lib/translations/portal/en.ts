@@ -193,7 +193,10 @@ export const portalEn = {
       waitingPosSync: "Waiting for POS synchronization",
       waitingPosSyncShort: "Waiting for POS sync",
       mixedCurrencyWarning:
-        "This period contains more than one currency. Amounts are shown per receipt and are not added together.",
+        "Financial totals in {{currency}} only. {{count}} historical transactions in another currency are excluded.",
+      activeCurrencyAverageHint: "Average includes {{currency}} sales only.",
+      currencyInconsistencyWarning:
+        "Some records have missing or conflicting currencies and are excluded from financial totals.",
       financialTotalsUnavailable: "Financial totals unavailable for mixed currencies.",
       waiting: "Waiting…",
       unknown: "Unknown",
@@ -300,7 +303,10 @@ export const portalEn = {
     waitingPosSync: "Waiting for POS synchronization",
     waitingPosSyncShort: "Waiting for POS sync",
     mixedCurrencyWarning:
-      "This period contains more than one currency. Amounts are shown per receipt and are not added together.",
+      "Financial totals in {{currency}} only. {{count}} historical transactions in another currency are excluded.",
+    activeCurrencyAverageHint: "Average includes {{currency}} sales only.",
+    currencyInconsistencyWarning:
+      "Some records have missing or conflicting currencies and are excluded from financial totals.",
     financialTotalsUnavailable: "Financial totals unavailable for mixed currencies.",
     comingSoon: "Coming soon",
     kpiRevenue: "Revenue today",
@@ -459,7 +465,10 @@ export const portalEn = {
     subtitle: "Manage and review synchronized POS receipts.",
     waitingPosSyncShort: "Waiting for POS sync",
     mixedCurrencyWarning:
-      "This period contains more than one currency. Amounts are shown per receipt and are not added together.",
+      "Financial totals in {{currency}} only. {{count}} historical transactions in another currency are excluded.",
+    activeCurrencyAverageHint: "Average includes {{currency}} sales only.",
+    currencyInconsistencyWarning:
+      "Some records have missing or conflicting currencies and are excluded from financial totals.",
     financialTotalsUnavailable: "Financial totals unavailable for mixed currencies.",
     kpiReceiptsToday: "Receipts today",
     kpiPosRevenue: "POS revenue",
@@ -658,7 +667,10 @@ export const portalEn = {
     errorDescription: "Something went wrong while loading analytics. Please try again.",
     errorRetry: "Try again",
     mixedCurrencyWarning:
-      "This period contains more than one currency. Amounts are shown per receipt and are not added together.",
+      "Financial totals in {{currency}} only. {{count}} historical transactions in another currency are excluded.",
+    activeCurrencyAverageHint: "Average includes {{currency}} sales only.",
+    currencyInconsistencyWarning:
+      "Some records have missing or conflicting currencies and are excluded from financial totals.",
     financialTotalsUnavailable: "Financial totals unavailable for mixed currencies.",
     colRank: "#",
     colProduct: "Product",

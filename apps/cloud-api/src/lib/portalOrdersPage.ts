@@ -120,6 +120,11 @@ export type PortalOrdersPageData = {
     onlineRevenueCents: number;
     averageOrderMinor: number;
     mixedCurrency: boolean;
+    financialCurrency: string;
+    includedTransactionCount: number;
+    excludedTransactionCount: number;
+    excludedCurrencies: string[];
+    hasCurrencyInconsistencies: boolean;
     openShift: Awaited<ReturnType<typeof shiftService.getOpenShiftForCustomer>>;
     paymentSummary: {
       cashCents: number;
@@ -515,13 +520,16 @@ export async function fetchPortalOrdersPage(input: {
       revenueCents: periodStats.revenueCents,
       posRevenueCents: periodStats.posRevenueCents,
       onlineRevenueCents: periodStats.onlineRevenueCents,
-      averageOrderMinor: periodStats.mixedCurrency
-        ? 0
-        : averageOrderMinor(
-            periodStats.revenueCents,
-            periodStats.kpiReceiptsCount,
-          ),
+      averageOrderMinor: averageOrderMinor(
+        periodStats.revenueCents,
+        periodStats.includedTransactionCount,
+      ),
       mixedCurrency: periodStats.mixedCurrency,
+      financialCurrency: periodStats.financialCurrency,
+      includedTransactionCount: periodStats.includedTransactionCount,
+      excludedTransactionCount: periodStats.excludedTransactionCount,
+      excludedCurrencies: periodStats.excludedCurrencies,
+      hasCurrencyInconsistencies: periodStats.hasCurrencyInconsistencies,
       openShift,
       paymentSummary: periodStats.paymentSummary,
       onlinePaymentSummary: periodStats.onlinePaymentSummary,

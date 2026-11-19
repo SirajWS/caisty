@@ -90,12 +90,11 @@ export function buildOrdersPdfModel(
 ): OrdersPdfModel {
   const { meta, labels, sales } = input;
   const { summary, orders, providerOrders, receipts } = sales;
-  const mixed = Boolean(summary.mixedCurrency);
-  const currency = mixed
-    ? ""
-    : summary.paymentSummary.currency ||
-      summary.onlinePaymentSummary?.currency ||
-      meta.currency;
+  const currency =
+    summary.financialCurrency ||
+    summary.paymentSummary.currency ||
+    summary.onlinePaymentSummary?.currency ||
+    meta.currency;
   const { locale, timezone } = meta;
   const dash = labels.dash;
   const paymentLabels: PaymentMethodLabels = {
@@ -132,7 +131,7 @@ export function buildOrdersPdfModel(
     hasRecordedAmounts: onlineHasAmounts,
   });
   const money = (cents: number, code = currency) =>
-    mixed ? dash : formatDocumentMoney(cents, code, locale);
+    currency ? formatDocumentMoney(cents, code, locale) : dash;
 
   return {
     exportsFullOrderLists: true,

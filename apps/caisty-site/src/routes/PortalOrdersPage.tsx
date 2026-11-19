@@ -23,6 +23,7 @@ import { OrdersFilters } from "../components/orders/OrdersFilters";
 import { ReceiptDetailDrawer } from "../components/orders/ReceiptDetailDrawer";
 import { OrderDetailDrawer } from "../components/orders/OrderDetailDrawer";
 import { formatPortalPaymentMethod } from "../lib/portal/portalSalesLabels";
+import { formatCurrencyExclusionBanner } from "../lib/portal/financialCurrencyScope";
 import { PortalExportPdfButton } from "../components/portal/PortalExportPdfButton";
 import {
   buildOrdersDocumentLabels,
@@ -70,6 +71,11 @@ const PortalOrdersPage: React.FC = () => {
     () => sliceOrdersPage(orders.providerOrders, onlinePagination),
     [orders.providerOrders, onlinePagination],
   );
+  const currencyBanner = formatCurrencyExclusionBanner({
+    summary: data.sales?.summary,
+    warning: o.mixedCurrencyWarning,
+    inconsistencyWarning: o.currencyInconsistencyWarning,
+  });
 
   React.useEffect(() => {
     const nextPage = clampOrdersPage(
@@ -291,9 +297,9 @@ const PortalOrdersPage: React.FC = () => {
         </div>
       </header>
 
-      {data.sales?.summary.mixedCurrency ? (
+      {currencyBanner ? (
         <p className="dashboard-text-muted" role="status">
-          {o.mixedCurrencyWarning}
+          {currencyBanner}
         </p>
       ) : null}
 

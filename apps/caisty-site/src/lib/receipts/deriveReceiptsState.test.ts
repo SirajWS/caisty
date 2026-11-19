@@ -242,7 +242,7 @@ describe("deriveReceiptsState", () => {
     expect(countKpi?.label).toMatch(/November/);
   });
 
-  it("hides mixed-currency POS revenue while keeping receipt row currencies", () => {
+  it("shows active-currency POS revenue while keeping receipt row currencies", () => {
     const state = deriveReceiptsState({
       data: {
         customer: { id: "c1", email: "a@b.com", name: "Test" } as never,
@@ -250,19 +250,24 @@ describe("deriveReceiptsState", () => {
           timezone: "Europe/Berlin",
           period: "today",
           summary: {
-            receiptsCount: 2,
-            activeCount: 2,
-            printedCount: 2,
+            receiptsCount: 6,
+            activeCount: 6,
+            printedCount: 0,
             reprintedCount: 0,
             refundsCount: 0,
-            posRevenueCents: 0,
+            posRevenueCents: 107000,
             mixedCurrency: true,
+            financialCurrency: "TND",
+            includedTransactionCount: 4,
+            excludedTransactionCount: 2,
+            excludedCurrencies: ["DZD"],
+            hasCurrencyInconsistencies: false,
             paymentSummary: {
-              cashCents: 0,
+              cashCents: 107000,
               cardCents: 0,
               voucherCents: 0,
               otherCents: 0,
-              currency: "",
+              currency: "TND",
             },
           },
           receipts: [
@@ -290,7 +295,7 @@ describe("deriveReceiptsState", () => {
       locale: "en-GB",
     });
 
-    expect(state.summary.find((k) => k.id === "pos_revenue")?.value).toBe("—");
+    expect(state.summary.find((k) => k.id === "pos_revenue")?.value).toContain("107.000");
     expect(state.receipts[0]?.amount).toMatch(/EUR|€/);
     expect(state.receipts[1]?.amount).toContain("5.000");
   });

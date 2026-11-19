@@ -7,9 +7,12 @@ export {
   getCurrencyPrecision,
   isSupportedBusinessCurrency,
   normalizeCurrencyCode,
+  matchesActiveBusinessCurrency,
+  evaluateSaleFinancialInclusion,
   pickOperationalPaymentCurrency,
   resolvePeriodCurrencies,
   type BusinessCurrencyCode,
+  type SaleFinancialInclusion,
 } from "./catalog";
 export { fromMinorUnits, toMinorUnits } from "./convert";
 export { formatMinorUnits } from "./format";

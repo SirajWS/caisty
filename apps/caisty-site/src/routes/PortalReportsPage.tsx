@@ -23,6 +23,7 @@ import { RevenueChart } from "../components/reports/RevenueChart";
 import { HourlySalesChart } from "../components/reports/HourlySalesChart";
 import { PaymentMethods } from "../components/reports/PaymentMethods";
 import { TopProducts } from "../components/reports/TopProducts";
+import { formatCurrencyExclusionBanner } from "../lib/portal/financialCurrencyScope";
 import { TopEmployees } from "../components/reports/TopEmployees";
 import { TaxesOverview } from "../components/reports/TaxesOverview";
 import { BusinessTrends } from "../components/reports/BusinessTrends";
@@ -73,6 +74,11 @@ const PortalReportsPage: React.FC = () => {
   const syncHint = r.paymentEmptyHint;
   const fiscalHint = r.fiscalEmptyHint;
   const [exportingPdf, setExportingPdf] = React.useState(false);
+  const currencyBanner = formatCurrencyExclusionBanner({
+    summary: data.reportsSummary,
+    warning: r.mixedCurrencyWarning,
+    inconsistencyWarning: r.currencyInconsistencyWarning,
+  });
 
   const handleExportPdf = React.useCallback(async () => {
     const summary = data.reportsSummary;
@@ -184,9 +190,9 @@ const PortalReportsPage: React.FC = () => {
         }}
       />
 
-      {data.reportsSummary?.mixedCurrency ? (
+      {currencyBanner ? (
         <p className="dashboard-text-muted" role="status">
-          {r.mixedCurrencyWarning}
+          {currencyBanner}
         </p>
       ) : null}
 

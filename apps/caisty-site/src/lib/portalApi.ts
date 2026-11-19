@@ -531,6 +531,11 @@ export type PortalOrdersSummary = {
   onlineRevenueCents: number;
   averageOrderMinor: number;
   mixedCurrency?: boolean;
+  financialCurrency?: string;
+  includedTransactionCount?: number;
+  excludedTransactionCount?: number;
+  excludedCurrencies?: string[];
+  hasCurrencyInconsistencies?: boolean;
   openShift: PortalOpenShiftRecord | null;
   paymentSummary: PortalOrdersPaymentSummary;
   onlinePaymentSummary: PortalOnlinePaymentSummary;
@@ -717,6 +722,11 @@ export type PortalReceiptsSummary = {
   refundsCount: number;
   posRevenueCents: number;
   mixedCurrency?: boolean;
+  financialCurrency?: string;
+  includedTransactionCount?: number;
+  excludedTransactionCount?: number;
+  excludedCurrencies?: string[];
+  hasCurrencyInconsistencies?: boolean;
   paymentSummary: PortalOrdersPaymentSummary;
 };
 
@@ -791,6 +801,11 @@ export interface PortalDashboardSummary {
   averageOrderMinor: number;
   currency: string;
   mixedCurrency?: boolean;
+  financialCurrency?: string;
+  includedTransactionCount?: number;
+  excludedTransactionCount?: number;
+  excludedCurrencies?: string[];
+  hasCurrencyInconsistencies?: boolean;
   lastSynchronizationAt: string | null;
   hasSalesData: boolean;
   paymentSummary: PortalOrdersPaymentSummary;
@@ -888,6 +903,11 @@ export interface PortalReportsSummary {
   to?: string;
   hasSalesData: boolean;
   mixedCurrency?: boolean;
+  financialCurrency?: string;
+  includedTransactionCount?: number;
+  excludedTransactionCount?: number;
+  excludedCurrencies?: string[];
+  hasCurrencyInconsistencies?: boolean;
   overview: PortalReportsOverview;
   /** Same period splits as Dashboard/Orders (from portal sales period stats). */
   posRevenueCents: number;

@@ -193,7 +193,10 @@ export const portalDe: PortalTranslations = {
       waitingPosSync: "Warte auf POS-Synchronisation",
       waitingPosSyncShort: "Warte auf POS-Sync",
       mixedCurrencyWarning:
-        "Dieser Zeitraum enthält mehrere Währungen. Beträge werden je Beleg angezeigt und nicht zusammenaddiert.",
+        "Finanzkennzahlen nur in {{currency}}. {{count}} historische Transaktionen in einer anderen Währung sind ausgeschlossen.",
+      activeCurrencyAverageHint: "Der Durchschnitt berücksichtigt nur Verkäufe in {{currency}}.",
+      currencyInconsistencyWarning:
+        "Einige Datensätze haben fehlende oder widersprüchliche Währungen und sind von den Finanzkennzahlen ausgeschlossen.",
       financialTotalsUnavailable: "Finanzielle Gesamtsummen sind bei gemischten Währungen nicht verfügbar.",
       waiting: "Warte…",
       unknown: "Unbekannt",
@@ -300,7 +303,10 @@ export const portalDe: PortalTranslations = {
     waitingPosSync: "Warte auf POS-Synchronisation",
     waitingPosSyncShort: "Warte auf POS-Sync",
     mixedCurrencyWarning:
-      "Dieser Zeitraum enthält mehrere Währungen. Beträge werden je Beleg angezeigt und nicht zusammenaddiert.",
+      "Finanzkennzahlen nur in {{currency}}. {{count}} historische Transaktionen in einer anderen Währung sind ausgeschlossen.",
+    activeCurrencyAverageHint: "Der Durchschnitt berücksichtigt nur Verkäufe in {{currency}}.",
+    currencyInconsistencyWarning:
+      "Einige Datensätze haben fehlende oder widersprüchliche Währungen und sind von den Finanzkennzahlen ausgeschlossen.",
     financialTotalsUnavailable: "Finanzielle Gesamtsummen sind bei gemischten Währungen nicht verfügbar.",
     comingSoon: "Demnächst",
     kpiRevenue: "Umsatz heute",
@@ -459,7 +465,10 @@ export const portalDe: PortalTranslations = {
     subtitle: "Synchronisierte POS-Belege verwalten und einsehen.",
     waitingPosSyncShort: "Warte auf POS-Sync",
     mixedCurrencyWarning:
-      "Dieser Zeitraum enthält mehrere Währungen. Beträge werden je Beleg angezeigt und nicht zusammenaddiert.",
+      "Finanzkennzahlen nur in {{currency}}. {{count}} historische Transaktionen in einer anderen Währung sind ausgeschlossen.",
+    activeCurrencyAverageHint: "Der Durchschnitt berücksichtigt nur Verkäufe in {{currency}}.",
+    currencyInconsistencyWarning:
+      "Einige Datensätze haben fehlende oder widersprüchliche Währungen und sind von den Finanzkennzahlen ausgeschlossen.",
     financialTotalsUnavailable: "Finanzielle Gesamtsummen sind bei gemischten Währungen nicht verfügbar.",
     kpiReceiptsToday: "Belege heute",
     kpiPosRevenue: "POS-Umsatz",
@@ -659,7 +668,10 @@ export const portalDe: PortalTranslations = {
     errorDescription: "Beim Laden der Analysen ist etwas schiefgelaufen. Bitte erneut versuchen.",
     errorRetry: "Erneut versuchen",
     mixedCurrencyWarning:
-      "Dieser Zeitraum enthält mehrere Währungen. Beträge werden je Beleg angezeigt und nicht zusammenaddiert.",
+      "Finanzkennzahlen nur in {{currency}}. {{count}} historische Transaktionen in einer anderen Währung sind ausgeschlossen.",
+    activeCurrencyAverageHint: "Der Durchschnitt berücksichtigt nur Verkäufe in {{currency}}.",
+    currencyInconsistencyWarning:
+      "Einige Datensätze haben fehlende oder widersprüchliche Währungen und sind von den Finanzkennzahlen ausgeschlossen.",
     financialTotalsUnavailable: "Finanzielle Gesamtsummen sind bei gemischten Währungen nicht verfügbar.",
     colRank: "#",
     colProduct: "Produkt",

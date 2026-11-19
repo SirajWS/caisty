@@ -12,6 +12,10 @@ import { formatPortalOrderStatus, formatPortalPaymentMethod } from "../portal/po
 import { formatMinorUnits } from "../money/formatMinorUnits";
 import { pickOperationalPaymentCurrency } from "@caisty/business-currency";
 import {
+  financialCurrencyScope,
+  formatTemplate,
+} from "../portal/financialCurrencyScope";
+import {
   deriveOnlinePaymentCards as buildOnlinePaymentCards,
   deriveOnlineRevenueHeader,
   derivePosPaymentCards,
@@ -201,11 +205,15 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
     syncStatus = "value";
   }
 
-  const mixed = Boolean(sales?.mixedCurrency);
+  const scope = financialCurrencyScope(sales);
   const currency =
+    scope.financialCurrency ||
     (typeof sales?.currency === "string" && sales.currency.trim()) ||
     data.business?.currency ||
     "";
+  const averageHint = scope.showExclusionBanner
+    ? formatTemplate(l.activeCurrencyAverageHint, { currency })
+    : undefined;
 
   const todayRevenueCents = asMinorOrCount(sales?.todayRevenueCents);
   const posRevenueCents = asMinorOrCount(sales?.posRevenueCents);
@@ -215,18 +223,18 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
   const onlineOrdersCount = asMinorOrCount(sales?.onlineOrdersCount);
   const averageOrderMinor = asMinorOrCount(sales?.averageOrderMinor);
 
-  const posRevenueLabel = mixed
-    ? dash
-    : formatMoney(posRevenueCents, currency, input.locale);
-  const onlineRevenueLabel = mixed
-    ? dash
-    : formatMoney(onlineRevenueCents, currency, input.locale);
+  const posRevenueLabel = scope.showMoney
+    ? formatMoney(posRevenueCents, currency, input.locale)
+    : dash;
+  const onlineRevenueLabel = scope.showMoney
+    ? formatMoney(onlineRevenueCents, currency, input.locale)
+    : dash;
 
   const revenueValue =
-    hasSales && !mixed
+    hasSales && scope.showMoney
       ? formatMoney(todayRevenueCents, currency, input.locale)
       : dash;
-  const revenueHint = mixed
+  const revenueHint = !scope.showMoney && hasSales
     ? l.financialTotalsUnavailable
     : hasSales
       ? applyTemplate(
@@ -247,7 +255,7 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
       )
     : syncHint;
   const avgOrderValue =
-    hasSales && !mixed
+    hasSales && scope.showMoney
       ? formatMoney(averageOrderMinor, currency, input.locale)
       : dash;
 
@@ -257,7 +265,7 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
       label: l.kpiRevenueToday,
       value: revenueValue,
       hint: hasSales ? revenueHint : syncHint,
-      status: hasSales && !mixed ? "value" : mixed ? "value" : "waiting_sync",
+      status: hasSales ? "value" : "waiting_sync",
     },
     {
       id: "orders",
@@ -270,12 +278,12 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
       id: "avg_order",
       label: l.kpiAvgOrder,
       value: avgOrderValue,
-      hint: mixed
+      hint: !scope.showMoney && hasSales
         ? l.financialTotalsUnavailable
         : hasSales
-          ? undefined
+          ? averageHint
           : syncHint,
-      status: hasSales && !mixed ? "value" : mixed ? "value" : "waiting_sync",
+      status: hasSales ? "value" : "waiting_sync",
     },
     {
       id: "pos_status",
@@ -803,7 +811,7 @@ function derivePaymentCards(input: DeriveDashboardInput): PaymentMethodCard[] {
     },
     locale: input.locale,
     dash,
-    hasData: Boolean(sales?.hasSalesData) && !sales?.mixedCurrency,
+    hasData: Boolean(sales?.hasSalesData),
   });
 }
 
@@ -829,7 +837,7 @@ function deriveOnlineRevenueHeaderState(input: DeriveDashboardInput) {
     },
     locale: input.locale,
     dash,
-    hasData: Boolean(sales?.hasSalesData) && !sales?.mixedCurrency,
+    hasData: Boolean(sales?.hasSalesData),
   });
 }
 
@@ -851,7 +859,7 @@ function deriveOnlinePaymentCards(input: DeriveDashboardInput): PaymentMethodCar
     },
     locale: input.locale,
     dash,
-    hasData: Boolean(sales?.hasSalesData) && !sales?.mixedCurrency,
+    hasData: Boolean(sales?.hasSalesData),
   });
 }
 

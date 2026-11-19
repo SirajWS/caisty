@@ -22,6 +22,11 @@ export type PortalTodaySalesSummary = {
   averageOrderMinor: number;
   currency: string;
   mixedCurrency: boolean;
+  financialCurrency: string;
+  includedTransactionCount: number;
+  excludedTransactionCount: number;
+  excludedCurrencies: string[];
+  hasCurrencyInconsistencies: boolean;
   lastSynchronizationAt: string | null;
 };
 
@@ -79,8 +84,6 @@ export async function fetchPortalTodaySalesSummary(input: {
     fetchPortalTodaySalesStats(input),
     fetchLastSynchronizationAt(input),
   ]);
-  const mixedCurrency = stats.mixedCurrency;
-
   return {
     todayRevenueCents: stats.revenueCents,
     posRevenueCents: stats.posRevenueCents,
@@ -90,11 +93,17 @@ export async function fetchPortalTodaySalesSummary(input: {
     onlineOrdersCount: stats.onlineOrdersCount,
     receiptsToday: stats.receiptsCount,
     refundsCount: stats.refundsCount,
-    averageOrderMinor: mixedCurrency
-      ? 0
-      : averageOrderMinor(stats.revenueCents, stats.kpiReceiptsCount),
-    currency: stats.currency,
-    mixedCurrency,
+    averageOrderMinor: averageOrderMinor(
+      stats.revenueCents,
+      stats.includedTransactionCount,
+    ),
+    currency: stats.financialCurrency || stats.currency,
+    mixedCurrency: stats.mixedCurrency,
+    financialCurrency: stats.financialCurrency,
+    includedTransactionCount: stats.includedTransactionCount,
+    excludedTransactionCount: stats.excludedTransactionCount,
+    excludedCurrencies: stats.excludedCurrencies,
+    hasCurrencyInconsistencies: stats.hasCurrencyInconsistencies,
     lastSynchronizationAt,
   };
 }
@@ -122,8 +131,13 @@ export function buildPortalDashboardSummaryResponse(
     receiptsToday: summary.receiptsToday,
     refundsCount: summary.refundsCount,
     averageOrderMinor: summary.averageOrderMinor,
-    currency: summary.currency,
+    currency: summary.financialCurrency || summary.currency,
     mixedCurrency: summary.mixedCurrency,
+    financialCurrency: summary.financialCurrency,
+    includedTransactionCount: summary.includedTransactionCount,
+    excludedTransactionCount: summary.excludedTransactionCount,
+    excludedCurrencies: summary.excludedCurrencies,
+    hasCurrencyInconsistencies: summary.hasCurrencyInconsistencies,
     lastSynchronizationAt: summary.lastSynchronizationAt,
     hasSalesData,
     paymentSummary: {
@@ -173,9 +187,15 @@ export async function fetchPortalDashboardBundle(input: {
     refundsCount: stats.refundsCount,
     averageOrderMinor: averageOrderMinor(
       stats.revenueCents,
-      stats.kpiReceiptsCount,
+      stats.includedTransactionCount,
     ),
-    currency: stats.currency,
+    currency: stats.financialCurrency || stats.currency,
+    mixedCurrency: stats.mixedCurrency,
+    financialCurrency: stats.financialCurrency,
+    includedTransactionCount: stats.includedTransactionCount,
+    excludedTransactionCount: stats.excludedTransactionCount,
+    excludedCurrencies: stats.excludedCurrencies,
+    hasCurrencyInconsistencies: stats.hasCurrencyInconsistencies,
     lastSynchronizationAt,
   };
 

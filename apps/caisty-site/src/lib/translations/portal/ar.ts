@@ -192,7 +192,10 @@ export const portalAr: PortalTranslations = {
       waitingPosSync: "في انتظار مزامنة POS",
       waitingPosSyncShort: "في انتظار مزامنة POS",
       mixedCurrencyWarning:
-        "تتضمن هذه الفترة أكثر من عملة. تُعرض المبالغ لكل إيصال ولا تُجمع معًا.",
+        "المجاميع المالية بعملة {{currency}} فقط. تم استبعاد {{count}} معاملات تاريخية بعملة أخرى.",
+      activeCurrencyAverageHint: "المتوسط يشمل مبيعات {{currency}} فقط.",
+      currencyInconsistencyWarning:
+        "بعض السجلات لها عملة مفقودة أو متعارضة وتُستبعد من المجاميع المالية.",
       financialTotalsUnavailable: "المجاميع المالية غير متاحة للعملات المختلطة.",
       waiting: "في الانتظار…",
       unknown: "غير معروف",
@@ -299,7 +302,10 @@ export const portalAr: PortalTranslations = {
     waitingPosSync: "في انتظار مزامنة POS",
     waitingPosSyncShort: "في انتظار مزامنة POS",
     mixedCurrencyWarning:
-      "تتضمن هذه الفترة أكثر من عملة. تُعرض المبالغ لكل إيصال ولا تُجمع معًا.",
+      "المجاميع المالية بعملة {{currency}} فقط. تم استبعاد {{count}} معاملات تاريخية بعملة أخرى.",
+    activeCurrencyAverageHint: "المتوسط يشمل مبيعات {{currency}} فقط.",
+    currencyInconsistencyWarning:
+      "بعض السجلات لها عملة مفقودة أو متعارضة وتُستبعد من المجاميع المالية.",
     financialTotalsUnavailable: "المجاميع المالية غير متاحة للعملات المختلطة.",
     comingSoon: "قريباً",
     kpiRevenue: "إيرادات اليوم",
@@ -458,7 +464,10 @@ export const portalAr: PortalTranslations = {
     subtitle: "إدارة ومراجعة إيصالات نقطة البيع المتزامنة.",
     waitingPosSyncShort: "بانتظار مزامنة POS",
     mixedCurrencyWarning:
-      "تتضمن هذه الفترة أكثر من عملة. تُعرض المبالغ لكل إيصال ولا تُجمع معًا.",
+      "المجاميع المالية بعملة {{currency}} فقط. تم استبعاد {{count}} معاملات تاريخية بعملة أخرى.",
+    activeCurrencyAverageHint: "المتوسط يشمل مبيعات {{currency}} فقط.",
+    currencyInconsistencyWarning:
+      "بعض السجلات لها عملة مفقودة أو متعارضة وتُستبعد من المجاميع المالية.",
     financialTotalsUnavailable: "المجاميع المالية غير متاحة للعملات المختلطة.",
     kpiReceiptsToday: "إيصالات اليوم",
     kpiPosRevenue: "إيرادات نقطة البيع",
@@ -658,7 +667,10 @@ export const portalAr: PortalTranslations = {
     errorDescription: "حدث خطأ أثناء تحميل التحليلات. يرجى المحاولة مرة أخرى.",
     errorRetry: "إعادة المحاولة",
     mixedCurrencyWarning:
-      "تتضمن هذه الفترة أكثر من عملة. تُعرض المبالغ لكل إيصال ولا تُجمع معًا.",
+      "المجاميع المالية بعملة {{currency}} فقط. تم استبعاد {{count}} معاملات تاريخية بعملة أخرى.",
+    activeCurrencyAverageHint: "المتوسط يشمل مبيعات {{currency}} فقط.",
+    currencyInconsistencyWarning:
+      "بعض السجلات لها عملة مفقودة أو متعارضة وتُستبعد من المجاميع المالية.",
     financialTotalsUnavailable: "المجاميع المالية غير متاحة للعملات المختلطة.",
     colRank: "#",
     colProduct: "المنتج",

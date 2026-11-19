@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   BUSINESS_CURRENCIES,
+  evaluateSaleFinancialInclusion,
   fromMinorUnits,
   getCurrencyPrecision,
   isSupportedBusinessCurrency,
+  matchesActiveBusinessCurrency,
   pickOperationalPaymentCurrency,
   resolvePeriodCurrencies,
   toMinorUnits,
@@ -75,6 +77,55 @@ describe("business currency catalog", () => {
       mixedCurrency: false,
       currency: null,
     });
+  });
+
+  it("includes a sale only when every source matches the active currency", () => {
+    expect(matchesActiveBusinessCurrency("tnd", "TND")).toBe(true);
+    expect(matchesActiveBusinessCurrency("DZD", "TND")).toBe(false);
+    expect(matchesActiveBusinessCurrency("", "TND")).toBe(false);
+    expect(matchesActiveBusinessCurrency("XYZ", "TND")).toBe(false);
+
+    const tndSale = evaluateSaleFinancialInclusion({
+      activeCurrency: "TND",
+      sources: [
+        { currency: "TND" },
+        { currency: "TND" },
+        { currency: "TND" },
+      ],
+    });
+    expect(tndSale).toEqual({
+      included: true,
+      inconsistent: false,
+      recordedCurrencies: ["TND", "TND", "TND"],
+    });
+
+    const dzdSale = evaluateSaleFinancialInclusion({
+      activeCurrency: "TND",
+      sources: [{ currency: "DZD" }, { currency: "DZD" }],
+    });
+    expect(dzdSale.included).toBe(false);
+    expect(dzdSale.inconsistent).toBe(false);
+
+    const mismatch = evaluateSaleFinancialInclusion({
+      activeCurrency: "TND",
+      sources: [{ currency: "TND" }, { currency: "DZD" }],
+    });
+    expect(mismatch.included).toBe(false);
+    expect(mismatch.inconsistent).toBe(true);
+
+    const missing = evaluateSaleFinancialInclusion({
+      activeCurrency: "TND",
+      sources: [{ currency: "TND" }, { currency: "" }],
+    });
+    expect(missing.included).toBe(false);
+    expect(missing.inconsistent).toBe(true);
+
+    const unknown = evaluateSaleFinancialInclusion({
+      activeCurrency: "TND",
+      sources: [{ currency: "XYZ" }],
+    });
+    expect(unknown.included).toBe(false);
+    expect(unknown.inconsistent).toBe(true);
   });
 
   it("uses business currency for empty operational payment summaries", () => {

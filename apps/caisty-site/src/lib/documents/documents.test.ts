@@ -678,7 +678,7 @@ describe("buildReportsPdfModel", () => {
     expect(model.taxesScopeNote).toMatch(/POS/i);
   });
 
-  it("does not print mixed-currency financial totals", () => {
+  it("prints mixed-history financial totals in the active currency only", () => {
     const t = getPortalTranslations("en");
     const model = buildReportsPdfModel({
       meta: {
@@ -698,16 +698,20 @@ describe("buildReportsPdfModel", () => {
         to: "2026-12-31",
         hasSalesData: true,
         mixedCurrency: true,
+        financialCurrency: "TND",
+        includedTransactionCount: 4,
+        excludedTransactionCount: 2,
+        excludedCurrencies: ["DZD"],
         overview: {
-          revenueMinor: 0,
-          ordersCount: 2,
-          receiptsCount: 2,
+          revenueMinor: 107000,
+          ordersCount: 6,
+          receiptsCount: 6,
           refundsCount: 0,
-          averageOrderMinor: 0,
+          averageOrderMinor: 26750,
           vatMinor: 0,
-          currency: "",
+          currency: "TND",
         },
-        posRevenueCents: 0,
+        posRevenueCents: 107000,
         onlineRevenueCents: 0,
         liveOrdersCount: 2,
         onlineOrdersCount: 0,
@@ -754,10 +758,10 @@ describe("buildReportsPdfModel", () => {
       },
     });
 
-    expect(model.executiveSummary.find(([k]) => k === "Revenue")?.[1]).toBe(
-      t.labels.dash,
+    expect(model.executiveSummary.find(([k]) => k === "Revenue")?.[1]).toMatch(
+      /107\.000/,
     );
-    expect(model.executiveSummary.find(([k]) => k === "Orders")?.[1]).toBe("2");
+    expect(model.executiveSummary.find(([k]) => k === "Orders")?.[1]).toBe("6");
     expect(model.revenueBars).toEqual([]);
   });
 });

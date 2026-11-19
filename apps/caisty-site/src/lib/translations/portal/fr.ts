@@ -192,7 +192,10 @@ export const portalFr: PortalTranslations = {
       waitingPosSync: "En attente de synchronisation POS",
       waitingPosSyncShort: "En attente de sync POS",
       mixedCurrencyWarning:
-        "Cette période contient plusieurs devises. Les montants restent affichés par ticket et ne sont pas additionnés.",
+        "Totaux financiers en {{currency}} uniquement. {{count}} transactions historiques dans une autre devise sont exclues.",
+      activeCurrencyAverageHint: "La moyenne n’inclut que les ventes en {{currency}}.",
+      currencyInconsistencyWarning:
+        "Certains enregistrements ont une devise manquante ou contradictoire et sont exclus des totaux financiers.",
       financialTotalsUnavailable: "Les totaux financiers ne sont pas disponibles pour des devises mixtes.",
       waiting: "En attente…",
       unknown: "Inconnu",
@@ -299,7 +302,10 @@ export const portalFr: PortalTranslations = {
     waitingPosSync: "En attente de synchronisation POS",
     waitingPosSyncShort: "En attente de sync POS",
     mixedCurrencyWarning:
-      "Cette période contient plusieurs devises. Les montants restent affichés par ticket et ne sont pas additionnés.",
+      "Totaux financiers en {{currency}} uniquement. {{count}} transactions historiques dans une autre devise sont exclues.",
+    activeCurrencyAverageHint: "La moyenne n’inclut que les ventes en {{currency}}.",
+    currencyInconsistencyWarning:
+      "Certains enregistrements ont une devise manquante ou contradictoire et sont exclus des totaux financiers.",
     financialTotalsUnavailable: "Les totaux financiers ne sont pas disponibles pour des devises mixtes.",
     comingSoon: "Bientôt disponible",
     kpiRevenue: "Chiffre du jour",
@@ -458,7 +464,10 @@ export const portalFr: PortalTranslations = {
     subtitle: "Gérez et consultez les reçus POS synchronisés.",
     waitingPosSyncShort: "En attente de sync POS",
     mixedCurrencyWarning:
-      "Cette période contient plusieurs devises. Les montants restent affichés par ticket et ne sont pas additionnés.",
+      "Totaux financiers en {{currency}} uniquement. {{count}} transactions historiques dans une autre devise sont exclues.",
+    activeCurrencyAverageHint: "La moyenne n’inclut que les ventes en {{currency}}.",
+    currencyInconsistencyWarning:
+      "Certains enregistrements ont une devise manquante ou contradictoire et sont exclus des totaux financiers.",
     financialTotalsUnavailable: "Les totaux financiers ne sont pas disponibles pour des devises mixtes.",
     kpiReceiptsToday: "Reçus aujourd'hui",
     kpiPosRevenue: "Chiffre d'affaires POS",
@@ -658,7 +667,10 @@ export const portalFr: PortalTranslations = {
     errorDescription: "Une erreur s'est produite lors du chargement des analyses. Veuillez réessayer.",
     errorRetry: "Réessayer",
     mixedCurrencyWarning:
-      "Cette période contient plusieurs devises. Les montants restent affichés par ticket et ne sont pas additionnés.",
+      "Totaux financiers en {{currency}} uniquement. {{count}} transactions historiques dans une autre devise sont exclues.",
+    activeCurrencyAverageHint: "La moyenne n’inclut que les ventes en {{currency}}.",
+    currencyInconsistencyWarning:
+      "Certains enregistrements ont une devise manquante ou contradictoire et sont exclus des totaux financiers.",
     financialTotalsUnavailable: "Les totaux financiers ne sont pas disponibles pour des devises mixtes.",
     colRank: "#",
     colProduct: "Produit",

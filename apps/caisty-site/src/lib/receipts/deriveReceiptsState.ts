@@ -1,5 +1,6 @@
 import { formatMinorUnits } from "../money/formatMinorUnits";
 import { pickOperationalPaymentCurrency } from "@caisty/business-currency";
+import { financialCurrencyScope } from "../portal/financialCurrencyScope";
 import { getReceiptsCountKpiLabel, mapReceiptsPeriodToApi } from "./receiptsPeriod";
 import type {
   DeriveReceiptsInput,
@@ -138,9 +139,9 @@ function deriveSummary(input: DeriveReceiptsInput): ReceiptsKpi[] {
   }
 
   const { summary } = page;
-  const mixed = Boolean(summary.mixedCurrency);
+  const scope = financialCurrencyScope(summary);
   const currency = pickOperationalPaymentCurrency({
-    recordedCurrency: summary.paymentSummary.currency,
+    recordedCurrency: summary.paymentSummary.currency || scope.financialCurrency,
     fallbackCurrency: page.receipts[0]?.currency,
     hasRecordedAmounts: summary.posRevenueCents > 0,
   });
@@ -148,10 +149,10 @@ function deriveSummary(input: DeriveReceiptsInput): ReceiptsKpi[] {
     {
       id: "pos_revenue",
       label: r.kpiPosRevenue,
-      value: mixed
-        ? dash
-        : formatMoney(summary.posRevenueCents, currency, input.locale),
-      hint: mixed ? r.financialTotalsUnavailable : undefined,
+      value: scope.showMoney
+        ? formatMoney(summary.posRevenueCents, currency, input.locale)
+        : dash,
+      hint: !scope.showMoney ? r.financialTotalsUnavailable : undefined,
     },
     {
       id: "receipts_today",
@@ -196,7 +197,8 @@ function derivePayments(input: DeriveReceiptsInput): ReceiptPaymentCard[] {
   }
 
   const { paymentSummary } = page.summary;
-  if (page.summary.mixedCurrency) {
+  const scope = financialCurrencyScope(page.summary);
+  if (!scope.showMoney) {
     return [
       { id: "cash", label: r.paymentCash, value: dash, tone: "unknown" },
       { id: "card", label: r.paymentCard, value: dash, tone: "unknown" },

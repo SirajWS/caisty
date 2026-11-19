@@ -64,6 +64,11 @@ export type OrderPaymentRow = {
   localReceiptId?: string | null;
   deviceId?: string | null;
   localPaymentId?: string | null;
+  currency?: string | null;
+  receiptCurrency?: string | null;
+  orderCurrency?: string | null;
+  hasReceipt?: boolean;
+  hasOrder?: boolean;
 };
 
 function parsePaymentTimestamp(value: Date | string | null | undefined): number {

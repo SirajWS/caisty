@@ -21,6 +21,7 @@ import {
 import { OrdersErrorState } from "../components/orders/OrdersErrorState";
 import { PaymentSummaryPair } from "../components/orders/PaymentSummaryPair";
 import { portalPageShell } from "../lib/portalUi";
+import { formatCurrencyExclusionBanner } from "../lib/portal/financialCurrencyScope";
 
 const PortalDashboard: React.FC = () => {
   const { customer } = usePortalOutlet();
@@ -60,6 +61,11 @@ const PortalDashboard: React.FC = () => {
   }, []);
 
   const showSalesError = !data.loading && data.salesSummaryError;
+  const currencyBanner = formatCurrencyExclusionBanner({
+    summary: data.salesSummary,
+    warning: l.mixedCurrencyWarning,
+    inconsistencyWarning: l.currencyInconsistencyWarning,
+  });
 
   if (data.loading && !data.lastSyncedAt) {
     return (
@@ -86,9 +92,9 @@ const PortalDashboard: React.FC = () => {
         autoRefreshHint={l.autoRefreshHint}
       />
 
-      {data.salesSummary?.mixedCurrency ? (
+      {currencyBanner ? (
         <p className="dashboard-text-muted" role="status">
-          {l.mixedCurrencyWarning}
+          {currencyBanner}
         </p>
       ) : null}
 

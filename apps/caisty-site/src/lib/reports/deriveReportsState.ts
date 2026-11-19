@@ -1,6 +1,10 @@
 import { formatMinorUnits } from "../money/formatMinorUnits";
 import { pickOperationalPaymentCurrency } from "@caisty/business-currency";
 import {
+  financialCurrencyScope,
+  formatTemplate,
+} from "../portal/financialCurrencyScope";
+import {
   deriveOnlinePaymentCards,
   deriveOnlineRevenueHeader,
   derivePosPaymentCards,
@@ -32,8 +36,13 @@ function waitingKpi(id: string, label: string, hint: string, dash: string): Repo
   return { id, label, value: dash, hint };
 }
 
-function mixedPeriod(summary: DeriveReportsInput["data"]["reportsSummary"]): boolean {
-  return Boolean(summary?.mixedCurrency);
+function reportsScope(summary: DeriveReportsInput["data"]["reportsSummary"]) {
+  return financialCurrencyScope({
+    financialCurrency: summary?.financialCurrency || summary?.overview.currency,
+    mixedCurrency: summary?.mixedCurrency,
+    excludedTransactionCount: summary?.excludedTransactionCount,
+    hasCurrencyInconsistencies: summary?.hasCurrencyInconsistencies,
+  });
 }
 
 function mapPeriodToChartRange(period: ReportsPeriodId): RevenueTimeRange {
@@ -126,17 +135,21 @@ function deriveOverview(input: DeriveReportsInput): ReportsKpi[] {
   }
 
   const { overview } = summary;
-  const mixed = mixedPeriod(summary);
-  const currency = overview.currency || "";
-  const moneyHint = mixed ? r.financialTotalsUnavailable : undefined;
+  const scope = reportsScope(summary);
+  const currency = scope.financialCurrency || overview.currency || "";
+  const moneyHint = !scope.showMoney
+    ? r.financialTotalsUnavailable
+    : scope.showExclusionBanner
+      ? formatTemplate(r.activeCurrencyAverageHint, { currency })
+      : undefined;
 
   return [
     {
       id: "revenue",
       label: r.kpiRevenue,
-      value: mixed
-        ? dash
-        : formatMoney(overview.revenueMinor, currency, input.locale),
+      value: scope.showMoney
+        ? formatMoney(overview.revenueMinor, currency, input.locale)
+        : dash,
       hint: moneyHint,
     },
     {
@@ -157,15 +170,17 @@ function deriveOverview(input: DeriveReportsInput): ReportsKpi[] {
     {
       id: "avg_order",
       label: r.kpiAvgOrder,
-      value: mixed
-        ? dash
-        : formatMoney(overview.averageOrderMinor, currency, input.locale),
+      value: scope.showMoney
+        ? formatMoney(overview.averageOrderMinor, currency, input.locale)
+        : dash,
       hint: moneyHint,
     },
     {
       id: "vat",
       label: r.kpiVat,
-      value: mixed ? dash : formatMoney(overview.vatMinor, currency, input.locale),
+      value: scope.showMoney
+        ? formatMoney(overview.vatMinor, currency, input.locale)
+        : dash,
       hint: moneyHint,
     },
   ];
@@ -185,34 +200,39 @@ function deriveRevenueBreakdown(input: DeriveReportsInput): ReportsKpi[] {
     ];
   }
 
-  const mixed = mixedPeriod(summary);
+  const scope = reportsScope(summary);
   const currency =
-    summary.paymentMethods.currency || summary.overview.currency || "";
-  const moneyHint = mixed ? input.t.reports.financialTotalsUnavailable : undefined;
+    scope.financialCurrency ||
+    summary.paymentMethods.currency ||
+    summary.overview.currency ||
+    "";
+  const moneyHint = !scope.showMoney
+    ? input.t.reports.financialTotalsUnavailable
+    : undefined;
 
   return [
     {
       id: "pos_revenue",
       label: o.kpiPosRevenue,
-      value: mixed
-        ? dash
-        : formatMoney(summary.posRevenueCents, currency, input.locale),
+      value: scope.showMoney
+        ? formatMoney(summary.posRevenueCents, currency, input.locale)
+        : dash,
       hint: moneyHint,
     },
     {
       id: "online_revenue",
       label: o.kpiOnlineRevenue,
-      value: mixed
-        ? dash
-        : formatMoney(summary.onlineRevenueCents, currency, input.locale),
+      value: scope.showMoney
+        ? formatMoney(summary.onlineRevenueCents, currency, input.locale)
+        : dash,
       hint: moneyHint,
     },
     {
       id: "total_revenue",
       label: o.kpiTotalRevenue,
-      value: mixed
-        ? dash
-        : formatMoney(summary.overview.revenueMinor, currency, input.locale),
+      value: scope.showMoney
+        ? formatMoney(summary.overview.revenueMinor, currency, input.locale)
+        : dash,
       hint: moneyHint,
     },
   ];
@@ -254,7 +274,7 @@ function deriveOrderBreakdown(input: DeriveReportsInput): ReportsKpi[] {
 function derivePosPayments(input: DeriveReportsInput) {
   const o = input.t.orders;
   const summary = input.data.reportsSummary;
-  const hasData = Boolean(summary?.hasSalesData) && !mixedPeriod(summary);
+  const hasData = Boolean(summary?.hasSalesData);
   const methods = summary?.paymentMethods;
 
   return derivePosPaymentCards({
@@ -283,7 +303,7 @@ function derivePosPayments(input: DeriveReportsInput) {
 function deriveOnlinePayments(input: DeriveReportsInput) {
   const o = input.t.orders;
   const summary = input.data.reportsSummary;
-  const hasData = Boolean(summary?.hasSalesData) && !mixedPeriod(summary);
+  const hasData = Boolean(summary?.hasSalesData);
 
   return deriveOnlinePaymentCards({
     summary: summary?.onlinePaymentSummary,
@@ -305,7 +325,7 @@ function deriveOnlinePayments(input: DeriveReportsInput) {
 function deriveOnlineRevenueHeaderState(input: DeriveReportsInput) {
   const o = input.t.orders;
   const summary = input.data.reportsSummary;
-  const hasData = Boolean(summary?.hasSalesData) && !mixedPeriod(summary);
+  const hasData = Boolean(summary?.hasSalesData);
   const currency = pickOperationalPaymentCurrency({
     recordedCurrency: summary?.onlinePaymentSummary.currency,
     fallbackCurrency: summary?.overview.currency,
@@ -336,14 +356,8 @@ function deriveHourlyBars(input: DeriveReportsInput): HourlyBar[] {
     }));
   }
 
-  if (mixedPeriod(summary)) {
-    return normalizeSalesByHour(summary.salesByHour).map((point) => ({
-      hour: String(point.hour).padStart(2, "0"),
-      value: null,
-    }));
-  }
-
-  const currency = summary.overview.currency || "";
+  const currency =
+    reportsScope(summary).financialCurrency || summary.overview.currency || "";
 
   return normalizeSalesByHour(summary.salesByHour).map((point) => {
     const hour = String(point.hour).padStart(2, "0");
@@ -365,11 +379,12 @@ function deriveTopProducts(input: DeriveReportsInput): TopProductRow[] {
   const summary = input.data.reportsSummary;
   if (!summary?.hasSalesData) return [];
 
-  const mixed = mixedPeriod(summary);
-  const currency = summary.overview.currency || "";
-  const totalRevenue = mixed
-    ? 0
-    : summary.topProducts.reduce((sum, product) => sum + product.revenueMinor, 0);
+  const scope = reportsScope(summary);
+  const currency = scope.financialCurrency || summary.overview.currency || "";
+  const totalRevenue = summary.topProducts.reduce(
+    (sum, product) => sum + product.revenueMinor,
+    0,
+  );
 
   return summary.topProducts.map((product, index) => {
     const share =
@@ -382,9 +397,7 @@ function deriveTopProducts(input: DeriveReportsInput): TopProductRow[] {
       rank: index + 1,
       name: product.productName,
       quantity: String(product.quantity),
-      revenue: mixed
-        ? input.t.labels.dash
-        : formatMoney(product.revenueMinor, currency, input.locale),
+      revenue: formatMoney(product.revenueMinor, currency, input.locale),
       share,
     };
   });
@@ -410,34 +423,35 @@ function deriveTaxes(input: DeriveReportsInput): TaxCard[] {
   }
 
   const { taxes } = summary;
-  const mixed = mixedPeriod(summary);
-  const currency = taxes.currency || summary.overview.currency || "";
+  const scope = reportsScope(summary);
+  const currency =
+    scope.financialCurrency || taxes.currency || summary.overview.currency || "";
   const unavailable = r.financialTotalsUnavailable;
 
   return [
     {
       id: "net",
       label: r.taxNetRevenue,
-      value: mixed
-        ? unavailable
-        : formatMoney(taxes.netRevenueMinor, currency, input.locale),
-      tone: mixed ? "unknown" : paymentTone(taxes.netRevenueMinor),
+      value: scope.showMoney
+        ? formatMoney(taxes.netRevenueMinor, currency, input.locale)
+        : unavailable,
+      tone: scope.showMoney ? paymentTone(taxes.netRevenueMinor) : "unknown",
     },
     {
       id: "vat",
       label: r.taxVat,
-      value: mixed
-        ? unavailable
-        : formatMoney(taxes.vatMinor, currency, input.locale),
-      tone: mixed ? "unknown" : paymentTone(taxes.vatMinor),
+      value: scope.showMoney
+        ? formatMoney(taxes.vatMinor, currency, input.locale)
+        : unavailable,
+      tone: scope.showMoney ? paymentTone(taxes.vatMinor) : "unknown",
     },
     {
       id: "gross",
       label: r.taxGrossRevenue,
-      value: mixed
-        ? unavailable
-        : formatMoney(taxes.grossRevenueMinor, currency, input.locale),
-      tone: mixed ? "unknown" : paymentTone(taxes.grossRevenueMinor),
+      value: scope.showMoney
+        ? formatMoney(taxes.grossRevenueMinor, currency, input.locale)
+        : unavailable,
+      tone: scope.showMoney ? paymentTone(taxes.grossRevenueMinor) : "unknown",
     },
     {
       id: "fiscal_receipts",
@@ -458,8 +472,11 @@ function deriveTrends(input: DeriveReportsInput): TrendCard[] {
   }
 
   const { businessTrends } = summary;
-  const mixed = mixedPeriod(summary);
-  const currency = businessTrends.currency || summary.overview.currency || "";
+  const currency =
+    reportsScope(summary).financialCurrency ||
+    businessTrends.currency ||
+    summary.overview.currency ||
+    "";
   const trends: TrendCard[] = [];
 
   // bestSalesDay is the peak revenueSeries bucket — only show when the label
@@ -486,7 +503,7 @@ function deriveTrends(input: DeriveReportsInput): TrendCard[] {
     });
   }
 
-  if (!mixed && businessTrends.largestReceiptMinor > 0) {
+  if (businessTrends.largestReceiptMinor > 0) {
     trends.push({
       id: "largest_receipt",
       label: r.trendLargestReceipt,
@@ -546,9 +563,9 @@ export function deriveReportsState(input: DeriveReportsInput): ReportsDerivedSta
   const r = input.t.reports;
   const summary = input.data.reportsSummary;
   const hasSalesData = Boolean(summary?.hasSalesData);
-  const mixed = mixedPeriod(summary);
+  const scope = reportsScope(summary);
   const granularity = granularityFromData(input.data);
-  const currency = mixed ? "" : summary?.overview.currency || "";
+  const currency = scope.financialCurrency || summary?.overview.currency || "";
 
   return {
     overview: deriveOverview(input),
@@ -556,14 +573,11 @@ export function deriveReportsState(input: DeriveReportsInput): ReportsDerivedSta
     orderBreakdown: deriveOrderBreakdown(input),
     revenueChart: {
       range: mapPeriodToChartRange(input.data.period),
-      hasData:
-        hasSalesData &&
-        !mixed &&
-        (summary?.revenueSeries.length ?? 0) > 0,
-      placeholderMessage: mixed ? r.mixedCurrencyWarning : r.chartPlaceholder,
-      series: mixed ? [] : summary?.revenueSeries ?? [],
+      hasData: hasSalesData && (summary?.revenueSeries.length ?? 0) > 0,
+      placeholderMessage: r.chartPlaceholder,
+      series: summary?.revenueSeries ?? [],
       totalValue:
-        hasSalesData && !mixed
+        hasSalesData && scope.showMoney
           ? formatMoney(summary!.overview.revenueMinor, currency, input.locale)
           : input.t.labels.dash,
       currency,

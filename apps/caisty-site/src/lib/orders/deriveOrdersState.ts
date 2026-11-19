@@ -1,5 +1,6 @@
 import { formatMinorUnits } from "../money/formatMinorUnits";
 import { pickOperationalPaymentCurrency } from "@caisty/business-currency";
+import { financialCurrencyScope } from "../portal/financialCurrencyScope";
 import {
   deriveOnlinePaymentCards as buildOnlinePaymentCards,
   deriveOnlineRevenueHeader,
@@ -72,9 +73,7 @@ function derivePosPaymentCards(input: DeriveOrdersInput): PaymentMethodCard[] {
     },
     locale: input.locale,
     dash,
-    hasData: Boolean(
-      sales && hasSyncedSalesData(sales) && !sales.summary.mixedCurrency,
-    ),
+    hasData: Boolean(sales && hasSyncedSalesData(sales)),
   });
 }
 
@@ -97,9 +96,7 @@ function deriveOnlineRevenueHeaderState(input: DeriveOrdersInput) {
     },
     locale: input.locale,
     dash,
-    hasData: Boolean(
-      sales && hasSyncedSalesData(sales) && !sales.summary.mixedCurrency,
-    ),
+    hasData: Boolean(sales && hasSyncedSalesData(sales)),
   });
 }
 
@@ -120,9 +117,7 @@ function deriveOnlinePaymentCards(input: DeriveOrdersInput): PaymentMethodCard[]
     },
     locale: input.locale,
     dash,
-    hasData: Boolean(
-      sales && hasSyncedSalesData(sales) && !sales.summary.mixedCurrency,
-    ),
+    hasData: Boolean(sales && hasSyncedSalesData(sales)),
   });
 }
 
@@ -183,33 +178,33 @@ function deriveRevenueKpis(input: DeriveOrdersInput): OrdersKpi[] {
   }
 
   const { summary } = sales;
-  const mixed = Boolean(summary.mixedCurrency);
-  const currency = summary.paymentSummary.currency || "";
-  const moneyHint = mixed ? o.financialTotalsUnavailable : undefined;
+  const scope = financialCurrencyScope(summary);
+  const currency = scope.financialCurrency || summary.paymentSummary.currency || "";
+  const moneyHint = !scope.showMoney ? o.financialTotalsUnavailable : undefined;
 
   return [
     {
       id: "pos_revenue",
       label: o.kpiPosRevenue,
-      value: mixed
-        ? dash
-        : formatMoney(summary.posRevenueCents, currency, input.locale),
+      value: scope.showMoney
+        ? formatMoney(summary.posRevenueCents, currency, input.locale)
+        : dash,
       hint: moneyHint,
     },
     {
       id: "online_revenue",
       label: o.kpiOnlineRevenue,
-      value: mixed
-        ? dash
-        : formatMoney(summary.onlineRevenueCents, currency, input.locale),
+      value: scope.showMoney
+        ? formatMoney(summary.onlineRevenueCents, currency, input.locale)
+        : dash,
       hint: moneyHint,
     },
     {
       id: "total_revenue",
       label: o.kpiTotalRevenue,
-      value: mixed
-        ? dash
-        : formatMoney(summary.revenueCents, currency, input.locale),
+      value: scope.showMoney
+        ? formatMoney(summary.revenueCents, currency, input.locale)
+        : dash,
       hint: moneyHint,
     },
   ];

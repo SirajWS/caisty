@@ -324,38 +324,37 @@ describe("deriveReportsState", () => {
     expect(state.showHourlySales).toBe(false);
   });
 
-  it("does not format mixed-currency financial KPIs as a combined total", () => {
+  it("formats mixed-history financial KPIs in the active business currency only", () => {
     const state = deriveReportsState({
       data: makeData({
         reportsSummary: makeReportsSummary({
           mixedCurrency: true,
+          financialCurrency: "TND",
+          includedTransactionCount: 4,
+          excludedTransactionCount: 2,
+          excludedCurrencies: ["DZD"],
           overview: {
-            revenueMinor: 60000,
-            ordersCount: 2,
-            receiptsCount: 2,
+            revenueMinor: 107000,
+            ordersCount: 6,
+            receiptsCount: 6,
             refundsCount: 0,
-            averageOrderMinor: 30000,
+            averageOrderMinor: 26750,
             vatMinor: 0,
-            currency: "",
+            currency: "TND",
           },
+          posRevenueCents: 107000,
         }),
       }),
       t: portalEn,
       locale: "en-GB",
     });
 
-    expect(state.overview.find((k) => k.id === "orders")?.value).toBe("2");
-    expect(state.overview.find((k) => k.id === "revenue")?.value).toBe(
-      portalEn.labels.dash,
+    expect(state.overview.find((k) => k.id === "orders")?.value).toBe("6");
+    expect(state.overview.find((k) => k.id === "revenue")?.value).toContain("107.000");
+    expect(state.overview.find((k) => k.id === "avg_order")?.value).toContain("26.750");
+    expect(state.revenueBreakdown.find((k) => k.id === "total_revenue")?.value).toContain(
+      "107.000",
     );
-    expect(state.overview.find((k) => k.id === "revenue")?.hint).toBe(
-      portalEn.reports.financialTotalsUnavailable,
-    );
-    expect(state.revenueBreakdown.find((k) => k.id === "total_revenue")?.value).toBe(
-      portalEn.labels.dash,
-    );
-    expect(state.revenueChart.hasData).toBe(false);
-    expect(state.topProducts[0]?.revenue).toBe(portalEn.labels.dash);
-    expect(state.topProducts[0]?.quantity).toBe("2");
+    expect(state.revenueChart.hasData).toBe(true);
   });
 });

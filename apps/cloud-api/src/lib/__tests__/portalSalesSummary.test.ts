@@ -17,6 +17,16 @@ describe("portalSalesSummary helpers", () => {
     expect(averageOrderMinor(453000, 27)).toBe(16778);
   });
 
+  it("uses included TND sales only for the mixed-history fixture average", () => {
+    const tndMinor = 25000 + 15000 + 43000 + 24000;
+    expect(tndMinor).toBe(107000);
+    expect(averageOrderMinor(tndMinor, 4)).toBe(26750);
+    expect(averageOrderMinor(tndMinor, 6)).not.toBe(26750);
+    const dzdMinor = 2800 + 900;
+    expect(dzdMinor).toBe(3700);
+    expect(averageOrderMinor(dzdMinor, 2)).toBe(1850);
+  });
+
   it("keeps live and online counts additive after provider dedup", () => {
     const live = 26;
     const onlineWinners = 4; // e.g. 5 raw provider rows → 4 unique provider keys

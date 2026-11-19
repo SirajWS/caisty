@@ -30,7 +30,10 @@ import {
   toPortalReceiptIso,
   type PortalReceiptRecord,
 } from "./portalReceipts.js";
-import { resolvePeriodCurrencies } from "../../../../packages/business-currency/src/index.ts";
+import {
+  evaluateSaleFinancialInclusion,
+  resolvePeriodCurrencies,
+} from "../../../../packages/business-currency/src/index.ts";
 import {
   REPORTS_TIMEZONE,
   asReportWindow,
@@ -40,7 +43,11 @@ import {
   type PortalReportsWindow,
   type SalesPeriodInput,
 } from "./portalReportsPeriod.js";
-import { fetchPosRevenueCentsForPeriod } from "./portalSalesSummary.js";
+import {
+  fetchPosRevenueCentsForPeriod,
+  loadActiveBusinessCurrency,
+  paymentRowFinanciallyIncluded,
+} from "./portalSalesSummary.js";
 import {
   computeRefundableAmountCents,
   computeRefundedAmountCents,
@@ -81,6 +88,11 @@ export type PortalReceiptsSummary = {
   refundsCount: number;
   posRevenueCents: number;
   mixedCurrency: boolean;
+  financialCurrency: string;
+  includedTransactionCount: number;
+  excludedTransactionCount: number;
+  excludedCurrencies: string[];
+  hasCurrencyInconsistencies: boolean;
   paymentSummary: {
     cashCents: number;
     cardCents: number;
@@ -516,9 +528,18 @@ async function buildReceiptsSummary(input: {
       localReceiptId: posReceipts.localReceiptId,
       localOrderId: posReceipts.localOrderId,
       currency: posReceipts.currency,
+      orderCurrency: posOrders.currency,
     })
     .from(posReceipts)
     .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
+    .leftJoin(
+      posOrders,
+      and(
+        eq(posReceipts.orgId, posOrders.orgId),
+        eq(posReceipts.deviceId, posOrders.deviceId),
+        eq(posReceipts.localOrderId, posOrders.localOrderId),
+      ),
+    )
     .where(input.whereClause);
 
   const eventStats = await loadReceiptEventStats(
@@ -580,20 +601,79 @@ async function buildReceiptsSummary(input: {
       (payment.localOrderId && includedReceiptKeys.has(payment.localOrderId)),
   );
 
+  const financialCurrency = await loadActiveBusinessCurrency(input.orgId);
+  const receiptCurrencyByLocalId = new Map(
+    filteredRows.map((row) => [row.localReceiptId, row.currency]),
+  );
+  const orderCurrencyByLocalId = new Map(
+    filteredRows
+      .filter((row) => row.localOrderId)
+      .map((row) => [row.localOrderId as string, row.orderCurrency]),
+  );
+
+  let includedTransactionCount = 0;
+  let excludedTransactionCount = 0;
+  let hasCurrencyInconsistencies = false;
+  const excludedCurrencySet = new Set<string>();
+
+  for (const row of filteredRows) {
+    const linkedPayments = scopedPayments.filter(
+      (payment) =>
+        payment.localReceiptId === row.localReceiptId ||
+        (row.localOrderId && payment.localOrderId === row.localOrderId),
+    );
+    const sources: Array<{ currency: string | null | undefined }> = [
+      { currency: row.currency },
+    ];
+    if (row.localOrderId) sources.push({ currency: row.orderCurrency });
+    for (const payment of linkedPayments) {
+      sources.push({ currency: payment.currency });
+    }
+    const inclusion = evaluateSaleFinancialInclusion({
+      activeCurrency: financialCurrency,
+      sources,
+    });
+    if (inclusion.inconsistent) hasCurrencyInconsistencies = true;
+    if (inclusion.included && receiptCountsTowardKpis(row.status)) {
+      includedTransactionCount += 1;
+    } else {
+      excludedTransactionCount += 1;
+      for (const code of inclusion.recordedCurrencies) {
+        if (code !== financialCurrency) excludedCurrencySet.add(code);
+      }
+    }
+  }
+
   const periodCurrencies = resolvePeriodCurrencies([
     ...filteredRows.map((row) => row.currency),
     ...scopedPayments.map((row) => row.currency),
   ]);
-  const mixedCurrency = periodCurrencies.mixedCurrency;
-  const currency = mixedCurrency ? "" : (periodCurrencies.currency ?? "");
+  const mixedCurrency =
+    periodCurrencies.mixedCurrency || excludedCurrencySet.size > 0;
 
-  const posRevenueCents = mixedCurrency
-    ? 0
-    : await fetchPosRevenueCentsForPeriod({
-        orgId: input.orgId,
-        customerId: input.customerId,
-        period: input.period,
-      });
+  const financialPayments = scopedPayments.filter((payment) =>
+    paymentRowFinanciallyIncluded(
+      {
+        ...payment,
+        hasReceipt: Boolean(payment.localReceiptId),
+        hasOrder: Boolean(payment.localOrderId),
+        receiptCurrency: payment.localReceiptId
+          ? receiptCurrencyByLocalId.get(payment.localReceiptId)
+          : undefined,
+        orderCurrency: payment.localOrderId
+          ? orderCurrencyByLocalId.get(payment.localOrderId)
+          : undefined,
+      },
+      financialCurrency,
+    ),
+  );
+
+  const posRevenueCents = await fetchPosRevenueCentsForPeriod({
+    orgId: input.orgId,
+    customerId: input.customerId,
+    period: input.period,
+    financialCurrency,
+  });
 
   return {
     receiptsCount: filteredRows.length,
@@ -603,18 +683,15 @@ async function buildReceiptsSummary(input: {
     refundsCount,
     posRevenueCents,
     mixedCurrency,
-    paymentSummary: mixedCurrency
-      ? {
-          cashCents: 0,
-          cardCents: 0,
-          voucherCents: 0,
-          otherCents: 0,
-          currency: "",
-        }
-      : {
-          ...aggregateEffectivePaymentSummary(scopedPayments),
-          currency,
-        },
+    financialCurrency,
+    includedTransactionCount,
+    excludedTransactionCount,
+    excludedCurrencies: [...excludedCurrencySet],
+    hasCurrencyInconsistencies,
+    paymentSummary: {
+      ...aggregateEffectivePaymentSummary(financialPayments),
+      currency: financialCurrency,
+    },
   };
 }
 
