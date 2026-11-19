@@ -1,4 +1,5 @@
 import { formatMinorUnits } from "../money/formatMinorUnits";
+import { getReceiptsCountKpiLabel, mapReceiptsPeriodToApi } from "./receiptsPeriod";
 import type {
   DeriveReceiptsInput,
   ReceiptEventRow,
@@ -105,16 +106,29 @@ function waitingKpi(id: string, label: string, hint: string, dash: string): Rece
   return { id, label, value: dash, hint };
 }
 
+function receiptsCountLabel(input: DeriveReceiptsInput): string {
+  const applied = input.data.applied;
+  const mapped = mapReceiptsPeriodToApi(applied);
+  return getReceiptsCountKpiLabel(
+    mapped.period,
+    input.t.receipts,
+    input.t.reports,
+    mapped.from && mapped.to ? { from: mapped.from, to: mapped.to } : undefined,
+    input.locale,
+  );
+}
+
 function deriveSummary(input: DeriveReceiptsInput): ReceiptsKpi[] {
   const r = input.t.receipts;
   const dash = input.t.labels.dash;
   const page = input.data.page;
+  const countLabel = receiptsCountLabel(input);
 
   if (!page || page.summary.receiptsCount === 0) {
     const hint = r.waitingPosSyncShort;
     return [
       waitingKpi("pos_revenue", r.kpiPosRevenue, hint, dash),
-      waitingKpi("receipts_today", r.kpiReceiptsToday, hint, dash),
+      waitingKpi("receipts_today", countLabel, hint, dash),
       waitingKpi("active", r.kpiActiveReceipts, hint, dash),
       waitingKpi("printed", r.kpiPrinted, hint, dash),
       waitingKpi("reprinted", r.kpiReprinted, hint, dash),
@@ -132,7 +146,7 @@ function deriveSummary(input: DeriveReceiptsInput): ReceiptsKpi[] {
     },
     {
       id: "receipts_today",
-      label: r.kpiReceiptsToday,
+      label: countLabel,
       value: String(summary.receiptsCount),
     },
     {

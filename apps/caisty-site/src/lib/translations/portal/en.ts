@@ -549,6 +549,12 @@ export const portalEn = {
     emptyDescription:
       "Connect your POS and synchronize sales to review receipts, print history, and fiscal status.",
     emptyCta: "Open Desktop POS",
+    unavailableHeadline: "Custom receipts are unavailable",
+    unavailableDescription:
+      "The receipts API did not accept this date range. Existing period presets still work.",
+    errorHeadline: "Receipts could not be loaded",
+    errorDescription: "Something went wrong while loading receipts. Please try again.",
+    errorRetry: "Try again",
   },
   reports: {
     title: "Reports",

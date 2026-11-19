@@ -721,6 +721,8 @@ export type PortalReceiptsSummary = {
 export type PortalReceiptsResponse = {
   timezone: string;
   period: string;
+  from?: string;
+  to?: string;
   summary: PortalReceiptsSummary;
   receipts: PortalReceiptListItem[];
   pagination: {
@@ -762,6 +764,8 @@ export type PortalReceiptDetailResponse = {
 
 export type PortalReceiptsQuery = {
   period?: string;
+  from?: string;
+  to?: string;
   paymentMethod?: string;
   status?: string;
   search?: string;
@@ -1027,6 +1031,10 @@ export async function fetchPortalReceipts(
 ): Promise<PortalReceiptsResponse> {
   const params = new URLSearchParams();
   if (query.period) params.set("period", query.period);
+  if (query.period === "custom") {
+    if (query.from) params.set("from", query.from);
+    if (query.to) params.set("to", query.to);
+  }
   if (query.paymentMethod) params.set("paymentMethod", query.paymentMethod);
   if (query.status) params.set("status", query.status);
   if (query.search) params.set("search", query.search);

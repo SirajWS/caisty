@@ -506,7 +506,9 @@ describe("buildReceiptsListPdfModel", () => {
       labels: buildReceiptsListDocumentLabels(t),
       page: {
         timezone: "Europe/Berlin",
-        period: "today",
+        period: "custom",
+        from: "2026-11-01",
+        to: "2026-11-15",
         summary: {
           receiptsCount: 8,
           activeCount: 8,

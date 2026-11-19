@@ -2,20 +2,31 @@ import type { PortalTranslations } from "../../lib/translations/portal";
 import {
   getReceiptsPeriodFilters,
   type ReceiptsPaymentFilter,
-  type ReceiptsPeriodId,
+  type AppliedReceiptsPeriod,
   type ReceiptsSortId,
   type ReceiptsStatusFilter,
 } from "../../lib/receipts/receiptsPeriod";
+import { reportsTodayIso, type ReportsPresetId } from "../../lib/reports/reportsPeriod";
 
 export function ReceiptsFilters({
   r,
   reports,
-  period,
+  applied,
+  pickerOpen,
+  draftFrom,
+  draftTo,
+  draftError,
   paymentMethod,
   status,
   search,
   sort,
-  onPeriodChange,
+  onPresetChange,
+  onCustomClick,
+  onDraftFromChange,
+  onDraftToChange,
+  onApply,
+  onCancel,
+  onReset,
   onPaymentMethodChange,
   onStatusChange,
   onSearchChange,
@@ -23,18 +34,30 @@ export function ReceiptsFilters({
 }: {
   r: PortalTranslations["receipts"];
   reports: PortalTranslations["reports"];
-  period: ReceiptsPeriodId;
+  applied: AppliedReceiptsPeriod;
+  pickerOpen: boolean;
+  draftFrom: string;
+  draftTo: string;
+  draftError: string | null;
   paymentMethod: ReceiptsPaymentFilter;
   status: ReceiptsStatusFilter;
   search: string;
   sort: ReceiptsSortId;
-  onPeriodChange: (period: ReceiptsPeriodId) => void;
+  onPresetChange: (period: ReportsPresetId) => void;
+  onCustomClick: () => void;
+  onDraftFromChange: (value: string) => void;
+  onDraftToChange: (value: string) => void;
+  onApply: () => void;
+  onCancel: () => void;
+  onReset: () => void;
   onPaymentMethodChange: (value: ReceiptsPaymentFilter) => void;
   onStatusChange: (value: ReceiptsStatusFilter) => void;
   onSearchChange: (value: string) => void;
   onSortChange: (value: ReceiptsSortId) => void;
 }) {
   const periodFilters = getReceiptsPeriodFilters(reports);
+  const maxDate = reportsTodayIso();
+  const customActive = applied.period === "custom";
 
   return (
     <div className="receipts-filter-stack">
@@ -42,8 +65,10 @@ export function ReceiptsFilters({
         <span className="reports-period-bar-label">{r.filtersTitle}</span>
         <div className="reports-filter-row" role="group" aria-label={r.filtersTitle}>
           {periodFilters.map((f) => {
-            const isDisabled = Boolean(f.disabled);
-            const isActive = !isDisabled && period === f.id;
+            const isCustom = f.id === "custom";
+            const isActive = isCustom
+              ? customActive || pickerOpen
+              : !pickerOpen && applied.period === f.id;
 
             return (
               <button
@@ -51,22 +76,65 @@ export function ReceiptsFilters({
                 type="button"
                 className={`reports-filter-btn ${
                   isActive ? "reports-filter-btn--active" : ""
-                } ${isDisabled ? "reports-filter-btn--disabled" : ""}`}
+                }`}
                 onClick={() => {
-                  if (!isDisabled) onPeriodChange(f.id);
+                  if (isCustom) {
+                    onCustomClick();
+                    return;
+                  }
+                  onPresetChange(f.id as ReportsPresetId);
                 }}
-                disabled={isDisabled}
                 aria-pressed={isActive}
-                title={f.hint}
               >
                 <span>{f.label}</span>
-                {isDisabled && f.hint ? (
-                  <span className="reports-filter-btn-badge">{reports.filterComingSoon}</span>
-                ) : null}
               </button>
             );
           })}
         </div>
+
+        {pickerOpen ? (
+          <div className="reports-custom-panel" role="region" aria-label={reports.filterCustom}>
+            <label className="reports-custom-field">
+              <span>{reports.filterFrom}</span>
+              <input
+                type="date"
+                value={draftFrom}
+                max={maxDate}
+                onChange={(event) => onDraftFromChange(event.target.value)}
+                className="reports-custom-input"
+              />
+            </label>
+            <label className="reports-custom-field">
+              <span>{reports.filterTo}</span>
+              <input
+                type="date"
+                value={draftTo}
+                max={maxDate}
+                min={draftFrom || undefined}
+                onChange={(event) => onDraftToChange(event.target.value)}
+                className="reports-custom-input"
+              />
+            </label>
+            <div className="reports-custom-actions">
+              <button type="button" className="reports-filter-btn reports-filter-btn--active" onClick={onApply}>
+                {reports.filterApply}
+              </button>
+              <button type="button" className="reports-filter-btn" onClick={onCancel}>
+                {reports.filterCancel}
+              </button>
+              <button type="button" className="reports-filter-btn" onClick={onReset}>
+                {reports.filterReset}
+              </button>
+            </div>
+            {draftError ? (
+              <p className="reports-custom-error" role="alert">
+                {draftError}
+              </p>
+            ) : (
+              <p className="reports-period-custom-hint">{reports.filterCustomHelp}</p>
+            )}
+          </div>
+        ) : null}
       </div>
 
       <div className="receipts-filter-row-secondary">

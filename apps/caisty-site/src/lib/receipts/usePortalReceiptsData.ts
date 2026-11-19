@@ -8,20 +8,21 @@ import {
 } from "../portalApi";
 import type { ReceiptsData } from "./types";
 import type {
+  AppliedReceiptsPeriod,
   ReceiptsPaymentFilter,
-  ReceiptsPeriodId,
   ReceiptsSortId,
   ReceiptsStatusFilter,
 } from "./receiptsPeriod";
 import {
-  DEFAULT_RECEIPTS_PERIOD,
+  DEFAULT_APPLIED_RECEIPTS_PERIOD,
   DEFAULT_RECEIPTS_SORT,
+  isIncompatibleCustomReceiptsResponse,
   mapReceiptsPeriodToApi,
 } from "./receiptsPeriod";
 import { PORTAL_RECEIPTS_PAGE_SIZE } from "../portal/portalPagination";
 
 export type ReceiptsQueryState = {
-  period: ReceiptsPeriodId;
+  period: AppliedReceiptsPeriod;
   paymentMethod: ReceiptsPaymentFilter;
   status: ReceiptsStatusFilter;
   search: string;
@@ -67,11 +68,40 @@ const emptyPage = (): PortalReceiptsResponse => ({
   },
 });
 
+export function receiptsQueryFingerprint(
+  query: ReceiptsQueryState,
+  search: string,
+): string {
+  return JSON.stringify({
+    period: query.period,
+    paymentMethod: query.paymentMethod,
+    status: query.status,
+    search,
+    sort: query.sort,
+    page: query.page,
+  });
+}
+
+/** Drop previous page when the request identity changes so KPIs never mix dates. */
+export function beginReceiptsFetchState(
+  prev: ReceiptsData,
+  request: { applied: AppliedReceiptsPeriod; clearPage: boolean },
+): ReceiptsData {
+  return {
+    ...prev,
+    loading: request.clearPage,
+    error: false,
+    incompatibleApi: false,
+    applied: request.applied,
+    page: request.clearPage ? null : prev.page,
+  };
+}
+
 export function usePortalReceiptsData(
   customer: PortalCustomer,
 ): UsePortalReceiptsDataResult {
   const [query, setQuery] = React.useState<ReceiptsQueryState>({
-    period: DEFAULT_RECEIPTS_PERIOD,
+    period: DEFAULT_APPLIED_RECEIPTS_PERIOD,
     paymentMethod: "all",
     status: "all",
     search: "",
@@ -87,11 +117,13 @@ export function usePortalReceiptsData(
     detailLoading: false,
     loading: true,
     error: false,
+    incompatibleApi: false,
+    applied: DEFAULT_APPLIED_RECEIPTS_PERIOD,
     lastSyncedAt: null,
   }));
   const [tick, setTick] = React.useState(0);
   const [refreshing, setRefreshing] = React.useState(false);
-  const hasLoadedRef = React.useRef(false);
+  const lastFingerprintRef = React.useRef<string | null>(null);
 
   const reload = React.useCallback(() => {
     setTick((n) => n + 1);
@@ -102,7 +134,7 @@ export function usePortalReceiptsData(
   }, []);
 
   React.useEffect(() => {
-    hasLoadedRef.current = false;
+    lastFingerprintRef.current = null;
   }, [customer.id]);
 
   React.useEffect(() => {
@@ -118,18 +150,25 @@ export function usePortalReceiptsData(
 
   React.useEffect(() => {
     let cancelled = false;
-    const isBackgroundRefresh = hasLoadedRef.current;
+    const fingerprint = receiptsQueryFingerprint(query, debouncedSearch);
+    const isBackgroundRefresh = lastFingerprintRef.current === fingerprint;
 
     if (isBackgroundRefresh) {
       setRefreshing(true);
     } else {
-      setState((prev) => ({ ...prev, loading: true, error: false }));
+      setState((prev) =>
+        beginReceiptsFetchState(prev, {
+          applied: query.period,
+          clearPage: true,
+        }),
+      );
     }
 
     (async () => {
       try {
+        const apiPeriod = mapReceiptsPeriodToApi(query.period);
         const page = await fetchPortalReceipts({
-          period: mapReceiptsPeriodToApi(query.period),
+          ...apiPeriod,
           paymentMethod:
             query.paymentMethod === "all" ? undefined : query.paymentMethod,
           status: query.status === "all" ? undefined : query.status,
@@ -140,7 +179,7 @@ export function usePortalReceiptsData(
         });
         if (cancelled) return;
 
-        hasLoadedRef.current = true;
+        lastFingerprintRef.current = fingerprint;
         if (
           page.pagination.totalPages > 0 &&
           query.page > page.pagination.totalPages
@@ -151,23 +190,32 @@ export function usePortalReceiptsData(
           }));
         }
 
+        const incompatibleApi = isIncompatibleCustomReceiptsResponse(
+          query.period,
+          page,
+        );
+
         setState((prev) => ({
           ...prev,
           customer,
-          page,
+          page: incompatibleApi ? null : page,
+          applied: query.period,
           loading: false,
-          error: false,
+          error: incompatibleApi,
+          incompatibleApi,
           lastSyncedAt: new Date(),
         }));
       } catch {
         if (!cancelled) {
-          hasLoadedRef.current = true;
+          lastFingerprintRef.current = fingerprint;
           setState((prev) => ({
             ...prev,
             customer,
             page: isBackgroundRefresh ? prev.page : emptyPage(),
+            applied: query.period,
             loading: false,
             error: true,
+            incompatibleApi: false,
             lastSyncedAt: new Date(),
           }));
         }
@@ -181,7 +229,7 @@ export function usePortalReceiptsData(
     return () => {
       cancelled = true;
     };
-  }, [customer, tick, query.period, query.paymentMethod, query.status, query.sort, query.page, debouncedSearch]);
+  }, [customer, tick, query, debouncedSearch]);
 
   const openDetail = React.useCallback(async (receiptId: string) => {
     setState((prev) => ({

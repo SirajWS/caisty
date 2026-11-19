@@ -549,6 +549,12 @@ export const portalDe: PortalTranslations = {
     emptyDescription:
       "Verbinden Sie Ihre POS und synchronisieren Sie Verkäufe, um Belege, Druckverlauf und Fiskalstatus einzusehen.",
     emptyCta: "Desktop-POS öffnen",
+    unavailableHeadline: "Benutzerdefinierte Belege nicht verfügbar",
+    unavailableDescription:
+      "Die Beleg-API hat diesen Zeitraum nicht akzeptiert. Vorhandene Zeitraum-Voreinstellungen funktionieren weiterhin.",
+    errorHeadline: "Belege konnten nicht geladen werden",
+    errorDescription: "Beim Laden der Belege ist ein Fehler aufgetreten. Bitte erneut versuchen.",
+    errorRetry: "Erneut versuchen",
   },
   reports: {
     title: "Berichte",

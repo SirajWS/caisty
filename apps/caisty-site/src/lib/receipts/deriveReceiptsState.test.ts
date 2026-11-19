@@ -62,6 +62,8 @@ describe("deriveReceiptsState", () => {
         detailLoading: false,
         loading: false,
         error: false,
+        incompatibleApi: false,
+        applied: { period: "today" },
         lastSyncedAt: null,
       },
       t,
@@ -170,6 +172,8 @@ describe("deriveReceiptsState", () => {
         detailLoading: false,
         loading: false,
         error: false,
+        incompatibleApi: false,
+        applied: { period: "today" },
         lastSyncedAt: null,
       },
       t,
@@ -180,5 +184,61 @@ describe("deriveReceiptsState", () => {
     expect(state.printStats.originalPrint).toBe("Yes");
     expect(state.printStats.reprintCount).toBe("0");
     expect(state.summary).toHaveLength(6);
+  });
+
+  it("labels the receipts count KPI with the applied custom range instead of today", () => {
+    const state = deriveReceiptsState({
+      data: {
+        customer: { id: "c1", email: "a@b.com", name: "Test" } as never,
+        page: {
+          timezone: "Europe/Berlin",
+          period: "custom",
+          from: "2026-11-01",
+          to: "2026-11-15",
+          summary: {
+            receiptsCount: 2,
+            activeCount: 2,
+            printedCount: 2,
+            reprintedCount: 0,
+            refundsCount: 0,
+            posRevenueCents: 1000,
+            paymentSummary: {
+              cashCents: 1000,
+              cardCents: 0,
+              voucherCents: 0,
+              otherCents: 0,
+              currency: "EUR",
+            },
+          },
+          receipts: [baseReceipt],
+          pagination: {
+            total: 1,
+            limit: 5,
+            offset: 0,
+            page: 1,
+            totalPages: 1,
+          },
+        },
+        detail: null,
+        detailReceiptId: null,
+        detailLoading: false,
+        loading: false,
+        error: false,
+        incompatibleApi: false,
+        applied: {
+          period: "custom",
+          from: "2026-11-01",
+          to: "2026-11-15",
+        },
+        lastSyncedAt: null,
+      },
+      t,
+      locale: "en-US",
+    });
+
+    const countKpi = state.summary.find((k) => k.id === "receipts_today");
+    expect(countKpi?.label).toContain("Receipts");
+    expect(countKpi?.label).not.toBe("Receipts today");
+    expect(countKpi?.label).toMatch(/November/);
   });
 });

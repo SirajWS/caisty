@@ -4,6 +4,10 @@ import {
   fetchPortalReceiptDetail,
   fetchPortalReceiptsPage,
 } from "../lib/portalReceiptsPage.js";
+import {
+  parsePortalReportsSummaryQuery,
+  PortalReportsQueryError,
+} from "../lib/portalReportsPeriod.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 
 interface PortalJwtPayload {
@@ -37,7 +41,9 @@ export async function registerPortalReceiptsRoutes(app: FastifyInstance) {
     }
 
     const query = request.query as {
-      period?: string;
+      period?: string | string[];
+      from?: string | string[];
+      to?: string | string[];
       paymentMethod?: string;
       status?: string;
       search?: string;
@@ -47,11 +53,26 @@ export async function registerPortalReceiptsRoutes(app: FastifyInstance) {
       page?: string;
     };
 
+    let window;
+    try {
+      window = parsePortalReportsSummaryQuery(query);
+    } catch (err: unknown) {
+      if (err instanceof PortalReportsQueryError) {
+        reply.code(400);
+        return {
+          ok: false,
+          error: err.code,
+          message: err.message,
+        };
+      }
+      throw err;
+    }
+
     try {
       return await fetchPortalReceiptsPage({
         orgId: payload.orgId,
         customerId: payload.customerId,
-        period: query.period,
+        period: window,
         paymentMethod: query.paymentMethod,
         status: query.status,
         search: query.search,

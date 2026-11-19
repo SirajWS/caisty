@@ -21,7 +21,6 @@ import {
   appendOrderPaymentRow,
   groupOrderLinesByDeviceLocalId,
   pickPrimaryPaymentMethod,
-  PORTAL_ORDERS_TIMEZONE,
   resolveReceiptLineItems,
   type OrderPaymentRow,
   type PaymentBucket,
@@ -32,9 +31,13 @@ import {
   type PortalReceiptRecord,
 } from "./portalReceipts.js";
 import {
-  parsePortalReportsPeriod,
-  sqlInPeriodBerlin,
-  type PortalReportsPeriod,
+  REPORTS_TIMEZONE,
+  asReportWindow,
+  parsePortalReportsSummaryQuery,
+  sqlInReportWindow,
+  type PortalReportsPeriodResponse,
+  type PortalReportsWindow,
+  type SalesPeriodInput,
 } from "./portalReportsPeriod.js";
 import { fetchPosRevenueCentsForPeriod } from "./portalSalesSummary.js";
 import {
@@ -87,7 +90,9 @@ export type PortalReceiptsSummary = {
 
 export type PortalReceiptsPageData = {
   timezone: string;
-  period: PortalReportsPeriod;
+  period: PortalReportsPeriodResponse;
+  from?: string;
+  to?: string;
   summary: PortalReceiptsSummary;
   receipts: PortalReceiptListItem[];
   pagination: {
@@ -130,7 +135,9 @@ export type PortalReceiptDetailData = {
 export type FetchPortalReceiptsInput = {
   orgId: string;
   customerId: string;
-  period?: string;
+  period?: string | SalesPeriodInput;
+  from?: string;
+  to?: string;
   paymentMethod?: string;
   status?: string;
   search?: string;
@@ -139,6 +146,19 @@ export type FetchPortalReceiptsInput = {
   offset?: string | number;
   page?: string | number;
 };
+
+export function resolveReceiptsReportWindow(
+  input: Pick<FetchPortalReceiptsInput, "period" | "from" | "to">,
+): PortalReportsWindow {
+  if (input.period && typeof input.period === "object" && "kind" in input.period) {
+    return input.period;
+  }
+  return parsePortalReportsSummaryQuery({
+    period: input.period,
+    from: input.from,
+    to: input.to,
+  });
+}
 
 function parseReceiptSort(raw: string | undefined): PortalReceiptSort {
   return raw?.trim().toLowerCase() === "oldest" ? "oldest" : "newest";
@@ -177,12 +197,12 @@ function customerDeviceScope(orgId: string, customerId: string) {
 function receiptScope(
   orgId: string,
   customerId: string,
-  period: PortalReportsPeriod,
+  period: SalesPeriodInput,
 ) {
   return and(
     eq(posReceipts.orgId, orgId),
     customerDeviceScope(orgId, customerId),
-    sqlInPeriodBerlin(posReceipts.soldAt, period),
+    sqlInReportWindow(posReceipts.soldAt, asReportWindow(period)),
   );
 }
 
@@ -320,7 +340,7 @@ function receiptPaymentBucketExists(
 function buildReceiptWhereClause(input: {
   orgId: string;
   customerId: string;
-  period: PortalReportsPeriod;
+  period: SalesPeriodInput;
   statusFilter: ReceiptStatus | "all";
   search: string;
   paymentFilter: PaymentBucket | "all";
@@ -371,7 +391,7 @@ type ReceiptRowStub = {
 async function mapReceiptRowsToListItems(input: {
   orgId: string;
   customerId: string;
-  period: PortalReportsPeriod;
+  period: SalesPeriodInput;
   rows: ReceiptRowStub[];
 }): Promise<PortalReceiptListItem[]> {
   if (!input.rows.length) return [];
@@ -394,7 +414,7 @@ async function mapReceiptRowsToListItems(input: {
       and(
         eq(posOrders.orgId, input.orgId),
         customerDeviceScope(input.orgId, input.customerId),
-        sqlInPeriodBerlin(posOrders.soldAt, input.period),
+        sqlInReportWindow(posOrders.soldAt, asReportWindow(input.period)),
       ),
     )
     .orderBy(posOrderLines.lineIndex);
@@ -419,7 +439,7 @@ async function mapReceiptRowsToListItems(input: {
       and(
         eq(posSalePayments.orgId, input.orgId),
         customerDeviceScope(input.orgId, input.customerId),
-        sqlInPeriodBerlin(posSalePayments.paidAt, input.period),
+        sqlInReportWindow(posSalePayments.paidAt, asReportWindow(input.period)),
       ),
     );
 
@@ -484,7 +504,7 @@ async function mapReceiptRowsToListItems(input: {
 async function buildReceiptsSummary(input: {
   orgId: string;
   customerId: string;
-  period: PortalReportsPeriod;
+  period: SalesPeriodInput;
   whereClause: SQL;
 }): Promise<PortalReceiptsSummary> {
   const filteredRows = await db
@@ -518,7 +538,7 @@ async function buildReceiptsSummary(input: {
       and(
         eq(posSalePayments.orgId, input.orgId),
         customerDeviceScope(input.orgId, input.customerId),
-        sqlInPeriodBerlin(posSalePayments.paidAt, input.period),
+        sqlInReportWindow(posSalePayments.paidAt, asReportWindow(input.period)),
       ),
     );
 
@@ -584,7 +604,7 @@ async function buildReceiptsSummary(input: {
 export async function fetchPortalReceiptsPage(
   input: FetchPortalReceiptsInput,
 ): Promise<PortalReceiptsPageData> {
-  const period = parsePortalReportsPeriod(input.period);
+  const period = resolveReceiptsReportWindow(input);
   const sort = parseReceiptSort(input.sort);
   const paymentFilter = parsePaymentFilter(input.paymentMethod);
   const statusFilter = parseStatusFilter(input.status);
@@ -658,8 +678,9 @@ export async function fetchPortalReceiptsPage(
   ]);
 
   return {
-    timezone: PORTAL_ORDERS_TIMEZONE,
-    period,
+    timezone: REPORTS_TIMEZONE,
+    period: period.period,
+    ...(period.kind === "custom" ? { from: period.from, to: period.to } : {}),
     summary,
     receipts,
     pagination: {

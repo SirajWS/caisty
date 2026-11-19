@@ -548,6 +548,12 @@ export const portalFr: PortalTranslations = {
     emptyDescription:
       "Connectez votre POS et synchronisez les ventes pour consulter reçus, historique d'impression et statut fiscal.",
     emptyCta: "Ouvrir le POS bureau",
+    unavailableHeadline: "Reçus personnalisés indisponibles",
+    unavailableDescription:
+      "L'API des reçus n'a pas accepté cette période. Les préréglages existants restent disponibles.",
+    errorHeadline: "Impossible de charger les reçus",
+    errorDescription: "Une erreur s'est produite lors du chargement des reçus. Veuillez réessayer.",
+    errorRetry: "Réessayer",
   },
   reports: {
     title: "Rapports",

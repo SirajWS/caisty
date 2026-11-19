@@ -7,6 +7,8 @@ import type {
 
 import type { PortalTranslations } from "../translations/portal";
 
+import type { AppliedReceiptsPeriod } from "./receiptsPeriod";
+
 export type ReceiptsData = {
   customer: PortalCustomer;
   page: PortalReceiptsResponse | null;
@@ -15,6 +17,8 @@ export type ReceiptsData = {
   detailLoading: boolean;
   loading: boolean;
   error: boolean;
+  incompatibleApi: boolean;
+  applied: AppliedReceiptsPeriod;
   lastSyncedAt: Date | null;
 };
 

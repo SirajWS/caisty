@@ -8,7 +8,17 @@ import { portalLocaleTag } from "../lib/portalLocale";
 import { deriveReceiptsState } from "../lib/receipts/deriveReceiptsState";
 import { usePortalReceiptsData } from "../lib/receipts/usePortalReceiptsData";
 import { fetchAllPortalReceiptsForExport } from "../lib/receipts/fetchAllPortalReceiptsForExport";
-import { mapReceiptsPeriodToApi } from "../lib/receipts/receiptsPeriod";
+import {
+  DEFAULT_APPLIED_RECEIPTS_PERIOD,
+  isIncompatibleCustomReceiptsResponse,
+  mapReceiptsPeriodToApi,
+} from "../lib/receipts/receiptsPeriod";
+import {
+  appliedPeriodLabel,
+  applyCustomDraft,
+  customPickerDraft,
+  type ReportsPresetId,
+} from "../lib/reports/reportsPeriod";
 import { ReceiptsSummary } from "../components/receipts/ReceiptsSummary";
 import { ReceiptsFilters } from "../components/receipts/ReceiptsFilters";
 import { ReceiptsTable } from "../components/receipts/ReceiptsTable";
@@ -16,6 +26,7 @@ import { ReceiptsEmptyState } from "../components/receipts/ReceiptsEmptyState";
 import { ReceiptPortalDetailDrawer } from "../components/receipts/ReceiptPortalDetailDrawer";
 import { PortalPagination } from "../components/portal/PortalPagination";
 import { PaymentOverview } from "../components/orders/PaymentOverview";
+import { OrdersErrorState } from "../components/orders/OrdersErrorState";
 import { PortalExportPdfButton } from "../components/portal/PortalExportPdfButton";
 import { resolveDocumentIdentity } from "../lib/documents/documentMeta";
 import { buildDocumentMeta } from "../lib/documents/documentMeta";
@@ -27,7 +38,6 @@ import {
   portalPageTitle,
   portalSecondaryCta,
 } from "../lib/portalUi";
-import { getReceiptsPeriodFilters } from "../lib/receipts/receiptsPeriod";
 
 const PortalReceiptsPage: React.FC = () => {
   const { customer } = usePortalOutlet();
@@ -41,12 +51,19 @@ const PortalReceiptsPage: React.FC = () => {
   const locale = portalLocaleTag(language);
   const data = usePortalReceiptsData(customer);
   const [exportingPdf, setExportingPdf] = React.useState(false);
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [draftFrom, setDraftFrom] = React.useState("");
+  const [draftTo, setDraftTo] = React.useState("");
+  const [draftError, setDraftError] = React.useState<string | null>(null);
 
   const receipts = React.useMemo(
     () => deriveReceiptsState({ data, t, locale }),
     [data, t, locale],
   );
 
+  const showIncompatibleHero = !data.loading && data.incompatibleApi;
+  const showErrorHero =
+    !data.loading && data.error && !data.incompatibleApi;
   const showEmptyHero =
     !data.loading && !data.error && !receipts.hasReceipts;
   const [identity, setIdentity] = React.useState<DocumentIdentity | null>(null);
@@ -68,13 +85,7 @@ const PortalReceiptsPage: React.FC = () => {
     return () => window.clearInterval(intervalId);
   }, [data.reload]);
 
-  const periodFilters = React.useMemo(
-    () => getReceiptsPeriodFilters(t.reports),
-    [t.reports],
-  );
-  const periodLabel =
-    periodFilters.find((f) => f.id === data.query.period)?.label ??
-    r.filtersTitle;
+  const periodLabel = appliedPeriodLabel(data.query.period, t.reports, locale);
 
   const handleRefresh = React.useCallback(() => {
     if (data.refreshing || exportingPdf) return;
@@ -131,12 +142,14 @@ const PortalReceiptsPage: React.FC = () => {
   );
 
   const handleExportPdf = React.useCallback(async () => {
+    if (data.loading || data.error || data.incompatibleApi) return;
     setExportingPdf(true);
     try {
       const resolvedIdentity =
         identity ?? (await resolveDocumentIdentity(customer));
+      const apiPeriod = mapReceiptsPeriodToApi(data.query.period);
       const page = await fetchAllPortalReceiptsForExport({
-        period: mapReceiptsPeriodToApi(data.query.period),
+        ...apiPeriod,
         paymentMethod:
           data.query.paymentMethod === "all"
             ? undefined
@@ -151,6 +164,9 @@ const PortalReceiptsPage: React.FC = () => {
       const { buildReceiptsListDocumentLabels } = await import(
         "../lib/documents/documentLabels"
       );
+      if (isIncompatibleCustomReceiptsResponse(data.query.period, page)) {
+        return;
+      }
       exportReceiptsListPdf({
         meta: buildDocumentMeta({
           identity: resolvedIdentity,
@@ -166,7 +182,17 @@ const PortalReceiptsPage: React.FC = () => {
     } finally {
       setExportingPdf(false);
     }
-  }, [customer, data.query, identity, locale, periodLabel, t]);
+  }, [
+    customer,
+    data.error,
+    data.incompatibleApi,
+    data.loading,
+    data.query,
+    identity,
+    locale,
+    periodLabel,
+    t,
+  ]);
 
   const drawerLabels = React.useMemo(
     () => ({
@@ -242,7 +268,12 @@ const PortalReceiptsPage: React.FC = () => {
             <PortalExportPdfButton
               label={r.actionExportPdf}
               loadingLabel={t.pdfDocuments.exporting}
-              disabled={data.loading || !receipts.hasReceipts}
+              disabled={
+                data.loading ||
+                data.error ||
+                data.incompatibleApi ||
+                !receipts.hasReceipts
+              }
               loading={exportingPdf}
               onClick={handleExportPdf}
               isLight={isLight}
@@ -266,14 +297,67 @@ const PortalReceiptsPage: React.FC = () => {
       <ReceiptsFilters
         r={r}
         reports={t.reports}
-        period={data.query.period}
+        applied={data.query.period}
+        pickerOpen={pickerOpen}
+        draftFrom={draftFrom}
+        draftTo={draftTo}
+        draftError={draftError}
         paymentMethod={data.query.paymentMethod}
         status={data.query.status}
         search={data.query.search}
         sort={data.query.sort}
-        onPeriodChange={(period) =>
-          data.setQuery((prev) => ({ ...prev, period, page: 1 }))
-        }
+        onPresetChange={(period: ReportsPresetId) => {
+          setPickerOpen(false);
+          setDraftError(null);
+          data.setQuery((prev) => ({ ...prev, period: { period }, page: 1 }));
+        }}
+        onCustomClick={() => {
+          const draft = customPickerDraft(data.query.period);
+          setPickerOpen(true);
+          setDraftError(null);
+          setDraftFrom(draft.from);
+          setDraftTo(draft.to);
+        }}
+        onDraftFromChange={(value) => {
+          setDraftFrom(value);
+          setDraftError(null);
+        }}
+        onDraftToChange={(value) => {
+          setDraftTo(value);
+          setDraftError(null);
+        }}
+        onApply={() => {
+          const result = applyCustomDraft(draftFrom, draftTo, t.reports);
+          if (!result.ok) {
+            setDraftError(result.error);
+            return;
+          }
+          setDraftError(null);
+          setPickerOpen(false);
+          data.setQuery((prev) => ({
+            ...prev,
+            period: result.applied,
+            page: 1,
+          }));
+        }}
+        onCancel={() => {
+          const draft = customPickerDraft(data.query.period);
+          setPickerOpen(false);
+          setDraftError(null);
+          setDraftFrom(draft.from);
+          setDraftTo(draft.to);
+        }}
+        onReset={() => {
+          setPickerOpen(false);
+          setDraftFrom("");
+          setDraftTo("");
+          setDraftError(null);
+          data.setQuery((prev) => ({
+            ...prev,
+            period: DEFAULT_APPLIED_RECEIPTS_PERIOD,
+            page: 1,
+          }));
+        }}
         onPaymentMethodChange={(paymentMethod) =>
           data.setQuery((prev) => ({ ...prev, paymentMethod, page: 1 }))
         }
@@ -285,6 +369,28 @@ const PortalReceiptsPage: React.FC = () => {
           data.setQuery((prev) => ({ ...prev, sort, page: 1 }))
         }
       />
+
+      {showIncompatibleHero ? (
+        <OrdersErrorState
+          headline={r.unavailableHeadline}
+          description={r.unavailableDescription}
+          retryLabel={r.errorRetry}
+          onRetry={() => data.reload()}
+          isLight={isLight}
+          loading={data.loading}
+        />
+      ) : null}
+
+      {showErrorHero ? (
+        <OrdersErrorState
+          headline={r.errorHeadline}
+          description={r.errorDescription}
+          retryLabel={r.errorRetry}
+          onRetry={() => data.reload()}
+          isLight={isLight}
+          loading={data.loading}
+        />
+      ) : null}
 
       {showEmptyHero ? (
         <ReceiptsEmptyState

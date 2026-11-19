@@ -548,6 +548,12 @@ export const portalAr: PortalTranslations = {
     emptyDescription:
       "اربط نقطة البيع وقم بمزامنة المبيعات لمراجعة الإيصالات وسجل الطباعة والحالة الضريبية.",
     emptyCta: "فتح POS المكتبي",
+    unavailableHeadline: "الإيصالات المخصصة غير متاحة",
+    unavailableDescription:
+      "واجهة برمجة الإيصالات لم تقبل هذا النطاق الزمني. الإعدادات المسبقة الحالية ما زالت تعمل.",
+    errorHeadline: "تعذر تحميل الإيصالات",
+    errorDescription: "حدث خطأ أثناء تحميل الإيصالات. يرجى المحاولة مرة أخرى.",
+    errorRetry: "حاول مرة أخرى",
   },
   reports: {
     title: "التقارير",
