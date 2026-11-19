@@ -164,7 +164,10 @@ describe("PosSyncService channel batch", () => {
   it("returns duplicate without reprocessing channel when event already exists outside transaction", async () => {
     mocks.mockSelect
       .mockReturnValueOnce(chainSelect([]))
-      .mockReturnValueOnce(chainSelect([{ id: "existing-event" }]));
+      .mockReturnValueOnce(chainSelect([]))
+      .mockReturnValueOnce(
+        chainSelect([{ id: "existing-event", status: "accepted" }]),
+      );
     chainInsertBatch();
 
     const result = await service.processBatch(
@@ -183,6 +186,7 @@ describe("PosSyncService channel batch", () => {
 
   it("registers channel event inside a transaction using the same tx handle", async () => {
     mocks.mockSelect
+      .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]));
@@ -214,7 +218,10 @@ describe("PosSyncService channel batch", () => {
     mocks.mockSelect
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
-      .mockReturnValueOnce(chainSelect([{ id: "existing-in-tx" }]));
+      .mockReturnValueOnce(chainSelect([]))
+      .mockReturnValueOnce(
+        chainSelect([{ id: "existing-in-tx", status: "accepted" }]),
+      );
     chainInsertBatch();
     channelMock.processChannelEvent.mockResolvedValue({ status: "accepted" });
 
@@ -234,6 +241,7 @@ describe("PosSyncService channel batch", () => {
 
   it("rolls back channel upsert when event insert hits sync-event unique violation", async () => {
     mocks.mockSelect
+      .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]));
@@ -261,6 +269,7 @@ describe("PosSyncService channel batch", () => {
     mocks.mockSelect
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
+      .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]));
     chainInsertBatch();
     chainInsertEvent(syncEventUniqueViolation());
@@ -283,6 +292,7 @@ describe("PosSyncService channel batch", () => {
 
   it("does not treat slug unique violations as event duplicate", async () => {
     mocks.mockSelect
+      .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]));
@@ -311,7 +321,11 @@ describe("PosSyncService channel batch", () => {
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
-      .mockReturnValueOnce(chainSelect([{ id: "now-recorded" }]));
+      .mockReturnValueOnce(chainSelect([]))
+      .mockReturnValueOnce(chainSelect([]))
+      .mockReturnValueOnce(
+        chainSelect([{ id: "now-recorded", status: "accepted" }]),
+      );
     chainInsertBatch();
     chainInsertEvent(syncEventUniqueViolation());
     channelMock.processChannelEvent.mockResolvedValue({ status: "accepted" });
@@ -348,6 +362,7 @@ describe("PosSyncService channel batch", () => {
     mocks.mockSelect
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
+      .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]));
     chainInsertBatch();
     chainInsertEvent();
@@ -364,6 +379,7 @@ describe("PosSyncService channel batch", () => {
     );
 
     mocks.mockSelect
+      .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]));
@@ -403,6 +419,7 @@ describe("PosSyncService channel batch", () => {
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
+      .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]));
     chainInsertBatch();
     chainInsertEvent();
@@ -432,6 +449,7 @@ describe("PosSyncService channel batch", () => {
 
   it("does not confirm slug conflict from channel service as duplicate", async () => {
     mocks.mockSelect
+      .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]))
       .mockReturnValueOnce(chainSelect([]));

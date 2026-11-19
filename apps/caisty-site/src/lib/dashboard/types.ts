@@ -1,6 +1,7 @@
 import type { PosReleaseConfig } from "../../config/posConfig";
 import type { PosHubNotification, PosHubTone } from "../posHub/types";
 import type { PortalTranslations } from "../translations/portal";
+import type { TaxCard } from "../reports/types";
 import type {
   PortalBusinessProfile,
   PortalCustomer,
@@ -198,4 +199,5 @@ export type DashboardDerivedState = {
   paymentCards: import("../orders/types").PaymentMethodCard[];
   onlinePaymentCards: import("../orders/types").PaymentMethodCard[];
   hasSalesData: boolean;
+  taxes: TaxCard[];
 };

@@ -1731,6 +1731,8 @@ export const portalFr: PortalTranslations = {
     country: "Pays",
     countryPlaceholder: "Choisir un pays…",
     currency: "Devise",
+    currencyLockedHint:
+      "La devise de votre entreprise est verrouillée car votre caisse POS a été activée.",
     decimalPlaces: "Décimales",
     decimalPlacesHint: "Déterminé automatiquement par la devise.",
     examplePrice: "Prix d’exemple",

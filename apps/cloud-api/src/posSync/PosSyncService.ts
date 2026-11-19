@@ -1,7 +1,12 @@
 import { and, eq } from "drizzle-orm";
+import {
+  isPosMoneyInteger,
+  isSupportedBusinessCurrency,
+} from "../../../../packages/business-currency/src/index.ts";
 
 import { IdempotencyService } from "../billing/IdempotencyService.js";
 import { db } from "../db/client.js";
+import { businessProfiles } from "../db/schema/businessProfiles.js";
 import { devices } from "../db/schema/devices.js";
 import {
   posOrderLines,
@@ -186,8 +191,15 @@ export class PosSyncService {
       })
       .returning();
 
+    const businessCurrency = await this.loadBusinessCurrency(auth.orgId);
+
     for (const event of request.events) {
-      const outcome = await this.processEvent(event, auth, batch.id);
+      const outcome = await this.processEvent(
+        event,
+        auth,
+        batch.id,
+        businessCurrency,
+      );
       if (outcome.status === "accepted") {
         accepted.push(event.eventId);
       } else if (outcome.status === "duplicate") {
@@ -255,7 +267,7 @@ export class PosSyncService {
     dbClient: ChannelSyncTx = db,
   ) {
     const [existingEvent] = await dbClient
-      .select({ id: posSyncEvents.id })
+      .select({ id: posSyncEvents.id, status: posSyncEvents.status })
       .from(posSyncEvents)
       .where(
         and(
@@ -268,10 +280,56 @@ export class PosSyncService {
     return existingEvent ?? null;
   }
 
+  private async loadBusinessCurrency(orgId: string): Promise<string | null> {
+    const [row] = await db
+      .select({ currency: businessProfiles.currency })
+      .from(businessProfiles)
+      .where(eq(businessProfiles.orgId, orgId))
+      .limit(1);
+    return row?.currency ?? null;
+  }
+
+  private rejectEventCurrency(
+    payloadCurrency: string | undefined,
+    businessCurrency: string | null,
+  ): { status: "failed"; code: string; error: string } | { currency: string } {
+    const raw = payloadCurrency?.trim().toUpperCase() ?? "";
+    if (!raw) {
+      return {
+        status: "failed",
+        code: "currency_required",
+        error: "currency is required.",
+      };
+    }
+    if (!isSupportedBusinessCurrency(raw)) {
+      return {
+        status: "failed",
+        code: "unsupported_currency",
+        error: `Unsupported currency ${raw}.`,
+      };
+    }
+    if (!businessCurrency || !isSupportedBusinessCurrency(businessCurrency)) {
+      return {
+        status: "failed",
+        code: "business_currency_invalid",
+        error: "Business currency is not configured.",
+      };
+    }
+    if (raw !== businessCurrency) {
+      return {
+        status: "failed",
+        code: "currency_mismatch",
+        error: `Currency ${raw} does not match business currency ${businessCurrency}.`,
+      };
+    }
+    return { currency: raw };
+  }
+
   private async processEvent(
     event: PosSyncEvent,
     auth: PosDeviceAuthContext,
     batchId: string,
+    businessCurrency: string | null,
   ): Promise<
     | { status: "accepted" | "duplicate" }
     | { status: "failed"; code: string; error: string }
@@ -281,59 +339,31 @@ export class PosSyncService {
       event.eventId,
     );
 
-    if (existingEvent) {
-      if (event.type === "channel") {
-        return { status: "duplicate" };
-      }
-      if (event.type === "order") {
-        const outcome = await this.upsertOrder(
-          event.payload as PosSyncOrderPayload,
-          auth,
-          batchId,
-        );
-        return outcome.status === "failed" ? outcome : { status: "duplicate" };
-      }
-      if (event.type === "payment") {
-        const outcome = await this.upsertPayment(
-          event.payload as PosSyncPaymentPayload,
-          auth,
-          batchId,
-        );
-        return outcome.status === "failed" ? outcome : { status: "duplicate" };
-      }
-      if (event.type === "receipt") {
-        const outcome = await this.upsertReceipt(
-          event.payload as PosSyncReceiptPayload,
-          auth,
-          batchId,
-        );
-        return outcome.status === "failed" ? outcome : { status: "duplicate" };
-      }
-      if (event.type === "receipt_event") {
-        const outcome = await this.appendReceiptEvent(
-          event.payload as PosSyncReceiptEventPayload,
-          auth,
-          batchId,
-        );
-        return outcome.status === "failed" ? outcome : { status: "duplicate" };
-      }
-      if (event.type === "shift") {
-        const outcome = await this.upsertShift(
-          event.payload as PosSyncShiftPayload,
-          auth,
-          batchId,
-        );
-        return outcome.status === "failed" ? outcome : { status: "duplicate" };
-      }
-      return { status: "duplicate" };
+    if (existingEvent && existingEvent.status !== "failed") {
+      return this.duplicateFinancialEvent(event, auth, businessCurrency);
     }
 
     if (event.type === "channel") {
       return this.processChannelEventTransactional(event, auth, batchId);
     }
 
+    if (existingEvent?.status === "failed") {
+      return this.retryFailedFinancialEvent(
+        event,
+        auth,
+        batchId,
+        businessCurrency,
+        existingEvent.id,
+      );
+    }
+
     try {
-      const entityOutcome = await this.upsertEntity(event, auth, batchId);
+      const entityOutcome = await this.upsertEntity(
+        event,
+        auth,
+        batchId,
+        businessCurrency,
+      );
       await db.insert(posSyncEvents).values({
         syncEventId: event.eventId,
         batchId,
@@ -366,6 +396,51 @@ export class PosSyncService {
     }
   }
 
+  private async retryFailedFinancialEvent(
+    event: PosSyncEvent,
+    auth: PosDeviceAuthContext,
+    batchId: string,
+    businessCurrency: string | null,
+    existingEventId: string,
+  ): Promise<
+    | { status: "accepted" | "duplicate" }
+    | { status: "failed"; code: string; error: string }
+  > {
+    try {
+      const entityOutcome = await this.upsertEntity(
+        event,
+        auth,
+        batchId,
+        businessCurrency,
+      );
+      await db
+        .update(posSyncEvents)
+        .set({
+          batchId,
+          status: entityOutcome.status,
+          errorCode: entityOutcome.status === "failed" ? entityOutcome.code : null,
+          errorMessage:
+            entityOutcome.status === "failed" ? entityOutcome.error : null,
+        })
+        .where(eq(posSyncEvents.id, existingEventId));
+      return entityOutcome.status === "failed"
+        ? entityOutcome
+        : { status: entityOutcome.status };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown error";
+      await db
+        .update(posSyncEvents)
+        .set({
+          batchId,
+          status: "failed",
+          errorCode: "server_error",
+          errorMessage: message,
+        })
+        .where(eq(posSyncEvents.id, existingEventId));
+      return { status: "failed", code: "server_error", error: message };
+    }
+  }
+
   private async processChannelEventTransactional(
     event: PosSyncEvent,
     auth: PosDeviceAuthContext,
@@ -381,7 +456,7 @@ export class PosSyncService {
           event.eventId,
           tx,
         );
-        if (existingEvent) {
+        if (existingEvent && existingEvent.status !== "failed") {
           return { status: "duplicate" as const };
         }
 
@@ -392,19 +467,30 @@ export class PosSyncService {
           tx,
         );
 
+        const eventStatus = {
+          batchId,
+          status: outcome.status === "failed" ? "failed" : outcome.status,
+          errorCode: outcome.status === "failed" ? outcome.code : null,
+          errorMessage:
+            outcome.status === "failed" ? outcome.error : null,
+        };
+
         try {
-          await tx.insert(posSyncEvents).values({
-            syncEventId: event.eventId,
-            batchId,
-            orgId: auth.orgId,
-            deviceId: auth.deviceId,
-            eventType: event.type,
-            entityLocalId: this.entityLocalId(event),
-            status: outcome.status === "failed" ? "failed" : outcome.status,
-            errorCode: outcome.status === "failed" ? outcome.code : null,
-            errorMessage:
-              outcome.status === "failed" ? outcome.error : null,
-          });
+          if (existingEvent?.status === "failed") {
+            await tx
+              .update(posSyncEvents)
+              .set(eventStatus)
+              .where(eq(posSyncEvents.id, existingEvent.id));
+          } else {
+            await tx.insert(posSyncEvents).values({
+              syncEventId: event.eventId,
+              orgId: auth.orgId,
+              deviceId: auth.deviceId,
+              eventType: event.type,
+              entityLocalId: this.entityLocalId(event),
+              ...eventStatus,
+            });
+          }
         } catch (err: unknown) {
           if (isSyncEventUniqueViolation(err)) {
             throw new SyncEventDuplicateError();
@@ -445,10 +531,61 @@ export class PosSyncService {
     return (event.payload as PosSyncPaymentPayload).localPaymentId;
   }
 
+  private async duplicateFinancialEvent(
+    event: PosSyncEvent,
+    auth: PosDeviceAuthContext,
+    businessCurrency: string | null,
+  ): Promise<
+    | { status: "accepted" | "duplicate" }
+    | { status: "failed"; code: string; error: string }
+  > {
+    if (event.type === "channel" || event.type === "receipt_event") {
+      return { status: "duplicate" };
+    }
+    if (event.type === "order") {
+      return this.conflictOrDuplicateOrder(
+        event.payload as PosSyncOrderPayload,
+        auth,
+        businessCurrency,
+      );
+    }
+    if (event.type === "receipt") {
+      return this.conflictOrDuplicateReceipt(
+        event.payload as PosSyncReceiptPayload,
+        auth,
+        businessCurrency,
+      );
+    }
+    if (event.type === "payment") {
+      return this.conflictOrDuplicatePayment(
+        event.payload as PosSyncPaymentPayload,
+        auth,
+        businessCurrency,
+      );
+    }
+    if (event.type === "shift") {
+      return this.conflictOrDuplicateShift(
+        event.payload as PosSyncShiftPayload,
+        auth,
+        businessCurrency,
+      );
+    }
+    return { status: "duplicate" };
+  }
+
+  private financialConflict(entity: string) {
+    return {
+      status: "failed" as const,
+      code: "financial_conflict",
+      error: `${entity} was already synced with different financial data.`,
+    };
+  }
+
   private async upsertEntity(
     event: PosSyncEvent,
     auth: PosDeviceAuthContext,
     batchId: string,
+    businessCurrency: string | null,
   ): Promise<
     | { status: "accepted" | "duplicate" }
     | { status: "failed"; code: string; error: string }
@@ -458,6 +595,7 @@ export class PosSyncService {
         event.payload as PosSyncOrderPayload,
         auth,
         batchId,
+        businessCurrency,
       );
     }
     if (event.type === "receipt") {
@@ -465,6 +603,7 @@ export class PosSyncService {
         event.payload as PosSyncReceiptPayload,
         auth,
         batchId,
+        businessCurrency,
       );
     }
     if (event.type === "receipt_event") {
@@ -479,6 +618,7 @@ export class PosSyncService {
         event.payload as PosSyncShiftPayload,
         auth,
         batchId,
+        businessCurrency,
       );
     }
     if (event.type === "channel") {
@@ -492,6 +632,7 @@ export class PosSyncService {
       event.payload as PosSyncPaymentPayload,
       auth,
       batchId,
+      businessCurrency,
     );
   }
 
@@ -533,11 +674,18 @@ export class PosSyncService {
   private async findExistingOrderSnapshot(
     auth: PosDeviceAuthContext,
     localOrderId: string,
-  ): Promise<{ status: string; paymentStatus: string | null } | null> {
+  ): Promise<{
+    status: string;
+    paymentStatus: string | null;
+    totalCents: number;
+    currency: string;
+  } | null> {
     const [row] = await db
       .select({
         status: posOrders.status,
         paymentStatus: posOrders.paymentStatus,
+        totalCents: posOrders.totalCents,
+        currency: posOrders.currency,
       })
       .from(posOrders)
       .where(
@@ -551,10 +699,35 @@ export class PosSyncService {
     return row ?? null;
   }
 
+  private async conflictOrDuplicateOrder(
+    payload: PosSyncOrderPayload,
+    auth: PosDeviceAuthContext,
+    businessCurrency: string | null,
+  ) {
+    const currencyResult = this.rejectEventCurrency(
+      payload.currency,
+      businessCurrency,
+    );
+    if ("status" in currencyResult) return currencyResult;
+    const existing = await this.findExistingOrderSnapshot(
+      auth,
+      payload.localOrderId,
+    );
+    if (!existing) return { status: "duplicate" as const };
+    if (
+      existing.totalCents !== payload.totalCents ||
+      existing.currency !== currencyResult.currency
+    ) {
+      return this.financialConflict("Order");
+    }
+    return { status: "duplicate" as const };
+  }
+
   private async upsertOrder(
     payload: PosSyncOrderPayload,
     auth: PosDeviceAuthContext,
     batchId: string,
+    businessCurrency: string | null,
   ) {
     const soldAt = parseIsoDate(payload.soldAt, "soldAt");
     if (!soldAt) {
@@ -562,6 +735,19 @@ export class PosSyncService {
         status: "failed" as const,
         code: "invalid_payload",
         error: "soldAt is invalid",
+      };
+    }
+
+    const currencyResult = this.rejectEventCurrency(
+      payload.currency,
+      businessCurrency,
+    );
+    if ("status" in currencyResult) return currencyResult;
+    if (!isPosMoneyInteger(payload.totalCents)) {
+      return {
+        status: "failed" as const,
+        code: "invalid_amount",
+        error: "totalCents must be an integer within PostgreSQL int32 limits.",
       };
     }
 
@@ -578,70 +764,134 @@ export class PosSyncService {
       existingSnapshot?.paymentStatus,
     );
 
-    try {
-      const [order] = await db
-        .insert(posOrders)
-        .values({
-          orgId: auth.orgId,
-          customerId: auth.customerId,
-          deviceId: auth.deviceId,
-          localOrderId: payload.localOrderId,
+    if (payload.lines?.length) {
+      for (const line of payload.lines) {
+        if (
+          !isPosMoneyInteger(line.unitPriceCents) ||
+          !isPosMoneyInteger(line.lineTotalCents)
+        ) {
+          return {
+            status: "failed" as const,
+            code: "invalid_amount",
+            error: "Order line money amounts must be integer minor units.",
+          };
+        }
+      }
+    }
+
+    if (existingSnapshot) {
+      if (
+        existingSnapshot.totalCents !== payload.totalCents ||
+        existingSnapshot.currency !== currencyResult.currency
+      ) {
+        return this.financialConflict("Order");
+      }
+      await db
+        .update(posOrders)
+        .set({
           status: mergedStatus,
-          totalCents: payload.totalCents,
-          currency: payload.currency ?? "EUR",
-          soldAt,
           syncBatchId: batchId,
+          updatedAt: new Date(),
           ...providerFields,
         })
-        .returning();
-
-      if (payload.lines?.length) {
-        await db.insert(posOrderLines).values(
-          payload.lines.map((line) => ({
-            orderId: order.id,
-            orgId: auth.orgId,
-            lineIndex: line.lineIndex,
-            productName: line.productName ?? null,
-            sku: line.sku ?? null,
-            quantity: line.quantity,
-            unitPriceCents: line.unitPriceCents,
-            lineTotalCents: line.lineTotalCents,
-            taxRateBps: line.taxRateBps ?? null,
-          })),
+        .where(
+          and(
+            eq(posOrders.orgId, auth.orgId),
+            eq(posOrders.deviceId, auth.deviceId),
+            eq(posOrders.localOrderId, payload.localOrderId),
+          ),
         );
-      }
-
       return { status: "accepted" as const };
-    } catch (err: unknown) {
-      if (isUniqueViolation(err)) {
-        await db
-          .update(posOrders)
-          .set({
+    }
+
+    try {
+      return await db.transaction(async (tx) => {
+        const [order] = await tx
+          .insert(posOrders)
+          .values({
+            orgId: auth.orgId,
+            customerId: auth.customerId,
+            deviceId: auth.deviceId,
+            localOrderId: payload.localOrderId,
             status: mergedStatus,
             totalCents: payload.totalCents,
-            currency: payload.currency ?? "EUR",
+            currency: currencyResult.currency,
             soldAt,
             syncBatchId: batchId,
-            updatedAt: new Date(),
             ...providerFields,
           })
-          .where(
-            and(
-              eq(posOrders.orgId, auth.orgId),
-              eq(posOrders.deviceId, auth.deviceId),
-              eq(posOrders.localOrderId, payload.localOrderId),
-            ),
+          .returning();
+
+        if (payload.lines?.length) {
+          await tx.insert(posOrderLines).values(
+            payload.lines.map((line) => ({
+              orderId: order.id,
+              orgId: auth.orgId,
+              lineIndex: line.lineIndex,
+              productName: line.productName ?? null,
+              sku: line.sku ?? null,
+              quantity: String(line.quantity),
+              unitPriceCents: line.unitPriceCents,
+              lineTotalCents: line.lineTotalCents,
+              taxRateBps: line.taxRateBps ?? null,
+            })),
           );
+        }
+
         return { status: "accepted" as const };
+      });
+    } catch (err: unknown) {
+      if (isUniqueViolation(err)) {
+        return this.conflictOrDuplicateOrder(payload, auth, businessCurrency);
       }
       throw err;
     }
+  }
+
+  private async conflictOrDuplicateReceipt(
+    payload: PosSyncReceiptPayload,
+    auth: PosDeviceAuthContext,
+    businessCurrency: string | null,
+  ) {
+    const currencyResult = this.rejectEventCurrency(
+      payload.currency,
+      businessCurrency,
+    );
+    if ("status" in currencyResult) return currencyResult;
+    const [existing] = await db
+      .select({
+        netCents: posReceipts.netCents,
+        taxCents: posReceipts.taxCents,
+        grossCents: posReceipts.grossCents,
+        currency: posReceipts.currency,
+      })
+      .from(posReceipts)
+      .where(
+        and(
+          eq(posReceipts.orgId, auth.orgId),
+          eq(posReceipts.deviceId, auth.deviceId),
+          eq(posReceipts.localReceiptId, payload.localReceiptId),
+        ),
+      )
+      .limit(1);
+    if (!existing) return { status: "duplicate" as const };
+    const taxCents = payload.taxCents ?? 0;
+    if (
+      existing.netCents !== payload.netCents ||
+      existing.taxCents !== taxCents ||
+      existing.grossCents !== payload.grossCents ||
+      existing.currency !== currencyResult.currency
+    ) {
+      return this.financialConflict("Receipt");
+    }
+    return { status: "duplicate" as const };
   }
 
   private async upsertReceipt(
     payload: PosSyncReceiptPayload,
     auth: PosDeviceAuthContext,
     batchId: string,
+    businessCurrency: string | null,
   ) {
     const soldAt = parseIsoDate(payload.soldAt, "soldAt");
     if (!soldAt) {
@@ -650,6 +900,57 @@ export class PosSyncService {
         code: "invalid_payload",
         error: "soldAt is invalid",
       };
+    }
+
+    const currencyResult = this.rejectEventCurrency(
+      payload.currency,
+      businessCurrency,
+    );
+    if ("status" in currencyResult) return currencyResult;
+    const taxCents = payload.taxCents ?? 0;
+    if (
+      !isPosMoneyInteger(payload.netCents) ||
+      !isPosMoneyInteger(taxCents) ||
+      !isPosMoneyInteger(payload.grossCents)
+    ) {
+      return {
+        status: "failed" as const,
+        code: "invalid_amount",
+        error: "Receipt money amounts must be integer minor units.",
+      };
+    }
+
+    const existingCheck = await this.conflictOrDuplicateReceipt(
+      payload,
+      auth,
+      businessCurrency,
+    );
+    if (existingCheck.status === "failed") return existingCheck;
+    if (existingCheck.status === "duplicate") {
+      const [existing] = await db
+        .select({ id: posReceipts.id })
+        .from(posReceipts)
+        .where(
+          and(
+            eq(posReceipts.orgId, auth.orgId),
+            eq(posReceipts.deviceId, auth.deviceId),
+            eq(posReceipts.localReceiptId, payload.localReceiptId),
+          ),
+        )
+        .limit(1);
+      if (existing) {
+        await db
+          .update(posReceipts)
+          .set({
+            localOrderId: payload.localOrderId ?? null,
+            receiptNumber: payload.receiptNumber ?? null,
+            fiscalStatus: payload.fiscalStatus ?? "pending",
+            syncBatchId: batchId,
+            updatedAt: new Date(),
+          })
+          .where(eq(posReceipts.id, existing.id));
+        return { status: "accepted" as const };
+      }
     }
 
     try {
@@ -661,9 +962,9 @@ export class PosSyncService {
         localOrderId: payload.localOrderId ?? null,
         receiptNumber: payload.receiptNumber ?? null,
         netCents: payload.netCents,
-        taxCents: payload.taxCents ?? 0,
+        taxCents,
         grossCents: payload.grossCents,
-        currency: payload.currency ?? "EUR",
+        currency: currencyResult.currency,
         soldAt,
         fiscalStatus: payload.fiscalStatus ?? "pending",
         status: DEFAULT_RECEIPT_STATUS,
@@ -672,37 +973,51 @@ export class PosSyncService {
       return { status: "accepted" as const };
     } catch (err: unknown) {
       if (isUniqueViolation(err)) {
-        await db
-          .update(posReceipts)
-          .set({
-            localOrderId: payload.localOrderId ?? null,
-            receiptNumber: payload.receiptNumber ?? null,
-            netCents: payload.netCents,
-            taxCents: payload.taxCents ?? 0,
-            grossCents: payload.grossCents,
-            currency: payload.currency ?? "EUR",
-            soldAt,
-            fiscalStatus: payload.fiscalStatus ?? "pending",
-            syncBatchId: batchId,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(posReceipts.orgId, auth.orgId),
-              eq(posReceipts.deviceId, auth.deviceId),
-              eq(posReceipts.localReceiptId, payload.localReceiptId),
-            ),
-          );
-        return { status: "accepted" as const };
+        return this.conflictOrDuplicateReceipt(payload, auth, businessCurrency);
       }
       throw err;
     }
+  }
+
+  private async conflictOrDuplicatePayment(
+    payload: PosSyncPaymentPayload,
+    auth: PosDeviceAuthContext,
+    businessCurrency: string | null,
+  ) {
+    const currencyResult = this.rejectEventCurrency(
+      payload.currency,
+      businessCurrency,
+    );
+    if ("status" in currencyResult) return currencyResult;
+    const [existing] = await db
+      .select({
+        amountCents: posSalePayments.amountCents,
+        currency: posSalePayments.currency,
+      })
+      .from(posSalePayments)
+      .where(
+        and(
+          eq(posSalePayments.orgId, auth.orgId),
+          eq(posSalePayments.deviceId, auth.deviceId),
+          eq(posSalePayments.localPaymentId, payload.localPaymentId),
+        ),
+      )
+      .limit(1);
+    if (!existing) return { status: "duplicate" as const };
+    if (
+      existing.amountCents !== payload.amountCents ||
+      existing.currency !== currencyResult.currency
+    ) {
+      return this.financialConflict("Payment");
+    }
+    return { status: "duplicate" as const };
   }
 
   private async upsertPayment(
     payload: PosSyncPaymentPayload,
     auth: PosDeviceAuthContext,
     batchId: string,
+    businessCurrency: string | null,
   ) {
     const paidAt = parseIsoDate(payload.paidAt, "paidAt");
     if (!paidAt) {
@@ -710,6 +1025,19 @@ export class PosSyncService {
         status: "failed" as const,
         code: "invalid_payload",
         error: "paidAt is invalid",
+      };
+    }
+
+    const currencyResult = this.rejectEventCurrency(
+      payload.currency,
+      businessCurrency,
+    );
+    if ("status" in currencyResult) return currencyResult;
+    if (!isPosMoneyInteger(payload.amountCents)) {
+      return {
+        status: "failed" as const,
+        code: "invalid_amount",
+        error: "amountCents must be an integer within PostgreSQL int32 limits.",
       };
     }
 
@@ -727,7 +1055,7 @@ export class PosSyncService {
             localReceiptId: payload.localReceiptId ?? null,
             method: payload.method,
             amountCents: payload.amountCents,
-            currency: payload.currency ?? "EUR",
+            currency: currencyResult.currency,
             paidAt,
             syncBatchId: batchId,
           });
@@ -737,7 +1065,11 @@ export class PosSyncService {
           }
 
           const [existing] = await tx
-            .select({ method: posSalePayments.method })
+            .select({
+              method: posSalePayments.method,
+              amountCents: posSalePayments.amountCents,
+              currency: posSalePayments.currency,
+            })
             .from(posSalePayments)
             .where(
               and(
@@ -748,14 +1080,22 @@ export class PosSyncService {
             )
             .limit(1);
 
+          if (
+            existing &&
+            (existing.amountCents !== payload.amountCents ||
+              existing.currency !== currencyResult.currency)
+          ) {
+            throw Object.assign(new Error("financial_conflict"), {
+              code: "financial_conflict",
+            });
+          }
+
           await tx
             .update(posSalePayments)
             .set({
               localOrderId: payload.localOrderId ?? null,
               localReceiptId: payload.localReceiptId ?? null,
               method: mergePaymentMethodForSync(existing?.method, payload.method),
-              amountCents: payload.amountCents,
-              currency: payload.currency ?? "EUR",
               paidAt,
               syncBatchId: batchId,
               updatedAt: new Date(),
@@ -779,6 +1119,14 @@ export class PosSyncService {
       });
       return { status: "accepted" as const };
     } catch (err: unknown) {
+      if (
+        typeof err === "object" &&
+        err &&
+        "code" in err &&
+        (err as { code?: string }).code === "financial_conflict"
+      ) {
+        return this.financialConflict("Payment");
+      }
       throw err;
     }
   }
@@ -827,10 +1175,24 @@ export class PosSyncService {
     });
   }
 
+  private async conflictOrDuplicateShift(
+    payload: PosSyncShiftPayload,
+    auth: PosDeviceAuthContext,
+    businessCurrency: string | null,
+  ) {
+    const currencyResult = this.rejectEventCurrency(
+      payload.currency,
+      businessCurrency,
+    );
+    if ("status" in currencyResult) return currencyResult;
+    return { status: "duplicate" as const };
+  }
+
   private async upsertShift(
     payload: PosSyncShiftPayload,
     auth: PosDeviceAuthContext,
     batchId: string,
+    businessCurrency: string | null,
   ) {
     const startedAt = parseIsoDate(payload.startedAt, "startedAt");
     if (!startedAt) {
@@ -853,6 +1215,26 @@ export class PosSyncService {
       };
     }
 
+    const currencyResult = this.rejectEventCurrency(
+      payload.currency,
+      businessCurrency,
+    );
+    if ("status" in currencyResult) return currencyResult;
+    const moneyFields = [
+      payload.openingFloatMinor,
+      payload.closingFloatMinor,
+      payload.previousClosingFloatMinor,
+    ];
+    for (const amount of moneyFields) {
+      if (amount != null && !isPosMoneyInteger(amount)) {
+        return {
+          status: "failed" as const,
+          code: "invalid_amount",
+          error: "Shift amounts must be integer minor units.",
+        };
+      }
+    }
+
     return shiftService.upsertShiftSnapshot({
       orgId: auth.orgId,
       customerId: auth.customerId,
@@ -867,7 +1249,7 @@ export class PosSyncService {
       openingFloatMinor: payload.openingFloatMinor,
       closingFloatMinor: payload.closingFloatMinor ?? null,
       previousClosingFloatMinor: payload.previousClosingFloatMinor ?? null,
-      currency: payload.currency ?? "EUR",
+      currency: currencyResult.currency,
       schemaVersion: payload.schemaVersion,
     });
   }

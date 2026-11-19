@@ -137,9 +137,11 @@ function deriveOverview(input: DeriveReportsInput): ReportsKpi[] {
   const { overview } = summary;
   const scope = reportsScope(summary);
   const currency = scope.financialCurrency || overview.currency || "";
-  const moneyHint = !scope.showMoney
+  const unavailableHint = !scope.showMoney
     ? r.financialTotalsUnavailable
-    : scope.showExclusionBanner
+    : undefined;
+  const averageHint =
+    scope.showMoney && scope.showExclusionBanner
       ? formatTemplate(r.activeCurrencyAverageHint, { currency })
       : undefined;
 
@@ -150,7 +152,7 @@ function deriveOverview(input: DeriveReportsInput): ReportsKpi[] {
       value: scope.showMoney
         ? formatMoney(overview.revenueMinor, currency, input.locale)
         : dash,
-      hint: moneyHint,
+      hint: unavailableHint,
     },
     {
       id: "orders",
@@ -173,7 +175,7 @@ function deriveOverview(input: DeriveReportsInput): ReportsKpi[] {
       value: scope.showMoney
         ? formatMoney(overview.averageOrderMinor, currency, input.locale)
         : dash,
-      hint: moneyHint,
+      hint: unavailableHint ?? averageHint,
     },
     {
       id: "vat",
@@ -181,7 +183,7 @@ function deriveOverview(input: DeriveReportsInput): ReportsKpi[] {
       value: scope.showMoney
         ? formatMoney(overview.vatMinor, currency, input.locale)
         : dash,
-      hint: moneyHint,
+      hint: unavailableHint,
     },
   ];
 }

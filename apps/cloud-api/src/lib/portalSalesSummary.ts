@@ -383,6 +383,102 @@ export async function fetchPosRevenueCentsForPeriod(input: {
   return row?.revenue ?? 0;
 }
 
+export type PortalPosTaxes = {
+  netRevenueMinor: number;
+  vatMinor: number;
+  grossRevenueMinor: number;
+  fiscalReceiptsCount: number;
+  currency: string;
+};
+
+function asSqlInt(value: unknown): number {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/** POS receipts only (excludes online/provider). Same scope as POS revenue. */
+export async function fetchPosTaxStatsForPeriod(input: {
+  orgId: string;
+  customerId: string;
+  period: SalesPeriodInput;
+  financialCurrency?: string;
+}): Promise<PortalPosTaxes> {
+  const { orgId, customerId, period } = input;
+  const financialCurrency = normalizeCurrencyCode(input.financialCurrency);
+  const empty: PortalPosTaxes = {
+    netRevenueMinor: 0,
+    vatMinor: 0,
+    grossRevenueMinor: 0,
+    fiscalReceiptsCount: 0,
+    currency: financialCurrency,
+  };
+  if (input.financialCurrency !== undefined && !isSupportedBusinessCurrency(financialCurrency)) {
+    return empty;
+  }
+
+  const receiptOrderJoin = and(
+    eq(posReceipts.orgId, posOrders.orgId),
+    eq(posReceipts.deviceId, posOrders.deviceId),
+    eq(posReceipts.localOrderId, posOrders.localOrderId),
+  );
+
+  const currencyFilter = isSupportedBusinessCurrency(financialCurrency)
+    ? and(
+        sqlCurrencyMatchesActive(posReceipts.currency, financialCurrency),
+        sql`(
+          ${posOrders.id} is null
+          or ${sqlCurrencyMatchesActive(posOrders.currency, financialCurrency)}
+        )`,
+        sql`not exists (
+          select 1
+          from pos_sale_payments p
+          where p.org_id = ${posReceipts.orgId}
+            and p.device_id = ${posReceipts.deviceId}
+            and p.local_receipt_id = ${posReceipts.localReceiptId}
+            and (
+              p.currency is null
+              or btrim(p.currency) = ''
+              or upper(btrim(p.currency)) <> ${financialCurrency}
+            )
+        )`,
+      )
+    : sql`true`;
+
+  const kpi = sqlReceiptContributesToKpis();
+  const [row] = await db
+    .select({
+      net: sql<number>`coalesce(sum(${posReceipts.netCents}) filter (where ${kpi}), 0)::int`,
+      vat: sql<number>`coalesce(sum(${posReceipts.taxCents}) filter (where ${kpi}), 0)::int`,
+      gross: sql<number>`coalesce(sum(${posReceipts.grossCents}) filter (where ${kpi}), 0)::int`,
+      fiscal: sql<number>`coalesce(count(*) filter (
+        where ${kpi}
+          and nullif(btrim(${posReceipts.fiscalStatus}), '') is not null
+          and lower(btrim(${posReceipts.fiscalStatus})) <> 'pending'
+      ), 0)::int`,
+    })
+    .from(posReceipts)
+    .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
+    .leftJoin(posOrders, receiptOrderJoin)
+    .where(
+      and(
+        receiptPeriodScope(orgId, customerId, period),
+        sql`(
+          ${posOrders.id} is null
+          or ${sqlIsLiveOrderPlatform(posOrders.platform)}
+        )`,
+        currencyFilter,
+      ),
+    );
+
+  return {
+    netRevenueMinor: asSqlInt(row?.net),
+    vatMinor: asSqlInt(row?.vat),
+    grossRevenueMinor: asSqlInt(row?.gross),
+    fiscalReceiptsCount: asSqlInt(row?.fiscal),
+    currency: financialCurrency,
+  };
+}
+
 export async function fetchOnlinePaymentSummaryForPeriod(input: {
   orgId: string;
   customerId: string;

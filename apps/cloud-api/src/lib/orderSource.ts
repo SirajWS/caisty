@@ -3,6 +3,7 @@
  * Uses the synced `platform` field from POS — no ID heuristics.
  */
 
+import { formatPosQuantity } from "../../../../packages/business-currency/src/index.ts";
 import type { PortalReceiptLineItem } from "./portalOrders.js";
 import { PORTAL_ORDER_STATUS, type PortalOrderStatus } from "./orderStatus.js";
 
@@ -121,7 +122,7 @@ export function summarizeOrderLines(
 
   const parts = lines.slice(0, maxVisible).map((line) => {
     const name = line.productName?.trim() || line.sku?.trim() || "Item";
-    return `${line.quantity}× ${name}`;
+    return `${formatPosQuantity(line.quantity)}× ${name}`;
   });
 
   if (lines.length > maxVisible) {

@@ -1732,6 +1732,8 @@ export const portalDe: PortalTranslations = {
     country: "Land",
     countryPlaceholder: "Land wählen…",
     currency: "Währung",
+    currencyLockedHint:
+      "Ihre Geschäftswährung ist gesperrt, weil Ihre POS-Kasse aktiviert wurde.",
     decimalPlaces: "Nachkommastellen",
     decimalPlacesHint: "Wird automatisch von der Währung bestimmt.",
     examplePrice: "Beispielpreis",

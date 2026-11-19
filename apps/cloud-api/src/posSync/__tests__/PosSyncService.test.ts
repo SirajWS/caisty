@@ -100,6 +100,7 @@ type ServiceInternals = PosSyncService & {
     },
     authCtx: typeof auth,
     batchId: string,
+    businessCurrency: string | null,
   ) => Promise<{ status: string }>;
   upsertPayment: (
     payload: {
@@ -108,9 +109,11 @@ type ServiceInternals = PosSyncService & {
       method: string;
       amountCents: number;
       paidAt: string;
+      currency?: string;
     },
     authCtx: typeof auth,
     batchId: string,
+    businessCurrency: string | null,
   ) => Promise<{ status: string }>;
 };
 
@@ -142,10 +145,12 @@ describe("PosSyncService entity upserts", () => {
         status: "new",
         paymentStatus: "paid",
         totalCents: 27500,
+        currency: "EUR",
         soldAt: "2026-08-07T00:00:42.860Z",
       },
       auth,
       "batch-1",
+      "EUR",
     );
 
     expect(result.status).toBe("accepted");
@@ -154,7 +159,14 @@ describe("PosSyncService entity upserts", () => {
   });
 
   it("upsertOrder preserves delivered over stale accepted", async () => {
-    chainSelect([{ status: "delivered", paymentStatus: "paid" }]);
+    chainSelect([
+      {
+        status: "delivered",
+        paymentStatus: "paid",
+        totalCents: 1200,
+        currency: "EUR",
+      },
+    ]);
     chainInsertOrderConflict();
     const update = chainUpdate();
 
@@ -164,10 +176,12 @@ describe("PosSyncService entity upserts", () => {
         status: "accepted",
         paymentStatus: "pending",
         totalCents: 1200,
+        currency: "EUR",
         soldAt: "2026-07-14T12:00:00.000Z",
       },
       auth,
       "batch-1",
+      "EUR",
     );
 
     expect(result.status).toBe("accepted");
@@ -177,10 +191,13 @@ describe("PosSyncService entity upserts", () => {
         paymentStatus: "paid",
       }),
     );
+    expect(update.set).not.toHaveBeenCalledWith(
+      expect.objectContaining({ totalCents: expect.anything() }),
+    );
   });
 
   it("upsertPayment updates existing row on conflict", async () => {
-    chainSelect([{ method: "card" }]);
+    chainSelect([{ method: "card", amountCents: 1200, currency: "EUR" }]);
     chainInsertPaymentConflict();
     const update = chainUpdate();
 
@@ -190,18 +207,22 @@ describe("PosSyncService entity upserts", () => {
         localOrderId: "order-1",
         method: "unknown",
         amountCents: 1200,
+        currency: "EUR",
         paidAt: "2026-07-14T12:05:00.000Z",
       },
       auth,
       "batch-1",
+      "EUR",
     );
 
     expect(result.status).toBe("accepted");
     expect(update.set).toHaveBeenCalledWith(
       expect.objectContaining({
         method: "card",
-        amountCents: 1200,
       }),
+    );
+    expect(update.set).not.toHaveBeenCalledWith(
+      expect.objectContaining({ amountCents: 1200 }),
     );
   });
 
@@ -217,10 +238,12 @@ describe("PosSyncService entity upserts", () => {
         localOrderId: "RUNTIME-WEBHOOK-1",
         method: "cash",
         amountCents: 2750,
+        currency: "EUR",
         paidAt: "2026-08-07T12:00:00.000Z",
       },
       auth,
       "batch-cash",
+      "EUR",
     );
 
     expect(result.status).toBe("accepted");
@@ -235,7 +258,9 @@ describe("PosSyncService entity upserts", () => {
       .mockReturnValueOnce({
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([{ method: "card" }]),
+        limit: vi.fn().mockResolvedValue([
+          { method: "card", amountCents: 2750, currency: "EUR" },
+        ]),
       })
       .mockReturnValueOnce({
         from: vi.fn().mockReturnThis(),
@@ -251,10 +276,16 @@ describe("PosSyncService entity upserts", () => {
       localOrderId: "RUNTIME-SYNC-1",
       method: "card",
       amountCents: 2750,
+      currency: "EUR",
       paidAt: "2026-08-07T12:05:00.000Z",
     };
 
-    const result = await service.upsertPayment(payload, auth, "batch-card-retry");
+    const result = await service.upsertPayment(
+      payload,
+      auth,
+      "batch-card-retry",
+      "EUR",
+    );
     expect(result.status).toBe("accepted");
     expect(update.set).toHaveBeenCalledWith(
       expect.objectContaining({ method: "card" }),
@@ -265,7 +296,14 @@ describe("PosSyncService entity upserts", () => {
   });
 
   it("provider pending order sync does not downgrade existing paid status", async () => {
-    chainSelect([{ status: "new", paymentStatus: "paid" }]);
+    chainSelect([
+      {
+        status: "new",
+        paymentStatus: "paid",
+        totalCents: 2750,
+        currency: "EUR",
+      },
+    ]);
     chainInsertOrderConflict();
     const update = chainUpdate();
 
@@ -277,15 +315,71 @@ describe("PosSyncService entity upserts", () => {
         status: "new",
         paymentStatus: "pending",
         totalCents: 2750,
+        currency: "EUR",
         soldAt: "2026-08-07T12:00:00.000Z",
       },
       auth,
       "batch-overwrite",
+      "EUR",
     );
 
     expect(result.status).toBe("accepted");
     expect(update.set).toHaveBeenCalledWith(
       expect.objectContaining({ paymentStatus: "paid" }),
+    );
+  });
+
+  it("retries a previously failed financial event instead of treating it as a duplicate", async () => {
+    mocks.mockSelect
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([{ id: "evt-row", status: "failed" }]),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([]),
+      });
+    mocks.mockInsert.mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: "order-retry" }]),
+      }),
+    });
+    const update = chainUpdate();
+
+    const result = await (
+      service as ServiceInternals & {
+        processEvent: (
+          event: {
+            eventId: string;
+            type: string;
+            payload: Record<string, unknown>;
+          },
+          authCtx: typeof auth,
+          batchId: string,
+          businessCurrency: string | null,
+        ) => Promise<{ status: string }>;
+      }
+    ).processEvent(
+      {
+        eventId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        type: "order",
+        payload: {
+          localOrderId: "order-retry",
+          totalCents: 15000,
+          currency: "TND",
+          soldAt: "2026-11-19T12:00:00.000Z",
+        },
+      },
+      auth,
+      "batch-retry",
+      "TND",
+    );
+
+    expect(result.status).toBe("accepted");
+    expect(update.set).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "accepted", errorCode: null }),
     );
   });
 });

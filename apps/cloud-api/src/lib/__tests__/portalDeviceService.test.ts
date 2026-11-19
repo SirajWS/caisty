@@ -44,6 +44,17 @@ import {
 
 const actor = { customerId: "cust-1", orgId: "org-1" };
 
+function profileLockSelect(currency = "TND") {
+  return {
+    from: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    for: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue([
+      { currency, currencyLockedAt: null },
+    ]),
+  };
+}
+
 function chainSelect(rows: unknown[], opts?: { forUpdate?: boolean }) {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {
     from: vi.fn().mockReturnThis(),
@@ -262,7 +273,8 @@ describe("approvePortalDevice", () => {
           .fn()
           .mockReturnValueOnce(txSelectDevice)
           .mockReturnValueOnce(txSelectLicense)
-          .mockReturnValueOnce(txSelectCount),
+          .mockReturnValueOnce(txSelectCount)
+          .mockReturnValueOnce(profileLockSelect()),
         update: vi.fn().mockReturnValue({
           set: vi.fn().mockReturnThis(),
           where: vi.fn().mockReturnThis(),
@@ -344,8 +356,15 @@ describe("approvePortalDevice", () => {
           .mockReturnValueOnce({
             from: vi.fn().mockReturnThis(),
             where: vi.fn().mockResolvedValue([{ value: 1 }]),
-          }),
-        update: vi.fn(),
+          })
+          .mockReturnValueOnce(profileLockSelect()),
+        update: vi.fn().mockReturnValue({
+          set: vi.fn().mockReturnThis(),
+          where: vi.fn().mockReturnThis(),
+          returning: vi.fn().mockResolvedValue([
+            { currencyLockedAt: new Date("2026-11-19T00:00:00Z") },
+          ]),
+        }),
         insert: vi.fn(),
       };
       return fn(tx);
@@ -562,7 +581,8 @@ describe("parallel approval race (transaction logic)", () => {
           .mockReturnValueOnce({
             from: vi.fn().mockReturnThis(),
             where: vi.fn().mockResolvedValue([{ value: seatCount }]),
-          }),
+          })
+          .mockReturnValueOnce(profileLockSelect()),
         update: vi.fn().mockReturnValue({
           set: vi.fn().mockReturnThis(),
           where: vi.fn().mockReturnThis(),

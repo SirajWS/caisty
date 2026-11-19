@@ -24,6 +24,7 @@ import { derivePosHubState } from "../posHub/derivePosHubState";
 import { formatInstallerBytes } from "../posHub/format";
 import { pickHighestSemver } from "../posHub/posVersion";
 import type { PaymentMethodCard } from "../orders/types";
+import type { TaxCard } from "../reports/types";
 import type {
   BusinessAlert,
   DashboardActivity,
@@ -925,5 +926,70 @@ export function deriveDashboardState(
     paymentCards: derivePaymentCards(input),
     onlinePaymentCards: deriveOnlinePaymentCards(input),
     onlineRevenueHeader: deriveOnlineRevenueHeaderState(input),
+    taxes: deriveTaxes(input),
   };
+}
+
+function paymentTone(amountMinor: number): TaxCard["tone"] {
+  return amountMinor > 0 ? "ok" : "unknown";
+}
+
+function deriveTaxes(input: DeriveDashboardInput): TaxCard[] {
+  const r = input.t.reports;
+  const waiting = input.t.labels.dash;
+  const sales = input.data.salesSummary;
+  const taxes = sales?.taxes;
+  const hasSales = Boolean(sales?.hasSalesData);
+
+  if (!hasSales || !taxes) {
+    return [
+      { id: "net", label: r.taxNetRevenue, value: waiting, tone: "unknown" },
+      { id: "vat", label: r.taxVat, value: waiting, tone: "unknown" },
+      { id: "gross", label: r.taxGrossRevenue, value: waiting, tone: "unknown" },
+      {
+        id: "fiscal_receipts",
+        label: r.taxFiscalReceipts,
+        value: waiting,
+        tone: "unknown",
+      },
+    ];
+  }
+
+  const scope = financialCurrencyScope(sales);
+  const currency =
+    scope.financialCurrency || taxes.currency || sales.currency || "";
+  const unavailable = r.financialTotalsUnavailable;
+
+  return [
+    {
+      id: "net",
+      label: r.taxNetRevenue,
+      value: scope.showMoney
+        ? formatMoney(taxes.netRevenueMinor, currency, input.locale)
+        : unavailable,
+      tone: scope.showMoney ? paymentTone(taxes.netRevenueMinor) : "unknown",
+    },
+    {
+      id: "vat",
+      label: r.taxVat,
+      value: scope.showMoney
+        ? formatMoney(taxes.vatMinor, currency, input.locale)
+        : unavailable,
+      tone: scope.showMoney ? paymentTone(taxes.vatMinor) : "unknown",
+    },
+    {
+      id: "gross",
+      label: r.taxGrossRevenue,
+      value: scope.showMoney
+        ? formatMoney(taxes.grossRevenueMinor, currency, input.locale)
+        : unavailable,
+      tone: scope.showMoney ? paymentTone(taxes.grossRevenueMinor) : "unknown",
+    },
+    {
+      id: "fiscal_receipts",
+      label: r.taxFiscalReceipts,
+      value: String(taxes.fiscalReceiptsCount),
+      tone: taxes.fiscalReceiptsCount > 0 ? "ok" : "unknown",
+    },
+  ];
 }

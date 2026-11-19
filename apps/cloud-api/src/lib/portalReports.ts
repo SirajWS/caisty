@@ -15,7 +15,10 @@ import {
   type OnlinePaymentSummaryCents,
   type PaymentBucket,
 } from "./portalOrders.js";
-import { evaluateSaleFinancialInclusion } from "../../../../packages/business-currency/src/index.ts";
+import {
+  asPosQuantity,
+  evaluateSaleFinancialInclusion,
+} from "../../../../packages/business-currency/src/index.ts";
 import { isProviderOrder } from "./orderSource.js";
 import {
   dedupeProviderOrders,
@@ -26,6 +29,7 @@ import {
   averageOrderMinor,
   fetchPaymentsForSalesPeriod,
   fetchPortalSalesPeriodStats,
+  fetchPosTaxStatsForPeriod,
   paymentRowFinanciallyIncluded,
 } from "./portalSalesSummary.js";
 import {
@@ -235,7 +239,7 @@ export type ReportReceiptAggregateRow = {
 export type ReportOrderLineAggregateRow = {
   orderId: string;
   productName: string | null;
-  quantity: number;
+  quantity: number | string;
   lineTotalCents: number;
   orderCurrency?: string | null;
 };
@@ -442,7 +446,7 @@ export function aggregateTopProductsFromWinnerLines(
     if (!winnerOrderIds.has(line.orderId)) continue;
     const name = line.productName?.trim() || "—";
     const current = byName.get(name) ?? { quantity: 0, revenueMinor: 0 };
-    current.quantity += line.quantity;
+    current.quantity += asPosQuantity(line.quantity);
     current.revenueMinor += line.lineTotalCents;
     byName.set(name, current);
   }
@@ -735,15 +739,18 @@ export async function fetchPortalReportsSummary(input: {
   const taxStats = aggregateReportTaxStats(financialReceipts);
   const mixedCurrency = periodStats.mixedCurrency;
   const currency = financialCurrency;
+  const posTaxes = await fetchPosTaxStatsForPeriod({
+    orgId,
+    customerId,
+    period,
+    financialCurrency,
+  });
 
   const ordersCount = periodStats.ordersCount;
   const receiptsCount = periodStats.receiptsCount;
   const revenueMinor = periodStats.revenueCents;
-  const vatMinor = taxStats.vat;
-  const netRevenueMinor = taxStats.net;
-  const grossRevenueMinor = revenueMinor;
+  const vatMinor = posTaxes.vatMinor;
   const largestReceiptMinor = taxStats.largest;
-  const fiscalReceiptsCount = taxStats.fiscalCount;
 
   const paymentSummary = aggregateEffectivePaymentSummary(
     paymentRows.filter((row) =>
@@ -837,11 +844,11 @@ export async function fetchPortalReportsSummary(input: {
   };
 
   const taxes: PortalReportsTaxes = {
-    netRevenueMinor,
-    vatMinor,
-    grossRevenueMinor,
-    fiscalReceiptsCount,
-    currency,
+    netRevenueMinor: posTaxes.netRevenueMinor,
+    vatMinor: posTaxes.vatMinor,
+    grossRevenueMinor: posTaxes.grossRevenueMinor,
+    fiscalReceiptsCount: posTaxes.fiscalReceiptsCount,
+    currency: posTaxes.currency || currency,
   };
 
   const businessTrends: PortalReportsBusinessTrends = {

@@ -5,6 +5,7 @@ import { devices } from "../db/schema/devices.js";
 import { licenses } from "../db/schema/licenses.js";
 import { licenseEvents } from "../db/schema/licenseEvents.js";
 import { DEVICE_STATUS } from "./deviceAccessPolicy.js";
+import { lockBusinessCurrencyIfNeeded } from "./currencyLock.js";
 import { canAcceptAdditionalDevice, isUnlimitedDeviceLimit } from "./deviceLimits.js";
 import {
   DEVICE_SEAT_CONSUMING_STATUSES,
@@ -31,7 +32,8 @@ export type PortalDeviceErrorCode =
   | "DEVICE_LIMIT_REACHED"
   | "DEVICE_LICENSE_INVALID"
   | "DEVICE_LICENSE_MISMATCH"
-  | "DEVICE_ORG_MISMATCH";
+  | "DEVICE_ORG_MISMATCH"
+  | "BUSINESS_CURRENCY_INVALID";
 
 export type PortalDeviceFailure = {
   ok: false;
@@ -423,6 +425,13 @@ export async function approvePortalDevice(
           const limit = seatSummary.unlimitedDevices
             ? null
             : (seatSummary.limit ?? 1);
+          const locked = await lockBusinessCurrencyIfNeeded(
+            String(device.orgId),
+            tx,
+          );
+          if (!locked.ok) {
+            return failure(locked.code, locked.message);
+          }
           return {
             ok: true,
             deviceId: device.id,
@@ -552,6 +561,14 @@ export async function approvePortalDevice(
           actorId: actor.customerId,
         },
       });
+
+      const locked = await lockBusinessCurrencyIfNeeded(
+        String(device.orgId),
+        tx,
+      );
+      if (!locked.ok) {
+        return failure(locked.code, locked.message);
+      }
 
       const usedAfter = usedSeats + 1;
       const limitAfter = unlimited ? null : Math.trunc(maxDevices ?? 1);

@@ -50,6 +50,8 @@ export const businessProfiles = pgTable("business_profiles", {
 
   configVersion: integer("config_version").notNull().default(1),
 
+  currencyLockedAt: timestamp("currency_locked_at", { withTimezone: true }),
+
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

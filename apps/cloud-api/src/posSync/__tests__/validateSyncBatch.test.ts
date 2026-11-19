@@ -98,6 +98,74 @@ describe("validateSyncBatchRequest", () => {
       expect(result.request.events).toHaveLength(2);
     }
   });
+
+  it("accepts fractional order-line quantities without rounding", () => {
+    const result = validateSyncBatchRequest({
+      deviceId: DEVICE_ID,
+      licenseKey: "CSTY-TEST",
+      batch: { batchId: BATCH_ID },
+      events: [
+        {
+          eventId: EVENT_ID,
+          type: "order",
+          payload: {
+            localOrderId: "order-frac-1",
+            totalCents: 12500,
+            currency: "TND",
+            soldAt: "2026-07-08T10:00:00.000Z",
+            lines: [
+              {
+                lineIndex: 0,
+                productName: "Coffee",
+                quantity: 1.25,
+                unitPriceCents: 10000,
+                lineTotalCents: 12500,
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const payload = result.request.events[0]?.payload as {
+        lines?: Array<{ quantity: number }>;
+      };
+      expect(payload.lines?.[0]?.quantity).toBe(1.25);
+    }
+  });
+
+  it("rejects invalid order lines instead of dropping them", () => {
+    const result = validateSyncBatchRequest({
+      deviceId: DEVICE_ID,
+      licenseKey: "CSTY-TEST",
+      batch: { batchId: BATCH_ID },
+      events: [
+        {
+          eventId: EVENT_ID,
+          type: "order",
+          payload: {
+            localOrderId: "order-bad-line",
+            totalCents: 12500,
+            soldAt: "2026-07-08T10:00:00.000Z",
+            lines: [
+              {
+                quantity: 1.2501,
+                unitPriceCents: 10000,
+                lineTotalCents: 12500,
+              },
+            ],
+          },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.message).toMatch(/quantity/i);
+    }
+  });
 });
 
 describe("isUuid", () => {

@@ -5,6 +5,7 @@ import {
   varchar,
   timestamp,
   integer,
+  numeric,
   uniqueIndex,
   index,
   jsonb,
@@ -160,7 +161,9 @@ export const posOrderLines = pgTable(
     lineIndex: integer("line_index").notNull(),
     productName: text("product_name"),
     sku: text("sku"),
-    quantity: integer("quantity").notNull().default(1),
+    quantity: numeric("quantity", { precision: 12, scale: 3 })
+      .notNull()
+      .default("1"),
     unitPriceCents: integer("unit_price_cents").notNull(),
     lineTotalCents: integer("line_total_cents").notNull(),
     taxRateBps: integer("tax_rate_bps"),

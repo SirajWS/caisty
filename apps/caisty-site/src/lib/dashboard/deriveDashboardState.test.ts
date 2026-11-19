@@ -107,6 +107,13 @@ function salesSummary(
       pendingCents: 0,
       currency: "EUR",
     },
+    taxes: {
+      netRevenueMinor: 0,
+      vatMinor: 0,
+      grossRevenueMinor: 0,
+      fiscalReceiptsCount: 0,
+      currency: "EUR",
+    },
     recentOrders: [],
     ...overrides,
   };

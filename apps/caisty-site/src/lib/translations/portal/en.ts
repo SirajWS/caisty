@@ -1713,6 +1713,8 @@ export const portalEn = {
     country: "Country",
     countryPlaceholder: "Select country…",
     currency: "Currency",
+    currencyLockedHint:
+      "Your business currency is locked because your POS has been activated.",
     decimalPlaces: "Decimal places",
     decimalPlacesHint: "Automatically determined by currency.",
     examplePrice: "Example price",

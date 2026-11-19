@@ -20,6 +20,7 @@ import {
 } from "../components/dashboard/LiveDashboardPanels";
 import { OrdersErrorState } from "../components/orders/OrdersErrorState";
 import { PaymentSummaryPair } from "../components/orders/PaymentSummaryPair";
+import { TaxesOverview } from "../components/reports/TaxesOverview";
 import { portalPageShell } from "../lib/portalUi";
 import { formatCurrencyExclusionBanner } from "../lib/portal/financialCurrencyScope";
 
@@ -129,6 +130,14 @@ const PortalDashboard: React.FC = () => {
           infoHint: dashboard.hasSalesData ? o.onlinePaymentSummaryInfo : undefined,
           revenueHeader: dashboard.onlineRevenueHeader,
         }}
+      />
+
+      <TaxesOverview
+        taxes={dashboard.taxes}
+        title={t.reports.taxesTitle}
+        hint={dashboard.hasSalesData ? undefined : t.reports.waitingPosSync}
+        footnote={dashboard.hasSalesData ? t.reports.taxesPosOnlyNote : undefined}
+        dash={t.labels.dash}
       />
 
       <DashboardRecentOrders

@@ -1710,6 +1710,8 @@ export const portalAr: PortalTranslations = {
     country: "البلد",
     countryPlaceholder: "اختر البلد…",
     currency: "العملة",
+    currencyLockedHint:
+      "عملة نشاطك التجاري مقفلة لأن نقطة البيع قد تم تفعيلها.",
     decimalPlaces: "المنازل العشرية",
     decimalPlacesHint: "تُحدَّد تلقائيًا حسب العملة.",
     examplePrice: "سعر توضيحي",

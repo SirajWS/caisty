@@ -97,10 +97,15 @@ export function BusinessEditForm({
     return b.countries[key] ?? code;
   }
 
+  const currencyLocked = Boolean(profile?.currencyLockedAt);
   const effectiveCountry = country || profile?.country || null;
   const allowedCurrencies = effectiveCountry
     ? currenciesForCountry(effectiveCountry)
     : currenciesForCountry("DE");
+  const currencyOptions =
+    currencyLocked && currency && !allowedCurrencies.includes(currency)
+      ? [currency, ...allowedCurrencies]
+      : allowedCurrencies;
 
   const fiscalVisibility = deriveFiscalVisibility({
     fiscalRequired: profile?.fiscalRequired,
@@ -208,7 +213,7 @@ export function BusinessEditForm({
                 const code = e.target.value;
                 setCountry(code);
                 const opt = getBusinessCountryOptions().find((item) => item.code === code);
-                if (opt) setCurrency(opt.currency);
+                if (opt && !currencyLocked) setCurrency(opt.currency);
               }}
               className={portalInputClass(isLight)}
             >
@@ -224,14 +229,19 @@ export function BusinessEditForm({
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
+              disabled={currencyLocked}
+              aria-disabled={currencyLocked}
               className={portalInputClass(isLight)}
             >
-              {allowedCurrencies.map((cur) => (
+              {currencyOptions.map((cur) => (
                 <option key={cur} value={cur}>
                   {cur}
                 </option>
               ))}
             </select>
+            {currencyLocked ? (
+              <p className="business-form-hint mb-0 mt-1">{b.currencyLockedHint}</p>
+            ) : null}
           </FormField>
           <FormField label={b.decimalPlaces}>
             <input

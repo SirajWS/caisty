@@ -1,6 +1,7 @@
 /** POS portal orders helpers (timezone day window + payment buckets). */
 
 import { sql } from "drizzle-orm";
+import { asPosQuantity } from "../../../../packages/business-currency/src/index.ts";
 
 export const PORTAL_ORDERS_TIMEZONE = "Europe/Berlin";
 
@@ -323,10 +324,11 @@ export type PortalReceiptLineItem = {
   lineTotalCents: number;
 };
 
-export type OrderLineLookupRow = PortalReceiptLineItem & {
+export type OrderLineLookupRow = Omit<PortalReceiptLineItem, "quantity"> & {
   deviceId: string;
   localOrderId: string;
   lineIndex: number;
+  quantity: number | string;
 };
 
 /** Join key: receipt.deviceId + receipt.localOrderId → pos_orders → pos_order_lines */
@@ -347,7 +349,7 @@ export function groupOrderLinesByDeviceLocalId(
     list.push({
       productName: line.productName,
       sku: line.sku,
-      quantity: line.quantity,
+      quantity: asPosQuantity(line.quantity),
       unitPriceCents: line.unitPriceCents,
       lineTotalCents: line.lineTotalCents,
     });

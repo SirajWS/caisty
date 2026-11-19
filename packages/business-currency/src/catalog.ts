@@ -28,6 +28,15 @@ export const BUSINESS_CURRENCY_PRECISION: Record<BusinessCurrencyCode, number> =
 export const POS_MONEY_INT32_MAX = 2_147_483_647;
 export const POS_MONEY_INT32_MIN = -2_147_483_648;
 
+export function isPosMoneyInteger(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= POS_MONEY_INT32_MIN &&
+    value <= POS_MONEY_INT32_MAX
+  );
+}
+
 export function normalizeCurrencyCode(
   value: string | null | undefined,
 ): string {

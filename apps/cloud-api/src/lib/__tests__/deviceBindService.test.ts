@@ -41,6 +41,7 @@ function chainSelect(rows: unknown[]) {
   return {
     from: vi.fn().mockReturnThis(),
     where: vi.fn().mockReturnThis(),
+    for: vi.fn().mockReturnThis(),
     limit: vi.fn().mockResolvedValue(rows),
   };
 }
@@ -181,6 +182,9 @@ describe("bindDeviceRequest", () => {
       createdAt: new Date(),
     };
     mockLicenseThenFingerprint([license], [activeDevice]);
+    mocks.mockSelect.mockReturnValueOnce(
+      chainSelect([{ currency: "TND", currencyLockedAt: new Date() }]),
+    );
     chainUpdate([activeDevice]);
 
     const result = await bindDeviceRequest({

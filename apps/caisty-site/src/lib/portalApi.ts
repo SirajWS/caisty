@@ -808,6 +808,7 @@ export interface PortalDashboardSummary {
   hasCurrencyInconsistencies?: boolean;
   lastSynchronizationAt: string | null;
   hasSalesData: boolean;
+  taxes?: PortalReportsTaxes;
   paymentSummary: PortalOrdersPaymentSummary;
   onlinePaymentSummary: PortalOnlinePaymentSummary;
   recentOrders: Array<{
@@ -1444,6 +1445,8 @@ export interface PortalBusinessProfile {
   legalName: string;
   country: string | null;
   currency: string;
+  currencyLockedAt?: string | null;
+  currencyLockNeedsReview?: boolean;
   defaultLanguage: string;
   businessAddress: PortalBusinessAddress;
   vatId: string;

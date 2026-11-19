@@ -6,7 +6,9 @@ import {
   attachOperationalOnlineCurrency,
   averageOrderMinor,
   fetchPortalTodaySalesStats,
+  fetchPosTaxStatsForPeriod,
   PORTAL_ORDERS_TIMEZONE,
+  type PortalPosTaxes,
 } from "./portalSalesSummary.js";
 import { fetchPortalOrdersPage } from "./portalOrdersPage.js";
 
@@ -28,6 +30,7 @@ export type PortalTodaySalesSummary = {
   excludedCurrencies: string[];
   hasCurrencyInconsistencies: boolean;
   lastSynchronizationAt: string | null;
+  taxes: PortalPosTaxes;
 };
 
 function toIso(value: Date | null | undefined): string | null {
@@ -84,6 +87,11 @@ export async function fetchPortalTodaySalesSummary(input: {
     fetchPortalTodaySalesStats(input),
     fetchLastSynchronizationAt(input),
   ]);
+  const taxes = await fetchPosTaxStatsForPeriod({
+    ...input,
+    period: "today",
+    financialCurrency: stats.financialCurrency,
+  });
   return {
     todayRevenueCents: stats.revenueCents,
     posRevenueCents: stats.posRevenueCents,
@@ -105,8 +113,17 @@ export async function fetchPortalTodaySalesSummary(input: {
     excludedCurrencies: stats.excludedCurrencies,
     hasCurrencyInconsistencies: stats.hasCurrencyInconsistencies,
     lastSynchronizationAt,
+    taxes,
   };
 }
+
+const emptyTaxes = (currency: string): PortalPosTaxes => ({
+  netRevenueMinor: 0,
+  vatMinor: 0,
+  grossRevenueMinor: 0,
+  fiscalReceiptsCount: 0,
+  currency,
+});
 
 export function buildPortalDashboardSummaryResponse(
   summary: PortalTodaySalesSummary,
@@ -148,6 +165,7 @@ export function buildPortalDashboardSummaryResponse(
       onlinePaymentSummary,
       summary.currency,
     ),
+    taxes: summary.taxes ?? emptyTaxes(summary.financialCurrency || summary.currency),
     recentOrders: recentOrders.map((order) => ({
       id: order.id,
       localOrderId: order.localOrderId,
@@ -176,6 +194,12 @@ export async function fetchPortalDashboardBundle(input: {
     fetchLastSynchronizationAt(input),
   ]);
 
+  const taxes = await fetchPosTaxStatsForPeriod({
+    ...input,
+    period: "today",
+    financialCurrency: stats.financialCurrency,
+  });
+
   const summary: PortalTodaySalesSummary = {
     todayRevenueCents: stats.revenueCents,
     posRevenueCents: stats.posRevenueCents,
@@ -197,6 +221,7 @@ export async function fetchPortalDashboardBundle(input: {
     excludedCurrencies: stats.excludedCurrencies,
     hasCurrencyInconsistencies: stats.hasCurrencyInconsistencies,
     lastSynchronizationAt,
+    taxes,
   };
 
   const ordersPage = await fetchPortalOrdersPage({

@@ -27,6 +27,7 @@ import {
   posReceipts,
   posSalePayments,
 } from "../db/schema/posSync.js";
+import { asPosQuantity } from "../../../../packages/business-currency/src/index.ts";
 import {
   adminReceiptStatusLabel,
   adminStatusFilterToDbValues,
@@ -593,7 +594,7 @@ export async function fetchAdminReceiptDetail(
   const items: AdminReceiptLineItem[] = lineRows.map((line) => ({
     productName: line.productName,
     sku: line.sku,
-    quantity: line.quantity,
+    quantity: asPosQuantity(line.quantity),
     unitPriceCents: line.unitPriceCents,
     lineTotalCents: line.lineTotalCents,
     discountCents: null,

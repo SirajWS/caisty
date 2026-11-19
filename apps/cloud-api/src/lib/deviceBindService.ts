@@ -5,6 +5,7 @@ import { devices } from "../db/schema/devices.js";
 import { licenses } from "../db/schema/licenses.js";
 import { licenseEvents } from "../db/schema/licenseEvents.js";
 import { DEVICE_STATUS } from "./deviceAccessPolicy.js";
+import { lockBusinessCurrencyIfNeeded } from "./currencyLock.js";
 import { DEVICE_RELEASED_STATUS } from "./deviceLifecycleService.js";
 
 export type BindDeviceInput = {
@@ -180,6 +181,7 @@ async function touchActiveDevice(
     .where(eq(devices.id, existing.id))
     .returning();
 
+  await lockBusinessCurrencyIfNeeded(String(existing.orgId));
   return updated ?? existing;
 }
 

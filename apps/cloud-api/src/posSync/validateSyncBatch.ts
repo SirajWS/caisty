@@ -1,7 +1,9 @@
+import { parsePosSyncQuantity } from "../../../../packages/business-currency/src/index.ts";
 import type {
   PosSyncBatchRequest,
   PosSyncEvent,
   PosSyncEventType,
+  PosSyncOrderLinePayload,
   PosSyncOrderPayload,
   PosSyncPaymentPayload,
   PosSyncReceiptEventPayload,
@@ -281,6 +283,21 @@ function validateEventPayload(
         : undefined;
     };
 
+    let lines: PosSyncOrderLinePayload[] | undefined;
+    if (payloadObj.lines !== undefined) {
+      if (!Array.isArray(payloadObj.lines)) {
+        return invalidPayload(index, "lines must be an array.");
+      }
+      lines = [];
+      for (const [lineIndex, line] of payloadObj.lines.entries()) {
+        const parsed = validateOrderLine(line, lineIndex);
+        if (!parsed.ok) {
+          return invalidPayload(index, parsed.error);
+        }
+        lines.push(parsed.line);
+      }
+    }
+
     return {
       ok: true,
       payload: {
@@ -292,11 +309,7 @@ function validateEventPayload(
             ? payloadObj.currency.trim().toUpperCase()
             : undefined,
         soldAt,
-        lines: Array.isArray(payloadObj.lines)
-          ? payloadObj.lines
-              .map((line, lineIndex) => validateOrderLine(line, lineIndex))
-              .filter((line): line is NonNullable<typeof line> => line !== null)
-          : undefined,
+        lines,
         platform: optionalText("platform"),
         providerOrderId: optionalText("providerOrderId"),
         customerName: optionalText("customerName"),
@@ -557,7 +570,7 @@ function validateEventPayload(
     const currencyRaw =
       typeof payloadObj.currency === "string"
         ? payloadObj.currency.trim().toUpperCase()
-        : "EUR";
+        : "";
     if (!/^[A-Z]{3}$/.test(currencyRaw)) {
       return invalidPayload(index, "currency must be a 3-letter ISO code.");
     }
@@ -719,24 +732,40 @@ function validateEventPayload(
   };
 }
 
-function validateOrderLine(line: unknown, lineIndex: number) {
+function validateOrderLine(
+  line: unknown,
+  lineIndex: number,
+):
+  | { ok: true; line: PosSyncOrderLinePayload }
+  | { ok: false; error: string } {
   if (!line || typeof line !== "object") {
-    return null;
+    return {
+      ok: false,
+      error: `lines[${lineIndex}] must be an object.`,
+    };
   }
   const lineObj = line as Record<string, unknown>;
-  const quantity = lineObj.quantity;
+  const quantityResult = parsePosSyncQuantity(lineObj.quantity);
+  if (!quantityResult.ok) {
+    return {
+      ok: false,
+      error: `lines[${lineIndex}].${quantityResult.error}`,
+    };
+  }
   const unitPriceCents = lineObj.unitPriceCents;
   const lineTotalCents = lineObj.lineTotalCents;
 
-  if (
-    typeof quantity !== "number" ||
-    !Number.isInteger(quantity) ||
-    typeof unitPriceCents !== "number" ||
-    !Number.isInteger(unitPriceCents) ||
-    typeof lineTotalCents !== "number" ||
-    !Number.isInteger(lineTotalCents)
-  ) {
-    return null;
+  if (typeof unitPriceCents !== "number" || !Number.isInteger(unitPriceCents)) {
+    return {
+      ok: false,
+      error: `lines[${lineIndex}].unitPriceCents must be an integer.`,
+    };
+  }
+  if (typeof lineTotalCents !== "number" || !Number.isInteger(lineTotalCents)) {
+    return {
+      ok: false,
+      error: `lines[${lineIndex}].lineTotalCents must be an integer.`,
+    };
   }
 
   const index =
@@ -745,17 +774,20 @@ function validateOrderLine(line: unknown, lineIndex: number) {
       : lineIndex;
 
   return {
-    lineIndex: index,
-    productName:
-      typeof lineObj.productName === "string" ? lineObj.productName : undefined,
-    sku: typeof lineObj.sku === "string" ? lineObj.sku : undefined,
-    quantity,
-    unitPriceCents,
-    lineTotalCents,
-    taxRateBps:
-      typeof lineObj.taxRateBps === "number" && Number.isInteger(lineObj.taxRateBps)
-        ? lineObj.taxRateBps
-        : undefined,
+    ok: true,
+    line: {
+      lineIndex: index,
+      productName:
+        typeof lineObj.productName === "string" ? lineObj.productName : undefined,
+      sku: typeof lineObj.sku === "string" ? lineObj.sku : undefined,
+      quantity: quantityResult.quantity,
+      unitPriceCents,
+      lineTotalCents,
+      taxRateBps:
+        typeof lineObj.taxRateBps === "number" && Number.isInteger(lineObj.taxRateBps)
+          ? lineObj.taxRateBps
+          : undefined,
+    },
   };
 }
 

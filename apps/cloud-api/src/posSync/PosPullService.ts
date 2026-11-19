@@ -23,6 +23,7 @@ import {
   decodeChannelPullCursor,
   encodeChannelPullCursor,
 } from "./channelPullCursor.js";
+import { asPosQuantity } from "../../../../packages/business-currency/src/index.ts";
 import type { PosDeviceAuthContext } from "../lib/posDeviceAuth.js";
 import { InvalidPullCursorError } from "./pullErrors.js";
 import { decodePullCursor, encodePullCursor } from "./pullCursor.js";
@@ -163,7 +164,7 @@ export class PosPullService {
         lineIndex: line.lineIndex,
         productName: line.productName,
         sku: line.sku,
-        quantity: line.quantity,
+        quantity: asPosQuantity(line.quantity),
         unitPriceCents: line.unitPriceCents,
         lineTotalCents: line.lineTotalCents,
         taxRateBps: line.taxRateBps,

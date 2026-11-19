@@ -1,6 +1,11 @@
 // apps/cloud-api/src/routes/portal-business.ts
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { eq } from "drizzle-orm";
+import {
+  businessCurrencyNeedsReview,
+  currencyLockError,
+  isBusinessCurrencyLocked,
+} from "../lib/currencyLock.js";
 
 import { db } from "../db/client.js";
 import { businessProfiles } from "../db/schema/businessProfiles.js";
@@ -101,7 +106,9 @@ function buildPortalBusinessResponse(
       companyName: row.companyName ?? orgName,
       legalName: row.legalName ?? "",
       country: row.country ?? null,
-      currency: fiscalSnapshot.currency,
+      currency: row.currency ?? fiscalSnapshot.currency,
+      currencyLockedAt: row.currencyLockedAt?.toISOString() ?? null,
+      currencyLockNeedsReview: businessCurrencyNeedsReview(row.currency),
       defaultLanguage: row.defaultLanguage ?? "en",
       businessAddress,
       vatId: row.vatId ?? "",
@@ -162,7 +169,9 @@ async function syncDerivedFieldsIfNeeded(
   });
 
   const storedCurrency = row.currency ?? defaultCurrencyForCountry(country);
+  const locked = isBusinessCurrencyLocked(row);
   const needsCurrencyFix =
+    !locked &&
     Boolean(country) &&
     !isCurrencyAllowedForCountry(country, storedCurrency);
 
@@ -375,10 +384,10 @@ export async function registerPortalBusinessRoutes(app: FastifyInstance) {
         }
       }
 
-      if (countryChanged) {
-        if (!body.currency) {
-          updates.currency = defaultCurrencyForCountry(newCountry);
-        }
+      const currencyLocked = isBusinessCurrencyLocked(existing);
+
+      if (countryChanged && !currencyLocked && !body.currency) {
+        updates.currency = defaultCurrencyForCountry(newCountry);
       }
 
       const mergedCountry =
@@ -397,6 +406,12 @@ export async function registerPortalBusinessRoutes(app: FastifyInstance) {
 
       if (typeof body.currency === "string") {
         const cur = body.currency.trim().toUpperCase().slice(0, 3);
+        if (currencyLocked && cur !== existing.currency) {
+          reply.code(409);
+          return currencyLockError(
+            "Business currency is locked because your POS has been activated.",
+          );
+        }
         const countryForCurrency =
           newCountry ?? normalizeCountryCode(existing.country);
         if (!isCurrencyAllowedForCountry(countryForCurrency, cur)) {
@@ -404,6 +419,19 @@ export async function registerPortalBusinessRoutes(app: FastifyInstance) {
           return { ok: false, error: "invalid_currency" };
         }
         updates.currency = cur;
+      }
+
+      if (currencyLocked) {
+        delete updates.currency;
+        if (
+          countryChanged &&
+          !isCurrencyAllowedForCountry(mergedCountry, existing.currency)
+        ) {
+          reply.code(409);
+          return currencyLockError(
+            "This country does not allow the locked business currency.",
+          );
+        }
       }
 
       if (typeof body.defaultLanguage === "string") {

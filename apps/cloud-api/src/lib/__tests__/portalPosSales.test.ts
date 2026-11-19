@@ -23,6 +23,13 @@ describe("buildPortalDashboardSummaryResponse", () => {
         excludedCurrencies: [],
         hasCurrencyInconsistencies: false,
         lastSynchronizationAt: "2026-07-08T10:00:00.000Z",
+        taxes: {
+          netRevenueMinor: 437000,
+          vatMinor: 83800,
+          grossRevenueMinor: 520800,
+          fiscalReceiptsCount: 0,
+          currency: "TND",
+        },
       },
       [],
       {
@@ -51,6 +58,8 @@ describe("buildPortalDashboardSummaryResponse", () => {
     expect(withSales.onlineOrdersCount).toBe(2);
     expect(withSales.receiptsToday).toBe(10);
     expect(withSales.currency).toBe("TND");
+    expect(withSales.taxes.grossRevenueMinor).toBe(520800);
+    expect(withSales.taxes.fiscalReceiptsCount).toBe(0);
     expect(withSales.mixedCurrency).toBe(false);
     expect(withSales.timezone).toBe("Europe/Berlin");
   });
@@ -75,6 +84,13 @@ describe("buildPortalDashboardSummaryResponse", () => {
         excludedCurrencies: [],
         hasCurrencyInconsistencies: false,
         lastSynchronizationAt: null,
+        taxes: {
+          netRevenueMinor: 0,
+          vatMinor: 0,
+          grossRevenueMinor: 0,
+          fiscalReceiptsCount: 0,
+          currency: "EUR",
+        },
       },
       [],
       {

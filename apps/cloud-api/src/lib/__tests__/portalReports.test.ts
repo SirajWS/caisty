@@ -251,6 +251,34 @@ describe("report chart provider dedup helpers", () => {
     ]);
   });
 
+  it("sums fractional quantities numerically rather than as strings", () => {
+    const products = aggregateTopProductsFromWinnerLines(
+      [
+        {
+          orderId: "pos-1",
+          productName: "Flour",
+          quantity: "1.25",
+          lineTotalCents: 12500,
+        },
+        {
+          orderId: "pos-1",
+          productName: "Flour",
+          quantity: "0.75",
+          lineTotalCents: 7500,
+        },
+      ],
+      new Set(["pos-1"]),
+    );
+    expect(products).toEqual([
+      {
+        productName: "Flour",
+        quantity: 2,
+        revenueMinor: 20000,
+        category: null,
+      },
+    ]);
+  });
+
   it("keeps different platforms with the same providerOrderId separate", () => {
     const winners = selectReportOrderWinners([
       orderRow({
