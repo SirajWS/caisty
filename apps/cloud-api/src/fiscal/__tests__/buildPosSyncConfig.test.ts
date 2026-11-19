@@ -90,6 +90,7 @@ const POS_SYNC_BUSINESS_KEYS = [
   "legalName",
   "country",
   "currency",
+  "currencyPrecision",
   "defaultLanguage",
   "street",
   "city",
@@ -147,6 +148,7 @@ describe("buildPosSyncConfig / GET /pos/config contract", () => {
 
     expect(payload.business.country).toBe("TN");
     expect(payload.business.currency).toBe("TND");
+    expect(payload.business.currencyPrecision).toBe(3);
     expect(payload.fiscal.fiscalRequired).toBe(false);
     expect(payload.fiscal.receiptMode).toBe("standard");
     expect(payload.fiscal.provider).toBe("none");
@@ -169,6 +171,7 @@ describe("buildPosSyncConfig / GET /pos/config contract", () => {
     });
 
     expect(payload.business.currency).toBe("EUR");
+    expect(payload.business.currencyPrecision).toBe(2);
     expect(payload.fiscal.fiscalRequired).toBe(true);
     expect(payload.fiscal.provider).toBe("fiskaly");
     expect(payload.fiscal.receiptMode).toBe("certified");
@@ -216,6 +219,82 @@ describe("buildPosSyncConfig / GET /pos/config contract", () => {
     expect(payload.business.currency).toBe("EUR");
     expect(payload.fiscal.fiscalRequired).toBe(true);
     expect(payload.sync.configVersion).toBe(4);
+  });
+
+  it("LY business → LYD with precision 3", () => {
+    const row = makeBusinessRow({
+      country: "LY",
+      currency: "LYD",
+      fiscalStatus: "not_required",
+      fiscalProvider: "none",
+    });
+    const fiscalSnapshot = buildFiscalConfiguration({
+      orgId: row.orgId,
+      businessRow: row,
+    });
+    const payload = buildPosSyncConfig({
+      businessRow: row,
+      fiscalSnapshot,
+      license: makeLicense(),
+      device: makeDevice(),
+      resolvedOrgId: "org-1",
+    });
+    expect(payload.business.country).toBe("LY");
+    expect(payload.business.currency).toBe("LYD");
+    expect(payload.business.currencyPrecision).toBe(3);
+  });
+
+  it("CH business may use CHF or EUR with precision 2", () => {
+    const baseRow = makeBusinessRow();
+    const baseSnapshot = buildFiscalConfiguration({
+      orgId: baseRow.orgId,
+      businessRow: baseRow,
+    });
+
+    const chfRow = makeBusinessRow({ country: "CH", currency: "CHF" });
+    const chfPayload = buildPosSyncConfig({
+      businessRow: chfRow,
+      fiscalSnapshot: { ...baseSnapshot, currency: "CHF" },
+      license: makeLicense(),
+      device: makeDevice(),
+      resolvedOrgId: "org-1",
+    });
+    expect(chfPayload.business.country).toBe("CH");
+    expect(chfPayload.business.currency).toBe("CHF");
+    expect(chfPayload.business.currencyPrecision).toBe(2);
+
+    const eurRow = makeBusinessRow({ country: "CH", currency: "EUR" });
+    const eurPayload = buildPosSyncConfig({
+      businessRow: eurRow,
+      fiscalSnapshot: { ...baseSnapshot, currency: "EUR" },
+      license: makeLicense(),
+      device: makeDevice(),
+      resolvedOrgId: "org-1",
+    });
+    expect(eurPayload.business.country).toBe("CH");
+    expect(eurPayload.business.currency).toBe("EUR");
+    expect(eurPayload.business.currencyPrecision).toBe(2);
+  });
+
+  it("omits currencyPrecision for unknown historical currency codes", () => {
+    const row = makeBusinessRow({ country: "DE", currency: "XYZ" });
+    const fiscalSnapshot = {
+      ...buildFiscalConfiguration({
+        orgId: row.orgId,
+        businessRow: row,
+      }),
+      currency: "XYZ",
+    };
+    const payload = buildPosSyncConfig({
+      businessRow: row,
+      fiscalSnapshot,
+      license: makeLicense(),
+      device: makeDevice(),
+      resolvedOrgId: "org-1",
+    });
+    expect(payload.business.currency).toBe("XYZ");
+    expect(payload.business.currencyPrecision).toBeUndefined();
+    expect(payload.sync.configVersion).toBe(3);
   });
 
   it("nextConfigVersion increments from current value", () => {

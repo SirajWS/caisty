@@ -1,4 +1,5 @@
 import { formatMinorUnits } from "../money/formatMinorUnits";
+import { pickOperationalPaymentCurrency } from "@caisty/business-currency";
 import {
   deriveOnlinePaymentCards,
   deriveOnlineRevenueHeader,
@@ -29,6 +30,10 @@ function formatMoney(minor: number, currency: string, locale: string): string {
 
 function waitingKpi(id: string, label: string, hint: string, dash: string): ReportsKpi {
   return { id, label, value: dash, hint };
+}
+
+function mixedPeriod(summary: DeriveReportsInput["data"]["reportsSummary"]): boolean {
+  return Boolean(summary?.mixedCurrency);
 }
 
 function mapPeriodToChartRange(period: ReportsPeriodId): RevenueTimeRange {
@@ -121,13 +126,18 @@ function deriveOverview(input: DeriveReportsInput): ReportsKpi[] {
   }
 
   const { overview } = summary;
-  const currency = overview.currency || "EUR";
+  const mixed = mixedPeriod(summary);
+  const currency = overview.currency || "";
+  const moneyHint = mixed ? r.financialTotalsUnavailable : undefined;
 
   return [
     {
       id: "revenue",
       label: r.kpiRevenue,
-      value: formatMoney(overview.revenueMinor, currency, input.locale),
+      value: mixed
+        ? dash
+        : formatMoney(overview.revenueMinor, currency, input.locale),
+      hint: moneyHint,
     },
     {
       id: "orders",
@@ -147,12 +157,16 @@ function deriveOverview(input: DeriveReportsInput): ReportsKpi[] {
     {
       id: "avg_order",
       label: r.kpiAvgOrder,
-      value: formatMoney(overview.averageOrderMinor, currency, input.locale),
+      value: mixed
+        ? dash
+        : formatMoney(overview.averageOrderMinor, currency, input.locale),
+      hint: moneyHint,
     },
     {
       id: "vat",
       label: r.kpiVat,
-      value: formatMoney(overview.vatMinor, currency, input.locale),
+      value: mixed ? dash : formatMoney(overview.vatMinor, currency, input.locale),
+      hint: moneyHint,
     },
   ];
 }
@@ -171,24 +185,35 @@ function deriveRevenueBreakdown(input: DeriveReportsInput): ReportsKpi[] {
     ];
   }
 
+  const mixed = mixedPeriod(summary);
   const currency =
-    summary.paymentMethods.currency || summary.overview.currency || "EUR";
+    summary.paymentMethods.currency || summary.overview.currency || "";
+  const moneyHint = mixed ? input.t.reports.financialTotalsUnavailable : undefined;
 
   return [
     {
       id: "pos_revenue",
       label: o.kpiPosRevenue,
-      value: formatMoney(summary.posRevenueCents, currency, input.locale),
+      value: mixed
+        ? dash
+        : formatMoney(summary.posRevenueCents, currency, input.locale),
+      hint: moneyHint,
     },
     {
       id: "online_revenue",
       label: o.kpiOnlineRevenue,
-      value: formatMoney(summary.onlineRevenueCents, currency, input.locale),
+      value: mixed
+        ? dash
+        : formatMoney(summary.onlineRevenueCents, currency, input.locale),
+      hint: moneyHint,
     },
     {
       id: "total_revenue",
       label: o.kpiTotalRevenue,
-      value: formatMoney(summary.overview.revenueMinor, currency, input.locale),
+      value: mixed
+        ? dash
+        : formatMoney(summary.overview.revenueMinor, currency, input.locale),
+      hint: moneyHint,
     },
   ];
 }
@@ -229,7 +254,7 @@ function deriveOrderBreakdown(input: DeriveReportsInput): ReportsKpi[] {
 function derivePosPayments(input: DeriveReportsInput) {
   const o = input.t.orders;
   const summary = input.data.reportsSummary;
-  const hasData = Boolean(summary?.hasSalesData);
+  const hasData = Boolean(summary?.hasSalesData) && !mixedPeriod(summary);
   const methods = summary?.paymentMethods;
 
   return derivePosPaymentCards({
@@ -239,9 +264,10 @@ function derivePosPayments(input: DeriveReportsInput) {
           cardCents: methods.cardMinor,
           voucherCents: methods.voucherMinor,
           otherCents: methods.otherMinor,
-          currency: methods.currency || summary?.overview.currency || "EUR",
+          currency: methods.currency || summary?.overview.currency || "",
         }
       : null,
+    fallbackCurrency: summary?.overview.currency || "",
     labels: {
       paymentCash: o.paymentCash,
       paymentCard: o.paymentCard,
@@ -257,10 +283,12 @@ function derivePosPayments(input: DeriveReportsInput) {
 function deriveOnlinePayments(input: DeriveReportsInput) {
   const o = input.t.orders;
   const summary = input.data.reportsSummary;
-  const hasData = Boolean(summary?.hasSalesData);
+  const hasData = Boolean(summary?.hasSalesData) && !mixedPeriod(summary);
 
   return deriveOnlinePaymentCards({
     summary: summary?.onlinePaymentSummary,
+    fallbackCurrency:
+      summary?.overview.currency || summary?.paymentMethods.currency || "",
     labels: {
       onlineCashPaid: o.onlineCashPaid,
       onlineCardPaid: o.onlineCardPaid,
@@ -277,11 +305,12 @@ function deriveOnlinePayments(input: DeriveReportsInput) {
 function deriveOnlineRevenueHeaderState(input: DeriveReportsInput) {
   const o = input.t.orders;
   const summary = input.data.reportsSummary;
-  const hasData = Boolean(summary?.hasSalesData);
-  const currency =
-    summary?.onlinePaymentSummary.currency ||
-    summary?.overview.currency ||
-    "EUR";
+  const hasData = Boolean(summary?.hasSalesData) && !mixedPeriod(summary);
+  const currency = pickOperationalPaymentCurrency({
+    recordedCurrency: summary?.onlinePaymentSummary.currency,
+    fallbackCurrency: summary?.overview.currency,
+    hasRecordedAmounts: (summary?.onlineRevenueCents ?? 0) > 0,
+  });
 
   return deriveOnlineRevenueHeader({
     onlineRevenueCents: summary?.onlineRevenueCents ?? 0,
@@ -307,7 +336,14 @@ function deriveHourlyBars(input: DeriveReportsInput): HourlyBar[] {
     }));
   }
 
-  const currency = summary.overview.currency || "EUR";
+  if (mixedPeriod(summary)) {
+    return normalizeSalesByHour(summary.salesByHour).map((point) => ({
+      hour: String(point.hour).padStart(2, "0"),
+      value: null,
+    }));
+  }
+
+  const currency = summary.overview.currency || "";
 
   return normalizeSalesByHour(summary.salesByHour).map((point) => {
     const hour = String(point.hour).padStart(2, "0");
@@ -329,11 +365,11 @@ function deriveTopProducts(input: DeriveReportsInput): TopProductRow[] {
   const summary = input.data.reportsSummary;
   if (!summary?.hasSalesData) return [];
 
-  const currency = summary.overview.currency || "EUR";
-  const totalRevenue = summary.topProducts.reduce(
-    (sum, product) => sum + product.revenueMinor,
-    0,
-  );
+  const mixed = mixedPeriod(summary);
+  const currency = summary.overview.currency || "";
+  const totalRevenue = mixed
+    ? 0
+    : summary.topProducts.reduce((sum, product) => sum + product.revenueMinor, 0);
 
   return summary.topProducts.map((product, index) => {
     const share =
@@ -346,7 +382,9 @@ function deriveTopProducts(input: DeriveReportsInput): TopProductRow[] {
       rank: index + 1,
       name: product.productName,
       quantity: String(product.quantity),
-      revenue: formatMoney(product.revenueMinor, currency, input.locale),
+      revenue: mixed
+        ? input.t.labels.dash
+        : formatMoney(product.revenueMinor, currency, input.locale),
       share,
     };
   });
@@ -372,26 +410,34 @@ function deriveTaxes(input: DeriveReportsInput): TaxCard[] {
   }
 
   const { taxes } = summary;
-  const currency = taxes.currency || summary.overview.currency || "EUR";
+  const mixed = mixedPeriod(summary);
+  const currency = taxes.currency || summary.overview.currency || "";
+  const unavailable = r.financialTotalsUnavailable;
 
   return [
     {
       id: "net",
       label: r.taxNetRevenue,
-      value: formatMoney(taxes.netRevenueMinor, currency, input.locale),
-      tone: paymentTone(taxes.netRevenueMinor),
+      value: mixed
+        ? unavailable
+        : formatMoney(taxes.netRevenueMinor, currency, input.locale),
+      tone: mixed ? "unknown" : paymentTone(taxes.netRevenueMinor),
     },
     {
       id: "vat",
       label: r.taxVat,
-      value: formatMoney(taxes.vatMinor, currency, input.locale),
-      tone: paymentTone(taxes.vatMinor),
+      value: mixed
+        ? unavailable
+        : formatMoney(taxes.vatMinor, currency, input.locale),
+      tone: mixed ? "unknown" : paymentTone(taxes.vatMinor),
     },
     {
       id: "gross",
       label: r.taxGrossRevenue,
-      value: formatMoney(taxes.grossRevenueMinor, currency, input.locale),
-      tone: paymentTone(taxes.grossRevenueMinor),
+      value: mixed
+        ? unavailable
+        : formatMoney(taxes.grossRevenueMinor, currency, input.locale),
+      tone: mixed ? "unknown" : paymentTone(taxes.grossRevenueMinor),
     },
     {
       id: "fiscal_receipts",
@@ -412,7 +458,8 @@ function deriveTrends(input: DeriveReportsInput): TrendCard[] {
   }
 
   const { businessTrends } = summary;
-  const currency = businessTrends.currency || summary.overview.currency || "EUR";
+  const mixed = mixedPeriod(summary);
+  const currency = businessTrends.currency || summary.overview.currency || "";
   const trends: TrendCard[] = [];
 
   // bestSalesDay is the peak revenueSeries bucket — only show when the label
@@ -439,7 +486,7 @@ function deriveTrends(input: DeriveReportsInput): TrendCard[] {
     });
   }
 
-  if (businessTrends.largestReceiptMinor > 0) {
+  if (!mixed && businessTrends.largestReceiptMinor > 0) {
     trends.push({
       id: "largest_receipt",
       label: r.trendLargestReceipt,
@@ -499,8 +546,9 @@ export function deriveReportsState(input: DeriveReportsInput): ReportsDerivedSta
   const r = input.t.reports;
   const summary = input.data.reportsSummary;
   const hasSalesData = Boolean(summary?.hasSalesData);
+  const mixed = mixedPeriod(summary);
   const granularity = granularityFromData(input.data);
-  const currency = summary?.overview.currency || "EUR";
+  const currency = mixed ? "" : summary?.overview.currency || "";
 
   return {
     overview: deriveOverview(input),
@@ -508,12 +556,16 @@ export function deriveReportsState(input: DeriveReportsInput): ReportsDerivedSta
     orderBreakdown: deriveOrderBreakdown(input),
     revenueChart: {
       range: mapPeriodToChartRange(input.data.period),
-      hasData: hasSalesData && (summary?.revenueSeries.length ?? 0) > 0,
-      placeholderMessage: r.chartPlaceholder,
-      series: summary?.revenueSeries ?? [],
-      totalValue: hasSalesData
-        ? formatMoney(summary!.overview.revenueMinor, currency, input.locale)
-        : input.t.labels.dash,
+      hasData:
+        hasSalesData &&
+        !mixed &&
+        (summary?.revenueSeries.length ?? 0) > 0,
+      placeholderMessage: mixed ? r.mixedCurrencyWarning : r.chartPlaceholder,
+      series: mixed ? [] : summary?.revenueSeries ?? [],
+      totalValue:
+        hasSalesData && !mixed
+          ? formatMoney(summary!.overview.revenueMinor, currency, input.locale)
+          : input.t.labels.dash,
       currency,
       locale: input.locale,
       granularity,

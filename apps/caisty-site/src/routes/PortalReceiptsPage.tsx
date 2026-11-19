@@ -370,6 +370,12 @@ const PortalReceiptsPage: React.FC = () => {
         }
       />
 
+      {data.page?.summary.mixedCurrency ? (
+        <p className="dashboard-text-muted" role="status">
+          {r.mixedCurrencyWarning}
+        </p>
+      ) : null}
+
       {showIncompatibleHero ? (
         <OrdersErrorState
           headline={r.unavailableHeadline}

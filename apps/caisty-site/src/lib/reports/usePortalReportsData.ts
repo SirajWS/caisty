@@ -19,6 +19,7 @@ const emptyReportsSummary = (): PortalReportsSummary => ({
   timezone: "Europe/Berlin",
   period: "today",
   hasSalesData: false,
+  mixedCurrency: false,
   overview: {
     revenueMinor: 0,
     ordersCount: 0,

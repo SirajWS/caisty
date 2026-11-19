@@ -1,4 +1,5 @@
 import { formatMinorUnits } from "../money/formatMinorUnits";
+import { pickOperationalPaymentCurrency } from "@caisty/business-currency";
 import { getReceiptsCountKpiLabel, mapReceiptsPeriodToApi } from "./receiptsPeriod";
 import type {
   DeriveReceiptsInput,
@@ -137,12 +138,20 @@ function deriveSummary(input: DeriveReceiptsInput): ReceiptsKpi[] {
   }
 
   const { summary } = page;
-  const currency = summary.paymentSummary.currency || "EUR";
+  const mixed = Boolean(summary.mixedCurrency);
+  const currency = pickOperationalPaymentCurrency({
+    recordedCurrency: summary.paymentSummary.currency,
+    fallbackCurrency: page.receipts[0]?.currency,
+    hasRecordedAmounts: summary.posRevenueCents > 0,
+  });
   return [
     {
       id: "pos_revenue",
       label: r.kpiPosRevenue,
-      value: formatMoney(summary.posRevenueCents, currency, input.locale),
+      value: mixed
+        ? dash
+        : formatMoney(summary.posRevenueCents, currency, input.locale),
+      hint: mixed ? r.financialTotalsUnavailable : undefined,
     },
     {
       id: "receipts_today",
@@ -187,7 +196,23 @@ function derivePayments(input: DeriveReceiptsInput): ReceiptPaymentCard[] {
   }
 
   const { paymentSummary } = page.summary;
-  const currency = paymentSummary.currency || "EUR";
+  if (page.summary.mixedCurrency) {
+    return [
+      { id: "cash", label: r.paymentCash, value: dash, tone: "unknown" },
+      { id: "card", label: r.paymentCard, value: dash, tone: "unknown" },
+      { id: "voucher", label: r.paymentVoucher, value: dash, tone: "unknown" },
+      { id: "other", label: r.paymentOther, value: dash, tone: "unknown" },
+    ];
+  }
+  const currency = pickOperationalPaymentCurrency({
+    recordedCurrency: paymentSummary.currency,
+    fallbackCurrency: page.receipts[0]?.currency,
+    hasRecordedAmounts:
+      paymentSummary.cashCents > 0 ||
+      paymentSummary.cardCents > 0 ||
+      paymentSummary.voucherCents > 0 ||
+      paymentSummary.otherCents > 0,
+  });
 
   const card = (
     id: ReceiptPaymentCard["id"],

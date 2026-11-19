@@ -1,4 +1,5 @@
 import { formatMinorUnits } from "../money/formatMinorUnits";
+import { pickOperationalPaymentCurrency } from "@caisty/business-currency";
 import type {
   PortalOnlinePaymentSummary,
   PortalOrdersPaymentSummary,
@@ -58,6 +59,7 @@ function card(
 
 export function derivePosPaymentCards(input: {
   summary: PortalOrdersPaymentSummary | null | undefined;
+  fallbackCurrency?: string | null;
   labels: {
     paymentCash: string;
     paymentCard: string;
@@ -69,7 +71,16 @@ export function derivePosPaymentCards(input: {
   hasData: boolean;
 }): PaymentMethodCard[] {
   const { summary, labels, locale, dash, hasData } = input;
-  const currency = summary?.currency || "EUR";
+  const hasRecordedAmounts =
+    (summary?.cashCents ?? 0) > 0 ||
+    (summary?.cardCents ?? 0) > 0 ||
+    (summary?.voucherCents ?? 0) > 0 ||
+    (summary?.otherCents ?? 0) > 0;
+  const currency = pickOperationalPaymentCurrency({
+    recordedCurrency: summary?.currency,
+    fallbackCurrency: input.fallbackCurrency,
+    hasRecordedAmounts,
+  });
 
   return [
     card("cash", labels.paymentCash, summary?.cashCents ?? 0, currency, locale, dash, hasData),
@@ -81,6 +92,7 @@ export function derivePosPaymentCards(input: {
 
 export function deriveOnlinePaymentCards(input: {
   summary: PortalOnlinePaymentSummary | null | undefined;
+  fallbackCurrency?: string | null;
   labels: {
     onlineCashPaid: string;
     onlineCardPaid: string;
@@ -93,17 +105,26 @@ export function deriveOnlinePaymentCards(input: {
   hasData: boolean;
 }): PaymentMethodCard[] {
   const { summary, labels, locale, dash, hasData } = input;
-  const currency = summary?.currency || "EUR";
   const cashPaidCents = summary?.cashPaidCents ?? 0;
   const cardPaidCents = summary?.cardPaidCents ?? 0;
   const onlinePaidCents = summary?.onlinePaidCents ?? 0;
+  const pendingCents = summary?.pendingCents ?? 0;
+  const currency = pickOperationalPaymentCurrency({
+    recordedCurrency: summary?.currency,
+    fallbackCurrency: input.fallbackCurrency,
+    hasRecordedAmounts:
+      cashPaidCents > 0 ||
+      cardPaidCents > 0 ||
+      onlinePaidCents > 0 ||
+      pendingCents > 0,
+  });
   const paidTotalCents = cashPaidCents + cardPaidCents + onlinePaidCents;
 
   return [
     card("cash_paid", labels.onlineCashPaid, cashPaidCents, currency, locale, dash, hasData),
     card("card_paid", labels.onlineCardPaid, cardPaidCents, currency, locale, dash, hasData),
     card("online_paid", labels.onlinePaidOnline, onlinePaidCents, currency, locale, dash, hasData),
-    card("pending", labels.onlinePending, summary?.pendingCents ?? 0, currency, locale, dash, hasData),
+    card("pending", labels.onlinePending, pendingCents, currency, locale, dash, hasData),
     card(
       "paid_total",
       labels.onlinePaidTotal,

@@ -16,9 +16,14 @@ describe("minorUnitExponent / minorUnitDivisor", () => {
     expect(minorUnitDivisor("TND")).toBe(1000);
   });
 
-  it("falls back to 2 decimals for unknown currencies", () => {
-    expect(minorUnitExponent("XYZ")).toBe(2);
-    expect(minorUnitDivisor("")).toBe(100);
+  it("does not fall back to 2 decimals for unknown currencies", () => {
+    expect(minorUnitExponent("XYZ")).toBeNull();
+    expect(minorUnitDivisor("")).toBeNull();
+    expect(minorUnitExponent("LYD")).toBe(3);
+    expect(minorUnitDivisor("LYD")).toBe(1000);
+    expect(minorUnitExponent("CHF")).toBe(2);
+    expect(minorUnitExponent("MAD")).toBe(2);
+    expect(minorUnitExponent("DZD")).toBe(2);
   });
 
   it("is case-insensitive", () => {
@@ -55,8 +60,23 @@ describe("formatMinorUnits", () => {
     expect(formatMinorUnits(1200, "EUR", "en-GB")).toContain("12.00");
   });
 
-  it("defaults to EUR when currency is empty", () => {
-    const out = formatMinorUnits(600, "", "en-GB");
-    expect(out).toContain("6.00");
+  it("does not default empty or unknown codes to EUR", () => {
+    expect(formatMinorUnits(600, "", "en-GB")).toBe("600");
+    expect(formatMinorUnits(600, "XYZ", "en-GB")).toBe("600 XYZ");
+  });
+
+  it("formats LYD millimes with 3 decimals", () => {
+    expect(formatMinorUnits(13125, "LYD", "en-GB")).toContain("13.125");
+  });
+
+  it("formats zero amounts with catalog precision for all eight currencies", () => {
+    expect(formatMinorUnits(0, "EUR", "en-GB")).toContain("0.00");
+    expect(formatMinorUnits(0, "USD", "en-GB")).toContain("0.00");
+    expect(formatMinorUnits(0, "CHF", "en-GB")).toContain("0.00");
+    expect(formatMinorUnits(0, "GBP", "en-GB")).toContain("0.00");
+    expect(formatMinorUnits(0, "MAD", "en-GB")).toContain("0.00");
+    expect(formatMinorUnits(0, "DZD", "en-GB")).toContain("0.00");
+    expect(formatMinorUnits(0, "TND", "en-GB")).toContain("0.000");
+    expect(formatMinorUnits(0, "LYD", "en-GB")).toContain("0.000");
   });
 });

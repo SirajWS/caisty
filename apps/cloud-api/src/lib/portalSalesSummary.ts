@@ -6,6 +6,7 @@
 import { and, eq, sql, type SQL } from "drizzle-orm";
 
 import { db } from "../db/client.js";
+import { businessProfiles } from "../db/schema/businessProfiles.js";
 import { devices } from "../db/schema/devices.js";
 import {
   posOrders,
@@ -32,6 +33,29 @@ import {
   sqlInReportWindow,
   type SalesPeriodInput,
 } from "./portalReportsPeriod.js";
+import {
+  pickOperationalPaymentCurrency,
+  resolvePeriodCurrencies,
+} from "../../../../packages/business-currency/src/index.ts";
+
+export function attachOperationalOnlineCurrency(
+  summary: OnlinePaymentSummaryCents & { currency: string },
+  periodCurrency: string,
+): OnlinePaymentSummaryCents & { currency: string } {
+  const hasRecordedAmounts =
+    summary.cashPaidCents > 0 ||
+    summary.cardPaidCents > 0 ||
+    summary.onlinePaidCents > 0 ||
+    summary.pendingCents > 0;
+  return {
+    ...summary,
+    currency: pickOperationalPaymentCurrency({
+      recordedCurrency: summary.currency,
+      fallbackCurrency: periodCurrency,
+      hasRecordedAmounts,
+    }),
+  };
+}
 
 function receiptStatusContributesToKpis(status: string | null | undefined): boolean {
   const normalized = (status ?? "active").trim().toLowerCase();
@@ -81,9 +105,12 @@ export type PortalSalesPeriodStats = {
   revenueCents: number;
   refundsCount: number;
   currency: string;
+  mixedCurrency: boolean;
   paymentSummary: PaymentSummaryCents & { currency: string };
   onlinePaymentSummary: OnlinePaymentSummaryCents & { currency: string };
 };
+
+export { resolvePeriodCurrencies };
 
 /** Orders excluded from online revenue totals. */
 export function sqlOrderIsCancelled(
@@ -412,7 +439,7 @@ export async function fetchOnlinePaymentSummaryForPeriod(input: {
   let currency =
     dedupedOrderRows[0]?.currency?.trim().toUpperCase() ??
     winnerKpiReceiptRows[0]?.currency?.trim().toUpperCase() ??
-    "EUR";
+    "";
 
   const summary = aggregateOnlinePaymentSummary({
     orders: dedupedOrderRows.map((order) => {
@@ -616,32 +643,51 @@ export async function fetchPortalSalesPeriodStats(input: {
   const onlineRevenueCents = onlineReceiptRevenueCents + onlineOrderRevenueCents;
   const revenueCents = combineRevenueMinor(posRevenueCents, onlineRevenueCents);
 
-  const [currencyRow] = await db
-    .select({ currency: posReceipts.currency })
-    .from(posReceipts)
-    .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
-    .where(receiptPeriodScope(orgId, customerId, period))
-    .orderBy(sql`${posReceipts.soldAt} desc`)
-    .limit(1);
-
-  let currency = currencyRow?.currency?.trim().toUpperCase() ?? "";
-  if (!currency) {
-    const [orderCurrencyRow] = await db
-      .select({ currency: posOrders.currency })
+  const [receiptCurrencyRows, orderCurrencyRows] = await Promise.all([
+    db
+      .selectDistinct({ currency: posReceipts.currency })
+      .from(posReceipts)
+      .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
+      .where(receiptPeriodScope(orgId, customerId, period)),
+    db
+      .selectDistinct({ currency: posOrders.currency })
       .from(posOrders)
       .innerJoin(devices, eq(posOrders.deviceId, devices.id))
-      .where(orderPeriodScope(orgId, customerId, period))
-      .orderBy(sql`${posOrders.soldAt} desc`)
+      .where(orderPeriodScope(orgId, customerId, period)),
+  ]);
+
+  const periodCurrencies = resolvePeriodCurrencies([
+    ...receiptCurrencyRows.map((row) => row.currency),
+    ...orderCurrencyRows.map((row) => row.currency),
+  ]);
+
+  let currency = periodCurrencies.currency ?? "";
+  if (!currency && !periodCurrencies.mixedCurrency) {
+    const [profile] = await db
+      .select({ currency: businessProfiles.currency })
+      .from(businessProfiles)
+      .where(eq(businessProfiles.orgId, orgId))
       .limit(1);
-    currency = orderCurrencyRow?.currency?.trim().toUpperCase() ?? "EUR";
+    currency = profile?.currency?.trim().toUpperCase() ?? "";
   }
 
-  const paymentSummary = aggregateEffectivePaymentSummary(paymentRows);
-  const onlinePaymentSummary = await fetchOnlinePaymentSummaryForPeriod({
-    orgId,
-    customerId,
-    period,
-  });
+  const mixedCurrency = periodCurrencies.mixedCurrency;
+  const paymentSummary = mixedCurrency
+    ? { cashCents: 0, cardCents: 0, voucherCents: 0, otherCents: 0, currency: "" }
+    : { ...aggregateEffectivePaymentSummary(paymentRows), currency };
+  const onlinePaymentSummary = mixedCurrency
+    ? {
+        cashPaidCents: 0,
+        cardPaidCents: 0,
+        onlinePaidCents: 0,
+        pendingCents: 0,
+        currency: "",
+      }
+    : await fetchOnlinePaymentSummaryForPeriod({
+        orgId,
+        customerId,
+        period,
+      });
 
   return {
     ordersCount: totalOrders,
@@ -649,16 +695,16 @@ export async function fetchPortalSalesPeriodStats(input: {
     onlineOrdersCount,
     receiptsCount,
     kpiReceiptsCount,
-    posRevenueCents,
-    onlineRevenueCents,
-    revenueCents,
+    posRevenueCents: mixedCurrency ? 0 : posRevenueCents,
+    onlineRevenueCents: mixedCurrency ? 0 : onlineRevenueCents,
+    revenueCents: mixedCurrency ? 0 : revenueCents,
     refundsCount,
-    currency,
-    paymentSummary: { ...paymentSummary, currency },
-    onlinePaymentSummary: {
-      ...onlinePaymentSummary,
-      currency: onlinePaymentSummary.currency || currency,
-    },
+    currency: mixedCurrency ? "" : currency,
+    mixedCurrency,
+    paymentSummary,
+    onlinePaymentSummary: mixedCurrency
+      ? onlinePaymentSummary
+      : attachOperationalOnlineCurrency(onlinePaymentSummary, currency),
   };
 }
 

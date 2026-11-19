@@ -18,6 +18,11 @@ import { mapPortalApiError } from "../../lib/caistyTerminology";
 import {
   deriveFiscalVisibility,
 } from "../../lib/useFiscalVisibility";
+import {
+  formatMinorUnits,
+  getCurrencyMinorUnitFactor,
+  getCurrencyPrecision,
+} from "../../lib/money/formatMinorUnits";
 
 function FormField({
   label,
@@ -151,6 +156,12 @@ export function BusinessEditForm({
   }
 
   const showComplianceIncomplete = profile.complianceStatus === "incomplete";
+  const currencyPrecision = getCurrencyPrecision(currency);
+  const exampleFactor = getCurrencyMinorUnitFactor(currency);
+  const examplePrice =
+    currencyPrecision != null && exampleFactor != null
+      ? formatMinorUnits(13 * exampleFactor, currency, "en-GB")
+      : null;
 
   return (
     <section id={formId} className="dashboard-panel dashboard-panel--wide business-edit-form">
@@ -221,6 +232,22 @@ export function BusinessEditForm({
                 </option>
               ))}
             </select>
+          </FormField>
+          <FormField label={b.decimalPlaces}>
+            <input
+              value={currencyPrecision ?? t.labels.dash}
+              readOnly
+              aria-readonly="true"
+              className={portalInputClass(isLight)}
+            />
+            <p className="business-form-hint mb-0 mt-1">{b.decimalPlacesHint}</p>
+            {examplePrice ? (
+              <p className="business-form-hint mb-0 mt-1">
+                {b.examplePrice}: {examplePrice}
+              </p>
+            ) : (
+              <p className="business-form-hint mb-0 mt-1">{b.unsupportedCurrency}</p>
+            )}
           </FormField>
           <FormField label={b.defaultLanguage}>
             <select

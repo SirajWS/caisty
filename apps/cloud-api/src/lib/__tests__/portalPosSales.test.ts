@@ -16,6 +16,7 @@ describe("buildPortalDashboardSummaryResponse", () => {
         refundsCount: 0,
         averageOrderMinor: 57280,
         currency: "TND",
+        mixedCurrency: false,
         lastSynchronizationAt: "2026-07-08T10:00:00.000Z",
       },
       [],
@@ -45,6 +46,7 @@ describe("buildPortalDashboardSummaryResponse", () => {
     expect(withSales.onlineOrdersCount).toBe(2);
     expect(withSales.receiptsToday).toBe(10);
     expect(withSales.currency).toBe("TND");
+    expect(withSales.mixedCurrency).toBe(false);
     expect(withSales.timezone).toBe("Europe/Berlin");
   });
 
@@ -61,6 +63,7 @@ describe("buildPortalDashboardSummaryResponse", () => {
         refundsCount: 0,
         averageOrderMinor: 0,
         currency: "EUR",
+        mixedCurrency: false,
         lastSynchronizationAt: null,
       },
       [],

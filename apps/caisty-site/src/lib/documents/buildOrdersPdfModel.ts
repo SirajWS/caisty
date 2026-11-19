@@ -1,3 +1,4 @@
+import { pickOperationalPaymentCurrency } from "@caisty/business-currency";
 import type { PortalOrdersResponse, PortalOrderRecord } from "../portalApi";
 import {
   formatDocumentMoney,
@@ -89,10 +90,12 @@ export function buildOrdersPdfModel(
 ): OrdersPdfModel {
   const { meta, labels, sales } = input;
   const { summary, orders, providerOrders, receipts } = sales;
-  const currency =
-    summary.paymentSummary.currency ||
-    summary.onlinePaymentSummary?.currency ||
-    meta.currency;
+  const mixed = Boolean(summary.mixedCurrency);
+  const currency = mixed
+    ? ""
+    : summary.paymentSummary.currency ||
+      summary.onlinePaymentSummary?.currency ||
+      meta.currency;
   const { locale, timezone } = meta;
   const dash = labels.dash;
   const paymentLabels: PaymentMethodLabels = {
@@ -118,8 +121,18 @@ export function buildOrdersPdfModel(
   /** Same Paid Total as portal: cash + card + online paid (excludes pending). */
   const paidTotalCents = cashPaidCents + cardPaidCents + onlinePaidCents;
 
-  const money = (cents: number) =>
-    formatDocumentMoney(cents, currency, locale);
+  const onlineHasAmounts =
+    cashPaidCents > 0 ||
+    cardPaidCents > 0 ||
+    onlinePaidCents > 0 ||
+    pendingCents > 0;
+  const onlineCurrency = pickOperationalPaymentCurrency({
+    recordedCurrency: online?.currency,
+    fallbackCurrency: currency || meta.currency,
+    hasRecordedAmounts: onlineHasAmounts,
+  });
+  const money = (cents: number, code = currency) =>
+    mixed ? dash : formatDocumentMoney(cents, code, locale);
 
   return {
     exportsFullOrderLists: true,
@@ -133,7 +146,7 @@ export function buildOrdersPdfModel(
     ],
     revenueSummary: [
       [labels.kpiPosRevenue, money(summary.posRevenueCents)],
-      [labels.kpiOnlineRevenue, money(summary.onlineRevenueCents)],
+      [labels.kpiOnlineRevenue, money(summary.onlineRevenueCents, onlineCurrency)],
       [labels.kpiTotalRevenue, money(summary.revenueCents)],
     ],
     posPaymentSummary: [
@@ -144,12 +157,12 @@ export function buildOrdersPdfModel(
       [labels.paymentTotal, money(posTotalCents)],
     ],
     onlinePaymentSummary: [
-      [labels.kpiOnlineRevenue, money(summary.onlineRevenueCents)],
-      [labels.onlineCashPaid, money(cashPaidCents)],
-      [labels.onlineCardPaid, money(cardPaidCents)],
-      [labels.onlinePaidOnline, money(onlinePaidCents)],
-      [labels.onlinePending, money(pendingCents)],
-      [labels.onlinePaidTotal, money(paidTotalCents)],
+      [labels.kpiOnlineRevenue, money(summary.onlineRevenueCents, onlineCurrency)],
+      [labels.onlineCashPaid, money(cashPaidCents, onlineCurrency)],
+      [labels.onlineCardPaid, money(cardPaidCents, onlineCurrency)],
+      [labels.onlinePaidOnline, money(onlinePaidCents, onlineCurrency)],
+      [labels.onlinePending, money(pendingCents, onlineCurrency)],
+      [labels.onlinePaidTotal, money(paidTotalCents, onlineCurrency)],
     ],
     onlineRevenueHint: labels.onlineRevenueHint,
     posOrders: {

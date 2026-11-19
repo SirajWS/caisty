@@ -50,6 +50,7 @@ const emptyPage = (): PortalReceiptsResponse => ({
     reprintedCount: 0,
     refundsCount: 0,
     posRevenueCents: 0,
+    mixedCurrency: false,
     paymentSummary: {
       cashCents: 0,
       cardCents: 0,

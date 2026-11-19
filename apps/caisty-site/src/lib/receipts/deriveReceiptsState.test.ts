@@ -241,4 +241,105 @@ describe("deriveReceiptsState", () => {
     expect(countKpi?.label).not.toBe("Receipts today");
     expect(countKpi?.label).toMatch(/November/);
   });
+
+  it("hides mixed-currency POS revenue while keeping receipt row currencies", () => {
+    const state = deriveReceiptsState({
+      data: {
+        customer: { id: "c1", email: "a@b.com", name: "Test" } as never,
+        page: {
+          timezone: "Europe/Berlin",
+          period: "today",
+          summary: {
+            receiptsCount: 2,
+            activeCount: 2,
+            printedCount: 2,
+            reprintedCount: 0,
+            refundsCount: 0,
+            posRevenueCents: 0,
+            mixedCurrency: true,
+            paymentSummary: {
+              cashCents: 0,
+              cardCents: 0,
+              voucherCents: 0,
+              otherCents: 0,
+              currency: "",
+            },
+          },
+          receipts: [
+            baseReceipt,
+            { ...baseReceipt, id: "rcpt-2", currency: "TND", amountCents: 5000 },
+          ],
+          pagination: {
+            total: 2,
+            limit: 5,
+            offset: 0,
+            page: 1,
+            totalPages: 1,
+          },
+        },
+        detail: null,
+        detailReceiptId: null,
+        detailLoading: false,
+        loading: false,
+        error: false,
+        incompatibleApi: false,
+        applied: { period: "today" },
+        lastSyncedAt: null,
+      },
+      t,
+      locale: "en-GB",
+    });
+
+    expect(state.summary.find((k) => k.id === "pos_revenue")?.value).toBe("—");
+    expect(state.receipts[0]?.amount).toMatch(/EUR|€/);
+    expect(state.receipts[1]?.amount).toContain("5.000");
+  });
+
+  it("does not crash on an unsupported historical receipt currency", () => {
+    const state = deriveReceiptsState({
+      data: {
+        customer: { id: "c1", email: "a@b.com", name: "Test" } as never,
+        page: {
+          timezone: "Europe/Berlin",
+          period: "today",
+          summary: {
+            receiptsCount: 1,
+            activeCount: 1,
+            printedCount: 0,
+            reprintedCount: 0,
+            refundsCount: 0,
+            posRevenueCents: 600,
+            paymentSummary: {
+              cashCents: 600,
+              cardCents: 0,
+              voucherCents: 0,
+              otherCents: 0,
+              currency: "XYZ",
+            },
+          },
+          receipts: [{ ...baseReceipt, currency: "XYZ", amountCents: 600 }],
+          pagination: {
+            total: 1,
+            limit: 5,
+            offset: 0,
+            page: 1,
+            totalPages: 1,
+          },
+        },
+        detail: null,
+        detailReceiptId: null,
+        detailLoading: false,
+        loading: false,
+        error: false,
+        incompatibleApi: false,
+        applied: { period: "today" },
+        lastSyncedAt: null,
+      },
+      t,
+      locale: "en-GB",
+    });
+
+    expect(state.receipts[0]?.amount).toBe("600 XYZ");
+    expect(state.summary.find((k) => k.id === "pos_revenue")?.value).toBe("600 XYZ");
+  });
 });

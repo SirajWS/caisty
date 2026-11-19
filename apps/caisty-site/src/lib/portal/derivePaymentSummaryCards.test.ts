@@ -85,6 +85,74 @@ describe("derivePaymentSummaryCards", () => {
     expect(cards.find((c) => c.id === "paid_total")?.value).toContain("522");
   });
 
+  it("formats empty online payment summaries in the business currency", () => {
+    const labels = {
+      onlineCashPaid: "Cash paid",
+      onlineCardPaid: "Card paid",
+      onlinePaidOnline: "Paid online",
+      onlinePending: "Pending",
+      onlinePaidTotal: "Paid total",
+    };
+    const cases = [
+      ["EUR", "0.00"],
+      ["USD", "0.00"],
+      ["CHF", "0.00"],
+      ["GBP", "0.00"],
+      ["MAD", "0.00"],
+      ["DZD", "0.00"],
+      ["TND", "0.000"],
+      ["LYD", "0.000"],
+    ] as const;
+
+    for (const [currency, fraction] of cases) {
+      const cards = deriveOnlinePaymentCards({
+        summary: {
+          cashPaidCents: 0,
+          cardPaidCents: 0,
+          onlinePaidCents: 0,
+          pendingCents: 0,
+          currency: "EUR",
+        },
+        fallbackCurrency: currency,
+        labels,
+        locale: "en-GB",
+        dash,
+        hasData: true,
+      });
+      for (const card of cards) {
+        expect(card.value).toContain(fraction);
+        if (currency !== "EUR") {
+          expect(card.value).not.toMatch(/€/);
+        }
+      }
+    }
+  });
+
+  it("keeps historical non-zero online currency", () => {
+    const cards = deriveOnlinePaymentCards({
+      summary: {
+        cashPaidCents: 0,
+        cardPaidCents: 500,
+        onlinePaidCents: 0,
+        pendingCents: 0,
+        currency: "EUR",
+      },
+      fallbackCurrency: "TND",
+      labels: {
+        onlineCashPaid: "Cash paid",
+        onlineCardPaid: "Card paid",
+        onlinePaidOnline: "Paid online",
+        onlinePending: "Pending",
+        onlinePaidTotal: "Paid total",
+      },
+      locale: "en-GB",
+      dash,
+      hasData: true,
+    });
+    expect(cards.find((c) => c.id === "card_paid")?.value).toContain("5.00");
+    expect(cards.find((c) => c.id === "card_paid")?.value).not.toContain("5.000");
+  });
+
   it("shows dash placeholders while loading or empty", () => {
     const cards = deriveOnlinePaymentCards({
       summary: null,

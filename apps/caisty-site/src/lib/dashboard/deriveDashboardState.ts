@@ -10,6 +10,7 @@ import { pickPrimaryPortalLicense } from "../portalLicensePick";
 import { deriveFiscalVisibility } from "../useFiscalVisibility";
 import { formatPortalOrderStatus, formatPortalPaymentMethod } from "../portal/portalSalesLabels";
 import { formatMinorUnits } from "../money/formatMinorUnits";
+import { pickOperationalPaymentCurrency } from "@caisty/business-currency";
 import {
   deriveOnlinePaymentCards as buildOnlinePaymentCards,
   deriveOnlineRevenueHeader,
@@ -200,10 +201,11 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
     syncStatus = "value";
   }
 
+  const mixed = Boolean(sales?.mixedCurrency);
   const currency =
     (typeof sales?.currency === "string" && sales.currency.trim()) ||
     data.business?.currency ||
-    "EUR";
+    "";
 
   const todayRevenueCents = asMinorOrCount(sales?.todayRevenueCents);
   const posRevenueCents = asMinorOrCount(sales?.posRevenueCents);
@@ -213,23 +215,26 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
   const onlineOrdersCount = asMinorOrCount(sales?.onlineOrdersCount);
   const averageOrderMinor = asMinorOrCount(sales?.averageOrderMinor);
 
-  const posRevenueLabel = formatMoney(posRevenueCents, currency, input.locale);
-  const onlineRevenueLabel = formatMoney(
-    onlineRevenueCents,
-    currency,
-    input.locale,
-  );
+  const posRevenueLabel = mixed
+    ? dash
+    : formatMoney(posRevenueCents, currency, input.locale);
+  const onlineRevenueLabel = mixed
+    ? dash
+    : formatMoney(onlineRevenueCents, currency, input.locale);
 
-  const revenueValue = hasSales
-    ? formatMoney(todayRevenueCents, currency, input.locale)
-    : dash;
-  const revenueHint = hasSales
-    ? applyTemplate(
-        l.kpiRevenueSplitHint,
-        { pos: posRevenueLabel, online: onlineRevenueLabel },
-        `${posRevenueLabel} · ${onlineRevenueLabel}`,
-      )
-    : syncHint;
+  const revenueValue =
+    hasSales && !mixed
+      ? formatMoney(todayRevenueCents, currency, input.locale)
+      : dash;
+  const revenueHint = mixed
+    ? l.financialTotalsUnavailable
+    : hasSales
+      ? applyTemplate(
+          l.kpiRevenueSplitHint,
+          { pos: posRevenueLabel, online: onlineRevenueLabel },
+          `${posRevenueLabel} · ${onlineRevenueLabel}`,
+        )
+      : syncHint;
   const ordersValue = hasSales ? String(ordersToday) : dash;
   const ordersHint = hasSales
     ? applyTemplate(
@@ -241,9 +246,10 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
         `${liveOrdersCount} · ${onlineOrdersCount}`,
       )
     : syncHint;
-  const avgOrderValue = hasSales
-    ? formatMoney(averageOrderMinor, currency, input.locale)
-    : dash;
+  const avgOrderValue =
+    hasSales && !mixed
+      ? formatMoney(averageOrderMinor, currency, input.locale)
+      : dash;
 
   return [
     {
@@ -251,7 +257,7 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
       label: l.kpiRevenueToday,
       value: revenueValue,
       hint: hasSales ? revenueHint : syncHint,
-      status: hasSales ? "value" : "waiting_sync",
+      status: hasSales && !mixed ? "value" : mixed ? "value" : "waiting_sync",
     },
     {
       id: "orders",
@@ -264,8 +270,12 @@ function deriveKpis(input: DeriveDashboardInput): DashboardKpi[] {
       id: "avg_order",
       label: l.kpiAvgOrder,
       value: avgOrderValue,
-      hint: hasSales ? undefined : syncHint,
-      status: hasSales ? "value" : "waiting_sync",
+      hint: mixed
+        ? l.financialTotalsUnavailable
+        : hasSales
+          ? undefined
+          : syncHint,
+      status: hasSales && !mixed ? "value" : mixed ? "value" : "waiting_sync",
     },
     {
       id: "pos_status",
@@ -784,6 +794,7 @@ function derivePaymentCards(input: DeriveDashboardInput): PaymentMethodCard[] {
 
   return derivePosPaymentCards({
     summary: sales?.paymentSummary,
+    fallbackCurrency: sales?.currency || input.data.business?.currency || "",
     labels: {
       paymentCash: o.paymentCash,
       paymentCard: o.paymentCard,
@@ -792,7 +803,7 @@ function derivePaymentCards(input: DeriveDashboardInput): PaymentMethodCard[] {
     },
     locale: input.locale,
     dash,
-    hasData: Boolean(sales?.hasSalesData),
+    hasData: Boolean(sales?.hasSalesData) && !sales?.mixedCurrency,
   });
 }
 
@@ -800,8 +811,14 @@ function deriveOnlineRevenueHeaderState(input: DeriveDashboardInput) {
   const o = input.t.orders;
   const dash = input.t.labels.dash;
   const sales = input.data.salesSummary;
-  const currency =
-    sales?.paymentSummary.currency || sales?.currency || input.data.business?.currency || "EUR";
+  const currency = pickOperationalPaymentCurrency({
+    recordedCurrency: sales?.onlinePaymentSummary.currency,
+    fallbackCurrency:
+      sales?.paymentSummary.currency ||
+      sales?.currency ||
+      input.data.business?.currency,
+    hasRecordedAmounts: (sales?.onlineRevenueCents ?? 0) > 0,
+  });
 
   return deriveOnlineRevenueHeader({
     onlineRevenueCents: sales?.onlineRevenueCents ?? 0,
@@ -812,7 +829,7 @@ function deriveOnlineRevenueHeaderState(input: DeriveDashboardInput) {
     },
     locale: input.locale,
     dash,
-    hasData: Boolean(sales?.hasSalesData),
+    hasData: Boolean(sales?.hasSalesData) && !sales?.mixedCurrency,
   });
 }
 
@@ -823,6 +840,8 @@ function deriveOnlinePaymentCards(input: DeriveDashboardInput): PaymentMethodCar
 
   return buildOnlinePaymentCards({
     summary: sales?.onlinePaymentSummary,
+    fallbackCurrency:
+      sales?.currency || input.data.business?.currency || "",
     labels: {
       onlineCashPaid: o.onlineCashPaid,
       onlineCardPaid: o.onlineCardPaid,
@@ -832,7 +851,7 @@ function deriveOnlinePaymentCards(input: DeriveDashboardInput): PaymentMethodCar
     },
     locale: input.locale,
     dash,
-    hasData: Boolean(sales?.hasSalesData),
+    hasData: Boolean(sales?.hasSalesData) && !sales?.mixedCurrency,
   });
 }
 

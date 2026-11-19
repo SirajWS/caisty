@@ -323,4 +323,39 @@ describe("deriveReportsState", () => {
     expect(state.revenueChart.granularity).toBe("hour");
     expect(state.showHourlySales).toBe(false);
   });
+
+  it("does not format mixed-currency financial KPIs as a combined total", () => {
+    const state = deriveReportsState({
+      data: makeData({
+        reportsSummary: makeReportsSummary({
+          mixedCurrency: true,
+          overview: {
+            revenueMinor: 60000,
+            ordersCount: 2,
+            receiptsCount: 2,
+            refundsCount: 0,
+            averageOrderMinor: 30000,
+            vatMinor: 0,
+            currency: "",
+          },
+        }),
+      }),
+      t: portalEn,
+      locale: "en-GB",
+    });
+
+    expect(state.overview.find((k) => k.id === "orders")?.value).toBe("2");
+    expect(state.overview.find((k) => k.id === "revenue")?.value).toBe(
+      portalEn.labels.dash,
+    );
+    expect(state.overview.find((k) => k.id === "revenue")?.hint).toBe(
+      portalEn.reports.financialTotalsUnavailable,
+    );
+    expect(state.revenueBreakdown.find((k) => k.id === "total_revenue")?.value).toBe(
+      portalEn.labels.dash,
+    );
+    expect(state.revenueChart.hasData).toBe(false);
+    expect(state.topProducts[0]?.revenue).toBe(portalEn.labels.dash);
+    expect(state.topProducts[0]?.quantity).toBe("2");
+  });
 });

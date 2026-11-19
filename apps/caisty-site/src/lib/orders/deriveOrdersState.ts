@@ -1,4 +1,5 @@
 import { formatMinorUnits } from "../money/formatMinorUnits";
+import { pickOperationalPaymentCurrency } from "@caisty/business-currency";
 import {
   deriveOnlinePaymentCards as buildOnlinePaymentCards,
   deriveOnlineRevenueHeader,
@@ -62,6 +63,7 @@ function derivePosPaymentCards(input: DeriveOrdersInput): PaymentMethodCard[] {
 
   return buildPosPaymentCards({
     summary: sales?.summary.paymentSummary,
+    fallbackCurrency: sales?.summary.paymentSummary.currency || "",
     labels: {
       paymentCash: o.paymentCash,
       paymentCard: o.paymentCard,
@@ -70,7 +72,9 @@ function derivePosPaymentCards(input: DeriveOrdersInput): PaymentMethodCard[] {
     },
     locale: input.locale,
     dash,
-    hasData: Boolean(sales && hasSyncedSalesData(sales)),
+    hasData: Boolean(
+      sales && hasSyncedSalesData(sales) && !sales.summary.mixedCurrency,
+    ),
   });
 }
 
@@ -78,10 +82,11 @@ function deriveOnlineRevenueHeaderState(input: DeriveOrdersInput) {
   const o = input.t.orders;
   const dash = input.t.labels.dash;
   const sales = input.data.sales;
-  const currency =
-    sales?.summary.paymentSummary.currency ||
-    sales?.summary.onlinePaymentSummary?.currency ||
-    "EUR";
+  const currency = pickOperationalPaymentCurrency({
+    recordedCurrency: sales?.summary.onlinePaymentSummary?.currency,
+    fallbackCurrency: sales?.summary.paymentSummary.currency,
+    hasRecordedAmounts: (sales?.summary.onlineRevenueCents ?? 0) > 0,
+  });
 
   return deriveOnlineRevenueHeader({
     onlineRevenueCents: sales?.summary.onlineRevenueCents ?? 0,
@@ -92,7 +97,9 @@ function deriveOnlineRevenueHeaderState(input: DeriveOrdersInput) {
     },
     locale: input.locale,
     dash,
-    hasData: Boolean(sales && hasSyncedSalesData(sales)),
+    hasData: Boolean(
+      sales && hasSyncedSalesData(sales) && !sales.summary.mixedCurrency,
+    ),
   });
 }
 
@@ -103,6 +110,7 @@ function deriveOnlinePaymentCards(input: DeriveOrdersInput): PaymentMethodCard[]
 
   return buildOnlinePaymentCards({
     summary: sales?.summary.onlinePaymentSummary,
+    fallbackCurrency: sales?.summary.paymentSummary.currency || "",
     labels: {
       onlineCashPaid: o.onlineCashPaid,
       onlineCardPaid: o.onlineCardPaid,
@@ -112,7 +120,9 @@ function deriveOnlinePaymentCards(input: DeriveOrdersInput): PaymentMethodCard[]
     },
     locale: input.locale,
     dash,
-    hasData: Boolean(sales && hasSyncedSalesData(sales)),
+    hasData: Boolean(
+      sales && hasSyncedSalesData(sales) && !sales.summary.mixedCurrency,
+    ),
   });
 }
 
@@ -173,23 +183,34 @@ function deriveRevenueKpis(input: DeriveOrdersInput): OrdersKpi[] {
   }
 
   const { summary } = sales;
-  const currency = summary.paymentSummary.currency || "EUR";
+  const mixed = Boolean(summary.mixedCurrency);
+  const currency = summary.paymentSummary.currency || "";
+  const moneyHint = mixed ? o.financialTotalsUnavailable : undefined;
 
   return [
     {
       id: "pos_revenue",
       label: o.kpiPosRevenue,
-      value: formatMoney(summary.posRevenueCents, currency, input.locale),
+      value: mixed
+        ? dash
+        : formatMoney(summary.posRevenueCents, currency, input.locale),
+      hint: moneyHint,
     },
     {
       id: "online_revenue",
       label: o.kpiOnlineRevenue,
-      value: formatMoney(summary.onlineRevenueCents, currency, input.locale),
+      value: mixed
+        ? dash
+        : formatMoney(summary.onlineRevenueCents, currency, input.locale),
+      hint: moneyHint,
     },
     {
       id: "total_revenue",
       label: o.kpiTotalRevenue,
-      value: formatMoney(summary.revenueCents, currency, input.locale),
+      value: mixed
+        ? dash
+        : formatMoney(summary.revenueCents, currency, input.locale),
+      hint: moneyHint,
     },
   ];
 }

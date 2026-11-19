@@ -184,6 +184,12 @@ const PortalReportsPage: React.FC = () => {
         }}
       />
 
+      {data.reportsSummary?.mixedCurrency ? (
+        <p className="dashboard-text-muted" role="status">
+          {r.mixedCurrencyWarning}
+        </p>
+      ) : null}
+
       {showIncompatibleHero ? (
         <OrdersErrorState
           headline={r.unavailableHeadline}

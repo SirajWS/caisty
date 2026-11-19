@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { devices } from "../db/schema/devices.js";
 import {
+  attachOperationalOnlineCurrency,
   averageOrderMinor,
   fetchPortalTodaySalesStats,
   PORTAL_ORDERS_TIMEZONE,
@@ -20,6 +21,7 @@ export type PortalTodaySalesSummary = {
   refundsCount: number;
   averageOrderMinor: number;
   currency: string;
+  mixedCurrency: boolean;
   lastSynchronizationAt: string | null;
 };
 
@@ -77,6 +79,7 @@ export async function fetchPortalTodaySalesSummary(input: {
     fetchPortalTodaySalesStats(input),
     fetchLastSynchronizationAt(input),
   ]);
+  const mixedCurrency = stats.mixedCurrency;
 
   return {
     todayRevenueCents: stats.revenueCents,
@@ -87,11 +90,11 @@ export async function fetchPortalTodaySalesSummary(input: {
     onlineOrdersCount: stats.onlineOrdersCount,
     receiptsToday: stats.receiptsCount,
     refundsCount: stats.refundsCount,
-    averageOrderMinor: averageOrderMinor(
-      stats.revenueCents,
-      stats.kpiReceiptsCount,
-    ),
+    averageOrderMinor: mixedCurrency
+      ? 0
+      : averageOrderMinor(stats.revenueCents, stats.kpiReceiptsCount),
     currency: stats.currency,
+    mixedCurrency,
     lastSynchronizationAt,
   };
 }
@@ -120,16 +123,17 @@ export function buildPortalDashboardSummaryResponse(
     refundsCount: summary.refundsCount,
     averageOrderMinor: summary.averageOrderMinor,
     currency: summary.currency,
+    mixedCurrency: summary.mixedCurrency,
     lastSynchronizationAt: summary.lastSynchronizationAt,
     hasSalesData,
     paymentSummary: {
       ...paymentSummary,
       currency: summary.currency,
     },
-    onlinePaymentSummary: {
-      ...onlinePaymentSummary,
-      currency: onlinePaymentSummary.currency || summary.currency,
-    },
+    onlinePaymentSummary: attachOperationalOnlineCurrency(
+      onlinePaymentSummary,
+      summary.currency,
+    ),
     recentOrders: recentOrders.map((order) => ({
       id: order.id,
       localOrderId: order.localOrderId,

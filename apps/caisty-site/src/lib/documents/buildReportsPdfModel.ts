@@ -1,3 +1,4 @@
+import { pickOperationalPaymentCurrency } from "@caisty/business-currency";
 import { formatDocumentMoney, formatHourLabel, formatPaymentMethodLabel } from "./formatters";
 import { normalizeSalesByHour } from "../reports/salesByHour";
 import type { ReportsDocumentInput, ReportsDocumentLabels } from "./types";
@@ -73,9 +74,12 @@ export function buildReportsPdfModel(
   const { meta, labels, summary } = input;
   const { overview, paymentMethods, topProducts, taxes, businessTrends } =
     summary;
-  const currency = overview.currency || meta.currency;
+  const mixed = Boolean(summary.mixedCurrency);
+  const currency = mixed ? "" : overview.currency || meta.currency;
   const { locale } = meta;
   const dash = labels.dash;
+  const money = (amount: number, code = currency) =>
+    mixed ? dash : formatDocumentMoney(amount, code, locale);
   const paymentLabels = {
     cash: labels.paymentCash,
     card: labels.paymentCard,
@@ -87,33 +91,30 @@ export function buildReportsPdfModel(
   const period = summary.period;
   const hourGrain = isHourlyPeriod(period, summary.from, summary.to);
   const online = summary.onlinePaymentSummary;
-  const onlineCurrency = online?.currency || currency;
+  const onlineHasAmounts =
+    (online?.cashPaidCents ?? 0) > 0 ||
+    (online?.cardPaidCents ?? 0) > 0 ||
+    (online?.onlinePaidCents ?? 0) > 0 ||
+    (online?.pendingCents ?? 0) > 0;
+  const onlineCurrency = pickOperationalPaymentCurrency({
+    recordedCurrency: online?.currency,
+    fallbackCurrency: currency || meta.currency,
+    hasRecordedAmounts: onlineHasAmounts,
+  });
 
   const executiveSummary: ReportsPdfKeyValue[] = [
-    [labels.kpiRevenue, formatDocumentMoney(overview.revenueMinor, currency, locale)],
+    [labels.kpiRevenue, money(overview.revenueMinor)],
     [labels.kpiOrders, String(overview.ordersCount)],
     [labels.kpiReceipts, String(overview.receiptsCount)],
     [labels.kpiRefunds, String(overview.refundsCount)],
-    [
-      labels.kpiAverageOrder,
-      formatDocumentMoney(overview.averageOrderMinor, currency, locale),
-    ],
-    [labels.kpiVat, formatDocumentMoney(overview.vatMinor, currency, locale)],
+    [labels.kpiAverageOrder, money(overview.averageOrderMinor)],
+    [labels.kpiVat, money(overview.vatMinor)],
   ];
 
   const revenueBreakdown: ReportsPdfKeyValue[] = [
-    [
-      labels.kpiPosRevenue,
-      formatDocumentMoney(summary.posRevenueCents ?? 0, currency, locale),
-    ],
-    [
-      labels.kpiOnlineRevenue,
-      formatDocumentMoney(summary.onlineRevenueCents ?? 0, currency, locale),
-    ],
-    [
-      labels.kpiTotalRevenue,
-      formatDocumentMoney(overview.revenueMinor, currency, locale),
-    ],
+    [labels.kpiPosRevenue, money(summary.posRevenueCents ?? 0)],
+    [labels.kpiOnlineRevenue, money(summary.onlineRevenueCents ?? 0)],
+    [labels.kpiTotalRevenue, money(overview.revenueMinor)],
   ];
 
   const ordersBreakdown: ReportsPdfKeyValue[] = [
@@ -123,22 +124,10 @@ export function buildReportsPdfModel(
   ];
 
   const posPaymentSummary: ReportsPdfKeyValue[] = [
-    [
-      labels.paymentCash,
-      formatDocumentMoney(paymentMethods.cashMinor, currency, locale),
-    ],
-    [
-      labels.paymentCard,
-      formatDocumentMoney(paymentMethods.cardMinor, currency, locale),
-    ],
-    [
-      labels.paymentVoucher,
-      formatDocumentMoney(paymentMethods.voucherMinor, currency, locale),
-    ],
-    [
-      labels.paymentOther,
-      formatDocumentMoney(paymentMethods.otherMinor, currency, locale),
-    ],
+    [labels.paymentCash, money(paymentMethods.cashMinor)],
+    [labels.paymentCard, money(paymentMethods.cardMinor)],
+    [labels.paymentVoucher, money(paymentMethods.voucherMinor)],
+    [labels.paymentOther, money(paymentMethods.otherMinor)],
   ];
 
   const cashPaid = online?.cashPaidCents ?? 0;
@@ -148,22 +137,16 @@ export function buildReportsPdfModel(
   const paidTotal = cashPaid + cardPaid + onlinePaid;
 
   const onlinePaymentSummary: ReportsPdfKeyValue[] = [
-    [labels.onlineCashPaid, formatDocumentMoney(cashPaid, onlineCurrency, locale)],
-    [labels.onlineCardPaid, formatDocumentMoney(cardPaid, onlineCurrency, locale)],
-    [
-      labels.onlinePaidOnline,
-      formatDocumentMoney(onlinePaid, onlineCurrency, locale),
-    ],
-    [labels.onlinePending, formatDocumentMoney(pending, onlineCurrency, locale)],
-    [
-      labels.onlinePaidTotal,
-      formatDocumentMoney(paidTotal, onlineCurrency, locale),
-    ],
+    [labels.onlineCashPaid, money(cashPaid, onlineCurrency)],
+    [labels.onlineCardPaid, money(cardPaid, onlineCurrency)],
+    [labels.onlinePaidOnline, money(onlinePaid, onlineCurrency)],
+    [labels.onlinePending, money(pending, onlineCurrency)],
+    [labels.onlinePaidTotal, money(paidTotal, onlineCurrency)],
   ];
 
   const onlineRevenueHeader: ReportsPdfKeyValue = [
     labels.kpiOnlineRevenue,
-    formatDocumentMoney(summary.onlineRevenueCents ?? 0, onlineCurrency, locale),
+    money(summary.onlineRevenueCents ?? 0, onlineCurrency),
   ];
 
   const trendRows: ReportsPdfKeyValue[] = [];
@@ -176,14 +159,10 @@ export function buildReportsPdfModel(
   if (businessTrends.bestSalesHour?.trim()) {
     trendRows.push([labels.trendBestHour, businessTrends.bestSalesHour.trim()]);
   }
-  if (businessTrends.largestReceiptMinor > 0) {
+  if (!mixed && businessTrends.largestReceiptMinor > 0) {
     trendRows.push([
       labels.trendLargestReceipt,
-      formatDocumentMoney(
-        businessTrends.largestReceiptMinor,
-        currency,
-        locale,
-      ),
+      money(businessTrends.largestReceiptMinor),
     ]);
   }
   if (businessTrends.mostUsedPayment?.trim()) {
@@ -199,31 +178,27 @@ export function buildReportsPdfModel(
     ]);
   }
 
-  const totalProductRevenue = topProducts.reduce(
-    (sum, product) => sum + product.revenueMinor,
-    0,
-  );
+  const totalProductRevenue = mixed
+    ? 0
+    : topProducts.reduce((sum, product) => sum + product.revenueMinor, 0);
 
-  const revenueBars: ReportsPdfBarPoint[] = hasSeriesData(summary.revenueSeries)
-    ? summary.revenueSeries.map((point) => ({
-        label: point.label,
-        value: point.revenueMinor,
-        displayValue: formatDocumentMoney(point.revenueMinor, currency, locale),
-      }))
-    : [];
+  const revenueBars: ReportsPdfBarPoint[] =
+    !mixed && hasSeriesData(summary.revenueSeries)
+      ? summary.revenueSeries.map((point) => ({
+          label: point.label,
+          value: point.revenueMinor,
+          displayValue: money(point.revenueMinor),
+        }))
+      : [];
 
   const salesByHourBars: ReportsPdfBarPoint[] =
-    !hourGrain && hasHourlyData(summary.salesByHour)
+    !mixed && !hourGrain && hasHourlyData(summary.salesByHour)
       ? normalizeSalesByHour(summary.salesByHour)
           .filter((point) => point.revenueMinor > 0)
           .map((point) => ({
             label: formatHourLabel(point.hour),
             value: point.revenueMinor,
-            displayValue: formatDocumentMoney(
-              point.revenueMinor,
-              currency,
-              locale,
-            ),
+            displayValue: money(point.revenueMinor),
           }))
       : [];
 
@@ -256,22 +231,16 @@ export function buildReportsPdfModel(
           String(index + 1),
           product.productName,
           String(product.quantity),
-          formatDocumentMoney(product.revenueMinor, currency, locale),
+          mixed ? dash : money(product.revenueMinor),
           share,
         ];
       }),
       emptyMessage: labels.noData,
     },
     taxes: [
-      [
-        labels.taxNetRevenue,
-        formatDocumentMoney(taxes.netRevenueMinor, currency, locale),
-      ],
-      [labels.taxVat, formatDocumentMoney(taxes.vatMinor, currency, locale)],
-      [
-        labels.taxGrossRevenue,
-        formatDocumentMoney(taxes.grossRevenueMinor, currency, locale),
-      ],
+      [labels.taxNetRevenue, money(taxes.netRevenueMinor)],
+      [labels.taxVat, money(taxes.vatMinor)],
+      [labels.taxGrossRevenue, money(taxes.grossRevenueMinor)],
       [labels.taxFiscalReceipts, String(taxes.fiscalReceiptsCount)],
     ],
     taxesScopeNote: labels.taxesScopeNote,

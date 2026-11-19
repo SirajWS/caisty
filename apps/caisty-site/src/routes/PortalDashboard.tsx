@@ -86,6 +86,12 @@ const PortalDashboard: React.FC = () => {
         autoRefreshHint={l.autoRefreshHint}
       />
 
+      {data.salesSummary?.mixedCurrency ? (
+        <p className="dashboard-text-muted" role="status">
+          {l.mixedCurrencyWarning}
+        </p>
+      ) : null}
+
       <LiveKpiStrip
         kpis={dashboard.kpis}
         loading={data.loading}

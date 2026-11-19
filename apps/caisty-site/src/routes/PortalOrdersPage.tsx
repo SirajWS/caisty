@@ -291,6 +291,12 @@ const PortalOrdersPage: React.FC = () => {
         </div>
       </header>
 
+      {data.sales?.summary.mixedCurrency ? (
+        <p className="dashboard-text-muted" role="status">
+          {o.mixedCurrencyWarning}
+        </p>
+      ) : null}
+
       <OrdersSummary
         orderKpis={orders.orderKpis}
         revenueKpis={orders.revenueKpis}

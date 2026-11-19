@@ -21,6 +21,7 @@ import {
   type ProviderOrderDedupFields,
 } from "./dedupeProviderOrders.js";
 import {
+  attachOperationalOnlineCurrency,
   averageOrderMinor,
   fetchPaymentsForSalesPeriod,
   fetchPortalSalesPeriodStats,
@@ -118,6 +119,7 @@ export type PortalReportsSummaryData = {
   topEmployees: [];
   taxes: PortalReportsTaxes;
   businessTrends: PortalReportsBusinessTrends;
+  mixedCurrency: boolean;
 };
 
 function customerDeviceScope(orgId: string, customerId: string) {
@@ -579,13 +581,15 @@ export function buildPortalReportsResponse(input: {
   topProducts: PortalReportsTopProduct[];
   taxes: PortalReportsTaxes;
   businessTrends: PortalReportsBusinessTrends;
+  mixedCurrency?: boolean;
 }): PortalReportsSummaryData {
   const hasSalesData =
     input.overview.ordersCount > 0 ||
     input.overview.receiptsCount > 0 ||
     input.overview.revenueMinor > 0 ||
     input.posRevenueCents > 0 ||
-    input.onlineRevenueCents > 0;
+    input.onlineRevenueCents > 0 ||
+    Boolean(input.mixedCurrency);
 
   return {
     timezone: REPORTS_TIMEZONE,
@@ -594,6 +598,7 @@ export function buildPortalReportsResponse(input: {
       ? { from: input.from, to: input.to }
       : {}),
     hasSalesData,
+    mixedCurrency: Boolean(input.mixedCurrency),
     overview: input.overview,
     posRevenueCents: input.posRevenueCents,
     onlineRevenueCents: input.onlineRevenueCents,
@@ -684,18 +689,21 @@ export async function fetchPortalReportsSummary(input: {
   );
 
   const taxStats = aggregateReportTaxStats(includedReceipts);
-  const currency = periodStats.currency;
+  const mixedCurrency = periodStats.mixedCurrency;
+  const currency = mixedCurrency ? "" : periodStats.currency;
 
   const ordersCount = periodStats.ordersCount;
   const receiptsCount = periodStats.receiptsCount;
-  const revenueMinor = periodStats.revenueCents;
-  const vatMinor = taxStats.vat;
-  const netRevenueMinor = taxStats.net;
+  const revenueMinor = mixedCurrency ? 0 : periodStats.revenueCents;
+  const vatMinor = mixedCurrency ? 0 : taxStats.vat;
+  const netRevenueMinor = mixedCurrency ? 0 : taxStats.net;
   const grossRevenueMinor = revenueMinor;
-  const largestReceiptMinor = taxStats.largest;
+  const largestReceiptMinor = mixedCurrency ? 0 : taxStats.largest;
   const fiscalReceiptsCount = taxStats.fiscalCount;
 
-  const paymentSummary = aggregateEffectivePaymentSummary(paymentRows);
+  const paymentSummary = mixedCurrency
+    ? { cashCents: 0, cardCents: 0, voucherCents: 0, otherCents: 0 }
+    : aggregateEffectivePaymentSummary(paymentRows);
 
   const ordersByHour = countOrdersByBerlinHour(winners);
   const ordersByDay = countOrdersByBerlinDay(winners);
@@ -792,8 +800,9 @@ export async function fetchPortalReportsSummary(input: {
     currency,
   };
 
-  const filledSeries =
-    window.kind === "custom"
+  const filledSeries = mixedCurrency
+    ? []
+    : window.kind === "custom"
       ? fillCustomRevenueSeries(granularity, window, revenueSeries)
       : revenueSeries;
 
@@ -802,19 +811,38 @@ export async function fetchPortalReportsSummary(input: {
     from: window.kind === "custom" ? window.from : undefined,
     to: window.kind === "custom" ? window.to : undefined,
     overview,
-    posRevenueCents: periodStats.posRevenueCents,
-    onlineRevenueCents: periodStats.onlineRevenueCents,
+    posRevenueCents: mixedCurrency ? 0 : periodStats.posRevenueCents,
+    onlineRevenueCents: mixedCurrency ? 0 : periodStats.onlineRevenueCents,
     liveOrdersCount: periodStats.liveOrdersCount,
     onlineOrdersCount: periodStats.onlineOrdersCount,
     revenueSeries: filledSeries,
-    salesByHour,
+    salesByHour: mixedCurrency
+      ? fillSalesByHour24(
+          Array.from({ length: 24 }, (_, hour) => ({
+            hour,
+            revenueMinor: 0,
+            ordersCount: ordersByHour.get(hour) ?? 0,
+          })),
+        )
+      : salesByHour,
     paymentMethods,
-    onlinePaymentSummary: {
-      ...periodStats.onlinePaymentSummary,
-      currency: periodStats.onlinePaymentSummary.currency || currency,
-    },
-    topProducts,
+    onlinePaymentSummary: mixedCurrency
+      ? periodStats.onlinePaymentSummary
+      : attachOperationalOnlineCurrency(
+          periodStats.onlinePaymentSummary,
+          currency,
+        ),
+    topProducts: mixedCurrency
+      ? topProducts.map((product) => ({ ...product, revenueMinor: 0 }))
+      : topProducts,
     taxes,
-    businessTrends,
+    businessTrends: mixedCurrency
+      ? {
+          ...businessTrends,
+          largestReceiptMinor: 0,
+          mostUsedPayment: null,
+        }
+      : businessTrends,
+    mixedCurrency,
   });
 }

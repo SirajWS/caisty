@@ -1,5 +1,9 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -8,6 +12,14 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    resolve: {
+      alias: {
+        "@caisty/business-currency": path.resolve(
+          rootDir,
+          "../../packages/business-currency/src/index.ts",
+        ),
+      },
+    },
     server: {
       port: 5173, // Portal-App auf Port 5173 (Admin-App auf 5175)
       proxy: {

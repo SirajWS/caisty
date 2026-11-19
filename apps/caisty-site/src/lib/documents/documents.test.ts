@@ -280,6 +280,24 @@ describe("buildOrdersPdfModel", () => {
     expect(model.onlineRevenueHint).toBe("Completed online sales only");
   });
 
+  it("formats empty online payment summaries with the business currency", () => {
+    const sales = sampleSales();
+    sales.summary.paymentSummary.currency = "TND";
+    sales.summary.onlinePaymentSummary = {
+      cashPaidCents: 0,
+      cardPaidCents: 0,
+      onlinePaidCents: 0,
+      pendingCents: 0,
+      currency: "EUR",
+    };
+    sales.summary.onlineRevenueCents = 0;
+    const model = buildOrdersPdfModel(buildInput(sales));
+    const onlineMap = Object.fromEntries(model.onlinePaymentSummary);
+    expect(onlineMap["Cash paid"]).toContain("0.000");
+    expect(onlineMap["Paid total"]).toContain("0.000");
+    expect(onlineMap["Cash paid"]).not.toMatch(/€/);
+  });
+
   it("exports POS and Online orders as separate tables with portal status/payment text", () => {
     const model = buildOrdersPdfModel(buildInput());
 
@@ -658,5 +676,88 @@ describe("buildReportsPdfModel", () => {
       "100%",
     ]);
     expect(model.taxesScopeNote).toMatch(/POS/i);
+  });
+
+  it("does not print mixed-currency financial totals", () => {
+    const t = getPortalTranslations("en");
+    const model = buildReportsPdfModel({
+      meta: {
+        businessName: "Demo GmbH",
+        storeName: "Main",
+        label: "Custom",
+        generatedAt: new Date("2026-07-16T14:00:00.000Z"),
+        timezone: "Europe/Berlin",
+        currency: "TND",
+        locale: "en-GB",
+      },
+      labels: buildReportsDocumentLabels(t),
+      summary: {
+        timezone: "Europe/Berlin",
+        period: "custom",
+        from: "2026-01-01",
+        to: "2026-12-31",
+        hasSalesData: true,
+        mixedCurrency: true,
+        overview: {
+          revenueMinor: 0,
+          ordersCount: 2,
+          receiptsCount: 2,
+          refundsCount: 0,
+          averageOrderMinor: 0,
+          vatMinor: 0,
+          currency: "",
+        },
+        posRevenueCents: 0,
+        onlineRevenueCents: 0,
+        liveOrdersCount: 2,
+        onlineOrdersCount: 0,
+        revenueSeries: [],
+        salesByHour: [],
+        paymentMethods: {
+          cashMinor: 0,
+          cardMinor: 0,
+          voucherMinor: 0,
+          otherMinor: 0,
+          currency: "",
+        },
+        onlinePaymentSummary: {
+          cashPaidCents: 0,
+          cardPaidCents: 0,
+          onlinePaidCents: 0,
+          pendingCents: 0,
+          currency: "",
+        },
+        topProducts: [
+          {
+            productName: "Coffee",
+            quantity: 2,
+            revenueMinor: 0,
+            category: null,
+          },
+        ],
+        topEmployees: [],
+        taxes: {
+          netRevenueMinor: 0,
+          vatMinor: 0,
+          grossRevenueMinor: 0,
+          fiscalReceiptsCount: 2,
+          currency: "",
+        },
+        businessTrends: {
+          bestSalesDay: null,
+          bestSalesHour: null,
+          largestReceiptMinor: 0,
+          mostUsedPayment: "cash",
+          mostSoldProduct: "Coffee",
+          currency: "",
+        },
+      },
+    });
+
+    expect(model.executiveSummary.find(([k]) => k === "Revenue")?.[1]).toBe(
+      t.labels.dash,
+    );
+    expect(model.executiveSummary.find(([k]) => k === "Orders")?.[1]).toBe("2");
+    expect(model.revenueBars).toEqual([]);
   });
 });

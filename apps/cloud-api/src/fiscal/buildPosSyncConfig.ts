@@ -1,3 +1,4 @@
+import { getCurrencyPrecision } from "../../../../packages/business-currency/src/index.ts";
 import {
   sanitizeBusinessAddress,
   normalizeCountryCode,
@@ -12,6 +13,7 @@ export type PosSyncBusiness = {
   legalName: string;
   country: string | null;
   currency: string;
+  currencyPrecision?: number;
   defaultLanguage: string;
   street: string;
   city: string;
@@ -87,6 +89,7 @@ export function buildPosSyncConfig(input: {
 
   const configVersion = businessRow.configVersion ?? 1;
   const businessUpdatedAt = businessRow.updatedAt;
+  const currencyPrecision = getCurrencyPrecision(fiscalSnapshot.currency);
 
   return {
     orgId: resolvedOrgId,
@@ -95,6 +98,7 @@ export function buildPosSyncConfig(input: {
       legalName: businessRow.legalName?.trim() || "",
       country: businessRow.country ?? null,
       currency: fiscalSnapshot.currency,
+      ...(currencyPrecision != null ? { currencyPrecision } : {}),
       defaultLanguage: businessRow.defaultLanguage ?? "en",
       street: address.street?.trim() || "",
       city: address.city?.trim() || "",

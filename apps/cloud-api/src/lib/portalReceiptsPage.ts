@@ -30,6 +30,7 @@ import {
   toPortalReceiptIso,
   type PortalReceiptRecord,
 } from "./portalReceipts.js";
+import { resolvePeriodCurrencies } from "../../../../packages/business-currency/src/index.ts";
 import {
   REPORTS_TIMEZONE,
   asReportWindow,
@@ -79,6 +80,7 @@ export type PortalReceiptsSummary = {
   reprintedCount: number;
   refundsCount: number;
   posRevenueCents: number;
+  mixedCurrency: boolean;
   paymentSummary: {
     cashCents: number;
     cardCents: number;
@@ -578,14 +580,20 @@ async function buildReceiptsSummary(input: {
       (payment.localOrderId && includedReceiptKeys.has(payment.localOrderId)),
   );
 
-  const currency =
-    filteredRows[0]?.currency ?? scopedPayments[0]?.currency ?? "EUR";
+  const periodCurrencies = resolvePeriodCurrencies([
+    ...filteredRows.map((row) => row.currency),
+    ...scopedPayments.map((row) => row.currency),
+  ]);
+  const mixedCurrency = periodCurrencies.mixedCurrency;
+  const currency = mixedCurrency ? "" : (periodCurrencies.currency ?? "");
 
-  const posRevenueCents = await fetchPosRevenueCentsForPeriod({
-    orgId: input.orgId,
-    customerId: input.customerId,
-    period: input.period,
-  });
+  const posRevenueCents = mixedCurrency
+    ? 0
+    : await fetchPosRevenueCentsForPeriod({
+        orgId: input.orgId,
+        customerId: input.customerId,
+        period: input.period,
+      });
 
   return {
     receiptsCount: filteredRows.length,
@@ -594,10 +602,19 @@ async function buildReceiptsSummary(input: {
     reprintedCount,
     refundsCount,
     posRevenueCents,
-    paymentSummary: {
-      ...aggregateEffectivePaymentSummary(scopedPayments),
-      currency,
-    },
+    mixedCurrency,
+    paymentSummary: mixedCurrency
+      ? {
+          cashCents: 0,
+          cardCents: 0,
+          voucherCents: 0,
+          otherCents: 0,
+          currency: "",
+        }
+      : {
+          ...aggregateEffectivePaymentSummary(scopedPayments),
+          currency,
+        },
   };
 }
 

@@ -119,6 +119,7 @@ export type PortalOrdersPageData = {
     posRevenueCents: number;
     onlineRevenueCents: number;
     averageOrderMinor: number;
+    mixedCurrency: boolean;
     openShift: Awaited<ReturnType<typeof shiftService.getOpenShiftForCustomer>>;
     paymentSummary: {
       cashCents: number;
@@ -514,10 +515,13 @@ export async function fetchPortalOrdersPage(input: {
       revenueCents: periodStats.revenueCents,
       posRevenueCents: periodStats.posRevenueCents,
       onlineRevenueCents: periodStats.onlineRevenueCents,
-      averageOrderMinor: averageOrderMinor(
-        periodStats.revenueCents,
-        periodStats.kpiReceiptsCount,
-      ),
+      averageOrderMinor: periodStats.mixedCurrency
+        ? 0
+        : averageOrderMinor(
+            periodStats.revenueCents,
+            periodStats.kpiReceiptsCount,
+          ),
+      mixedCurrency: periodStats.mixedCurrency,
       openShift,
       paymentSummary: periodStats.paymentSummary,
       onlinePaymentSummary: periodStats.onlinePaymentSummary,

@@ -530,6 +530,7 @@ export type PortalOrdersSummary = {
   posRevenueCents: number;
   onlineRevenueCents: number;
   averageOrderMinor: number;
+  mixedCurrency?: boolean;
   openShift: PortalOpenShiftRecord | null;
   paymentSummary: PortalOrdersPaymentSummary;
   onlinePaymentSummary: PortalOnlinePaymentSummary;
@@ -715,6 +716,7 @@ export type PortalReceiptsSummary = {
   reprintedCount: number;
   refundsCount: number;
   posRevenueCents: number;
+  mixedCurrency?: boolean;
   paymentSummary: PortalOrdersPaymentSummary;
 };
 
@@ -788,6 +790,7 @@ export interface PortalDashboardSummary {
   refundsCount: number;
   averageOrderMinor: number;
   currency: string;
+  mixedCurrency?: boolean;
   lastSynchronizationAt: string | null;
   hasSalesData: boolean;
   paymentSummary: PortalOrdersPaymentSummary;
@@ -884,6 +887,7 @@ export interface PortalReportsSummary {
   from?: string;
   to?: string;
   hasSalesData: boolean;
+  mixedCurrency?: boolean;
   overview: PortalReportsOverview;
   /** Same period splits as Dashboard/Orders (from portal sales period stats). */
   posRevenueCents: number;

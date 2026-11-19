@@ -22,7 +22,13 @@
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    "paths": {
+      "@caisty/business-currency": [
+        "../../packages/business-currency/src/index.ts"
+      ]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "../../packages/business-currency/src/**/*.ts"],
+  "exclude": ["../../packages/business-currency/src/**/*.test.ts"]
 }
