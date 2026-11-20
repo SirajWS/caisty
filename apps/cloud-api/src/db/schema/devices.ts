@@ -1,4 +1,5 @@
-import { pgTable, uuid, text, varchar, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, varchar, timestamp, integer, uniqueIndex } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { orgs } from "./orgs";
 import { customers } from "./customers";
 import { licenses } from "./licenses";
@@ -30,4 +31,9 @@ export const devices = pgTable("devices", {
   approvedAt: timestamp("approved_at", { withTimezone: true }),
   blockedAt: timestamp("blocked_at", { withTimezone: true }),
   rejectedAt: timestamp("rejected_at", { withTimezone: true }),
-});
+  stationCode: varchar("station_code", { length: 16 }),
+}, (t) => ({
+  uqOrgStationCode: uniqueIndex("uq_devices_org_station_code")
+    .on(t.orgId, t.stationCode)
+    .where(sql`${t.stationCode} is not null`),
+}));

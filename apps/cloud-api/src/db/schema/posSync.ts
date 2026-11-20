@@ -232,6 +232,11 @@ export const posReceipts = pgTable(
       t.status,
       t.soldAt,
     ),
+    uqOrgStationReceiptNumber: uniqueIndex(
+      "uq_pos_receipts_org_station_receipt_number",
+    )
+      .on(t.orgId, t.receiptNumber)
+      .where(sql`${t.receiptNumber} ~ '^R[0-9]{8}-K[0-9]{2,}-[0-9]{4}$'`),
   }),
 );
 

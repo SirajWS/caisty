@@ -47,7 +47,7 @@ describe("validateSyncBatchRequest", () => {
     }
   });
 
-  it("rejects invalid event type", () => {
+  it("isolates invalid event type as a per-event ingest error", () => {
     const result = validateSyncBatchRequest({
       deviceId: DEVICE_ID,
       licenseKey: "CSTY-TEST",
@@ -55,13 +55,16 @@ describe("validateSyncBatchRequest", () => {
       events: [
         {
           eventId: EVENT_ID,
-          type: "shift",
+          type: "not-a-type",
           payload: {},
         },
       ],
     });
 
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.request.events[0]?.ingestError?.code).toBe("invalid_payload");
+    }
   });
 
   it("accepts receipt and payment events", () => {
@@ -136,7 +139,45 @@ describe("validateSyncBatchRequest", () => {
     }
   });
 
-  it("rejects invalid order lines instead of dropping them", () => {
+  it("isolates an invalid money amount in a mixed batch", () => {
+    const goodEventId = "44444444-4444-4444-8444-444444444444";
+    const result = validateSyncBatchRequest({
+      deviceId: DEVICE_ID,
+      licenseKey: "CSTY-TEST",
+      batch: { batchId: BATCH_ID },
+      events: [
+        {
+          eventId: EVENT_ID,
+          type: "receipt",
+          payload: {
+            localReceiptId: "rcpt-bad-money",
+            netCents: 10.5,
+            grossCents: 12,
+            soldAt: "2026-11-19T10:00:00.000Z",
+          },
+        },
+        {
+          eventId: goodEventId,
+          type: "receipt",
+          payload: {
+            localReceiptId: "rcpt-good",
+            netCents: 1000,
+            grossCents: 1190,
+            soldAt: "2026-11-19T10:00:00.000Z",
+          },
+        },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.request.events[0]?.ingestError?.error).toMatch(/integer/i);
+      expect(result.request.events[1]?.ingestError).toBeUndefined();
+    }
+  });
+
+  it("isolates invalid order lines as a per-event failure instead of dropping them", () => {
+    const goodEventId = "33333333-3333-4333-8333-333333333333";
     const result = validateSyncBatchRequest({
       deviceId: DEVICE_ID,
       licenseKey: "CSTY-TEST",
@@ -158,12 +199,22 @@ describe("validateSyncBatchRequest", () => {
             ],
           },
         },
+        {
+          eventId: goodEventId,
+          type: "order",
+          payload: {
+            localOrderId: "order-good",
+            totalCents: 1000,
+            soldAt: "2026-07-08T10:00:00.000Z",
+          },
+        },
       ],
     });
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error.message).toMatch(/quantity/i);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.request.events[0]?.ingestError?.error).toMatch(/quantity/i);
+      expect(result.request.events[1]?.ingestError).toBeUndefined();
     }
   });
 });
@@ -254,7 +305,10 @@ describe("validateSyncBatchRequest receipt_event", () => {
       ],
     });
 
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.request.events[0]?.ingestError?.error).toMatch(/eventType/);
+    }
   });
 
   it("rejects unsupported schema versions", () => {
@@ -277,7 +331,10 @@ describe("validateSyncBatchRequest receipt_event", () => {
       ],
     });
 
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.request.events[0]?.ingestError?.error).toMatch(/schemaVersion|schema/i);
+    }
   });
 
   it("keeps backward compatibility for batches without receipt_event", () => {
@@ -367,7 +424,10 @@ describe("validateSyncBatchRequest shift", () => {
       ],
     });
 
-    expect(result.ok).toBe(false);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.request.events[0]?.ingestError).toBeDefined();
+    }
   });
 
   it("keeps backward compatibility for batches without shift", () => {

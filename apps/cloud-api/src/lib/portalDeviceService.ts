@@ -6,6 +6,7 @@ import { licenses } from "../db/schema/licenses.js";
 import { licenseEvents } from "../db/schema/licenseEvents.js";
 import { DEVICE_STATUS } from "./deviceAccessPolicy.js";
 import { lockBusinessCurrencyIfNeeded } from "./currencyLock.js";
+import { assignStationCodeIfNeeded } from "./stationCode.js";
 import { canAcceptAdditionalDevice, isUnlimitedDeviceLimit } from "./deviceLimits.js";
 import {
   DEVICE_SEAT_CONSUMING_STATUSES,
@@ -432,6 +433,14 @@ export async function approvePortalDevice(
           if (!locked.ok) {
             return failure(locked.code, locked.message);
           }
+          const station = await assignStationCodeIfNeeded(
+            String(device.orgId),
+            device.id,
+            tx,
+          );
+          if (!station.ok) {
+            return failure("DEVICE_INVALID_TRANSITION", station.message);
+          }
           return {
             ok: true,
             deviceId: device.id,
@@ -568,6 +577,14 @@ export async function approvePortalDevice(
       );
       if (!locked.ok) {
         return failure(locked.code, locked.message);
+      }
+      const station = await assignStationCodeIfNeeded(
+        String(device.orgId),
+        device.id,
+        tx,
+      );
+      if (!station.ok) {
+        return failure("DEVICE_INVALID_TRANSITION", station.message);
       }
 
       const usedAfter = usedSeats + 1;

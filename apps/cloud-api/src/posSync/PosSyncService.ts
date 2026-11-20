@@ -21,6 +21,7 @@ import { receiptEventService } from "../lib/receiptEventService.js";
 import { shiftService } from "../lib/shiftService.js";
 import { channelSyncService } from "./channelSyncService.js";
 import { DEFAULT_RECEIPT_STATUS } from "../lib/receiptStatus.js";
+import { parseStationReceiptNumber } from "../lib/stationCode.js";
 import { parseIsoDate } from "./validateSyncBatch.js";
 import { normalizeProviderSyncOrderPayment } from "../lib/normalizeProviderOrderPayment.js";
 import { traceProviderOrderStage } from "../lib/providerOrderTrace.js";
@@ -57,6 +58,9 @@ class SyncEventDuplicateError extends Error {
   }
 }
 
+const RECEIPT_NUMBER_UNIQUE_CONSTRAINT =
+  "uq_pos_receipts_org_station_receipt_number";
+
 function isUniqueViolation(err: unknown): boolean {
   return (
     typeof err === "object" &&
@@ -64,6 +68,14 @@ function isUniqueViolation(err: unknown): boolean {
     "code" in err &&
     (err as { code?: string }).code === "23505"
   );
+}
+
+function isReceiptNumberUniqueViolation(err: unknown): boolean {
+  if (!isUniqueViolation(err)) return false;
+  const typed = err as { constraint?: string; message?: string; detail?: string };
+  if (typed.constraint === RECEIPT_NUMBER_UNIQUE_CONSTRAINT) return true;
+  const blob = `${typed.message ?? ""} ${typed.detail ?? ""}`;
+  return blob.includes(RECEIPT_NUMBER_UNIQUE_CONSTRAINT);
 }
 
 function isSyncEventUniqueViolation(err: unknown): boolean {
@@ -192,6 +204,12 @@ export class PosSyncService {
       .returning();
 
     const businessCurrency = await this.loadBusinessCurrency(auth.orgId);
+    const needsStationCode = request.events.some(
+      (event) => event.type === "receipt" && !event.ingestError,
+    );
+    const stationCode = needsStationCode
+      ? await this.loadDeviceStationCode(auth.deviceId)
+      : null;
 
     for (const event of request.events) {
       const outcome = await this.processEvent(
@@ -199,6 +217,7 @@ export class PosSyncService {
         auth,
         batch.id,
         businessCurrency,
+        stationCode,
       );
       if (outcome.status === "accepted") {
         accepted.push(event.eventId);
@@ -280,6 +299,57 @@ export class PosSyncService {
     return existingEvent ?? null;
   }
 
+  private async loadDeviceStationCode(deviceId: string): Promise<string | null> {
+    const [row] = await db
+      .select({ stationCode: devices.stationCode })
+      .from(devices)
+      .where(eq(devices.id, deviceId))
+      .limit(1);
+    return row?.stationCode ?? null;
+  }
+
+  private receiptNumberConflict(message: string) {
+    return {
+      status: "failed" as const,
+      code: "receipt_number_conflict",
+      error: message,
+    };
+  }
+
+  private validateIncomingReceiptNumber(
+    receiptNumber: string | undefined,
+    stationCode: string | null,
+  ): { status: "failed"; code: string; error: string } | { receiptNumber?: string } {
+    if (!receiptNumber) return {};
+    const trimmed = receiptNumber.trim();
+    const parsed = parseStationReceiptNumber(trimmed);
+    if (!parsed) {
+      if (/^R\d{8}-K/i.test(trimmed)) {
+        return {
+          status: "failed",
+          code: "receipt_number_invalid",
+          error: "Receipt number does not match RYYYYMMDD-Kxx-NNNN.",
+        };
+      }
+      return { receiptNumber: trimmed };
+    }
+    if (!stationCode) {
+      return {
+        status: "failed",
+        code: "receipt_number_invalid",
+        error: "Device has no station code for the new receipt number format.",
+      };
+    }
+    if (parsed.stationCode !== stationCode) {
+      return {
+        status: "failed",
+        code: "receipt_number_mismatch",
+        error: `Receipt number station ${parsed.stationCode} does not match device ${stationCode}.`,
+      };
+    }
+    return { receiptNumber };
+  }
+
   private async loadBusinessCurrency(orgId: string): Promise<string | null> {
     const [row] = await db
       .select({ currency: businessProfiles.currency })
@@ -330,6 +400,7 @@ export class PosSyncService {
     auth: PosDeviceAuthContext,
     batchId: string,
     businessCurrency: string | null,
+    stationCode: string | null,
   ): Promise<
     | { status: "accepted" | "duplicate" }
     | { status: "failed"; code: string; error: string }
@@ -340,10 +411,17 @@ export class PosSyncService {
     );
 
     if (existingEvent && existingEvent.status !== "failed") {
-      return this.duplicateFinancialEvent(event, auth, businessCurrency);
+      return this.duplicateFinancialEvent(
+        event,
+        auth,
+        businessCurrency,
+        stationCode,
+      );
     }
 
-    if (event.type === "channel") {
+    if (event.ingestError) {
+      // Payload errors are per-event; do not enter channel/entity upserts.
+    } else if (event.type === "channel") {
       return this.processChannelEventTransactional(event, auth, batchId);
     }
 
@@ -354,16 +432,24 @@ export class PosSyncService {
         batchId,
         businessCurrency,
         existingEvent.id,
+        stationCode,
       );
     }
 
     try {
-      const entityOutcome = await this.upsertEntity(
-        event,
-        auth,
-        batchId,
-        businessCurrency,
-      );
+      const entityOutcome = event.ingestError
+        ? {
+            status: "failed" as const,
+            code: event.ingestError.code,
+            error: event.ingestError.error,
+          }
+        : await this.upsertEntity(
+            event,
+            auth,
+            batchId,
+            businessCurrency,
+            stationCode,
+          );
       await db.insert(posSyncEvents).values({
         syncEventId: event.eventId,
         batchId,
@@ -402,17 +488,25 @@ export class PosSyncService {
     batchId: string,
     businessCurrency: string | null,
     existingEventId: string,
+    stationCode: string | null,
   ): Promise<
     | { status: "accepted" | "duplicate" }
     | { status: "failed"; code: string; error: string }
   > {
     try {
-      const entityOutcome = await this.upsertEntity(
-        event,
-        auth,
-        batchId,
-        businessCurrency,
-      );
+      const entityOutcome = event.ingestError
+        ? {
+            status: "failed" as const,
+            code: event.ingestError.code,
+            error: event.ingestError.error,
+          }
+        : await this.upsertEntity(
+            event,
+            auth,
+            batchId,
+            businessCurrency,
+            stationCode,
+          );
       await db
         .update(posSyncEvents)
         .set({
@@ -535,6 +629,7 @@ export class PosSyncService {
     event: PosSyncEvent,
     auth: PosDeviceAuthContext,
     businessCurrency: string | null,
+    stationCode: string | null,
   ): Promise<
     | { status: "accepted" | "duplicate" }
     | { status: "failed"; code: string; error: string }
@@ -554,6 +649,7 @@ export class PosSyncService {
         event.payload as PosSyncReceiptPayload,
         auth,
         businessCurrency,
+        stationCode,
       );
     }
     if (event.type === "payment") {
@@ -586,6 +682,7 @@ export class PosSyncService {
     auth: PosDeviceAuthContext,
     batchId: string,
     businessCurrency: string | null,
+    stationCode: string | null,
   ): Promise<
     | { status: "accepted" | "duplicate" }
     | { status: "failed"; code: string; error: string }
@@ -604,6 +701,7 @@ export class PosSyncService {
         auth,
         batchId,
         businessCurrency,
+        stationCode,
       );
     }
     if (event.type === "receipt_event") {
@@ -852,18 +950,25 @@ export class PosSyncService {
     payload: PosSyncReceiptPayload,
     auth: PosDeviceAuthContext,
     businessCurrency: string | null,
+    stationCode: string | null,
   ) {
     const currencyResult = this.rejectEventCurrency(
       payload.currency,
       businessCurrency,
     );
     if ("status" in currencyResult) return currencyResult;
+    const numberCheck = this.validateIncomingReceiptNumber(
+      payload.receiptNumber,
+      stationCode,
+    );
+    if ("status" in numberCheck) return numberCheck;
     const [existing] = await db
       .select({
         netCents: posReceipts.netCents,
         taxCents: posReceipts.taxCents,
         grossCents: posReceipts.grossCents,
         currency: posReceipts.currency,
+        receiptNumber: posReceipts.receiptNumber,
       })
       .from(posReceipts)
       .where(
@@ -884,6 +989,15 @@ export class PosSyncService {
     ) {
       return this.financialConflict("Receipt");
     }
+    if (
+      existing.receiptNumber &&
+      payload.receiptNumber &&
+      existing.receiptNumber !== payload.receiptNumber
+    ) {
+      return this.receiptNumberConflict(
+        "Receipt was already synced with a different receipt number.",
+      );
+    }
     return { status: "duplicate" as const };
   }
 
@@ -892,6 +1006,7 @@ export class PosSyncService {
     auth: PosDeviceAuthContext,
     batchId: string,
     businessCurrency: string | null,
+    stationCode: string | null,
   ) {
     const soldAt = parseIsoDate(payload.soldAt, "soldAt");
     if (!soldAt) {
@@ -920,15 +1035,25 @@ export class PosSyncService {
       };
     }
 
+    const numberCheck = this.validateIncomingReceiptNumber(
+      payload.receiptNumber,
+      stationCode,
+    );
+    if ("status" in numberCheck) return numberCheck;
+
     const existingCheck = await this.conflictOrDuplicateReceipt(
       payload,
       auth,
       businessCurrency,
+      stationCode,
     );
     if (existingCheck.status === "failed") return existingCheck;
     if (existingCheck.status === "duplicate") {
       const [existing] = await db
-        .select({ id: posReceipts.id })
+        .select({
+          id: posReceipts.id,
+          receiptNumber: posReceipts.receiptNumber,
+        })
         .from(posReceipts)
         .where(
           and(
@@ -943,7 +1068,7 @@ export class PosSyncService {
           .update(posReceipts)
           .set({
             localOrderId: payload.localOrderId ?? null,
-            receiptNumber: payload.receiptNumber ?? null,
+            receiptNumber: existing.receiptNumber ?? payload.receiptNumber ?? null,
             fiscalStatus: payload.fiscalStatus ?? "pending",
             syncBatchId: batchId,
             updatedAt: new Date(),
@@ -972,8 +1097,37 @@ export class PosSyncService {
       });
       return { status: "accepted" as const };
     } catch (err: unknown) {
+      if (isReceiptNumberUniqueViolation(err)) {
+        return this.receiptNumberConflict(
+          "Receipt number is already used by another sale in this organization.",
+        );
+      }
       if (isUniqueViolation(err)) {
-        return this.conflictOrDuplicateReceipt(payload, auth, businessCurrency);
+        const existingCheck = await this.conflictOrDuplicateReceipt(
+          payload,
+          auth,
+          businessCurrency,
+          stationCode,
+        );
+        if (existingCheck.status === "failed") return existingCheck;
+        const [existing] = await db
+          .select({ id: posReceipts.id })
+          .from(posReceipts)
+          .where(
+            and(
+              eq(posReceipts.orgId, auth.orgId),
+              eq(posReceipts.deviceId, auth.deviceId),
+              eq(posReceipts.localReceiptId, payload.localReceiptId),
+            ),
+          )
+          .limit(1);
+        if (existing) return existingCheck;
+        if (parseStationReceiptNumber(payload.receiptNumber)) {
+          return this.receiptNumberConflict(
+            "Receipt number is already used by another sale in this organization.",
+          );
+        }
+        return existingCheck;
       }
       throw err;
     }

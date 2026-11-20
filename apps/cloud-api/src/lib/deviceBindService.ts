@@ -6,6 +6,7 @@ import { licenses } from "../db/schema/licenses.js";
 import { licenseEvents } from "../db/schema/licenseEvents.js";
 import { DEVICE_STATUS } from "./deviceAccessPolicy.js";
 import { lockBusinessCurrencyIfNeeded } from "./currencyLock.js";
+import { assignStationCodeIfNeeded } from "./stationCode.js";
 import { DEVICE_RELEASED_STATUS } from "./deviceLifecycleService.js";
 
 export type BindDeviceInput = {
@@ -182,6 +183,7 @@ async function touchActiveDevice(
     .returning();
 
   await lockBusinessCurrencyIfNeeded(String(existing.orgId));
+  await assignStationCodeIfNeeded(String(existing.orgId), existing.id);
   return updated ?? existing;
 }
 

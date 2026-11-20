@@ -82,6 +82,12 @@ function makeDevice(): typeof devices.$inferSelect {
     appVersion: null,
     lastSalesSyncAt: null,
     offlineQueueCount: 0,
+    releasedAt: null,
+    pendingLicenseId: null,
+    approvedAt: null,
+    blockedAt: null,
+    rejectedAt: null,
+    stationCode: "K01",
   };
 }
 
@@ -154,6 +160,7 @@ describe("buildPosSyncConfig / GET /pos/config contract", () => {
     expect(payload.fiscal.provider).toBe("none");
     expect(payload.fiscal.status).toBe("not_required");
     expect(payload.sync.configVersion).toBe(3);
+    expect(payload.device.stationCode).toBe("K01");
   });
 
   it("DE business → EUR + fiscalRequired=true + fiskaly + certified", () => {

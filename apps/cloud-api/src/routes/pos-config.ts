@@ -9,6 +9,8 @@ import { orgs } from "../db/schema/orgs.js";
 import { syncFiscalConfigurationForOrg } from "../fiscal/fiscalConfigurationService.js";
 import { buildPosSyncConfig } from "../fiscal/buildPosSyncConfig.js";
 import { findDeviceById } from "../lib/deviceLifecycleService.js";
+import { assignStationCodeIfNeeded } from "../lib/stationCode.js";
+import { DEVICE_STATUS } from "../lib/deviceAccessPolicy.js";
 import {
   authenticatePosDevice,
   formatPosDeviceAuthFailure,
@@ -54,6 +56,14 @@ export async function registerPosConfigRoutes(app: FastifyInstance) {
       if (!device) {
         reply.code(404);
         return { ok: false, error: "device_not_found" };
+      }
+
+      if (device.status === DEVICE_STATUS.ACTIVE && !device.stationCode) {
+        await assignStationCodeIfNeeded(String(device.orgId), device.id);
+        const refreshed = await findDeviceById(auth.context.deviceId);
+        if (refreshed) {
+          Object.assign(device, refreshed);
+        }
       }
 
       const [businessRow] = await db

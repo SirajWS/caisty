@@ -200,17 +200,36 @@ function validateSyncEvent(
     type !== "channel"
   ) {
     return {
-      ok: false,
-      error: {
-        code: "invalid_request",
-        message: `events[${index}].type must be order, receipt, payment, receipt_event, shift, or channel.`,
+      ok: true,
+      event: {
+        eventId,
+        type: "order",
+        payload: {},
+        ingestError: {
+          code: "invalid_payload",
+          error: `events[${index}].type must be order, receipt, payment, receipt_event, shift, or channel.`,
+        },
       },
     };
   }
 
   const payloadResult = validateEventPayload(type, eventObj.payload, index, eventId);
   if (!payloadResult.ok) {
-    return payloadResult;
+    return {
+      ok: true,
+      event: {
+        eventId,
+        type,
+        payload:
+          eventObj.payload && typeof eventObj.payload === "object"
+            ? (eventObj.payload as Record<string, unknown>)
+            : {},
+        ingestError: {
+          code: "invalid_payload",
+          error: payloadResult.error.message,
+        },
+      },
+    };
   }
 
   return {

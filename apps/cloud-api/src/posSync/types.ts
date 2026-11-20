@@ -106,6 +106,11 @@ export type PosSyncChannelPayload = {
   createdAt?: string;
 };
 
+export type PosSyncEventIngestError = {
+  code: string;
+  error: string;
+};
+
 export type PosSyncEvent = {
   eventId: string;
   type: PosSyncEventType;
@@ -115,7 +120,9 @@ export type PosSyncEvent = {
     | PosSyncPaymentPayload
     | PosSyncReceiptEventPayload
     | PosSyncShiftPayload
-    | PosSyncChannelPayload;
+    | PosSyncChannelPayload
+    | Record<string, unknown>;
+  ingestError?: PosSyncEventIngestError;
 };
 
 export type PosSyncBatchRequest = {

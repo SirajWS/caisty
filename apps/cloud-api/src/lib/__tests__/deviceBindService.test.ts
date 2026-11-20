@@ -15,6 +15,13 @@ vi.mock("../../db/client.js", () => ({
   },
 }));
 
+vi.mock("../stationCode.js", () => ({
+  assignStationCodeIfNeeded: vi.fn(async () => ({
+    ok: true,
+    stationCode: "K01",
+  })),
+}));
+
 import {
   bindDeviceRequest,
   findDevicesByFingerprintInTenant,

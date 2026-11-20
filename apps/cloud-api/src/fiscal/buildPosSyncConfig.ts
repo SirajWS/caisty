@@ -46,6 +46,7 @@ export type PosSyncDevice = {
   status: string;
   fingerprint: string | null;
   lastHeartbeatAt: string | null;
+  stationCode: string | null;
 };
 
 export type PosSyncMeta = {
@@ -131,6 +132,7 @@ export function buildPosSyncConfig(input: {
       lastHeartbeatAt: device.lastHeartbeatAt
         ? iso(device.lastHeartbeatAt)
         : null,
+      stationCode: device.stationCode ?? null,
     },
     sync: {
       configVersion,

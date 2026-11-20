@@ -90,6 +90,21 @@ function chainUpdate() {
 }
 
 type ServiceInternals = PosSyncService & {
+  upsertReceipt: (
+    payload: {
+      localReceiptId: string;
+      receiptNumber?: string;
+      netCents: number;
+      taxCents?: number;
+      grossCents: number;
+      currency?: string;
+      soldAt: string;
+    },
+    authCtx: typeof auth,
+    batchId: string,
+    businessCurrency: string | null,
+    stationCode: string | null,
+  ) => Promise<{ status: string; code?: string }>;
   upsertOrder: (
     payload: {
       localOrderId: string;
@@ -381,5 +396,238 @@ describe("PosSyncService entity upserts", () => {
     expect(update.set).toHaveBeenCalledWith(
       expect.objectContaining({ status: "accepted", errorCode: null }),
     );
+  });
+
+  it("rejects a changed receipt number without overwriting the original", async () => {
+    chainSelect([
+      {
+        netCents: 10000,
+        taxCents: 1900,
+        grossCents: 11900,
+        currency: "TND",
+        receiptNumber: "R20261119-K01-0001",
+      },
+    ]);
+
+    const result = await service.upsertReceipt(
+      {
+        localReceiptId: "s-1",
+        receiptNumber: "R20261119-K01-0002",
+        netCents: 10000,
+        taxCents: 1900,
+        grossCents: 11900,
+        currency: "TND",
+        soldAt: "2026-11-19T12:00:00.000Z",
+      },
+      auth,
+      "batch-rcpt",
+      "TND",
+      "K01",
+    );
+
+    expect(result.status).toBe("failed");
+    expect(result.code).toBe("receipt_number_conflict");
+    expect(mocks.mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("rejects a new-format receipt number that does not match the device station", async () => {
+    const result = await service.upsertReceipt(
+      {
+        localReceiptId: "s-2",
+        receiptNumber: "R20261119-K02-0001",
+        netCents: 10000,
+        taxCents: 1900,
+        grossCents: 11900,
+        currency: "TND",
+        soldAt: "2026-11-19T12:00:00.000Z",
+      },
+      auth,
+      "batch-rcpt",
+      "TND",
+      "K01",
+    );
+
+    expect(result.status).toBe("failed");
+    expect(result.code).toBe("receipt_number_mismatch");
+  });
+
+  it("keeps the original receipt number on an identical retry", async () => {
+    mocks.mockSelect
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([
+          {
+            netCents: 10000,
+            taxCents: 1900,
+            grossCents: 11900,
+            currency: "TND",
+            receiptNumber: "R20261119-K01-0001",
+          },
+        ]),
+      })
+      .mockReturnValueOnce({
+        from: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockResolvedValue([
+          { id: "rcpt-1", receiptNumber: "R20261119-K01-0001" },
+        ]),
+      });
+    const update = chainUpdate();
+
+    const result = await service.upsertReceipt(
+      {
+        localReceiptId: "s-1",
+        receiptNumber: "R20261119-K01-0001",
+        netCents: 10000,
+        taxCents: 1900,
+        grossCents: 11900,
+        currency: "TND",
+        soldAt: "2026-11-19T12:00:00.000Z",
+      },
+      auth,
+      "batch-retry",
+      "TND",
+      "K01",
+    );
+
+    expect(result.status).toBe("accepted");
+    expect(update.set).toHaveBeenCalledWith(
+      expect.objectContaining({ receiptNumber: "R20261119-K01-0001" }),
+    );
+  });
+
+  it("rejects a parallel insert that reuses a new-format receipt number", async () => {
+    chainSelect([]);
+    mocks.mockInsert.mockReturnValue({
+      values: vi.fn().mockRejectedValue({
+        code: "23505",
+        constraint: "uq_pos_receipts_org_station_receipt_number",
+      }),
+    });
+
+    const result = await service.upsertReceipt(
+      {
+        localReceiptId: "s-parallel",
+        receiptNumber: "R20261119-K01-0001",
+        netCents: 10000,
+        taxCents: 1900,
+        grossCents: 11900,
+        currency: "TND",
+        soldAt: "2026-11-19T12:00:00.000Z",
+      },
+      auth,
+      "batch-parallel",
+      "TND",
+      "K01",
+    );
+
+    expect(result.status).toBe("failed");
+    expect(result.code).toBe("receipt_number_conflict");
+  });
+
+  it("rejects malformed station-like numbers instead of treating them as legacy", async () => {
+    const result = await service.upsertReceipt(
+      {
+        localReceiptId: "s-malformed",
+        receiptNumber: "R20261119-K1-0001",
+        netCents: 10000,
+        taxCents: 1900,
+        grossCents: 11900,
+        currency: "TND",
+        soldAt: "2026-11-19T12:00:00.000Z",
+      },
+      auth,
+      "batch-malformed",
+      "TND",
+      "K01",
+    );
+
+    expect(result.status).toBe("failed");
+    expect(result.code).toBe("receipt_number_invalid");
+  });
+
+  it("accepts legacy receipt numbers without a station segment", async () => {
+    chainSelect([]);
+    mocks.mockInsert.mockReturnValue({
+      values: vi.fn().mockResolvedValue(undefined),
+    });
+
+    const result = await service.upsertReceipt(
+      {
+        localReceiptId: "s-legacy",
+        receiptNumber: "R20261119-0001",
+        netCents: 10000,
+        taxCents: 1900,
+        grossCents: 11900,
+        currency: "TND",
+        soldAt: "2026-11-19T12:00:00.000Z",
+      },
+      auth,
+      "batch-legacy",
+      "TND",
+      "K01",
+    );
+
+    expect(result.status).toBe("accepted");
+  });
+
+  it("still rejects a receipt currency that does not match the business lock", async () => {
+    const result = await service.upsertReceipt(
+      {
+        localReceiptId: "s-ccy",
+        receiptNumber: "R20261119-K01-0001",
+        netCents: 10000,
+        taxCents: 1900,
+        grossCents: 11900,
+        currency: "EUR",
+        soldAt: "2026-11-19T12:00:00.000Z",
+      },
+      auth,
+      "batch-ccy",
+      "TND",
+      "K01",
+    );
+
+    expect(result.status).toBe("failed");
+    expect(result.code).toBe("currency_mismatch");
+  });
+
+  it("records a payload ingestError as a failed event", async () => {
+    chainSelect([]);
+    const values = vi.fn().mockResolvedValue(undefined);
+    mocks.mockInsert.mockReturnValue({ values });
+
+    const result = await (
+      service as ServiceInternals & {
+        processEvent: (
+          event: {
+            eventId: string;
+            type: string;
+            payload: Record<string, unknown>;
+            ingestError?: { code: string; error: string };
+          },
+          authCtx: typeof auth,
+          batchId: string,
+          businessCurrency: string | null,
+          stationCode: string | null,
+        ) => Promise<{ status: string; code?: string }>;
+      }
+    ).processEvent(
+      {
+        eventId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        type: "receipt",
+        payload: {},
+        ingestError: { code: "invalid_payload", error: "netCents must be an integer." },
+      },
+      auth,
+      "batch-ingest",
+      "TND",
+      "K01",
+    );
+
+    expect(result.status).toBe("failed");
+    expect(result.code).toBe("invalid_payload");
+    expect(values).toHaveBeenCalled();
   });
 });

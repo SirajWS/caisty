@@ -29,6 +29,13 @@ vi.mock("../deviceSeats.js", () => ({
     mocks.mockGetLicenseSeatSummary(...args),
 }));
 
+vi.mock("../stationCode.js", () => ({
+  assignStationCodeIfNeeded: vi.fn(async () => ({
+    ok: true,
+    stationCode: "K01",
+  })),
+}));
+
 import { DEVICE_STATUS } from "../deviceAccessPolicy.js";
 import {
   allowedActionsForStatus,
