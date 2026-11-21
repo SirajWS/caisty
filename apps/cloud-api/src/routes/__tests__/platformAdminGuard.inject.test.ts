@@ -60,6 +60,14 @@ async function buildApp() {
     restored: true,
   }));
   app.get("/licenses", async () => ({ items: [], total: 0 }));
+  app.post("/licenses/:id/revoke", async () => ({ ok: true, revoked: true }));
+  app.delete("/licenses/:id", async (_req, reply) => {
+    reply.code(403);
+    return {
+      ok: false,
+      error: "license_delete_disabled",
+    };
+  });
   app.get("/portal/login-check", async () => ({ ok: true, portal: true }));
   app.get("/portal/receipts", async () => ({ items: [], b7: true }));
   app.get("/pos/sync/batch-check", async () => ({ ok: true }));
@@ -290,6 +298,41 @@ describe("platform admin API guard", () => {
       payload: { status: "active" },
     });
     expect(support.statusCode).toBe(403);
+    await app.close();
+  });
+
+  it("allows superadmin to revoke licenses and rejects portal JWT and hard delete", async () => {
+    const app = await buildApp();
+    const headers = { authorization: `Bearer ${superadminToken()}` };
+    const revoked = await app.inject({
+      method: "POST",
+      url: "/licenses/lic-1/revoke",
+      headers,
+    });
+    expect(revoked.statusCode).toBe(200);
+    expect(revoked.json().ok).toBe(true);
+
+    const portal = await app.inject({
+      method: "POST",
+      url: "/licenses/lic-1/revoke",
+      headers: { authorization: `Bearer ${portalToken()}` },
+    });
+    expect(portal.statusCode).toBe(403);
+
+    const support = await app.inject({
+      method: "POST",
+      url: "/licenses/lic-1/revoke",
+      headers: { authorization: `Bearer ${supportToken()}` },
+    });
+    expect(support.statusCode).toBe(403);
+
+    const deleted = await app.inject({
+      method: "DELETE",
+      url: "/licenses/lic-1",
+      headers,
+    });
+    expect(deleted.statusCode).toBe(403);
+    expect(deleted.json().error).toBe("license_delete_disabled");
     await app.close();
   });
 

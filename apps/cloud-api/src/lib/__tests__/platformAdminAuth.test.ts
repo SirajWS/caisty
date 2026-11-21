@@ -39,6 +39,8 @@ describe("platform admin route classification", () => {
     expect(isPlatformAdminRoute("/customers/x", "DELETE")).toBe(true);
     expect(isPlatformAdminRoute("/devices", "GET")).toBe(true);
     expect(isPlatformAdminRoute("/licenses", "GET")).toBe(true);
+    expect(isPlatformAdminRoute("/licenses/l1/revoke", "POST")).toBe(true);
+    expect(isPlatformAdminRoute("/licenses/l1", "DELETE")).toBe(true);
     expect(isPlatformAdminRoute("/licenses/portal", "GET")).toBe(true);
     expect(isPlatformAdminRoute("/subscriptions", "GET")).toBe(true);
     expect(isPlatformAdminRoute("/invoices/abc/html", "GET")).toBe(true);

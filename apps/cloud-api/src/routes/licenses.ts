@@ -9,6 +9,10 @@ import { devices } from "../db/schema/devices.js";
 import { customers } from "../db/schema/customers.js";
 import { generateLicenseKey } from "../lib/licenseKey.js";
 import { maxDevicesForPlan } from "../config/licensePlans.js";
+import {
+  LICENSE_DELETE_DISABLED,
+  revokeLicense,
+} from "../lib/licenseRevokeService.js";
 
 type CreateLicenseBody = {
   customerId?: string | null;
@@ -518,36 +522,21 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params;
       const { reason } = request.body ?? {};
-      const user = (request as any).user;
-      const orgId = user?.orgId as string | undefined;
 
       try {
-        const [updated] = await db
-          .update(licenses)
-          .set({
-            status: "revoked",
-            updatedAt: new Date(),
-          })
-          .where(
-            orgId
-              ? and(eq(licenses.id, id), eq(licenses.orgId, orgId))
-              : eq(licenses.id, id),
-          )
-          .returning();
-
-        if (!updated) {
+        const result = await revokeLicense(id, reason);
+        if (!result.ok) {
           reply.code(404);
-          return { error: "License not found" };
+          return { error: result.code, message: result.message };
         }
-
-        await db.insert(licenseEvents).values({
-          orgId: updated.orgId,
-          licenseId: updated.id,
-          type: "revoked",
-          metadata: reason ? { reason } : null,
-        });
-
-        return { item: updated };
+        return {
+          ok: true,
+          alreadyRevoked: result.alreadyRevoked,
+          item: result.item,
+          message: result.alreadyRevoked
+            ? "License is already revoked."
+            : "License revoked. Device assignments were not changed.",
+        };
       } catch (err) {
         console.error("Error revoking license", err);
         reply.code(500);
@@ -556,64 +545,11 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
     },
   );
 
-  // ---------------------------------------------------------------------------
-  // License endgültig löschen
-  // ---------------------------------------------------------------------------
   app.delete<{ Params: { id: string } }>(
     "/licenses/:id",
-    async (request, reply) => {
-      const { id } = request.params;
-      const user = (request as any).user;
-      const orgId = user?.orgId as string | undefined;
-
-      try {
-        // Prüfe zuerst, ob die Lizenz existiert und zur Organisation gehört
-        const [existing] = await db
-          .select()
-          .from(licenses)
-          .where(eq(licenses.id, id))
-          .limit(1);
-
-        if (!existing) {
-          reply.code(404);
-          return { error: "License not found" };
-        }
-
-        // Optional: Prüfe orgId (aber erlaube Löschen auch wenn orgId nicht übereinstimmt für Admin)
-        if (orgId && existing.orgId !== orgId) {
-          console.warn(
-            `License ${id} belongs to org ${existing.orgId}, but user belongs to org ${orgId}`,
-          );
-        }
-
-        // Entferne die Verknüpfung von Devices zu dieser Lizenz
-        await db
-          .update(devices)
-          .set({ licenseId: null })
-          .where(eq(devices.licenseId, id));
-
-        // Lösche alle Events dieser Lizenz
-        await db
-          .delete(licenseEvents)
-          .where(eq(licenseEvents.licenseId, id));
-
-        // Lösche die Lizenz
-        const deleted = await db
-          .delete(licenses)
-          .where(eq(licenses.id, id))
-          .returning();
-
-        if (deleted.length === 0) {
-          reply.code(404);
-          return { error: "License not found" };
-        }
-
-        return { ok: true };
-      } catch (err) {
-        console.error("Error deleting license", err);
-        reply.code(500);
-        return { error: "Failed to delete license" };
-      }
+    async (_request, reply) => {
+      reply.code(403);
+      return LICENSE_DELETE_DISABLED;
     },
   );
 }

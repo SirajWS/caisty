@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { StatusPill } from "../../components/ui";
+import { Button, StatusPill } from "../../components/ui";
+import {
+  canRevokeLicense,
+  REVOKE_LICENSE_CONFIRM_MESSAGE,
+} from "../../lib/adminLicenseRevoke";
 import {
   DeviceStatusPill,
   LicenseStatusPill,
@@ -115,6 +119,7 @@ export default function LicenseDetailPage() {
 
   const [revokeLoading, setRevokeLoading] = useState(false);
   const [revokeError, setRevokeError] = useState<string | null>(null);
+  const [revokeSuccess, setRevokeSuccess] = useState<string | null>(null);
 
   async function loadData() {
     if (!id) return;
@@ -172,15 +177,27 @@ export default function LicenseDetailPage() {
   }, [id]);
 
   async function handleRevoke() {
-    if (!license || license.status === "revoked") return;
-    if (!window.confirm("Revoke this license?")) return;
+    if (!license || !canRevokeLicense(license.status) || revokeLoading) return;
+    if (!window.confirm(REVOKE_LICENSE_CONFIRM_MESSAGE)) return;
 
     setRevokeError(null);
+    setRevokeSuccess(null);
     setRevokeLoading(true);
     try {
-      await apiPost<{}, { item: License }>(
-        `/licenses/${license.id}/revoke`,
-        {},
+      const result = await apiPost<
+        Record<string, never>,
+        { item: License; message?: string }
+      >(`/licenses/${license.id}/revoke`, {});
+      if (result.item) {
+        setLicense(result.item);
+      } else {
+        setLicense((prev) =>
+          prev ? { ...prev, status: "revoked" } : prev,
+        );
+      }
+      setRevokeSuccess(
+        result.message ||
+          "License revoked. Device assignments were not changed.",
       );
       await loadData();
     } catch (err: any) {
@@ -261,24 +278,19 @@ export default function LicenseDetailPage() {
             >
               <LicenseStatusPill status={license.status} />
 
-              {license.status === "active" && (
-                <button
-                  type="button"
-                  onClick={handleRevoke}
+              {canRevokeLicense(license.status) ? (
+                <Button
+                  variant="danger"
+                  onClick={() => void handleRevoke()}
                   disabled={revokeLoading}
-                  style={{
-                    padding: "8px 14px",
-                    borderRadius: 6,
-                    border: "1px solid #b91c1c",
-                    background: "#7f1d1d",
-                    color: "#fee2e2",
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
                 >
                   {revokeLoading ? "Revoking…" : "Revoke license"}
-                </button>
-              )}
+                </Button>
+              ) : null}
+
+              {revokeSuccess ? (
+                <div className="admin-success-banner">{revokeSuccess}</div>
+              ) : null}
 
               {revokeError && (
                 <div

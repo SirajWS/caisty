@@ -1,7 +1,13 @@
 // apps/cloud-admin/src/pages/Licenses/LicensesListPage.tsx
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiGet, apiPost, apiDelete } from "../../lib/api";
+import { apiGet, apiPost } from "../../lib/api";
+import {
+  applyLicenseRevokeUpdate,
+  canRevokeLicense,
+  isLicenseRevokeBusy,
+  REVOKE_LICENSE_CONFIRM_MESSAGE,
+} from "../../lib/adminLicenseRevoke";
 import {
   Button,
   Card,
@@ -92,6 +98,8 @@ export default function LicensesListPage() {
 
   const [createError, setCreateError] = useState<string | null>(null);
   const [createLoading, setCreateLoading] = useState(false);
+  const [revokeBusyId, setRevokeBusyId] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   // Filter-State
   const [filterPlan, setFilterPlan] = useState<string>("all");
@@ -230,28 +238,29 @@ export default function LicensesListPage() {
   }
 
   async function handleRevoke(id: string) {
-    if (!window.confirm("Revoke this licence key?")) return;
-    try {
-      await apiPost(`/licenses/${id}/revoke`, {});
-      await loadLicenses();
-    } catch (err) {
-      console.error(err);
-    }
-  }
+    if (isLicenseRevokeBusy(revokeBusyId, id)) return;
+    if (!window.confirm(REVOKE_LICENSE_CONFIRM_MESSAGE)) return;
 
-  async function handleDelete(id: string) {
-    if (
-      !window.confirm(
-        "Permanently delete this licence? This action cannot be undone.",
-      )
-    )
-      return;
+    setRevokeBusyId(id);
+    setError(null);
+    setSuccess(null);
     try {
-      await apiDelete(`/licenses/${id}`);
-      await loadLicenses();
+      const result = await apiPost<
+        Record<string, never>,
+        { ok?: boolean; message?: string; alreadyRevoked?: boolean }
+      >(`/licenses/${id}/revoke`, {});
+      setLicenses((prev) => applyLicenseRevokeUpdate(prev, id));
+      setSuccess(
+        result.message ||
+          "License revoked. Device assignments were not changed.",
+      );
     } catch (err) {
       console.error(err);
-      alert("Failed to delete licence.");
+      setError(
+        err instanceof Error ? err.message : "Failed to revoke licence.",
+      );
+    } finally {
+      setRevokeBusyId(null);
     }
   }
 
@@ -494,12 +503,19 @@ export default function LicensesListPage() {
                     <td>{formatDate(lic.validUntil)}</td>
                     <td>{formatDate(lic.createdAt)}</td>
                     <td>
-                      <Button
-                        variant="danger"
-                        onClick={() => handleRevoke(lic.id)}
-                      >
-                        Revoke
-                      </Button>
+                      {canRevokeLicense(lic.status) ? (
+                        <Button
+                          variant="danger"
+                          disabled={isLicenseRevokeBusy(revokeBusyId, lic.id)}
+                          onClick={() => void handleRevoke(lic.id)}
+                        >
+                          {isLicenseRevokeBusy(revokeBusyId, lic.id)
+                            ? "Revoking…"
+                            : "Revoke"}
+                        </Button>
+                      ) : (
+                        <span className="ds-muted">—</span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -570,6 +586,7 @@ export default function LicensesListPage() {
       </div>
 
       {error ? <div className="admin-error-banner">{error}</div> : null}
+      {success ? <div className="admin-success-banner">{success}</div> : null}
 
       <div className="ds-section-block">
         <DataTable>
@@ -656,12 +673,19 @@ export default function LicensesListPage() {
                     <td>{formatDate(lic.validUntil)}</td>
                     <td>{formatDate(lic.createdAt)}</td>
                     <td>
-                      <Button
-                        variant="danger"
-                        onClick={() => handleDelete(lic.id)}
-                      >
-                        Delete
-                      </Button>
+                      {canRevokeLicense(lic.status) ? (
+                        <Button
+                          variant="danger"
+                          disabled={isLicenseRevokeBusy(revokeBusyId, lic.id)}
+                          onClick={() => void handleRevoke(lic.id)}
+                        >
+                          {isLicenseRevokeBusy(revokeBusyId, lic.id)
+                            ? "Revoking…"
+                            : "Revoke"}
+                        </Button>
+                      ) : (
+                        <span className="ds-muted">—</span>
+                      )}
                     </td>
                   </tr>
                 );

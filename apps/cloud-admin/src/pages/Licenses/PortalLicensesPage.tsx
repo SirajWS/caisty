@@ -1,7 +1,13 @@
 // apps/cloud-admin/src/pages/Licenses/PortalLicensesPage.tsx
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { apiGet, apiDelete } from "../../lib/api";
+import { apiGet, apiPost } from "../../lib/api";
+import {
+  applyLicenseRevokeUpdate,
+  canRevokeLicense,
+  isLicenseRevokeBusy,
+  REVOKE_LICENSE_CONFIRM_MESSAGE,
+} from "../../lib/adminLicenseRevoke";
 import {
   Button,
   DataTable,
@@ -47,6 +53,8 @@ export default function PortalLicensesPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [revokeBusyId, setRevokeBusyId] = useState<string | null>(null);
 
   const [customers, setCustomers] = useState<Customer[]>([]);
 
@@ -91,19 +99,30 @@ export default function PortalLicensesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleDelete(id: string) {
-    if (
-      !window.confirm(
-        "Permanently delete this portal licence? This action cannot be undone.",
-      )
-    )
-      return;
+  async function handleRevoke(id: string) {
+    if (isLicenseRevokeBusy(revokeBusyId, id)) return;
+    if (!window.confirm(REVOKE_LICENSE_CONFIRM_MESSAGE)) return;
+
+    setRevokeBusyId(id);
+    setError(null);
+    setSuccess(null);
     try {
-      await apiDelete(`/licenses/${id}`);
-      await loadLicenses();
+      const result = await apiPost<
+        Record<string, never>,
+        { message?: string }
+      >(`/licenses/${id}/revoke`, {});
+      setLicenses((prev) => applyLicenseRevokeUpdate(prev, id));
+      setSuccess(
+        result.message ||
+          "License revoked. Device assignments were not changed.",
+      );
     } catch (err) {
       console.error(err);
-      alert("Failed to delete licence.");
+      setError(
+        err instanceof Error ? err.message : "Failed to revoke licence.",
+      );
+    } finally {
+      setRevokeBusyId(null);
     }
   }
 
@@ -164,6 +183,7 @@ export default function PortalLicensesPage() {
       </Toolbar>
 
       {error ? <div className="admin-error-banner">{error}</div> : null}
+      {success ? <div className="admin-success-banner">{success}</div> : null}
 
       <div className="ds-section-block">
         <DataTable>
@@ -249,12 +269,19 @@ export default function PortalLicensesPage() {
                     <td>{formatDate(lic.validUntil)}</td>
                     <td>{formatDate(lic.createdAt)}</td>
                     <td>
-                      <Button
-                        variant="danger"
-                        onClick={() => handleDelete(lic.id)}
-                      >
-                        Delete
-                      </Button>
+                      {canRevokeLicense(lic.status) ? (
+                        <Button
+                          variant="danger"
+                          disabled={isLicenseRevokeBusy(revokeBusyId, lic.id)}
+                          onClick={() => void handleRevoke(lic.id)}
+                        >
+                          {isLicenseRevokeBusy(revokeBusyId, lic.id)
+                            ? "Revoking…"
+                            : "Revoke"}
+                        </Button>
+                      ) : (
+                        <span className="ds-muted">—</span>
+                      )}
                     </td>
                   </tr>
                 );
