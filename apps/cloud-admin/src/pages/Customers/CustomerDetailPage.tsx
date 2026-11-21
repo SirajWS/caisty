@@ -1,7 +1,12 @@
 // apps/cloud-admin/src/pages/Customers/CustomerDetailPage.tsx
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { apiDeleteDevice, apiGet, apiPatch } from "../../lib/api";
+import {
+  apiArchiveDevice,
+  apiDeleteDevice,
+  apiGet,
+  apiPatch,
+} from "../../lib/api";
 import {
   customerStatusPatchBody,
   isCustomerStatusActionBusy,
@@ -9,6 +14,17 @@ import {
   RESTORE_CONFIRM_MESSAGE,
   SET_INACTIVE_CONFIRM_MESSAGE,
 } from "../../lib/adminCustomerStatus";
+import {
+  ADMIN_DEVICES_LIST_DEFAULT_LIMIT,
+  customerDeviceLifecycleAction,
+  customerLiveDevicesForDetail,
+  releaseActionDeviceId,
+} from "../../lib/adminCustomerDevices";
+import {
+  ARCHIVE_CONFIRM_MESSAGE,
+  type AdminDeviceListItem,
+  RELEASE_CONFIRM_MESSAGE,
+} from "../../lib/adminDeviceList";
 import {
   Button,
   Card,
@@ -54,6 +70,7 @@ type CloudCustomerProfile = {
 
 type Customer = {
   id: string;
+  orgId?: string | null;
   name: string;
   email: string;
   status?: string | null;
@@ -77,32 +94,6 @@ type License = {
   status: string;
   maxDevices: number | null;
   validUntil?: string | null;
-  createdAt?: string | null;
-};
-
-// Rohdaten aus /devices (aggregiert oder nicht – wir gruppieren nach Fingerprint)
-type DeviceRow = {
-  id: string;
-  customerId: string | null;
-  name: string;
-  type: string;
-  status: string;
-  licenseId?: string | null;
-  fingerprint?: string | null;
-  lastHeartbeatAt?: string | null;
-  createdAt?: string | null;
-};
-
-// Aggregierte Device-Ansicht pro Hardware-Gerät
-type Device = {
-  deviceId: string; // echte DB-ID für DELETE
-  id: string; // Gruppenschlüssel (fingerprint oder Fallback id)
-  fingerprint?: string | null;
-  name: string;
-  type: string;
-  status: string;
-  licenseIds: string[];
-  lastHeartbeatAt?: string | null;
   createdAt?: string | null;
 };
 
@@ -210,14 +201,14 @@ export default function CustomerDetailPage() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [licenses, setLicenses] = useState<License[]>([]);
-  const [devices, setDevices] = useState<Device[]>([]);
+  const [devices, setDevices] = useState<AdminDeviceListItem[]>([]);
   const [fiscal, setFiscal] = useState<AdminFiscalConfig | null>(null);
   const [business, setBusiness] = useState<AdminBusinessConfig | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+  const [deviceBusyId, setDeviceBusyId] = useState<string | null>(null);
   const [statusBusyId, setStatusBusyId] = useState<string | null>(null);
 
   const loadCustomerData = useCallback(async () => {
@@ -231,7 +222,7 @@ export default function CustomerDetailPage() {
       apiGet<ListResponse<License>>(
         `/licenses?customerId=${encodeURIComponent(customerIdParam)}`,
       ),
-      apiGet<ListResponse<DeviceRow>>("/devices"),
+      apiGet<ListResponse<AdminDeviceListItem>>("/devices"),
       apiGet<AdminFiscalResponse>(
         `/admin/fiscal/customers/${encodeURIComponent(customerIdParam)}`,
       ).catch(() => ({ ok: false as const })),
@@ -245,66 +236,13 @@ export default function CustomerDetailPage() {
     );
     setLicenses(licRes.items ?? []);
 
-    const rowsForCustomer = (devRes.items ?? []).filter(
-      (d) => d.customerId === customerId,
+    setDevices(
+      customerLiveDevicesForDetail(
+        devRes.items ?? [],
+        customerIdParam,
+        customerRes.item?.orgId,
+      ),
     );
-
-    const grouped: Record<string, Device> = {};
-
-    for (const row of rowsForCustomer) {
-      const groupKey = row.fingerprint || row.id;
-      const existing = grouped[groupKey];
-
-      if (!existing) {
-        grouped[groupKey] = {
-          deviceId: row.id,
-          id: groupKey,
-          fingerprint: row.fingerprint,
-          name: row.name,
-          type: row.type,
-          status: row.status,
-          licenseIds: row.licenseId ? [row.licenseId] : [],
-          lastHeartbeatAt: row.lastHeartbeatAt,
-          createdAt: row.createdAt,
-        };
-      } else {
-        if (row.status === "active") {
-          existing.status = row.status;
-        }
-
-        if (row.lastHeartbeatAt) {
-          const newTs = new Date(row.lastHeartbeatAt).getTime();
-          const oldTs = existing.lastHeartbeatAt
-            ? new Date(existing.lastHeartbeatAt).getTime()
-            : 0;
-          if (!Number.isNaN(newTs) && newTs > oldTs) {
-            existing.lastHeartbeatAt = row.lastHeartbeatAt;
-          }
-        }
-
-        if (row.createdAt) {
-          const newTs = new Date(row.createdAt).getTime();
-          const oldTs = existing.createdAt
-            ? new Date(existing.createdAt).getTime()
-            : Number.POSITIVE_INFINITY;
-          if (!Number.isNaN(newTs) && newTs < oldTs) {
-            existing.createdAt = row.createdAt;
-          }
-        }
-
-        if (row.licenseId && !existing.licenseIds.includes(row.licenseId)) {
-          existing.licenseIds.push(row.licenseId);
-        }
-      }
-    }
-
-    const aggregatedDevices = Object.values(grouped).sort((a, b) => {
-      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return tb - ta;
-    });
-
-    setDevices(aggregatedDevices);
   }, [customerId]);
 
   useEffect(() => {
@@ -334,32 +272,60 @@ export default function CustomerDetailPage() {
     };
   }, [customerId, loadCustomerData]);
 
-  async function handleDeleteDevice(device: Device) {
-    const hasLicense = device.licenseIds.length > 0;
-    const confirmed = window.confirm(
-      hasLicense
-        ? "This device is linked to a license. Removing it will free a device slot."
-        : "Remove this device? If it is not linked to a license, it will be deleted permanently.",
-    );
-    if (!confirmed) return;
+  async function handleReleaseDevice(device: AdminDeviceListItem) {
+    if (customerDeviceLifecycleAction(device) !== "release") return;
+    if (!window.confirm(RELEASE_CONFIRM_MESSAGE)) return;
 
-    setDeleteBusyId(device.deviceId);
+    const deviceId = releaseActionDeviceId(device);
+    setDeviceBusyId(deviceId);
     setError(null);
     setSuccess(null);
 
     try {
-      await apiDeleteDevice(device.deviceId);
-      setSuccess("Device removed.");
+      await apiDeleteDevice(deviceId);
+      setSuccess(
+        "Device released. Historical records and receipts are unchanged.",
+      );
       await loadCustomerData();
     } catch (err) {
-      console.error("Error deleting device", err);
+      const message =
+        err instanceof Error ? err.message : "Could not release device.";
+      if (/already_released/i.test(message)) {
+        setError("This device is already released.");
+        await loadCustomerData();
+      } else if (/not_bound/i.test(message)) {
+        setError("This device is not bound to a license.");
+        await loadCustomerData();
+      } else {
+        setError(message);
+      }
+    } finally {
+      setDeviceBusyId(null);
+    }
+  }
+
+  async function handleArchiveDevice(device: AdminDeviceListItem) {
+    if (customerDeviceLifecycleAction(device) !== "archive") return;
+    if (!window.confirm(ARCHIVE_CONFIRM_MESSAGE)) return;
+
+    const deviceId = releaseActionDeviceId(device);
+    setDeviceBusyId(deviceId);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const result = await apiArchiveDevice(deviceId);
+      setSuccess(
+        result.message ||
+          "Device archived from management views. Historical records remain.",
+      );
+      await loadCustomerData();
+    } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Could not delete device.",
+        err instanceof Error ? err.message : "Could not archive device.",
       );
     } finally {
-      setDeleteBusyId(null);
+      setDeviceBusyId(null);
     }
   }
 
@@ -1017,88 +983,120 @@ export default function CustomerDetailPage() {
                 display: "flex",
                 justifyContent: "space-between",
                 marginBottom: 12,
+                gap: 12,
+                flexWrap: "wrap",
               }}
             >
               <h2 className="admin-section-title">Devices</h2>
+              <div className="ds-muted" style={{ fontSize: 12 }}>
+                One row per device ID. Archived devices are hidden here (see
+                Devices → Archive History). GET /devices returns up to{" "}
+                {ADMIN_DEVICES_LIST_DEFAULT_LIMIT} live rows.
+              </div>
             </div>
 
             <DataTable>
               <thead>
                 <tr>
                   <th>Name</th>
+                  <th>Device ID</th>
                   <th>Type</th>
                   <th>Status</th>
-                  <th>License(s)</th>
-                  <th>Last signal</th>
+                  <th>Station</th>
+                  <th>License</th>
                   <th>Created</th>
+                  <th>Released</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {devices.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="ds-muted" style={{ textAlign: "center", padding: 16 }}>
-                      No devices for this customer.
+                    <td colSpan={9} className="ds-muted" style={{ textAlign: "center", padding: 16 }}>
+                      No live devices for this customer.
                     </td>
                   </tr>
                 ) : (
-                  devices.map((d) => (
+                  devices.map((d) => {
+                    const action = customerDeviceLifecycleAction(d);
+                    const assigned = licenses.find((l) => l.id === d.licenseId);
+                    const licensePlan =
+                      assigned?.plan ?? d.currentLicense?.plan ?? null;
+                    const licenseStatus =
+                      assigned?.status ?? d.currentLicense?.status ?? null;
+                    return (
                     <tr key={d.id}>
-                      <td>{d.name}</td>
-                      <td>{d.type}</td>
+                      <td>{d.name || "—"}</td>
+                      <td
+                        style={{ fontFamily: "monospace", fontSize: 12 }}
+                        title={d.id}
+                      >
+                        {d.id}
+                      </td>
+                      <td>{d.type || "—"}</td>
                       <td>
-                        <DeviceStatusPill status={d.status} />
+                        <DeviceStatusPill
+                          status={d.status}
+                          licenseId={d.licenseId}
+                          archivedAt={d.archivedAt}
+                        />
+                      </td>
+                      <td style={{ fontFamily: "monospace", fontSize: 12 }}>
+                        {d.stationCode ?? "—"}
                       </td>
                       <td>
-                        {d.licenseIds.length === 0
-                          ? "—"
-                          : d.licenseIds.map((licenseId) => {
-                              const lic = licenses.find(
-                                (l) => l.id === licenseId,
-                              );
-                              if (!lic) {
-                                return (
-                                  <div key={licenseId ?? "unknown"}>
-                                    License
-                                  </div>
-                                );
-                              }
-                              return (
-                                <div key={lic.id}>
-                                  <Link
-                                    to={`/licenses/${lic.id}`}
-                                    className="ds-link"
-                                  >
-                                    {lic.key}
-                                  </Link>
-                                  <span
-                                    style={{
-                                      marginLeft: 4,
-                                      fontSize: 11,
-                                      color: "#9ca3af",
-                                    }}
-                                  >
-                                    ({lic.plan})
-                                  </span>
-                                </div>
-                              );
-                            })}
+                        {!d.licenseId ? (
+                          <span className="ds-muted">Unassigned</span>
+                        ) : (
+                          <div>
+                            {assigned ? (
+                              <Link
+                                to={`/licenses/${assigned.id}`}
+                                className="ds-link"
+                              >
+                                {assigned.key}
+                              </Link>
+                            ) : (
+                              <span title={d.licenseId}>
+                                {d.licenseId.slice(0, 8)}…
+                              </span>
+                            )}
+                            <div
+                              className="ds-muted"
+                              style={{ marginTop: 2, fontSize: 11 }}
+                            >
+                              {licensePlan ?? "—"}
+                              {licenseStatus ? ` · ${licenseStatus}` : ""}
+                            </div>
+                          </div>
+                        )}
                       </td>
-                      <td>{formatDate(d.lastHeartbeatAt)}</td>
                       <td>{formatDate(d.createdAt)}</td>
+                      <td>{formatDate(d.releasedAt)}</td>
                       <td>
-                        <Button
-                          variant="danger"
-                          disabled={deleteBusyId === d.deviceId}
-                          onClick={() => void handleDeleteDevice(d)}
-                        >
-                          {deleteBusyId === d.deviceId
-                            ? "Removing…"
-                            : "Remove"}
-                        </Button>
+                        {action === "release" ? (
+                          <Button
+                            variant="danger"
+                            disabled={deviceBusyId === d.id}
+                            onClick={() => void handleReleaseDevice(d)}
+                          >
+                            {deviceBusyId === d.id ? "Releasing…" : "Release"}
+                          </Button>
+                        ) : action === "archive" ? (
+                          <Button
+                            variant="danger"
+                            disabled={deviceBusyId === d.id}
+                            onClick={() => void handleArchiveDevice(d)}
+                          >
+                            {deviceBusyId === d.id ? "Removing…" : "Remove"}
+                          </Button>
+                        ) : (
+                          <span className="ds-muted">—</span>
+                        )}
                       </td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </DataTable>

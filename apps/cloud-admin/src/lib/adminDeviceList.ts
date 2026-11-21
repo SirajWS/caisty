@@ -22,7 +22,9 @@ export type AdminDeviceListItem = {
   lastSeenAt: string | null;
   lastHeartbeatAt: string | null;
   createdAt: string;
+  releasedAt?: string | null;
   archivedAt?: string | null;
+  orgId?: string | null;
 };
 
 const CURRENT_STATUSES = new Set(["active", "pending_approval", "blocked"]);
