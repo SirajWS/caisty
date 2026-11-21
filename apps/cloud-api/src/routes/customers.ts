@@ -4,7 +4,7 @@ import { sql, eq } from "drizzle-orm";
 
 import { db } from "../db/client.js";
 import { customers } from "../db/schema/customers.js";
-import { devices } from "../db/schema/devices.js";
+import { toPublicCustomer } from "../lib/publicCustomer.js";
 
 type ListQuery = {
   limit?: number;
@@ -24,12 +24,16 @@ export async function registerCustomersRoutes(app: FastifyInstance) {
     const limit = Math.min(request.query.limit ?? 50, 200);
     const offset = request.query.offset ?? 0;
 
-    const items = await db
+    const rows = await db
       .select()
       .from(customers)
       .limit(limit)
       .offset(offset)
       .orderBy(customers.createdAt);
+
+    const items = rows.map((row) =>
+      toPublicCustomer(row as unknown as Record<string, unknown>),
+    );
 
     const [{ value: total }] = await db
       .select({ value: sql<number>`count(*)` })
@@ -114,7 +118,9 @@ export async function registerCustomersRoutes(app: FastifyInstance) {
           .returning();
 
         reply.code(201);
-        return { item: created };
+        return {
+          item: toPublicCustomer(created as unknown as Record<string, unknown>),
+        };
       } catch (err) {
         console.error("Error creating customer", err);
         reply.code(500);
@@ -148,7 +154,9 @@ export async function registerCustomersRoutes(app: FastifyInstance) {
         return { error: "Customer not found" };
       }
 
-      return { item };
+      return {
+        item: toPublicCustomer(item as unknown as Record<string, unknown>),
+      };
     },
   );
 
@@ -245,7 +253,9 @@ export async function registerCustomersRoutes(app: FastifyInstance) {
           "Customer status updated successfully",
         );
 
-        return { item: updated };
+        return {
+          item: toPublicCustomer(updated as unknown as Record<string, unknown>),
+        };
       } catch (err) {
         request.log.error(
           { err, id, rawStatus, normalizedStatus },
@@ -265,36 +275,18 @@ export async function registerCustomersRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params;
 
-      request.log.info(
-        { id, idLength: id?.length ?? 0 },
-        "DELETE /customers/:id called",
+      request.log.warn(
+        { id },
+        "DELETE /customers/:id rejected — hard-delete disabled to protect invoices",
       );
 
-      try {
-        // Devices entkoppeln
-        await db
-          .update(devices)
-          .set({ customerId: null })
-          .where(eq(devices.customerId, id));
-
-        const deleted = await db
-          .delete(customers)
-          .where(eq(customers.id, id))
-          .returning();
-
-        if (deleted.length === 0) {
-          request.log.warn({ id }, "Customer not found in DELETE /customers/:id");
-          reply.code(404);
-          return { error: "Customer not found" };
-        }
-
-        request.log.info({ id }, "Customer deleted successfully");
-        return { ok: true };
-      } catch (err) {
-        request.log.error({ err, id }, "Error deleting customer");
-        reply.code(500);
-        return { error: "Failed to delete customer" };
-      }
+      reply.code(403);
+      return {
+        ok: false,
+        error: "customer_delete_disabled",
+        message:
+          "Hard-delete of customers is disabled so invoices, payments and subscriptions are preserved.",
+      };
     },
   );
 }

@@ -57,8 +57,7 @@ import { registerTestEmailRoutes } from "./routes/test-email.js";
 import { registerTestResetTokenRoutes } from "./routes/test-reset-token.js";
 import { registerDebugDbRoutes } from "./routes/debug-db.js";
 
-import { verifyToken } from "./lib/jwt.js";
-import { verifyAdminToken } from "./lib/adminJwt.js";
+import { registerCloudApiAuthHook } from "./lib/registerCloudApiAuthHook.js";
 import { countryConfigService } from "./countryConfig/CountryConfigService.js";
 
 export async function buildServer() {
@@ -99,69 +98,7 @@ export async function buildServer() {
     origin: true,
   });
 
-  // ---------------------------------------------------------------------------
-  // Globaler Auth-Hook für die Admin-API (nicht für /portal/*)
-  // ---------------------------------------------------------------------------
-  app.addHook("onRequest", async (request, reply) => {
-    const url = request.raw.url?.split("?")[0] ?? "";
-    const method = request.method.toUpperCase();
-
-    const isPublicRoute =
-      url === "/health" ||
-      url.startsWith("/public/") || // ✅ Public POS endpoints (activate, etc.)
-      url === "/auth/login" ||
-      url.startsWith("/admin/auth/") || // Admin-Auth-Routes (login, forgot-password, reset-password)
-      url.startsWith("/portal/") || // Portal-API (Portal-JWT)
-      url.startsWith("/api/auth/") || // Email verification (public)
-      url.startsWith("/api/billing/") || // Billing-API (Portal-JWT, handled in route)
-      (url === "/webhooks/paypal" && method === "POST") ||
-      (url === "/webhooks/stripe" && method === "POST") ||
-      (url.startsWith("/webhooks/channels/") && method === "POST") ||
-      (url === "/licenses/verify" && method === "POST") ||
-      (url === "/devices/bind" && method === "POST") ||
-      (url === "/devices/heartbeat" && method === "POST") ||
-      (url === "/pos/config" && method === "GET") ||
-      (url === "/pos/sync/batch" && method === "POST") ||
-      (url === "/pos/sync/pull" && method === "POST") ||
-      url.startsWith("/country-config") ||
-      (url.startsWith("/invoices/") && url.endsWith("/html")) || // Invoice HTML-Export (mit Auth im Handler)
-      (env.NODE_ENV === "development" && url.startsWith("/test-email")) || // Test-Endpoint nur in Development
-      (env.NODE_ENV === "development" && url.startsWith("/test-reset-token")) || // Test-Endpoint nur in Development
-      (env.NODE_ENV === "development" && url.startsWith("/debug/")); // Debug-Endpoints nur in Development
-
-    if (isPublicRoute) {
-      return;
-    }
-
-    const auth = request.headers.authorization;
-    if (!auth || !auth.startsWith("Bearer ")) {
-      reply.code(401);
-      return reply.send({
-        error: "Missing or invalid Authorization header",
-      });
-    }
-
-    const token = auth.slice("Bearer ".length);
-
-    try {
-      // Versuche zuerst Admin-JWT, dann normales JWT
-      try {
-        const adminPayload = verifyAdminToken(token);
-        (request as any).user = {
-          ...adminPayload,
-          isAdmin: true, // Flag für Admin-User
-        };
-      } catch {
-        // Falls Admin-JWT fehlschlägt, versuche normales JWT
-        const payload = verifyToken(token);
-        (request as any).user = payload;
-      }
-    } catch (err) {
-      request.log.warn({ err }, "Invalid or expired JWT");
-      reply.code(401);
-      return reply.send({ error: "Invalid or expired token" });
-    }
-  });
+  await registerCloudApiAuthHook(app);
 
   // ---------------------------------------------------------------------------
   // Country configuration (public read — site/portal)

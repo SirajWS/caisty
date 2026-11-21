@@ -55,11 +55,31 @@ import { AuthProvider, useAuth } from "../auth/AuthContext";
 import { ThemeProvider, useTheme } from "../theme/ThemeContext";
 
 function RequireAuth({ children }: { children: React.ReactElement }) {
-  const { token } = useAuth();
+  const { token, user, clearAuth } = useAuth();
   const location = useLocation();
 
   if (!token) {
     return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  if (user && user.role !== "superadmin") {
+    return (
+      <div className="admin-page" style={{ padding: 24 }}>
+        <p>
+          This console is limited to Super Admin accounts. Other admin roles
+          cannot access platform administration in this phase.
+        </p>
+        <button
+          type="button"
+          className="admin-btn admin-btn--danger"
+          onClick={() => {
+            clearAuth();
+          }}
+        >
+          Logout
+        </button>
+      </div>
+    );
   }
 
   return children;

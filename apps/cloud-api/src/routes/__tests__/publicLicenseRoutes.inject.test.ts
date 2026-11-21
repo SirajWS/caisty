@@ -392,7 +392,9 @@ describe("public license routes (Fastify inject)", () => {
         )
         .mockReturnValueOnce(chainSelect([{ name: "Acme Org" }]));
 
-      mocks.findDeviceById.mockResolvedValue(activeDevice());
+      mocks.findDeviceById.mockResolvedValue(
+        activeDevice({ stationCode: "K01" }),
+      );
       mocks.syncFiscalConfigurationForOrg.mockResolvedValue({
         currency: "EUR",
         fiscalRequired: false,

@@ -247,15 +247,11 @@ export async function registerInvoicesRoutes(app: FastifyInstance) {
     },
   );
 
-  // GET /invoices/:id/html - HTML-Ansicht für Admin (optional Auth)
+  // GET /invoices/:id/html — Super-Admin only (platform auth hook)
   app.get<{ Params: { id: string } }>(
     "/invoices/:id/html",
     async (request, reply) => {
       const { id } = request.params;
-
-      // Optional: Admin-Auth prüfen (wenn vorhanden)
-      const user = (request as any).user;
-      const hasAuth = !!user;
 
       const [row] = await db
         .select({
@@ -275,8 +271,7 @@ export async function registerInvoicesRoutes(app: FastifyInstance) {
       const inv = row.inv as any;
       const customer = row.customer as any;
 
-      // Wenn Auth vorhanden, prüfen ob User Zugriff hat (optional)
-      // Für jetzt: Invoice-ID ist bereits ein Geheimnis, daher erlauben wir Zugriff
+      // Authorization: Super-Admin via platform auth hook; Portal uses /portal/invoices/:id/html.
 
       // Verwende renderInvoiceHtml für professionelles Template
       const { getInvoiceWithCustomerAndOrg } = await import("../services/invoiceService.js");

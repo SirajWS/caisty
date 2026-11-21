@@ -260,10 +260,9 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
           .limit(200);
       }
       
-      console.log(`[licenses/portal] Found ${portalLicenses.length} portal licenses (all licenses with customerId)`);
-      for (const lic of portalLicenses) {
-        console.log(`[licenses/portal] License: ${lic.key}, plan=${lic.plan}, customerId=${lic.customerId}, orgId=${lic.orgId}, subscriptionId=${lic.subscriptionId}`);
-      }
+      console.log(
+        `[licenses/portal] Found ${portalLicenses.length} portal licenses (customer-linked)`,
+      );
       
       if (portalLicenses.length === 0) {
         return {
