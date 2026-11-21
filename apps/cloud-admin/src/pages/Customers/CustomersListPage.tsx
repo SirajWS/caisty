@@ -1,6 +1,16 @@
 // apps/cloud-admin/src/pages/Customers/CustomersListPage.tsx
 import { useEffect, useMemo, useState } from "react";
-import { apiGet, apiPatch, apiDelete } from "../../lib/api";
+import { apiGet, apiPatch } from "../../lib/api";
+import {
+  applyCustomerStatusUpdate,
+  customerDetailPath,
+  customerStatusPatchBody,
+  isCustomerStatusActionBusy,
+  isInactiveCustomerStatus,
+  partitionCustomersByAccountStatus,
+  RESTORE_CONFIRM_MESSAGE,
+  SET_INACTIVE_CONFIRM_MESSAGE,
+} from "../../lib/adminCustomerStatus";
 import { Link } from "react-router-dom";
 import {
   Button,
@@ -61,7 +71,7 @@ export default function CustomersListPage() {
     {},
   );
   const [statusBusyId, setStatusBusyId] = useState<string | null>(null);
-  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -168,94 +178,59 @@ export default function CustomersListPage() {
       return true;
     };
 
-    const actives: Customer[] = [];
-    const inactives: Customer[] = [];
-
-    for (const c of items) {
-      if (!matchesSearch(c) || !matchesFiscal(c)) continue;
-      const status = (c.status ?? "").toLowerCase();
-      if (status === "inactive") {
-        inactives.push(c);
-      } else {
-        actives.push(c);
-      }
-    }
-
-    return { activeItems: actives, inactiveItems: inactives };
+    const matched = items.filter(
+      (c) => matchesSearch(c) && matchesFiscal(c),
+    );
+    const { active, inactive } = partitionCustomersByAccountStatus(matched);
+    return { activeItems: active, inactiveItems: inactive };
   }, [items, search, countryFilter, fiscalStatusFilter, fiscalByCustomer]);
 
-  async function handleArchiveCustomer(c: Customer) {
-    const devicesForCustomer = deviceCounts[c.id] ?? 0;
+  async function handleSetCustomerStatus(
+    c: Customer,
+    status: "active" | "inactive",
+  ) {
+    if (isCustomerStatusActionBusy(statusBusyId, c.id)) return;
 
     const confirmed = window.confirm(
-      `Set customer "${c.name || c.email}" to inactive?\n\n` +
-        `The customer will no longer appear in the default overview or dashboard.` +
-        (devicesForCustomer > 0
-          ? `\nNote: ${devicesForCustomer} device(s) are still linked to this customer.`
-          : ""),
+      status === "active"
+        ? RESTORE_CONFIRM_MESSAGE
+        : SET_INACTIVE_CONFIRM_MESSAGE,
     );
-
     if (!confirmed) return;
 
-    try {
-      setStatusBusyId(c.id);
-      setError(null);
+    setStatusBusyId(c.id);
+    setError(null);
+    setSuccess(null);
 
+    try {
       const res = await apiPatch<{ status: string }, { item: Customer }>(
         `/customers/${c.id}/status`,
-        { status: "inactive" },
+        customerStatusPatchBody(status),
       );
-
-      const updated = res.item;
-
-      setItems((prev) =>
-        prev.map((x) => (x.id === c.id ? { ...x, ...updated } : x)),
+      const updated = res.item ?? { ...c, status };
+      setItems((prev) => applyCustomerStatusUpdate(prev, { ...c, ...updated }));
+      setSuccess(
+        status === "active"
+          ? "Customer restored to the active list. Licenses and devices were not changed."
+          : "Customer set to inactive. Licenses and devices were not changed.",
       );
     } catch (err) {
       console.error("Error updating customer status", err);
-      setError("Could not update customer status.");
+      setError(
+        err instanceof Error ? err.message : "Could not update customer status.",
+      );
     } finally {
       setStatusBusyId(null);
     }
   }
 
-  async function handleDeleteCustomer(c: Customer) {
-    const devicesForCustomer = deviceCounts[c.id] ?? 0;
-
-    const confirmed = window.confirm(
-      `Permanently delete customer "${c.name || c.email}"?\n\n` +
-        `This action cannot be undone.` +
-        (devicesForCustomer > 0
-          ? `\nNote: ${devicesForCustomer} device(s) are linked — assignments will be removed on delete.`
-          : ""),
-    );
-
-    if (!confirmed) return;
-
-    try {
-      setDeleteBusyId(c.id);
-      setError(null);
-
-      await apiDelete<{ ok: boolean }>(`/customers/${c.id}`);
-
-      // komplett aus der Liste entfernen
-      setItems((prev) => prev.filter((x) => x.id !== c.id));
-      setTotal((prev) => Math.max(0, prev - 1));
-    } catch (err) {
-      console.error("Error deleting customer", err);
-      setError("Could not delete customer.");
-    } finally {
-      setDeleteBusyId(null);
-    }
-  }
-
   function accountStatusPill(status: string | null | undefined) {
+    if (isInactiveCustomerStatus(status)) {
+      return <StatusPill tone="gray" label="Inactive" />;
+    }
     const normalized = (status ?? "").toLowerCase();
     if (normalized === "active") {
       return <StatusPill tone="green" label="Active" />;
-    }
-    if (normalized === "inactive") {
-      return <StatusPill tone="gray" label="Inactive" />;
     }
     return <StatusPill tone="gray" label={status ?? "Unknown"} />;
   }
@@ -300,6 +275,7 @@ export default function CustomersListPage() {
       </Toolbar>
 
       {error ? <div className="admin-error-banner">{error}</div> : null}
+      {success ? <div className="admin-success-banner">{success}</div> : null}
 
       <div className="ds-section-block">
         <DataTable>
@@ -339,7 +315,7 @@ export default function CustomersListPage() {
                   <tr key={c.id}>
                     <td>{c.id.slice(0, 8)}…</td>
                     <td>
-                      <Link to={`/customers/${c.id}`} className="ds-link">
+                      <Link to={customerDetailPath(c.id)} className="ds-link">
                         {c.name || c.email}
                       </Link>
                     </td>
@@ -377,10 +353,12 @@ export default function CustomersListPage() {
                     <td>
                       <Button
                         variant="secondary"
-                        disabled={statusBusyId === c.id}
-                        onClick={() => handleArchiveCustomer(c)}
+                        disabled={isCustomerStatusActionBusy(statusBusyId, c.id)}
+                        onClick={() => void handleSetCustomerStatus(c, "inactive")}
                       >
-                        {statusBusyId === c.id ? "Updating…" : "Set inactive"}
+                        {isCustomerStatusActionBusy(statusBusyId, c.id)
+                          ? "Updating…"
+                          : "Set inactive"}
                       </Button>
                     </td>
                   </tr>
@@ -393,8 +371,8 @@ export default function CustomersListPage() {
 
       <div className="ds-section-block">
         <SectionHeader
-          title="Inactive customers (trash)"
-          subline="These customers no longer appear in the default overview or dashboard."
+          title="Inactive customers"
+          subline="Administrative classification only. Restore returns the customer to the active Super-Admin list without changing licenses, devices or Portal access."
         />
         <DataTable>
           <thead>
@@ -421,7 +399,11 @@ export default function CustomersListPage() {
                 return (
                   <tr key={c.id}>
                     <td>{c.id.slice(0, 8)}…</td>
-                    <td>{c.name || c.email}</td>
+                    <td>
+                      <Link to={customerDetailPath(c.id)} className="ds-link">
+                        {c.name || c.email}
+                      </Link>
+                    </td>
                     <td>{c.email}</td>
                     <td>{accountStatusPill(c.status)}</td>
                     <td>{devicesForCustomer}</td>
@@ -432,11 +414,13 @@ export default function CustomersListPage() {
                     </td>
                     <td>
                       <Button
-                        variant="danger"
-                        disabled={deleteBusyId === c.id}
-                        onClick={() => handleDeleteCustomer(c)}
+                        variant="secondary"
+                        disabled={isCustomerStatusActionBusy(statusBusyId, c.id)}
+                        onClick={() => void handleSetCustomerStatus(c, "active")}
                       >
-                        {deleteBusyId === c.id ? "Deleting…" : "Delete"}
+                        {isCustomerStatusActionBusy(statusBusyId, c.id)
+                          ? "Restoring…"
+                          : "Restore"}
                       </Button>
                     </td>
                   </tr>

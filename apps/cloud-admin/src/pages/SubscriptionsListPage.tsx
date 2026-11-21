@@ -328,40 +328,9 @@ export default function SubscriptionsListPage() {
                         >
                           {deleteBusyId === s.id ? "Deleting…" : "Delete"}
                         </Button>
-                      ) : null}
-                      {s.customerStatus === "inactive" && s.customerId ? (
-                        <Button
-                          variant="danger"
-                          disabled={deleteBusyId === s.customerId}
-                          onClick={async () => {
-                            if (
-                              !confirm(
-                                `Delete customer "${s.customerName || s.customerId}"? This action cannot be undone.`,
-                              )
-                            ) {
-                              return;
-                            }
-                            setDeleteBusyId(s.customerId);
-                            try {
-                              await apiDelete<{ ok: boolean }>(`/customers/${s.customerId}`);
-                              const data = await apiGet<SubscriptionsResponse>("/subscriptions");
-                              setItems(data.items ?? []);
-                              setTotal(data.total ?? data.items?.length ?? 0);
-                            } catch (err) {
-                              console.error("Error deleting customer", err);
-                              alert("Failed to delete customer.");
-                            } finally {
-                              setDeleteBusyId(null);
-                            }
-                          }}
-                        >
-                          {deleteBusyId === s.customerId ? "Deleting…" : "Delete customer"}
-                        </Button>
-                      ) : null}
-                      {s.status?.toLowerCase() !== "pending" &&
-                      s.customerStatus !== "inactive" ? (
+                      ) : (
                         <span className="ds-muted">—</span>
-                      ) : null}
+                      )}
                     </div>
                   </td>
                 </tr>

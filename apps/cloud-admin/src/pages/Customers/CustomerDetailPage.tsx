@@ -1,7 +1,14 @@
 // apps/cloud-admin/src/pages/Customers/CustomerDetailPage.tsx
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { apiDeleteDevice, apiGet } from "../../lib/api";
+import { apiDeleteDevice, apiGet, apiPatch } from "../../lib/api";
+import {
+  customerStatusPatchBody,
+  isCustomerStatusActionBusy,
+  isInactiveCustomerStatus,
+  RESTORE_CONFIRM_MESSAGE,
+  SET_INACTIVE_CONFIRM_MESSAGE,
+} from "../../lib/adminCustomerStatus";
 import {
   Button,
   Card,
@@ -211,6 +218,7 @@ export default function CustomerDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+  const [statusBusyId, setStatusBusyId] = useState<string | null>(null);
 
   const loadCustomerData = useCallback(async () => {
     if (!customerId) return;
@@ -355,6 +363,44 @@ export default function CustomerDetailPage() {
     }
   }
 
+  async function handleSetCustomerStatus(status: "active" | "inactive") {
+    if (!customer) return;
+    if (isCustomerStatusActionBusy(statusBusyId, customer.id)) return;
+
+    const confirmed = window.confirm(
+      status === "active"
+        ? RESTORE_CONFIRM_MESSAGE
+        : SET_INACTIVE_CONFIRM_MESSAGE,
+    );
+    if (!confirmed) return;
+
+    setStatusBusyId(customer.id);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const res = await apiPatch<{ status: string }, { item: Customer }>(
+        `/customers/${customer.id}/status`,
+        customerStatusPatchBody(status),
+      );
+      setCustomer((prev) =>
+        prev ? { ...prev, ...(res.item ?? { status }) } : prev,
+      );
+      setSuccess(
+        status === "active"
+          ? "Customer restored to active. Licenses and devices were not changed."
+          : "Customer set to inactive. Licenses and devices were not changed.",
+      );
+    } catch (err) {
+      console.error("Error updating customer status", err);
+      setError(
+        err instanceof Error ? err.message : "Could not update customer status.",
+      );
+    } finally {
+      setStatusBusyId(null);
+    }
+  }
+
   const subscriptionsCount = subscriptions.length;
   const licensesCount = licenses.length;
   const devicesCount = devices.length;
@@ -462,6 +508,35 @@ export default function CustomerDetailPage() {
                     <div style={{ color: "#9ca3af" }}>Status</div>
                     <div>
                       <AccountStatusPill status={customer.status} />
+                    </div>
+                    <div style={{ marginTop: 8 }}>
+                      {isInactiveCustomerStatus(customer.status) ? (
+                        <Button
+                          variant="secondary"
+                          disabled={isCustomerStatusActionBusy(
+                            statusBusyId,
+                            customer.id,
+                          )}
+                          onClick={() => void handleSetCustomerStatus("active")}
+                        >
+                          {isCustomerStatusActionBusy(statusBusyId, customer.id)
+                            ? "Restoring…"
+                            : "Restore"}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="secondary"
+                          disabled={isCustomerStatusActionBusy(
+                            statusBusyId,
+                            customer.id,
+                          )}
+                          onClick={() => void handleSetCustomerStatus("inactive")}
+                        >
+                          {isCustomerStatusActionBusy(statusBusyId, customer.id)
+                            ? "Updating…"
+                            : "Set inactive"}
+                        </Button>
+                      )}
                     </div>
                   </div>
                   <div>

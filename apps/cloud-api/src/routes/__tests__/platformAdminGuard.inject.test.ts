@@ -273,6 +273,26 @@ describe("platform admin API guard", () => {
     await app.close();
   });
 
+  it("rejects portal JWT on customer status PATCH and still disables hard delete", async () => {
+    const app = await buildApp();
+    const portal = await app.inject({
+      method: "PATCH",
+      url: `/customers/${CUSTOMER_ID}/status`,
+      headers: { authorization: `Bearer ${portalToken()}` },
+      payload: { status: "active" },
+    });
+    expect(portal.statusCode).toBe(403);
+
+    const support = await app.inject({
+      method: "PATCH",
+      url: `/customers/${CUSTOMER_ID}/status`,
+      headers: { authorization: `Bearer ${supportToken()}` },
+      payload: { status: "active" },
+    });
+    expect(support.statusCode).toBe(403);
+    await app.close();
+  });
+
   it("does not hard-delete customers or invoices", async () => {
     const app = await buildApp();
     const res = await app.inject({
