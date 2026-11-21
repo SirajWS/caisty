@@ -705,10 +705,18 @@ export type PortalReceiptEventRecord = {
   schemaVersion: number;
 };
 
+export type PortalPrintStatus =
+  | "unknown"
+  | "created"
+  | "print_requested"
+  | "reprint_requested";
+
 export type PortalReceiptListItem = PortalReceiptRecord & {
   deviceName: string | null;
+  stationCode?: string | null;
   printCount: number;
   reprintCount: number;
+  printStatus?: PortalPrintStatus;
   lastEventType: string | null;
   lastEventAt: string | null;
   cashier: string | null;
@@ -747,9 +755,13 @@ export type PortalReceiptsResponse = {
 };
 
 export type PortalReceiptPrintStats = {
-  hasOriginalPrint: boolean;
+  status?: PortalPrintStatus;
+  printRequestCount?: number;
+  reprintRequestCount?: number;
   reprintCount: number;
   lastPrintAt: string | null;
+  reprintActor?: string | null;
+  hasOriginalPrint: boolean;
 };
 
 export type PortalReceiptRefundSummary = {
@@ -762,6 +774,10 @@ export type PortalReceiptRefundSummary = {
 export type PortalReceiptDetailResponse = {
   receipt: PortalReceiptRecord & {
     deviceName: string | null;
+    stationCode?: string | null;
+    cashier?: string | null;
+    reprintActor?: string | null;
+    printStatus?: PortalPrintStatus;
     localOrderId: string | null;
     netCents: number;
     taxCents: number;

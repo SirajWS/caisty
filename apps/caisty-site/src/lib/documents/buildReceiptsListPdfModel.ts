@@ -157,8 +157,12 @@ export function buildReceiptsListPdfModel(input: {
           money(receipt.amountCents),
           statusLabel(receipt.status, labels),
           formatStatusLabel(receipt.fiscalStatus, dash),
-          String(receipt.printCount ?? 0),
-          receipt.lastEventType?.trim() || dash,
+          receipt.printStatus === "unknown"
+            ? dash
+            : String(receipt.printCount ?? 0),
+          receipt.printStatus === "unknown"
+            ? dash
+            : receipt.lastEventType?.trim() || dash,
         ];
       }),
       empty: labels.tableEmpty,

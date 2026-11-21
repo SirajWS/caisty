@@ -50,6 +50,12 @@ export type ReceiptDetailDocumentLabels = {
   originalPrint: string;
   reprintCount: string;
   lastPrintTime: string;
+  stationCode: string;
+  reprintActor: string;
+  printStatusUnknown: string;
+  printStatusCreated: string;
+  printStatusPrintRequested: string;
+  printStatusReprintRequested: string;
   activityEmpty: string;
   paymentCash: string;
   paymentCard: string;
@@ -75,6 +81,25 @@ export type ReceiptDetailPdfModel = {
   showFiscalPending: boolean;
   receiptLabel: string;
 };
+
+function describePrintStatus(
+  status: string | undefined,
+  labels: ReceiptDetailDocumentLabels,
+  dash: string,
+): string {
+  switch (status) {
+    case "created":
+      return labels.printStatusCreated;
+    case "print_requested":
+      return labels.printStatusPrintRequested;
+    case "reprint_requested":
+      return labels.printStatusReprintRequested;
+    case "unknown":
+      return labels.printStatusUnknown;
+    default:
+      return dash;
+  }
+}
 
 function receiptStatusLabel(
   status: string,
@@ -150,8 +175,9 @@ export function buildReceiptDetailPdfModel(input: {
           ? formatDocumentDateTime(new Date(receipt.issuedAt), locale, timezone)
           : dash,
       ],
-      [labels.colCashier, dash],
+      [labels.colCashier, receipt.cashier?.trim() || dash],
       [labels.colDevice, receipt.deviceName?.trim() || dash],
+      [labels.stationCode, receipt.stationCode?.trim() || dash],
       [labels.colCustomer, receipt.customer?.trim() || dash],
     ],
     products: {
@@ -186,9 +212,17 @@ export function buildReceiptDetailPdfModel(input: {
     printStats: [
       [
         labels.originalPrint,
-        detail.printStats.hasOriginalPrint ? labels.yes : labels.no,
+        describePrintStatus(detail.printStats.status, labels, dash),
       ],
-      [labels.reprintCount, String(detail.printStats.reprintCount)],
+      [
+        labels.reprintCount,
+        detail.printStats.status === "unknown"
+          ? dash
+          : String(
+              detail.printStats.reprintRequestCount ??
+                detail.printStats.reprintCount,
+            ),
+      ],
       [
         labels.lastPrintTime,
         detail.printStats.lastPrintAt
@@ -198,6 +232,12 @@ export function buildReceiptDetailPdfModel(input: {
               timezone,
             )
           : dash,
+      ],
+      [
+        labels.reprintActor,
+        detail.printStats.reprintActor?.trim() ||
+          receipt.reprintActor?.trim() ||
+          dash,
       ],
     ],
     activity,

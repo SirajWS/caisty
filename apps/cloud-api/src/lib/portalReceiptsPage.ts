@@ -62,7 +62,12 @@ import {
   computeTotalPages,
   parseReceiptPagination,
 } from "./portalReceiptPagination.js";
-import { RECEIPT_EVENT_TYPES } from "./receiptEventTypes.js";
+import {
+  aggregateReceiptLifecycle,
+  emptyReceiptLifecycle,
+  type PortalPrintStatus,
+  type ReceiptLifecycleDisplay,
+} from "./receiptPrintDisplay.js";
 import {
   normalizeReceiptStatus,
   receiptCountsTowardKpis,
@@ -73,8 +78,10 @@ export type PortalReceiptSort = "newest" | "oldest";
 
 export type PortalReceiptListItem = PortalReceiptRecord & {
   deviceName: string | null;
+  stationCode: string | null;
   printCount: number;
   reprintCount: number;
+  printStatus: PortalPrintStatus;
   lastEventType: string | null;
   lastEventAt: string | null;
   cashier: string | null;
@@ -119,9 +126,13 @@ export type PortalReceiptsPageData = {
 };
 
 export type PortalReceiptPrintStats = {
-  hasOriginalPrint: boolean;
+  status: PortalPrintStatus;
+  printRequestCount: number;
+  reprintRequestCount: number;
   reprintCount: number;
   lastPrintAt: string | null;
+  reprintActor: string | null;
+  hasOriginalPrint: boolean;
 };
 
 export type PortalReceiptRefundSummary = {
@@ -134,6 +145,10 @@ export type PortalReceiptRefundSummary = {
 export type PortalReceiptDetailData = {
   receipt: PortalReceiptRecord & {
     deviceName: string | null;
+    stationCode: string | null;
+    cashier: string | null;
+    reprintActor: string | null;
+    printStatus: PortalPrintStatus;
     localOrderId: string | null;
     netCents: number;
     taxCents: number;
@@ -220,24 +235,17 @@ function receiptScope(
   );
 }
 
-type ReceiptEventStats = {
-  printCount: number;
-  reprintCount: number;
-  lastEventType: string | null;
-  lastEventAt: Date | null;
-  lastActor: string | null;
-};
-
 async function loadReceiptEventStats(
   orgId: string,
   receiptIds: string[],
-): Promise<Map<string, ReceiptEventStats>> {
-  const stats = new Map<string, ReceiptEventStats>();
+): Promise<Map<string, ReceiptLifecycleDisplay>> {
+  const stats = new Map<string, ReceiptLifecycleDisplay>();
   if (receiptIds.length === 0) return stats;
 
   const rows = await db
     .select({
       receiptId: posReceiptEvents.receiptId,
+      eventId: posReceiptEvents.eventId,
       eventType: posReceiptEvents.eventType,
       occurredAt: posReceiptEvents.occurredAt,
       actor: posReceiptEvents.actor,
@@ -251,49 +259,49 @@ async function loadReceiptEventStats(
     )
     .orderBy(asc(posReceiptEvents.occurredAt), asc(posReceiptEvents.createdAt));
 
+  const byReceipt = new Map<string, typeof rows>();
   for (const row of rows) {
-    const current = stats.get(row.receiptId) ?? {
-      printCount: 0,
-      reprintCount: 0,
-      lastEventType: null,
-      lastEventAt: null,
-      lastActor: null,
-    };
+    const list = byReceipt.get(row.receiptId) ?? [];
+    list.push(row);
+    byReceipt.set(row.receiptId, list);
+  }
 
-    if (row.eventType === RECEIPT_EVENT_TYPES.PRINTED) {
-      current.printCount += 1;
-    }
-    if (row.eventType === RECEIPT_EVENT_TYPES.REPRINTED) {
-      current.reprintCount += 1;
-    }
-
-    current.lastEventType = row.eventType;
-    current.lastEventAt = row.occurredAt;
-    current.lastActor = row.actor;
-
-    stats.set(row.receiptId, current);
+  for (const receiptId of receiptIds) {
+    const events = byReceipt.get(receiptId) ?? [];
+    stats.set(
+      receiptId,
+      aggregateReceiptLifecycle(
+        events.map((event) => ({
+          eventType: event.eventType,
+          occurredAt: event.occurredAt,
+          actor: event.actor,
+          eventId: event.eventId,
+        })),
+      ),
+    );
   }
 
   return stats;
 }
 
 function derivePrintStats(events: PortalReceiptEventRecord[]): PortalReceiptPrintStats {
-  let reprintCount = 0;
-  let lastPrintAt: string | null = null;
-  let hasOriginalPrint = false;
-
-  for (const event of events) {
-    if (event.eventType === RECEIPT_EVENT_TYPES.PRINTED) {
-      hasOriginalPrint = true;
-      lastPrintAt = event.occurredAt;
-    }
-    if (event.eventType === RECEIPT_EVENT_TYPES.REPRINTED) {
-      reprintCount += 1;
-      lastPrintAt = event.occurredAt;
-    }
-  }
-
-  return { hasOriginalPrint, reprintCount, lastPrintAt };
+  const display = aggregateReceiptLifecycle(
+    events.map((event) => ({
+      eventType: event.eventType,
+      occurredAt: event.occurredAt,
+      actor: event.actor,
+      eventId: event.id,
+    })),
+  );
+  return {
+    status: display.printStatus,
+    printRequestCount: display.printRequestCount,
+    reprintRequestCount: display.reprintRequestCount,
+    reprintCount: display.reprintCount,
+    lastPrintAt: display.lastPrintAt,
+    reprintActor: display.reprintActor,
+    hasOriginalPrint: display.hasOriginalPrint,
+  };
 }
 
 function receiptPaymentBucketExists(
@@ -400,6 +408,7 @@ type ReceiptRowStub = {
   status: string | null;
   localOrderId: string | null;
   deviceName: string;
+  stationCode: string | null;
 };
 
 async function mapReceiptRowsToListItems(input: {
@@ -490,7 +499,7 @@ async function mapReceiptRowsToListItems(input: {
           ? paymentsByOrder.get(row.localOrderId) ?? []
           : []),
     );
-    const stats = eventStats.get(row.id);
+    const stats = eventStats.get(row.id) ?? emptyReceiptLifecycle();
     const mapped = mapPortalReceiptRecord({
       row,
       paymentMethod,
@@ -504,13 +513,13 @@ async function mapReceiptRowsToListItems(input: {
     return {
       ...mapped,
       deviceName: row.deviceName,
-      printCount: stats?.printCount ?? 0,
-      reprintCount: stats?.reprintCount ?? 0,
-      lastEventType: stats?.lastEventType ?? null,
-      lastEventAt: stats?.lastEventAt
-        ? toPortalReceiptIso(stats.lastEventAt)
-        : null,
-      cashier: stats?.lastActor?.trim() || null,
+      stationCode: row.stationCode,
+      printCount: stats.printCount,
+      reprintCount: stats.reprintCount,
+      printStatus: stats.printStatus,
+      lastEventType: stats.lastEventType,
+      lastEventAt: stats.lastEventAt,
+      cashier: stats.originalCashier,
     };
   });
 }
@@ -582,8 +591,8 @@ async function buildReceiptsSummary(input: {
     }
 
     const stats = eventStats.get(row.id);
-    if ((stats?.printCount ?? 0) > 0) printedCount += 1;
-    if ((stats?.reprintCount ?? 0) > 0) reprintedCount += 1;
+    if ((stats?.printRequestCount ?? 0) > 0) printedCount += 1;
+    if ((stats?.reprintRequestCount ?? 0) > 0) reprintedCount += 1;
 
     const normalizedStatus = normalizeReceiptStatus(row.status);
     if (
@@ -745,6 +754,7 @@ export async function fetchPortalReceiptsPage(
           status: posReceipts.status,
           localOrderId: posReceipts.localOrderId,
           deviceName: devices.name,
+          stationCode: devices.stationCode,
         })
         .from(posReceipts)
         .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
@@ -807,6 +817,7 @@ export async function fetchPortalReceiptDetail(
       status: posReceipts.status,
       localOrderId: posReceipts.localOrderId,
       deviceName: devices.name,
+      stationCode: devices.stationCode,
     })
     .from(posReceipts)
     .innerJoin(devices, eq(posReceipts.deviceId, devices.id))
@@ -898,12 +909,24 @@ export async function fetchPortalReceiptDetail(
   const events = eventRows.map(mapPortalReceiptEventRecord);
   const portalEvents = events.map(sanitizeEventForPortal);
   const refundedAmountCents = computeRefundedAmountCents(events);
+  const lifecycle = aggregateReceiptLifecycle(
+    events.map((event) => ({
+      eventType: event.eventType,
+      occurredAt: event.occurredAt,
+      actor: event.actor,
+      eventId: event.id,
+    })),
+  );
 
   return {
     receipt: {
       ...mapped,
       status: normalizeReceiptStatus(row.status),
       deviceName: row.deviceName,
+      stationCode: row.stationCode,
+      cashier: lifecycle.originalCashier,
+      reprintActor: lifecycle.reprintActor,
+      printStatus: lifecycle.printStatus,
       localOrderId: row.localOrderId,
       netCents: row.netCents,
       taxCents: row.taxCents,

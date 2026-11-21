@@ -80,6 +80,24 @@ function formatFiscalStatus(status: string, dash: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+function formatPrintStatus(
+  status: string | null | undefined,
+  t: DeriveReceiptsInput["t"],
+): string {
+  switch (status) {
+    case "created":
+      return t.receipts.printStatusCreated;
+    case "print_requested":
+    case "printed":
+      return t.receipts.printStatusPrintRequested;
+    case "reprint_requested":
+    case "reprinted":
+      return t.receipts.printStatusReprintRequested;
+    default:
+      return t.receipts.printStatusUnknown;
+  }
+}
+
 function formatEventLabel(
   eventType: string,
   t: DeriveReceiptsInput["t"],
@@ -88,8 +106,10 @@ function formatEventLabel(
     case "created":
       return t.receipts.eventCreated;
     case "printed":
+    case "print_requested":
       return t.receipts.eventPrinted;
     case "reprinted":
+    case "reprint_requested":
       return t.receipts.eventReprinted;
     case "refund":
       return t.receipts.eventRefunded;
@@ -242,9 +262,10 @@ function mapReceiptRow(
   const dash = input.t.labels.dash;
   const timezone = input.data.page?.timezone ?? "Europe/Berlin";
 
-  const lastEventLabel = receipt.lastEventType
-    ? formatEventLabel(receipt.lastEventType, input.t)
-    : dash;
+  const printStatus = receipt.printStatus ?? (receipt.lastEventType || "unknown");
+  const unknownPrint =
+    printStatus === "unknown" ||
+    (!receipt.printStatus && !receipt.lastEventType);
 
   return {
     id: receipt.id,
@@ -252,14 +273,17 @@ function mapReceiptRow(
       receipt.receiptNumber?.trim() || receipt.localReceiptId || dash,
     date: formatDate(receipt.issuedAt, input.locale, timezone),
     time: formatTime(receipt.issuedAt, input.locale, timezone),
-    cashier: receipt.cashier?.trim() || dash,
+    cashier: receipt.cashier?.trim() || input.t.receipts.cashierNotRecorded,
     payment: formatPaymentLabel(receipt.paymentMethod, input.t),
     amount: formatMoney(receipt.amountCents, receipt.currency, input.locale),
     status: formatStatusLabel(receipt.status, input.t),
     statusRaw: receipt.status,
     fiscal: formatFiscalStatus(receipt.fiscalStatus, dash),
-    printCount: String(receipt.printCount),
-    lastEvent: lastEventLabel,
+    printCount: unknownPrint ? input.t.receipts.printStatusUnknown : String(receipt.printCount),
+    reprintCount: unknownPrint
+      ? input.t.receipts.printStatusUnknown
+      : String(receipt.reprintCount),
+    lastEvent: formatPrintStatus(printStatus, input.t),
     source: receipt,
   };
 }
@@ -327,16 +351,32 @@ function derivePrintStats(input: DeriveReceiptsInput) {
       originalPrint: dash,
       reprintCount: dash,
       lastPrintTime: dash,
+      reprintActor: dash,
     };
   }
 
   const { printStats } = detail;
+  const status =
+    printStats.status ??
+    (printStats.hasOriginalPrint
+      ? printStats.reprintCount > 0
+        ? "reprint_requested"
+        : "print_requested"
+      : "unknown");
+  const unknown = status === "unknown";
+
   return {
-    originalPrint: printStats.hasOriginalPrint ? r.printYes : r.printNo,
-    reprintCount: String(printStats.reprintCount),
+    originalPrint: formatPrintStatus(status, input.t),
+    reprintCount: unknown
+      ? r.printStatusUnknown
+      : String(printStats.reprintRequestCount ?? printStats.reprintCount),
     lastPrintTime: printStats.lastPrintAt
       ? `${formatDate(printStats.lastPrintAt, input.locale, timezone)} ${formatTime(printStats.lastPrintAt, input.locale, timezone)}`
       : dash,
+    reprintActor:
+      printStats.reprintActor?.trim() ||
+      detail.receipt.reprintActor?.trim() ||
+      (unknown ? r.cashierNotRecorded : dash),
   };
 }
 

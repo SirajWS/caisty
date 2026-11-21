@@ -229,6 +229,10 @@ const PortalReceiptsPage: React.FC = () => {
       originalPrint: r.originalPrint,
       reprintCount: r.reprintCountLabel,
       lastPrintTime: r.lastPrintTime,
+      reprintActor: r.reprintActorLabel,
+      stationCode: r.stationCodeLabel,
+      cashier: r.colCashier,
+      cashierNotRecorded: r.cashierNotRecorded,
       historyTitle: r.historyTitle,
       historyEmpty: r.historyEmpty,
       sectionOverview: r.sectionOverview,
@@ -434,6 +438,7 @@ const PortalReceiptsPage: React.FC = () => {
           status: r.colStatus,
           fiscal: r.colFiscal,
           printCount: r.colPrintCount,
+          reprintCount: r.colReprintCount,
           lastEvent: r.colLastEvent,
         }}
       />

@@ -73,7 +73,9 @@ describe("deriveReceiptsState", () => {
     expect(state.receipts).toHaveLength(1);
     expect(state.receipts[0]?.status).toBe("Active");
     expect(state.receipts[0]?.printCount).toBe("1");
-    expect(state.receipts[0]?.lastEvent).toBe("Printed");
+    expect(state.receipts[0]?.lastEvent).toBe("Print requested");
+    expect(state.receipts[0]?.cashier).toBe("Anna");
+    expect(state.receipts[0]?.reprintCount).toBe("0");
     expect(state.summary.find((k) => k.id === "receipts_today")?.value).toBe("1");
     expect(state.summary.find((k) => k.id === "pos_revenue")?.value).toContain("164.000");
   });
@@ -138,9 +140,13 @@ describe("deriveReceiptsState", () => {
             },
           ],
           printStats: {
+            status: "print_requested",
+            printRequestCount: 1,
+            reprintRequestCount: 0,
             hasOriginalPrint: true,
             reprintCount: 0,
             lastPrintAt: "2026-07-14T10:01:00.000Z",
+            reprintActor: "Anna",
           },
           timeline: [
             {
@@ -180,9 +186,13 @@ describe("deriveReceiptsState", () => {
       locale: "en-US",
     });
 
-    expect(state.events.map((e) => e.label)).toEqual(["Created", "Printed"]);
-    expect(state.printStats.originalPrint).toBe("Yes");
+    expect(state.events.map((e) => e.label)).toEqual([
+      "Created",
+      "Print requested",
+    ]);
+    expect(state.printStats.originalPrint).toBe("Print requested");
     expect(state.printStats.reprintCount).toBe("0");
+    expect(state.printStats.reprintActor).toBe("Anna");
     expect(state.summary).toHaveLength(6);
   });
 
@@ -346,5 +356,66 @@ describe("deriveReceiptsState", () => {
 
     expect(state.receipts[0]?.amount).toBe("600 XYZ");
     expect(state.summary.find((k) => k.id === "pos_revenue")?.value).toBe("600 XYZ");
+  });
+
+  it("shows Unknown cashier and print status for historical receipts without events", () => {
+    const state = deriveReceiptsState({
+      data: {
+        customer: { id: "c1", email: "a@b.com", name: "Test" } as never,
+        page: {
+          timezone: "Europe/Berlin",
+          period: "today",
+          summary: {
+            receiptsCount: 1,
+            activeCount: 1,
+            printedCount: 0,
+            reprintedCount: 0,
+            refundsCount: 0,
+            posRevenueCents: 5000,
+            paymentSummary: {
+              cashCents: 5000,
+              cardCents: 0,
+              voucherCents: 0,
+              otherCents: 0,
+              currency: "EUR",
+            },
+          },
+          receipts: [
+            {
+              ...baseReceipt,
+              cashier: null,
+              printCount: 0,
+              reprintCount: 0,
+              printStatus: "unknown",
+              lastEventType: null,
+              lastEventAt: null,
+              stationCode: "K11",
+            },
+          ],
+          pagination: {
+            total: 1,
+            limit: 5,
+            offset: 0,
+            page: 1,
+            totalPages: 1,
+          },
+        },
+        detail: null,
+        detailReceiptId: null,
+        detailLoading: false,
+        loading: false,
+        error: false,
+        incompatibleApi: false,
+        applied: { period: "today" },
+        lastSyncedAt: null,
+      },
+      t,
+      locale: "en-US",
+    });
+
+    expect(state.receipts[0]?.cashier).toBe("Not recorded");
+    expect(state.receipts[0]?.printCount).toBe("Unknown");
+    expect(state.receipts[0]?.reprintCount).toBe("Unknown");
+    expect(state.receipts[0]?.lastEvent).toBe("Unknown");
   });
 });

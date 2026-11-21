@@ -35,7 +35,9 @@ function timelineIcon(kind: string) {
     case "partial_refund":
       return Undo2;
     case "printed":
+    case "print_requested":
     case "reprinted":
+    case "reprint_requested":
       return Printer;
     case "payment_changed":
       return ArrowLeftRight;

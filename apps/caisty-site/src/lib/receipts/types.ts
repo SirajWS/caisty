@@ -48,6 +48,7 @@ export type ReceiptTableRow = {
   statusRaw: string;
   fiscal: string;
   printCount: string;
+  reprintCount: string;
   lastEvent: string;
   source: PortalReceiptsResponse["receipts"][number];
 };
@@ -78,6 +79,7 @@ export type ReceiptsDerivedState = {
     originalPrint: string;
     reprintCount: string;
     lastPrintTime: string;
+    reprintActor: string;
   };
   detailReceipt: PortalReceiptDetailResponse["receipt"] | null;
   refundSummary: PortalReceiptRefundSummary | null;

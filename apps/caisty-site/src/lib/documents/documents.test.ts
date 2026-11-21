@@ -478,16 +478,22 @@ describe("buildReceiptDetailPdfModel", () => {
         },
         hasPaymentChange: false,
         printStats: {
+          status: "reprint_requested",
+          printRequestCount: 1,
+          reprintRequestCount: 2,
           hasOriginalPrint: true,
           reprintCount: 2,
           lastPrintAt: "2026-07-16T11:00:00.000Z",
+          reprintActor: "Register B",
         },
       },
     });
 
     expect(model.showFiscalPending).toBe(true);
     expect(model.products.body[0]?.[0]).toBe("Pizza");
-    expect(model.printStats.find(([k]) => k === "Reprints")?.[1]).toBe("2");
+    expect(model.printStats.find(([k]) => k === "Reprint requests")?.[1]).toBe(
+      "2",
+    );
     expect(model.activity).toHaveLength(1);
   });
 });

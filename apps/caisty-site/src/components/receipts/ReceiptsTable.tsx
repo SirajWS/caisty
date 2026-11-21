@@ -27,6 +27,7 @@ export function ReceiptsTable({
     status: string;
     fiscal: string;
     printCount: string;
+    reprintCount: string;
     lastEvent: string;
   };
   actionsLabel: string;
@@ -53,6 +54,7 @@ export function ReceiptsTable({
               <th>{columns.status}</th>
               <th>{columns.fiscal}</th>
               <th>{columns.printCount}</th>
+              <th>{columns.reprintCount}</th>
               <th>{columns.lastEvent}</th>
               <th>{actionsLabel}</th>
             </tr>
@@ -60,13 +62,13 @@ export function ReceiptsTable({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={11} className="orders-table-empty">
+                <td colSpan={12} className="orders-table-empty">
                   …
                 </td>
               </tr>
             ) : receipts.length === 0 ? (
               <tr>
-                <td colSpan={11} className="orders-table-empty">
+                <td colSpan={12} className="orders-table-empty">
                   {emptyLabel}
                 </td>
               </tr>
@@ -88,6 +90,7 @@ export function ReceiptsTable({
                   </td>
                   <td data-label={columns.fiscal}>{row.fiscal}</td>
                   <td data-label={columns.printCount}>{row.printCount}</td>
+                  <td data-label={columns.reprintCount}>{row.reprintCount}</td>
                   <td data-label={columns.lastEvent}>{row.lastEvent}</td>
                   <td data-label={actionsLabel}>
                     <div className="orders-table-actions">

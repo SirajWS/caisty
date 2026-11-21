@@ -56,7 +56,7 @@ export function ReceiptPortalDetailDrawer({
   open,
   detail,
   detailLoading,
-  events: _events,
+  events,
   printStats,
   refundSummary,
   identity,
@@ -74,6 +74,7 @@ export function ReceiptPortalDetailDrawer({
     originalPrint: string;
     reprintCount: string;
     lastPrintTime: string;
+    reprintActor: string;
   };
   identity: DocumentIdentity | null;
   refundSummary?: {
@@ -110,6 +111,10 @@ export function ReceiptPortalDetailDrawer({
     originalPrint: string;
     reprintCount: string;
     lastPrintTime: string;
+    reprintActor: string;
+    stationCode: string;
+    cashier: string;
+    cashierNotRecorded: string;
     historyTitle: string;
     historyEmpty: string;
     sectionOverview: string;
@@ -199,13 +204,14 @@ export function ReceiptPortalDetailDrawer({
       ? "cancelled"
       : "paid";
 
+  const translatedById = new Map(events.map((event) => [event.id, event]));
   const activityEvents: CaistyActivityEvent[] = (detail?.timeline ?? []).map(
     (event) => ({
       id: event.id,
       kind: event.kind,
-      label: event.label,
+      label: translatedById.get(event.id)?.label || event.label,
       occurredAt: event.occurredAt,
-      actor: event.actor,
+      actor: translatedById.get(event.id)?.actor || event.actor,
       summary: event.summary,
       source: "receipt" as const,
     }),
@@ -320,6 +326,9 @@ export function ReceiptPortalDetailDrawer({
                     </span>
                   </DrawerFact>
                   <DrawerFact label={labels.date}>{issuedAtLabel}</DrawerFact>
+                  <DrawerFact label={labels.cashier}>
+                    {receipt.cashier?.trim() || labels.cashierNotRecorded}
+                  </DrawerFact>
                 </dl>
               </DrawerSection>
 
@@ -333,6 +342,9 @@ export function ReceiptPortalDetailDrawer({
                   </DrawerFact>
                   <DrawerFact label={labels.device}>
                     {receipt.deviceName || labels.dash}
+                  </DrawerFact>
+                  <DrawerFact label={labels.stationCode}>
+                    {receipt.stationCode?.trim() || labels.dash}
                   </DrawerFact>
                   {receipt.localOrderId ? (
                     <DrawerFact label={labels.receipt}>
@@ -434,6 +446,9 @@ export function ReceiptPortalDetailDrawer({
                   </DrawerFact>
                   <DrawerFact label={labels.lastPrintTime}>
                     {printStats.lastPrintTime}
+                  </DrawerFact>
+                  <DrawerFact label={labels.reprintActor}>
+                    {printStats.reprintActor}
                   </DrawerFact>
                 </dl>
               </DrawerSection>
