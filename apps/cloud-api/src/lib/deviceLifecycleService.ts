@@ -150,3 +150,135 @@ export async function releaseDevice(
     licenseDevices,
   };
 }
+
+export type ArchiveDeviceResult =
+  | {
+      ok: true;
+      deviceId: string;
+      archivedAt: string;
+      alreadyArchived: boolean;
+      stationCode: string | null;
+    }
+  | {
+      ok: false;
+      code: "not_found" | "bound" | "invalid_transition";
+      message: string;
+    };
+
+function isArchived(device: { archivedAt?: Date | string | null }): boolean {
+  return Boolean(device.archivedAt);
+}
+
+/**
+ * Soft-archive a device from Super-Admin management lists.
+ * Keeps the row, station code, receipts and license history.
+ */
+export async function archiveDevice(
+  deviceId: string,
+): Promise<ArchiveDeviceResult> {
+  const existing = await findDeviceById(deviceId);
+
+  if (!existing) {
+    return {
+      ok: false,
+      code: "not_found",
+      message: "Device not found.",
+    };
+  }
+
+  if (isArchived(existing)) {
+    return {
+      ok: true,
+      deviceId: existing.id,
+      archivedAt:
+        existing.archivedAt instanceof Date
+          ? existing.archivedAt.toISOString()
+          : String(existing.archivedAt),
+      alreadyArchived: true,
+      stationCode: existing.stationCode ?? null,
+    };
+  }
+
+  if (existing.licenseId) {
+    return {
+      ok: false,
+      code: "bound",
+      message:
+        "Release the device from its license before removing it from management views.",
+    };
+  }
+
+  if (existing.status === DEVICE_STATUS.PENDING_APPROVAL) {
+    return {
+      ok: false,
+      code: "invalid_transition",
+      message: "A device waiting for approval cannot be archived.",
+    };
+  }
+
+  const now = new Date();
+  await db
+    .update(devices)
+    .set({
+      archivedAt: now,
+    } as typeof devices.$inferInsert)
+    .where(eq(devices.id, existing.id));
+
+  return {
+    ok: true,
+    deviceId: existing.id,
+    archivedAt: now.toISOString(),
+    alreadyArchived: false,
+    stationCode: existing.stationCode ?? null,
+  };
+}
+
+export type UnarchiveDeviceResult =
+  | {
+      ok: true;
+      deviceId: string;
+      restored: boolean;
+      stationCode: string | null;
+    }
+  | {
+      ok: false;
+      code: "not_found";
+      message: string;
+    };
+
+export async function unarchiveDevice(
+  deviceId: string,
+): Promise<UnarchiveDeviceResult> {
+  const existing = await findDeviceById(deviceId);
+
+  if (!existing) {
+    return {
+      ok: false,
+      code: "not_found",
+      message: "Device not found.",
+    };
+  }
+
+  if (!isArchived(existing)) {
+    return {
+      ok: true,
+      deviceId: existing.id,
+      restored: false,
+      stationCode: existing.stationCode ?? null,
+    };
+  }
+
+  await db
+    .update(devices)
+    .set({
+      archivedAt: null,
+    } as typeof devices.$inferInsert)
+    .where(eq(devices.id, existing.id));
+
+  return {
+    ok: true,
+    deviceId: existing.id,
+    restored: true,
+    stationCode: existing.stationCode ?? null,
+  };
+}

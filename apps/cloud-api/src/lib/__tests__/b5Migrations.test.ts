@@ -14,6 +14,11 @@ const sql = readFileSync(
   "utf8",
 );
 
+const archiveSql = readFileSync(
+  join(drizzleDir, "036_device_archived_at.sql"),
+  "utf8",
+);
+
 describe("B5 drizzle SQL discovery", () => {
   it("follows 033/034 as numbered SQL 035", () => {
     const files = readdirSync(drizzleDir).filter((name) => name.endsWith(".sql"));
@@ -35,5 +40,21 @@ describe("B5 drizzle SQL discovery", () => {
     expect(sql).toContain("AND d.station_code IS NULL");
     expect(sql.toLowerCase()).not.toContain("drop table");
     expect(sql.toLowerCase()).not.toContain("update pos_receipts");
+  });
+});
+
+describe("A1.1 archive migration 036", () => {
+  it("adds archived_at without deleting device rows or station codes", () => {
+    const files = readdirSync(drizzleDir).filter((name) => name.endsWith(".sql"));
+    expect(files).toContain("036_device_archived_at.sql");
+    expect(files.indexOf("035_device_station_code.sql")).toBeLessThan(
+      files.indexOf("036_device_archived_at.sql"),
+    );
+    expect(archiveSql).toContain("ADD COLUMN IF NOT EXISTS archived_at");
+    expect(archiveSql.toLowerCase()).not.toContain("drop table");
+    expect(archiveSql.toLowerCase()).not.toContain("drop column");
+    expect(archiveSql.toLowerCase()).not.toContain("delete from devices");
+    expect(archiveSql).not.toContain("DROP INDEX");
+    expect(sql).toContain("uq_devices_org_station_code");
   });
 });

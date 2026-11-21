@@ -23,6 +23,8 @@ export async function registerHealthRoute(app: FastifyInstance) {
         portalBusinessRoute,
         adminDeleteRoutes: [
           "DELETE /admin/devices/:deviceId",
+          "POST /admin/devices/:deviceId/archive",
+          "POST /admin/devices/:deviceId/unarchive",
           "DELETE /admin/subscriptions/:subscriptionId",
         ],
         portalRoutes: portalBusinessRoute

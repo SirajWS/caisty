@@ -32,6 +32,7 @@ export const devices = pgTable("devices", {
   blockedAt: timestamp("blocked_at", { withTimezone: true }),
   rejectedAt: timestamp("rejected_at", { withTimezone: true }),
   stationCode: varchar("station_code", { length: 16 }),
+  archivedAt: timestamp("archived_at", { withTimezone: true }),
 }, (t) => ({
   uqOrgStationCode: uniqueIndex("uq_devices_org_station_code")
     .on(t.orgId, t.stationCode)

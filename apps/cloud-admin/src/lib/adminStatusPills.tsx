@@ -42,9 +42,30 @@ export function SeatsStatus({
   );
 }
 
-export function DeviceStatusPill({ status }: { status: string }) {
+export function DeviceStatusPill({
+  status,
+  licenseId,
+  archivedAt,
+}: {
+  status: string;
+  licenseId?: string | null;
+  archivedAt?: string | null;
+}) {
+  if (archivedAt) {
+    return <StatusPill tone="gray" label="Archived" />;
+  }
   const s = norm(status);
+  if (s === "active" && !licenseId) {
+    return <StatusPill tone="amber" label="Active · unassigned" />;
+  }
   if (s === "active") return <StatusPill tone="green" label="Active" />;
+  if (s === "pending_approval") {
+    return <StatusPill tone="amber" label="Pending approval" />;
+  }
+  if (s === "blocked") return <StatusPill tone="red" label="Blocked" />;
+  if (s === "rejected") return <StatusPill tone="gray" label="Rejected" />;
+  if (s === "released") return <StatusPill tone="gray" label="Released" />;
+  if (s === "archived") return <StatusPill tone="gray" label="Archived" />;
   return <StatusPill tone="gray" label={status} />;
 }
 

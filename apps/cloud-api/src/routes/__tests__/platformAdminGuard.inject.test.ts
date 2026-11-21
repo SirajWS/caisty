@@ -51,6 +51,14 @@ async function buildApp() {
   await registerCustomersRoutes(app);
 
   app.get("/devices", async () => ({ items: [], total: 0 }));
+  app.post("/admin/devices/:deviceId/archive", async () => ({
+    ok: true,
+    archived: true,
+  }));
+  app.post("/admin/devices/:deviceId/unarchive", async () => ({
+    ok: true,
+    restored: true,
+  }));
   app.get("/licenses", async () => ({ items: [], total: 0 }));
   app.get("/portal/login-check", async () => ({ ok: true, portal: true }));
   app.get("/portal/receipts", async () => ({ items: [], b7: true }));
@@ -236,6 +244,32 @@ describe("platform admin API guard", () => {
       headers: { authorization: `Bearer ${superadminToken()}` },
     });
     expect(adminHtml.statusCode).toBe(200);
+    await app.close();
+  });
+
+  it("allows superadmin to archive devices and rejects portal JWT", async () => {
+    const app = await buildApp();
+    const allowed = await app.inject({
+      method: "POST",
+      url: "/admin/devices/dev-1/archive",
+      headers: { authorization: `Bearer ${superadminToken()}` },
+    });
+    expect(allowed.statusCode).toBe(200);
+    expect(allowed.json().ok).toBe(true);
+
+    const portal = await app.inject({
+      method: "POST",
+      url: "/admin/devices/dev-1/archive",
+      headers: { authorization: `Bearer ${portalToken()}` },
+    });
+    expect(portal.statusCode).toBe(403);
+
+    const support = await app.inject({
+      method: "POST",
+      url: "/admin/devices/dev-1/unarchive",
+      headers: { authorization: `Bearer ${supportToken()}` },
+    });
+    expect(support.statusCode).toBe(403);
     await app.close();
   });
 

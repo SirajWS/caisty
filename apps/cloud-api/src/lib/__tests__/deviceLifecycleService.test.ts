@@ -21,7 +21,12 @@ vi.mock("../deviceSeats.js", () => ({
     mocks.mockGetLicenseSeatSummary(...args),
 }));
 
-import { releaseDevice, DEVICE_RELEASED_STATUS } from "../deviceLifecycleService.js";
+import {
+  archiveDevice,
+  releaseDevice,
+  unarchiveDevice,
+  DEVICE_RELEASED_STATUS,
+} from "../deviceLifecycleService.js";
 import { DEVICE_STATUS } from "../deviceAccessPolicy.js";
 
 function chainSelect(rows: unknown[]) {
@@ -197,5 +202,127 @@ describe("releaseDevice", () => {
         pendingLicenseId: null,
       }),
     );
+  });
+});
+
+describe("archiveDevice", () => {
+  const releasedDevice = {
+    id: "dev-1",
+    orgId: "org-1",
+    customerId: "cust-1",
+    name: "Till 1",
+    type: "pos",
+    status: DEVICE_RELEASED_STATUS,
+    licenseId: null,
+    fingerprint: "fp-1",
+    stationCode: "K01",
+    releasedAt: new Date("2026-07-01T00:00:00Z"),
+    archivedAt: null,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("soft-archives a released device and keeps the station code", async () => {
+    chainSelect([releasedDevice]);
+    const updateChain = chainUpdate();
+
+    const result = await archiveDevice("dev-1");
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.alreadyArchived).toBe(false);
+      expect(result.stationCode).toBe("K01");
+      expect(result.archivedAt).toBeTruthy();
+    }
+    expect(updateChain.set).toHaveBeenCalledWith(
+      expect.objectContaining({
+        archivedAt: expect.any(Date),
+      }),
+    );
+  });
+
+  it("is idempotent when the device is already archived", async () => {
+    const archivedAt = new Date("2026-11-01T00:00:00Z");
+    chainSelect([{ ...releasedDevice, archivedAt }]);
+
+    const result = await archiveDevice("dev-1");
+
+    expect(result).toEqual({
+      ok: true,
+      deviceId: "dev-1",
+      archivedAt: archivedAt.toISOString(),
+      alreadyArchived: true,
+      stationCode: "K01",
+    });
+    expect(mocks.mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("rejects bound active devices until they are released", async () => {
+    chainSelect([
+      {
+        ...releasedDevice,
+        status: "active",
+        licenseId: "lic-1",
+      },
+    ]);
+
+    const result = await archiveDevice("dev-1");
+    expect(result).toEqual({
+      ok: false,
+      code: "bound",
+      message:
+        "Release the device from its license before removing it from management views.",
+    });
+  });
+
+  it("allows archiving an active unassigned device", async () => {
+    chainSelect([
+      {
+        ...releasedDevice,
+        status: "active",
+        licenseId: null,
+      },
+    ]);
+    chainUpdate();
+
+    const result = await archiveDevice("dev-1");
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects pending_approval devices", async () => {
+    chainSelect([
+      {
+        ...releasedDevice,
+        status: DEVICE_STATUS.PENDING_APPROVAL,
+      },
+    ]);
+
+    const result = await archiveDevice("dev-1");
+    expect(result).toEqual({
+      ok: false,
+      code: "invalid_transition",
+      message: "A device waiting for approval cannot be archived.",
+    });
+  });
+
+  it("restores an archived device without changing station code", async () => {
+    chainSelect([
+      {
+        ...releasedDevice,
+        archivedAt: new Date("2026-11-01T00:00:00Z"),
+      },
+    ]);
+    const updateChain = chainUpdate();
+
+    const result = await unarchiveDevice("dev-1");
+    expect(result).toEqual({
+      ok: true,
+      deviceId: "dev-1",
+      restored: true,
+      stationCode: "K01",
+    });
+    expect(updateChain.set).toHaveBeenCalledWith({ archivedAt: null });
   });
 });

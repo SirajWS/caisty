@@ -48,6 +48,9 @@ describe("platform admin route classification", () => {
     expect(isPlatformAdminRoute("/admin/notifications", "GET")).toBe(true);
     expect(isPlatformAdminRoute("/admin/fiscal/overview", "GET")).toBe(true);
     expect(isPlatformAdminRoute("/admin/devices/d1", "DELETE")).toBe(true);
+    expect(isPlatformAdminRoute("/admin/devices/d1/archive", "POST")).toBe(true);
+    expect(isPlatformAdminRoute("/admin/devices/d1/unarchive", "POST")).toBe(true);
+    expect(isPlatformAdminRoute("/devices", "GET")).toBe(true);
     expect(isPlatformAdminRoute("/admin/receipts", "GET")).toBe(true);
   });
 

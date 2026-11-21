@@ -181,6 +181,35 @@ export function apiDeleteDevice(deviceId: string): Promise<{
   return apiDelete(`/admin/devices/${encodeURIComponent(deviceId)}`);
 }
 
+/** Admin: soft-archive a device from management lists. */
+export function apiArchiveDevice(deviceId: string): Promise<{
+  ok: boolean;
+  message?: string;
+  alreadyArchived?: boolean;
+  stationCode?: string | null;
+}> {
+  return apiPost<Record<string, never>, {
+    ok: boolean;
+    message?: string;
+    alreadyArchived?: boolean;
+    stationCode?: string | null;
+  }>(`/admin/devices/${encodeURIComponent(deviceId)}/archive`, {});
+}
+
+export function apiUnarchiveDevice(deviceId: string): Promise<{
+  ok: boolean;
+  message?: string;
+  restored?: boolean;
+  stationCode?: string | null;
+}> {
+  return apiPost<Record<string, never>, {
+    ok: boolean;
+    message?: string;
+    restored?: boolean;
+    stationCode?: string | null;
+  }>(`/admin/devices/${encodeURIComponent(deviceId)}/unarchive`, {});
+}
+
 /** Admin: pending Subscription entfernen. */
 export function apiDeletePendingSubscription(subscriptionId: string): Promise<{
   ok: boolean;
