@@ -259,8 +259,8 @@ const PortalLicensesPage: React.FC = () => {
                         }`}
                       >
                         {lic.maxDevices == null || lic.unlimitedDevices
-                          ? t.devices.seatAvailableUnlimited
-                          : lic.maxDevices}
+                          ? `${lic.usedSeats ?? 0} · ${t.devices.seatAvailableUnlimited}`
+                          : `${lic.usedSeats ?? 0} / ${lic.maxDevices}`}
                       </td>
                       <td
                         className={`text-sm ${

@@ -4,6 +4,10 @@ import { eq } from "drizzle-orm";
 
 import { db } from "../db/client.js";
 import { licenses } from "../db/schema/licenses.js";
+import {
+  countOccupiedSeatsByLicenseIds,
+  licenseSeatPayload,
+} from "../lib/deviceSeats.js";
 import { verifyPortalToken } from "../lib/portalJwt.js";
 
 interface PortalJwtPayload {
@@ -32,6 +36,8 @@ type PortalLicenseDto = {
   /** null = unlimited */
   maxDevices: number | null;
   unlimitedDevices: boolean;
+  usedSeats: number;
+  devicesCount: number;
   validUntil: string | null;
   createdAt: string;
 };
@@ -53,6 +59,10 @@ export async function registerPortalLicensesRoutes(app: FastifyInstance) {
       .from(licenses)
       .where(eq(licenses.customerId as any, payload.customerId as any));
 
+    const countMap = await countOccupiedSeatsByLicenseIds(
+      rows.map((lic: { id: string }) => String(lic.id)),
+    );
+
     const result: PortalLicenseDto[] = rows.map((lic: any) => {
       // Explicit null from DB = unlimited; never coalesce null → 1
       const resolved: number | null =
@@ -61,13 +71,19 @@ export async function registerPortalLicensesRoutes(app: FastifyInstance) {
           : typeof lic.maxDevices === "number"
             ? lic.maxDevices
             : Number(lic.maxDevices) || 1;
+      const seats = licenseSeatPayload(
+        resolved,
+        countMap.get(String(lic.id)) ?? 0,
+      );
       return {
         id: String(lic.id),
         key: String(lic.key),
         plan: String(lic.plan),
         status: String(lic.status),
         maxDevices: resolved,
-        unlimitedDevices: resolved === null,
+        unlimitedDevices: seats.seatSummary.unlimitedDevices,
+        usedSeats: seats.devicesCount,
+        devicesCount: seats.devicesCount,
         validUntil: lic.validUntil
           ? new Date(lic.validUntil).toISOString()
           : null,

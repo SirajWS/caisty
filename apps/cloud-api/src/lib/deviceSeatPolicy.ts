@@ -17,9 +17,13 @@ export const DEVICE_SEAT_CONSUMING_STATUSES = ["active", "blocked"] as const;
 export type DeviceSeatInput = {
   status: string;
   licenseId: string | null;
+  archivedAt?: string | Date | null;
 };
 
 export function deviceOccupiesSeat(device: DeviceSeatInput): boolean {
+  if (device.archivedAt) {
+    return false;
+  }
   if (!device.licenseId?.trim()) {
     return false;
   }

@@ -9,6 +9,7 @@ import {
   type LicensePlanId,
 } from "../config/licensePlans.js";
 import { OFFLINE_GRACE_DAYS } from "../config/license.js";
+import { countSeatOccupyingDevicesForLicense } from "../lib/deviceSeatPolicy.js";
 import { resolveConsistentDeviceOrgId } from "../lib/posOrgContext.js";
 
 export type LicenseErrorCode =
@@ -146,7 +147,14 @@ export async function verifyLicenseForPos(
     .from(devices)
     .where(eq(devices.licenseId, lic.id));
 
-  const usedSeats = devicesForLicense.length;
+  const usedSeats = countSeatOccupyingDevicesForLicense(
+    devicesForLicense.map((d) => ({
+      status: String(d.status),
+      licenseId: d.licenseId ? String(d.licenseId) : null,
+      archivedAt: d.archivedAt ?? null,
+    })),
+    String(lic.id),
+  );
 
   const planId = (lic.plan || "starter") as LicensePlanId;
   const planConfig = LICENSE_PLANS[planId];

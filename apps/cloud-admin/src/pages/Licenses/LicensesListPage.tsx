@@ -16,6 +16,7 @@ import {
   SectionHeader,
   Select,
 } from "../../components/ui";
+import { formatMaxDevices, seatTotalForDisplay } from "../../lib/adminLicenseSeats";
 import { LicenseStatusPill, SeatsStatus } from "../../lib/adminStatusPills";
 
 type License = {
@@ -482,8 +483,7 @@ export default function LicensesListPage() {
             <tbody>
               {generatedLicenses.map((lic) => {
                 const used = lic.devicesCount ?? 0;
-                const seatTotal =
-                  lic.maxDevices === null ? null : (lic.maxDevices ?? used);
+                const seatTotal = seatTotalForDisplay(lic.maxDevices);
 
                 return (
                   <tr key={lic.id}>
@@ -493,9 +493,7 @@ export default function LicensesListPage() {
                       <LicenseStatusPill status={lic.status} />
                     </td>
                     <td>
-                      {lic.maxDevices === null
-                        ? "Unlimited"
-                        : (lic.maxDevices ?? "—")}
+                      {formatMaxDevices(lic.maxDevices)}
                     </td>
                     <td>
                       <SeatsStatus used={used} total={seatTotal} />
@@ -631,8 +629,7 @@ export default function LicensesListPage() {
               !error &&
               filteredAssignedLicenses.map((lic) => {
                 const used = lic.devicesCount ?? 0;
-                const seatTotal =
-                  lic.maxDevices === null ? null : (lic.maxDevices ?? used);
+                const seatTotal = seatTotalForDisplay(lic.maxDevices);
                 const customer = lic.customerId
                   ? customersById[lic.customerId]
                   : undefined;
@@ -649,9 +646,7 @@ export default function LicensesListPage() {
                       <LicenseStatusPill status={lic.status} />
                     </td>
                     <td>
-                      {lic.maxDevices === null
-                        ? "Unlimited"
-                        : (lic.maxDevices ?? "—")}
+                      {formatMaxDevices(lic.maxDevices)}
                     </td>
                     <td>
                       <SeatsStatus used={used} total={seatTotal} />

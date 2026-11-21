@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { db } from "../db/client.js";
 import { devices } from "../db/schema/devices.js";
@@ -158,6 +158,7 @@ async function countBoundDevicesForLicenseInTx(
       and(
         eq(devices.licenseId, licenseId),
         inArray(devices.status, [...DEVICE_SEAT_CONSUMING_STATUSES]),
+        isNull(devices.archivedAt),
       ),
     );
   return Number(row?.value ?? 0);

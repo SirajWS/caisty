@@ -15,6 +15,7 @@ import {
   Select,
   Toolbar,
 } from "../../components/ui";
+import { formatMaxDevices, seatTotalForDisplay } from "../../lib/adminLicenseSeats";
 import { LicenseStatusPill, SeatsStatus } from "../../lib/adminStatusPills";
 
 type License = {
@@ -227,8 +228,7 @@ export default function PortalLicensesPage() {
               !error &&
               filteredLicenses.map((lic) => {
                 const used = lic.devicesCount ?? 0;
-                const seatTotal =
-                  lic.maxDevices === null ? null : (lic.maxDevices ?? used);
+                const seatTotal = seatTotalForDisplay(lic.maxDevices);
                 const customer = lic.customerId
                   ? customersById[lic.customerId]
                   : undefined;
@@ -245,9 +245,7 @@ export default function PortalLicensesPage() {
                       <LicenseStatusPill status={lic.status} />
                     </td>
                     <td>
-                      {lic.maxDevices === null
-                        ? "Unlimited"
-                        : (lic.maxDevices ?? "—")}
+                      {formatMaxDevices(lic.maxDevices)}
                     </td>
                     <td>
                       <SeatsStatus used={used} total={seatTotal} />

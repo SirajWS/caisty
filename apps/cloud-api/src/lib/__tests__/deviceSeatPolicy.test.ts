@@ -41,6 +41,16 @@ describe("deviceOccupiesSeat", () => {
       deviceOccupiesSeat({ status: "active", licenseId: null }),
     ).toBe(false);
   });
+
+  it("does not count archived rows even if they still look assigned", () => {
+    expect(
+      deviceOccupiesSeat({
+        status: "active",
+        licenseId: "lic-1",
+        archivedAt: new Date("2026-01-01T00:00:00.000Z"),
+      }),
+    ).toBe(false);
+  });
 });
 
 describe("countSeatOccupyingDevicesForLicense", () => {
@@ -63,5 +73,35 @@ describe("countSeatOccupyingDevicesForLicense", () => {
 
   it("returns zero when no seats are occupied", () => {
     expect(countSeatOccupyingDevicesForLicense(rows, "lic-missing")).toBe(0);
+  });
+
+  it("counts two device IDs with the same fingerprint independently", () => {
+    expect(
+      countSeatOccupyingDevicesForLicense(
+        [
+          { status: "active", licenseId: "lic-1" },
+          { status: "active", licenseId: "lic-1" },
+        ],
+        "lic-1",
+      ),
+    ).toBe(2);
+  });
+
+  it("drops occupancy after release and not again on a repeated release", () => {
+    const afterFirst = [
+      { status: "released", licenseId: null },
+      { status: "active", licenseId: "lic-1" },
+    ];
+    expect(countSeatOccupyingDevicesForLicense(afterFirst, "lic-1")).toBe(1);
+    expect(countSeatOccupyingDevicesForLicense(afterFirst, "lic-1")).toBe(1);
+  });
+
+  it("does not unbind occupying seats when the license is revoked or expired", () => {
+    expect(
+      countSeatOccupyingDevicesForLicense(
+        [{ status: "active", licenseId: "lic-1" }],
+        "lic-1",
+      ),
+    ).toBe(1);
   });
 });

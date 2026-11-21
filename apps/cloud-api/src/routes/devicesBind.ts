@@ -10,6 +10,7 @@ import {
   canAcceptAdditionalDevice,
   isUnlimitedDeviceLimit,
 } from "../lib/deviceLimits.js";
+import { countSeatOccupyingDevicesForLicense } from "../lib/deviceSeatPolicy.js";
 import { resolveConsistentDeviceOrgId } from "../lib/posOrgContext.js";
 
 // Strukturen wie aus der POS-Seite "Cloud Customer / Account"
@@ -182,7 +183,14 @@ const devicesBindRoutes = async (app: FastifyInstance) => {
         );
       }
 
-      const usedSeats = devicesForLicense.length;
+      const usedSeats = countSeatOccupyingDevicesForLicense(
+        devicesForLicense.map((d) => ({
+          status: String(d.status),
+          licenseId: d.licenseId ? String(d.licenseId) : null,
+          archivedAt: d.archivedAt ?? null,
+        })),
+        String(license.id),
+      );
       const maxDevices = license.maxDevices ?? null;
 
       if (

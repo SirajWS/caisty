@@ -444,6 +444,9 @@ export interface PortalLicense {
   maxDevices: number | null;
   /** Present when API marks unlimited seats explicitly. */
   unlimitedDevices?: boolean;
+  /** Occupied seats from getLicenseSeatSummary / occupying policy. */
+  usedSeats?: number;
+  devicesCount?: number;
   validUntil: string | null; // ISO
   createdAt: string; // ISO
 }

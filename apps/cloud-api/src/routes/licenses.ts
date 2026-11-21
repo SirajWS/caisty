@@ -5,10 +5,14 @@ import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { licenses } from "../db/schema/licenses.js";
 import { licenseEvents } from "../db/schema/licenseEvents.js";
-import { devices } from "../db/schema/devices.js";
 import { customers } from "../db/schema/customers.js";
 import { generateLicenseKey } from "../lib/licenseKey.js";
 import { maxDevicesForPlan } from "../config/licensePlans.js";
+import {
+  countOccupiedSeatsByLicenseIds,
+  getLicenseSeatSummary,
+  licenseSeatPayload,
+} from "../lib/deviceSeats.js";
 import {
   LICENSE_DELETE_DISABLED,
   revokeLicense,
@@ -162,36 +166,13 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
             .limit(200);
         }
 
-      // Devices pro License zählen
-      let itemsWithCounts = items.map((lic: DbLicense) => ({
+      const countMap = await countOccupiedSeatsByLicenseIds(
+        items.map((lic: DbLicense) => lic.id),
+      );
+      const itemsWithCounts = items.map((lic: DbLicense) => ({
         ...lic,
-        devicesCount: 0 as number,
+        ...licenseSeatPayload(lic.maxDevices, countMap.get(lic.id) ?? 0),
       }));
-
-      if (items.length > 0) {
-        const licenseIds = items.map((lic: DbLicense) => lic.id);
-
-        const counts = await db
-          .select({
-            licenseId: devices.licenseId,
-            count: sql<number>`count(*)`,
-          })
-          .from(devices)
-          .where(inArray(devices.licenseId, licenseIds))
-          .groupBy(devices.licenseId);
-
-        const countMap = new Map<string, number>();
-        for (const row of counts) {
-          if (row.licenseId) {
-            countMap.set(row.licenseId, row.count);
-          }
-        }
-
-        itemsWithCounts = items.map((lic: DbLicense) => ({
-          ...lic,
-          devicesCount: countMap.get(lic.id) ?? 0,
-        }));
-      }
 
       // Status für alle Lizenzen berechnen (prüft auf Ablauf)
       const itemsWithCorrectStatus = await Promise.all(
@@ -277,36 +258,13 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
         };
       }
 
-      // Devices pro License zählen
-      let itemsWithCounts = portalLicenses.map((lic: DbLicense) => ({
+      const countMap = await countOccupiedSeatsByLicenseIds(
+        portalLicenses.map((lic: DbLicense) => lic.id),
+      );
+      const itemsWithCounts = portalLicenses.map((lic: DbLicense) => ({
         ...lic,
-        devicesCount: 0 as number,
+        ...licenseSeatPayload(lic.maxDevices, countMap.get(lic.id) ?? 0),
       }));
-
-      if (portalLicenses.length > 0) {
-        const licenseIdList = portalLicenses.map((lic: DbLicense) => lic.id);
-
-        const counts = await db
-          .select({
-            licenseId: devices.licenseId,
-            count: sql<number>`count(*)`,
-          })
-          .from(devices)
-          .where(inArray(devices.licenseId, licenseIdList))
-          .groupBy(devices.licenseId);
-
-        const countMap = new Map<string, number>();
-        for (const row of counts) {
-          if (row.licenseId) {
-            countMap.set(row.licenseId, row.count);
-          }
-        }
-
-        itemsWithCounts = portalLicenses.map((lic: DbLicense) => ({
-          ...lic,
-          devicesCount: countMap.get(lic.id) ?? 0,
-        }));
-      }
 
       // Status für alle Portal-Lizenzen berechnen (prüft auf Ablauf)
       const itemsWithCorrectStatus = await Promise.all(
@@ -470,7 +428,14 @@ export async function registerLicensesRoutes(app: FastifyInstance) {
           );
         }
 
-        return { item };
+        const seatSummary = await getLicenseSeatSummary(id);
+        return {
+          item: {
+            ...item,
+            devicesCount: seatSummary.used,
+            seatSummary,
+          },
+        };
       } catch (err) {
         console.error("Error loading license", err);
         reply.code(500);

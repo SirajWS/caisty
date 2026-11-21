@@ -21,6 +21,10 @@ import {
   releaseActionDeviceId,
 } from "../../lib/adminCustomerDevices";
 import {
+  formatMaxDevices,
+  summarizeCustomerDeviceRecords,
+} from "../../lib/adminLicenseSeats";
+import {
   ARCHIVE_CONFIRM_MESSAGE,
   type AdminDeviceListItem,
   RELEASE_CONFIRM_MESSAGE,
@@ -369,15 +373,16 @@ export default function CustomerDetailPage() {
 
   const subscriptionsCount = subscriptions.length;
   const licensesCount = licenses.length;
-  const devicesCount = devices.length;
+  const deviceSeatStats = useMemo(
+    () => summarizeCustomerDeviceRecords(devices),
+    [devices],
+  );
 
   const mainLicense = useMemo(() => {
     if (licenses.length === 0) return null;
     const active = licenses.find((l) => l.status === "active");
     return active ?? licenses[0];
   }, [licenses]);
-
-  const deviceSlotLimit = mainLicense?.maxDevices ?? null;
 
   if (!customerId) {
     return (
@@ -541,10 +546,16 @@ export default function CustomerDetailPage() {
                   <div>{licensesCount}</div>
                 </div>
                 <div>
-                  <div style={{ color: "#9ca3af" }}>Devices</div>
-                  <div>
-                    {devicesCount}
-                    {deviceSlotLimit != null ? ` / ${deviceSlotLimit}` : ""}
+                  <div style={{ color: "#9ca3af" }}>Device records</div>
+                  <div>{deviceSeatStats.visibleRecords}</div>
+                  <div style={{ fontSize: 12, color: "#9ca3af" }}>
+                    {deviceSeatStats.occupiedSeats} occupied seats
+                    {deviceSeatStats.released
+                      ? ` · ${deviceSeatStats.released} released`
+                      : ""}
+                    {deviceSeatStats.pending
+                      ? ` · ${deviceSeatStats.pending} pending`
+                      : ""}
                   </div>
                 </div>
               </div>
@@ -965,7 +976,7 @@ export default function CustomerDetailPage() {
                       <td>
                         <LicenseStatusPill status={l.status} />
                       </td>
-                      <td>{l.maxDevices ?? "—"}</td>
+                      <td>{formatMaxDevices(l.maxDevices)}</td>
                       <td>{formatDate(l.validUntil)}</td>
                       <td>{formatDate(l.createdAt)}</td>
                     </tr>

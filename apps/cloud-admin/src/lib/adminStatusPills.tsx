@@ -22,7 +22,7 @@ export function SeatsStatus({
   if (total === null) {
     return (
       <span className="ds-muted">
-        {used}/∞
+        {used} / Unlimited
       </span>
     );
   }

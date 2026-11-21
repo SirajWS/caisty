@@ -5,6 +5,7 @@ import {
   canRevokeLicense,
   REVOKE_LICENSE_CONFIRM_MESSAGE,
 } from "../../lib/adminLicenseRevoke";
+import { formatSeatUsage } from "../../lib/adminLicenseSeats";
 import {
   DeviceStatusPill,
   LicenseStatusPill,
@@ -21,6 +22,12 @@ type License = {
   validFrom: string | null;
   validUntil: string | null;
   createdAt: string;
+  devicesCount?: number;
+  seatSummary?: {
+    used: number;
+    limit: number | null;
+    unlimitedDevices: boolean;
+  };
 };
 
 type LicenseEvent = {
@@ -51,6 +58,7 @@ type Device = {
 
   lastHeartbeatAt: string | null;
   createdAt: string;
+  archivedAt?: string | null;
 
   licenses?: Array<{
     id: string;
@@ -136,32 +144,10 @@ export default function LicenseDetailPage() {
       setLicense(licenseRes.item);
       setEvents(eventsRes.items);
 
-      const devsForLicense = (devicesRes.items ?? []).filter((dev: any) => {
-        if (dev.licenseId === licenseRes.item.id) {
-          return true;
-        }
-        if (dev.licenses && Array.isArray(dev.licenses)) {
-          return dev.licenses.some((lic: any) => lic.id === licenseRes.item.id);
-        }
-        return false;
-      }).map((dev: any) => {
-        if (dev.licenses && Array.isArray(dev.licenses)) {
-          const matchingLicense = dev.licenses.find(
-            (lic: any) => lic.id === licenseRes.item.id,
-          );
-          if (matchingLicense) {
-            return {
-              ...dev,
-              licenseId: matchingLicense.id,
-              licenseKey: matchingLicense.key,
-              licensePlan: matchingLicense.plan,
-              licenseValidFrom: matchingLicense.validFrom,
-              licenseValidUntil: matchingLicense.validUntil,
-            };
-          }
-        }
-        return dev;
-      });
+      const devsForLicense = (devicesRes.items ?? []).filter(
+        (dev) =>
+          dev.licenseId === licenseRes.item.id && !dev.archivedAt,
+      );
       setLicenseDevices(devsForLicense);
     } catch (err: any) {
       console.error(err);
@@ -244,8 +230,17 @@ export default function LicenseDetailPage() {
                 Plan: <strong>{license.plan}</strong>
               </div>
               <div style={{ fontSize: 13, color: "#9ca3af" }}>
-                Max Devices:{" "}
-                <strong>{license.maxDevices ?? "—"}</strong>
+                Occupied seats:{" "}
+                <strong>
+                  {formatSeatUsage(
+                    license.seatSummary?.used ?? license.devicesCount ?? 0,
+                    license.maxDevices,
+                  )}
+                </strong>
+              </div>
+              <div style={{ fontSize: 12, color: "#9ca3af" }}>
+                License status is independent of occupied seats. Revoke does not
+                release devices.
               </div>
               <div style={{ fontSize: 13, color: "#9ca3af" }}>
                 Customer:{" "}
@@ -319,7 +314,8 @@ export default function LicenseDetailPage() {
               marginBottom: 8,
             }}
           >
-            All POS devices currently using this license key.
+            Currently assigned device rows (one per device ID). Occupied seats
+            count only active and blocked assignments.
           </p>
 
           <div className="admin-table-wrapper" style={{ marginBottom: 24 }}>
